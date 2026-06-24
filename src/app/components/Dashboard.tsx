@@ -204,9 +204,13 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onSetting
 
         {/* Sheet header */}
         <div className="flex items-center justify-between w-full px-4 py-3">
-          <button onClick={onBack ?? onOpenInvoices} aria-label="Back" className="size-[30px] rounded-full flex items-center justify-center">
-            <ChevronLeft size={16} style={{ color: INK }} />
-          </button>
+          {onBack ? (
+            <button onClick={onBack} aria-label="Back" className="size-[30px] rounded-full flex items-center justify-center">
+              <ChevronLeft size={16} style={{ color: INK }} />
+            </button>
+          ) : (
+            <span className="size-[30px]" aria-hidden />
+          )}
           <p className="flex-1 text-[20px] font-black leading-none tracking-[-1px]" style={{ ...FONT, color: INK }}>Sales Invoices</p>
           <div className="flex items-center">
             <button className="relative size-10 rounded-full flex items-center justify-center">

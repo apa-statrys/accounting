@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Menu, X } from "lucide-react";
-import { AccountingHub } from "./components/AccountingHub";
 import { Dashboard, HERO_SCENARIOS } from "./components/Dashboard";
 import { InvoiceDetailPage, type DetailStatus, type InvoiceEditSeed } from "./components/InvoiceDetailPage";
 import { CreateSalesInvoice, CUSTOMERS, type Customer } from "./components/CreateSalesInvoice";
@@ -13,7 +12,7 @@ import { UploadInvoice } from "./components/UploadInvoice";
 import { GeneratingInvoice } from "./components/GeneratingInvoice";
 import { DEMO_EXTRACTION, DEMO_EXTRACTION_MATCHED, BLANK_EXTRACTION, EXISTING_INVOICES, type ExtractedInvoice, type ExistingInvoice } from "./components/extractInvoice";
 
-type Screen = "accounting" | "dashboard" | "list" | "customer" | "details" | "upload" | "extracting" | "send" | "invoiceDetail" | "needAttention" | "duplicateCheck";
+type Screen = "dashboard" | "list" | "customer" | "details" | "upload" | "extracting" | "send" | "invoiceDetail" | "needAttention" | "duplicateCheck";
 
 /** OCR steps shown while an uploaded invoice is being read. */
 const OCR_STEPS = [
@@ -25,7 +24,6 @@ const OCR_STEPS = [
 
 /** Top-level navigation sections (the create flow lives under "Create Sales Invoice"). */
 const NAV: { id: Screen; label: string }[] = [
-  { id: "accounting", label: "Accounting Hub" },
   { id: "dashboard", label: "Dashboard" },
   { id: "list", label: "Invoice List" },
   { id: "customer", label: "Create Sales Invoice" },
@@ -114,7 +112,7 @@ function QuickNav({ current, onChange, scenario, onScenario }: { current: Screen
 }
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>("accounting");
+  const [screen, setScreen] = useState<Screen>("dashboard");
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [extracted, setExtracted] = useState<ExtractedInvoice | null>(null);
   // Extraction queued while the OCR screen plays (chosen from the upload source).
@@ -154,21 +152,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#EDEDED] flex flex-col items-center justify-center gap-4 p-4">
-      {screen === "accounting" && (
-        <AccountingHub
-          onOpenSalesInvoices={() => setScreen("dashboard")}
-          onOpenCustomers={() => {
-            setExtracted(null);
-            setScreen("customer");
-          }}
-        />
-      )}
-
       {screen === "dashboard" && (
         <Dashboard
           tab="dashboard"
           scenario={heroScenario}
-          onBack={() => setScreen("accounting")}
           onOpenNeedAttention={() => setScreen("needAttention")}
           onOpenInvoices={() => {
             setListPreset(null);

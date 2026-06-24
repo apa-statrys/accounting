@@ -40,10 +40,10 @@ in the repo** — reconcile the manual-create flow when the user provides it.
 
 ## App structure & navigation
 
-`src/app/App.tsx` is the screen router. `type Screen = "accounting" | "dashboard" | "list" |
-"customer" | "details" | "upload" | "extracting" | "send" | "invoiceDetail" | "needAttention"`.
-The app now **lands on `accounting`** (the finance-app Menu hub). A dev-only **QuickNav** FAB (bottom-left)
-jumps between sections. Key shared state in App: `customer`, `extracted`, `pendingExtraction`,
+`src/app/App.tsx` is the screen router. `type Screen = "dashboard" | "list" | "customer" | "details" |
+"upload" | "extracting" | "send" | "invoiceDetail" | "needAttention" | "duplicateCheck"`.
+The app **lands on `dashboard`** (the Accounting Hub was removed 2026-06-24). A dev-only **QuickNav** FAB
+(bottom-left) jumps between sections. Key shared state in App: `customer`, `extracted`, `pendingExtraction`,
 `toast`, and `recent` (the just-created/saved card to highlight on the list).
 
 Screen flow:
@@ -72,10 +72,9 @@ Screen flow:
 - Send sub-flows: **SendInvoiceSheet** (Delivery method) → **ReviewEmail** / **ShareLinkSheet**
   (+ **DemoShareSheet** visual iOS sheet) / **InvoicePreviewPage** (real invoice PDF with full
   "How to pay" bank details). **AddCustomerSheet** (quick-add + optional expander, DES-713).
-- **AccountingHub.tsx** — finance-app **Menu** hub (entry points: Sales Invoices + Customers
-  in one block, Purchase Invoices in a second). Uses **FinanceBottomNav.tsx** (Figma 465:3159
-  glassy orange pill: Accounts/Transactions/Cards/Menu, Menu active). Hub framing only — not a
-  ticket deliverable. Sales Invoices → dashboard; dashboard back arrow → hub.
+- **AccountingHub.tsx** / **FinanceBottomNav.tsx** — the finance-app **Menu** hub. **Removed from the
+  app 2026-06-24** (no longer the landing screen; the files remain on disk but are unused). The
+  **Dashboard is now the root** screen, with **no back arrow**.
 - **InvoiceDetailPage.tsx** — status-aware invoice detail for the full lifecycle (Draft /
   Awaiting / Overdue / Partially Paid / Paid / Void), opened by tapping a list card. Per-status
   actions: Draft→Issue/Edit/Delete; Awaiting/Overdue→Send/Edit/Download/Cancel-with-credit-note;
@@ -420,6 +419,10 @@ Latest decisions/changes. Where these conflict with anything above, **this wins.
   rows. Searching collapses to one flat **RESULTS** list.
 
 ### Misc
+- **Accounting Hub removed** — app **lands on `dashboard`** (the root); Dashboard has **no back arrow**;
+  `AccountingHub.tsx` / `FinanceBottomNav.tsx` remain on disk but unused. QuickNav no longer lists it
+  (nor "Invoice Detail" / "Needs Attention" — reached by tapping through). **Hero states are nested
+  under Dashboard in QuickNav** (Happy path is the default).
 - File uploader dropzone label: **"Select one file under 10 MB"**.
 - **Customer avatars removed** app-wide remains in effect (temporary, pending invoice-number confirmation).
 - Numbers are **5-digit `INV-YYYY-NNNNN`** (from 2026-06-23).

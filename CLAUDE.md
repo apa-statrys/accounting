@@ -38,20 +38,18 @@ Always grep that new imports/symbols exist after using them. Phone frame is **37
 
 ## App shell & navigation (`src/app/App.tsx`)
 
-Screen router. `Screen = "accounting" | "dashboard" | "list" | "customer" | "details" |
-"upload" | "extracting" | "send" | "invoiceDetail" | "needAttention" | "duplicateCheck"`. App
-**lands on `accounting`** (the finance-app Menu hub). Dev-only **QuickNav** FAB (bottom-left) jumps
-between sections. Detail page tracks `detailReturn` (back **and** in-page actions return to wherever
+Screen router. `Screen = "dashboard" | "list" | "customer" | "details" | "upload" | "extracting" |
+"send" | "invoiceDetail" | "needAttention" | "duplicateCheck"`. App **lands on `dashboard`** (the
+Accounting Hub was removed 2026-06-24). Dev-only **QuickNav** FAB (bottom-left) jumps between sections. Detail page tracks `detailReturn` (back **and** in-page actions return to wherever
 it was opened — list / dashboard / needAttention) and `detailFlash` (one-off toast on arrival; back
 clears it so it shows once). Invoice numbers use **`INV-YYYY-NNNNN`** (5-digit, e.g. `INV-2026-00001`).
 **`doc/sales-invoice-flows/context-sales-invoice.md` → "Session update (2026-06-24)" is the current
 truth** for the upload/duplicate flow, dashboard hero, send sub-flow, and Needs Attention.
 
-- **AccountingHub.tsx** — finance-app Menu hub (framing only, not a ticket deliverable). Two
-  dashed-card blocks: [Sales Invoices, Customers] and [Purchase Invoices]. Uses
-  **FinanceBottomNav.tsx** (Figma 465:3159 glassy orange pill: Accounts/Transactions/Cards/Menu,
-  Menu active). Sales Invoices → dashboard; dashboard back arrow → hub.
-- **Dashboard.tsx** — Sales dashboard (Figma 484:4564). **Hero = two glassy sub-cards**: Collected
+- **AccountingHub.tsx** / **FinanceBottomNav.tsx** — the finance-app Menu hub. **Removed from the app
+  2026-06-24** (no longer the landing; files remain on disk but unused). Dashboard is now the root,
+  with **no back arrow**.
+- **Dashboard.tsx** — Sales dashboard (Figma 484:4564), the landing screen. **Hero = two glassy sub-cards**: Collected
   (border + blur, green `#58c67f` %, gradient progress bar, peer note) and Outstanding (bg-white/10 +
   blur, overdue line, outlined **View All** → Outstanding list). Header bell **+ Settings gear**
   (`onSettings`, unwired — DES-764). **Recent Invoices = 5 rows + a "View all invoices" button.**
