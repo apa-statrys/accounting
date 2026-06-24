@@ -1,0 +1,435 @@
+/* ============================================================
+   GOOGLE FONTS
+   Space Mono removed — only primary + highlight fonts used
+   ============================================================ */
+
+/* Sweet Sucker Punch Font Face Declaration */
+@import url('https://fonts.cdnfonts.com/css/sweet-sucker-punch');
+
+/* GT Walsheim LC Font Face Declarations */
+@font-face {
+
+  font-family: 'GT Walsheim LC';
+  src: url('https://db.onlinewebfonts.com/t/1dc8ecd7e5c763938c2a4dc4224ff6dc.eot');
+  src: url('https://db.onlinewebfonts.com/t/1dc8ecd7e5c763938c2a4dc4224ff6dc.eot?#iefix') format('embedded-opentype'),
+       url('https://db.onlinewebfonts.com/t/1dc8ecd7e5c763938c2a4dc4224ff6dc.woff2') format('woff2'),
+       url('https://db.onlinewebfonts.com/t/1dc8ecd7e5c763938c2a4dc4224ff6dc.woff') format('woff'),
+       url('https://db.onlinewebfonts.com/t/1dc8ecd7e5c763938c2a4dc4224ff6dc.ttf') format('truetype'),
+       url('https://db.onlinewebfonts.com/t/1dc8ecd7e5c763938c2a4dc4224ff6dc.svg#GT Walsheim LC') format('svg');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT Walsheim LC';
+  src: url('https://db.onlinewebfonts.com/t/cae359e1d779ca831b4b1b223097be7a.eot');
+  src: url('https://db.onlinewebfonts.com/t/cae359e1d779ca831b4b1b223097be7a.eot?#iefix') format('embedded-opentype'),
+       url('https://db.onlinewebfonts.com/t/cae359e1d779ca831b4b1b223097be7a.woff2') format('woff2'),
+       url('https://db.onlinewebfonts.com/t/cae359e1d779ca831b4b1b223097be7a.woff') format('woff'),
+       url('https://db.onlinewebfonts.com/t/cae359e1d779ca831b4b1b223097be7a.ttf') format('truetype'),
+       url('https://db.onlinewebfonts.com/t/cae359e1d779ca831b4b1b223097be7a.svg#GT Walsheim LC Medium') format('svg');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT Walsheim LC';
+  src: url('https://db.onlinewebfonts.com/t/8a19a4e364c19c552c8830c0dcecf507.eot');
+  src: url('https://db.onlinewebfonts.com/t/8a19a4e364c19c552c8830c0dcecf507.eot?#iefix') format('embedded-opentype'),
+       url('https://db.onlinewebfonts.com/t/8a19a4e364c19c552c8830c0dcecf507.woff2') format('woff2'),
+       url('https://db.onlinewebfonts.com/t/8a19a4e364c19c552c8830c0dcecf507.woff') format('woff'),
+       url('https://db.onlinewebfonts.com/t/8a19a4e364c19c552c8830c0dcecf507.ttf') format('truetype'),
+       url('https://db.onlinewebfonts.com/t/8a19a4e364c19c552c8830c0dcecf507.svg#GT Walsheim LC Bold') format('svg');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT Walsheim LC';
+  src: url('https://db.onlinewebfonts.com/t/b1cc9d10330c5575761ce0e185ed5985.eot');
+  src: url('https://db.onlinewebfonts.com/t/b1cc9d10330c5575761ce0e185ed5985.eot?#iefix') format('embedded-opentype'),
+       url('https://db.onlinewebfonts.com/t/b1cc9d10330c5575761ce0e185ed5985.woff2') format('woff2'),
+       url('https://db.onlinewebfonts.com/t/b1cc9d10330c5575761ce0e185ed5985.woff') format('woff'),
+       url('https://db.onlinewebfonts.com/t/b1cc9d10330c5575761ce0e185ed5985.ttf') format('truetype'),
+       url('https://db.onlinewebfonts.com/t/b1cc9d10330c5575761ce0e185ed5985.svg#GT Walsheim LC Black') format('svg');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================
+   TYPOGRAPHY TOKENS
+   ============================================================ */
+
+:root {
+
+  /* FONT FAMILIES */
+  --font-primary: "GT Walsheim LC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-highlight: "Sweet Sucker Punch", cursive;
+
+  /* FONT WEIGHTS */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-bold: 700;
+  --fw-black: 800;
+
+  /* SIZE SCALE */
+  --text-2xs: 10px;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 32px;
+  --text-4xl: 40px;
+  --text-5xl: 44px;
+  --text-6xl: 56px;
+  --text-7xl: 64px;
+  --text-8xl: 80px;
+  --text-9xl: 96px;
+
+  /* HEADINGS */
+  --fs-h0: var(--text-8xl);
+  --fs-h1: var(--text-7xl);
+  --fs-h2: var(--text-4xl);
+  --fs-h3: var(--text-2xl);
+  --fs-h4: var(--text-xl);
+  --fs-h5: var(--text-lg);
+  --fs-h6: var(--text-base);
+
+  /* HIGHLIGHT HEADINGS */
+  --fs-h0-hl: var(--text-9xl);
+  --fs-h1-hl: var(--text-7xl);
+  --fs-h2-hl: var(--text-4xl);
+  --fs-h3-hl: var(--text-2xl);
+  --fs-h4-hl: var(--text-xl);
+  --fs-h5-hl: var(--text-lg);
+  --fs-h6-hl: var(--text-base);
+
+  /* BODY */
+  --fs-body-xl: var(--text-xl);
+  --fs-body-lg: var(--text-lg);
+  --fs-body-md: var(--text-base);
+  --fs-body-sm: var(--text-sm);
+  --fs-caption: var(--text-xs);
+  --fs-caption-sm: 10px;
+
+  /* CARD TITLES */
+  --fs-card-lg: 48px;
+  --fs-card-md: 32px;
+  --fs-card-sm: 28px;
+  --fs-card-xs: 20px;
+
+}
+/* ============================================================
+   RESPONSIVE TOKENS — Tablet overrides
+   Tablet range: 769px → 1024px
+   Rule: if desktop == mobile → tablet uses desktop value
+   ============================================================ */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  :root {
+
+    /* Headings */
+    --fs-h0: var(--text-7xl);   /* 80 → 64 → 56 */
+    --fs-h1: var(--text-6xl);   /* 64 → 56 → 40 */
+    --fs-h2: var(--text-3xl);   /* 40 → 32 → 32 */
+
+    /* Highlight headings */
+    --fs-h0-hl: var(--text-8xl); /* 96 → 80 → 64 */
+    --fs-h1-hl: var(--text-6xl); /* 64 → 56 → 40 */
+    --fs-h2-hl: var(--text-3xl); /* 40 → 32 → 32 */
+
+    /* Card titles */
+    --fs-card-lg: 40px; /* 48 → 40 → 32 */
+    --fs-card-md: 28px; /* 32 → 28 → 24 */
+    --fs-card-sm: 24px; /* 28 → 24 → 20 */
+    --fs-card-xs: 18px; /* 20 → 18 → 18 */
+  }
+}
+
+@media (max-width:768px){
+
+  :root{
+    
+    --fs-h0: var(--text-6xl);
+    --fs-h1: var(--text-4xl);
+    --fs-h2: var(--text-3xl);
+    --fs-h3: var(--text-2xl);
+    
+    --fs-h0-hl: var(--text-7xl);
+    --fs-h1-hl: var(--text-4xl);
+    --fs-h2-hl: var(--text-3xl);
+
+    --fs-card-lg: 32px;
+    --fs-card-md: 24px;
+    --fs-card-sm: 20px;
+    --fs-card-xs: 18px;
+
+  }
+
+}
+
+/* ============================================================
+   HEADING UTILITIES
+   ============================================================ */
+
+.h0{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-black);
+  font-size:var(--fs-h0);
+  line-height:0.9;
+  letter-spacing:-0.05em;
+}
+
+.h1{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-black);
+  font-size:var(--fs-h1);
+  line-height:0.9;
+  letter-spacing:-0.05em;
+}
+
+.h2{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-black);
+  font-size:var(--fs-h2);
+  line-height:1;
+  letter-spacing:-0.05em;
+}
+
+.h3{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-black);
+  font-size:var(--fs-h3);
+  line-height:1;
+  letter-spacing:-0.05em;
+}
+
+.h4{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-black);
+  font-size:var(--fs-h4);
+  line-height:1;
+  letter-spacing:-0.05em;
+}
+
+.h5{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-bold);
+  font-size:var(--fs-h5);
+  line-height:1;
+  letter-spacing:-0.05em;
+}
+
+.h6{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-bold);
+  font-size:var(--fs-h6);
+  line-height:1;
+  letter-spacing:-0.05em;
+}
+
+/* ============================================================
+   HIGHLIGHT HEADINGS
+   ============================================================ */
+.h0-hl{
+  font-family:var(--font-highlight);
+  font-size:var(--fs-h0-hl);
+  line-height:0.8;
+}
+
+.h1-hl{
+  font-family:var(--font-highlight);
+  font-size:var(--fs-h1-hl);
+  line-height:0.8;
+}
+
+.h2-hl{
+  font-family:var(--font-highlight);
+  font-size:var(--fs-h2-hl);
+  line-height:0.8;
+}
+
+.h3-hl{
+  font-family:var(--font-highlight);
+  font-size:var(--fs-h3-hl);
+  line-height:0.8;
+}
+
+.h4-hl{
+  font-family:var(--font-highlight);
+  font-size:var(--fs-h4-hl);
+  line-height:0.8;
+}
+
+.h5-hl{
+  font-family:var(--font-highlight);
+  font-size:var(--fs-h5-hl);
+  line-height:0.8;
+}
+
+.h6-hl{
+  font-family:var(--font-highlight);
+  font-size:var(--fs-h6-hl);
+  line-height:0.8;
+}
+
+/* ============================================================
+   BODY UTILITIES
+   ============================================================ */
+
+.body-xl{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-regular);
+  font-size:var(--fs-body-xl);
+  line-height:1.1;
+}
+
+.body-lg{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-regular);
+  font-size:var(--fs-body-lg);
+  line-height:1.1;
+}
+
+.body-md{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-regular);
+  font-size:var(--fs-body-md);
+  line-height:1.3;
+}
+
+.body-sm{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-regular);
+  font-size:var(--fs-body-sm);
+  line-height:1.3;
+}
+
+.body-sm-medium{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-medium);
+  font-size:var(--fs-body-sm);
+  line-height:1.3;
+}
+
+.caption{
+  font-family:var(--font-primary);
+  font-size:var(--fs-caption);
+  line-height:1.3;
+}
+
+.caption-sm{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-medium);
+  font-size:var(--fs-caption-sm);
+  line-height:1.3;
+  letter-spacing:-0.05em;
+}
+
+/* ============================================================
+   CARD TITLES
+   ============================================================ */
+
+.card-title-lg{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-medium);
+  font-size:var(--fs-card-lg);
+  line-height:1;
+  letter-spacing:-0.05em;
+}
+
+.card-title-md{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-medium);
+  font-size:var(--fs-card-md);
+  line-height:0.9;
+  letter-spacing:-0.05em;
+}
+
+.card-title-sm{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-medium);
+  font-size:var(--fs-card-sm);
+  line-height:0.9;
+  letter-spacing:-0.05em;
+}
+
+.card-title-xs{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-medium);
+  font-size:var(--fs-card-xs);
+  line-height:0.9;
+  letter-spacing:-0.05em;
+}
+
+/* Small card name/title — 16px (Figma "Card title/sm") */
+.card-title-2xs{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-medium);
+  font-size:var(--fs-body-md);
+  line-height:0.9;
+  letter-spacing:-0.05em;
+}
+
+/* ============================================================
+   LINK UTILITIES
+   ============================================================ */
+.link-upper-lg{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-medium);
+  font-size:var(--fs-body-lg);
+  line-height:auto;
+  letter-spacing:0;
+  text-transform:uppercase;
+}
+
+.link-upper-md{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-medium);
+  font-size:var(--fs-body-md);
+  line-height:auto;
+  letter-spacing:0;
+  text-transform:uppercase;
+}
+
+.link-upper-sm{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-medium);
+  font-size:var(--fs-body-sm);
+  line-height:auto;
+  letter-spacing:0;
+  text-transform:uppercase;
+}
+
+.link-sentence-lg{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-medium);
+  font-size:var(--fs-body-lg);
+  line-height:auto;
+  letter-spacing:0;
+  text-transform: capitalize;
+}
+
+.link-sentence-md{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-medium);
+  font-size:var(--fs-body-md);
+  line-height:auto;
+  letter-spacing:0;
+  text-transform: capitalize;
+}
+
+.link-sentence-sm{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-medium);
+  font-size:var(--fs-body-sm);
+  line-height:auto;
+  letter-spacing:0;
+  text-transform: capitalize;
+}

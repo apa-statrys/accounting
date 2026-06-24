@@ -1,0 +1,8 @@
+:root {
+  --shadow-sm: 0 4px 4px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 14px 0 rgba(0, 0, 0, 0.10);
+  --shadow-lg: 0 10px 30px 0 rgba(0, 0, 0, 0.07);
+  --shadow-dock-top: 0 -4px 10px 0 rgba(0, 0, 0, 0.06);
+  --shadow-card-soft: 0 4px 14px 0 rgba(226, 220, 203, 0.3);
+  --blur: blur(12px);
+}

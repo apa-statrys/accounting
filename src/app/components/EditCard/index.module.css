@@ -1,0 +1,71 @@
+/* EditCard — dashed card with avatar, title/subtitle, and a trailing action */
+
+.root {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-8);
+  background: var(--bg-neutral-primary);
+  border: var(--border-width-sm) dashed var(--border-beige-primary);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-card-soft);
+}
+
+/* ===== AVATAR ===== */
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--bg-beige-primary);
+  color: var(--icon-brand);
+}
+
+.avatar svg {
+  width: 18px;
+  height: 18px;
+}
+
+.defaultIcon {
+  font-size: 18px;
+  color: var(--icon-brand);
+}
+
+/* ===== BODY ===== */
+.body {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Typography via .card-title-2xs utility; color/layout only here. */
+.title {
+  color: var(--text-primary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Typography via .body-sm-medium utility; color/layout only here. */
+.description {
+  color: var(--text-secondary);
+  margin: 0;
+  padding-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ===== CHANGE BUTTON (default trailing) — keeps the secondary Button from shrinking ===== */
+.change {
+  flex-shrink: 0;
+}

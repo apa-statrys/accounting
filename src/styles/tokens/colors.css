@@ -1,0 +1,95 @@
+/* FOR REFERENCE ONLY — use semantic tokens (theme.css) in components, never these directly */
+:root {
+  --black: #000000;
+  --white: #ffffff;
+
+  /* Neutral — true grayscale */
+  --neutral-0:  #ffffff;
+  --neutral-1:  #f5f4f1;
+  --neutral-2:  #e0e0e0;
+  --neutral-3:  #bdbdbd;
+  --neutral-4:  #9e9e9e;
+  --neutral-5:  #757575;
+  --neutral-6:  #616161;
+  --neutral-7:  #424242;
+  --neutral-8:  #1b1b1b;
+  --neutral-9:  #111111;
+  --neutral-10: #000000;
+
+  /* Beige — warm primary surfaces */
+  --beige-1: #fdfaf3;
+  --beige-2: #f9f5ea;
+  --beige-3: #f9f5ea;
+  --beige-4: #eee3c9;
+  --beige-5: #e3d1a8;
+  --beige-6: #d8bf87;
+  --beige-7: #cdad66;
+  --beige-8: #b8923d;
+  --beige-9: #8f6e28;
+
+  /* Brand orange */
+  --brand-1: #fff1ec;
+  --brand-2: #ffd0bf;
+  --brand-3: #ffaf93;
+  --brand-4: #ff7a50;
+  --brand-5: #FF4A15;
+  --brand-6: #d93a0e;
+  --brand-7: #b32d0a;
+  --brand-8: #8c2107;
+  --brand-9: #661705;
+
+  /* Pink — secondary accent */
+  --pink-1: #fff0f6;
+  --pink-2: #ffd6e8;
+  --pink-3: #ffbcd9;
+  --pink-4: #ff99c3;
+  --pink-5: #FF76A7;
+  --pink-6: #d95d8d;
+  --pink-7: #b34674;
+  --pink-8: #8c315b;
+  --pink-9: #661e42;
+
+  /* Status — green */
+  --green-1: #e8f5e9;
+  --green-2: #c8e6c9;
+  --green-3: #a5d6a7;
+  --green-4: #81c784;
+  --green-5: #4caf50;
+  --green-6: #2e7d32;
+  --green-7: #1b5e20;
+  --green-8: #0a3d0a;
+  --green-9: #021302;
+
+  /* Status — red */
+  --red-1: #ffebee;
+  --red-2: #ffcdd2;
+  --red-3: #ef9a9a;
+  --red-4: #e57373;
+  --red-5: #f44336;
+  --red-6: #c62828;
+  --red-7: #b71c1c;
+  --red-8: #7f0000;
+  --red-9: #4a0000;
+
+  /* Status — yellow */
+  --yellow-1: #fffde7;
+  --yellow-2: #fff9c4;
+  --yellow-3: #fff176;
+  --yellow-4: #ffee58;
+  --yellow-5: #fdd835;
+  --yellow-6: #f9a825;
+  --yellow-7: #e65100;
+  --yellow-8: #bf360c;
+  --yellow-9: #7f1f00;
+
+  /* Status — blue */
+  --blue-1: #e3f2fd;
+  --blue-2: #bbdefb;
+  --blue-3: #90caf9;
+  --blue-4: #64b5f6;
+  --blue-5: #2196f3;
+  --blue-6: #1565c0;
+  --blue-7: #0d47a1;
+  --blue-8: #082f6b;
+  --blue-9: #041d42;
+}

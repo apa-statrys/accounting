@@ -1,0 +1,64 @@
+/* Item — detail list row */
+
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-8);
+  background: var(--bg-neutral-primary);
+  border-bottom: var(--border-width-sm) solid var(--border-beige-primary);
+  text-align: left;
+}
+
+.rowButton {
+  cursor: pointer;
+}
+
+.rowButton:focus-visible,
+.editBtn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/* Typography via .body-sm / .body-sm-medium utilities; color only here. */
+.label {
+  color: var(--text-secondary);
+}
+
+.value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.valueText {
+  color: var(--text-primary);
+}
+
+/* MUI chevron — size/color via a higher-specificity selector to win over MUI defaults. */
+.root .chevron {
+  font-size: 16px;
+  color: var(--icon-primary);
+}
+
+/* ===== EDIT BUTTON (button variant) ===== */
+.editBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 var(--space-6);
+  background: var(--field-bg);
+  border: var(--border-width-sm) solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--btn-tertiary);
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.editBtn:hover {
+  background: var(--bg-neutral-primary-hover);
+}

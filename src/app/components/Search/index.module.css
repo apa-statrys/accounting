@@ -1,0 +1,115 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.label {
+  color: var(--text-primary);
+}
+
+.searchWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2); /* 8px gap between icon and input */
+  border: var(--border-width-sm) solid var(--border-neutral-primary);
+  background: var(--bg-neutral-primary);
+  transition: all var(--transition-base);
+}
+
+.searchIcon {
+  color: var(--icon-secondary);
+  flex-shrink: 0;
+}
+
+/* Icon Size Variants */
+.iconSm {
+  width: 18px;
+  height: 18px;
+}
+
+.iconMd {
+  width: 20px;
+  height: 20px;
+}
+
+.iconLg {
+  width: 22px;
+  height: 22px;
+}
+
+.search {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  outline: none;
+  min-width: 0;
+}
+
+/* Size Variants for Wrapper */
+.searchSm {
+  height: 44px;
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+}
+
+.searchMd {
+  height: 52px;
+  padding: var(--space-5) var(--space-8);
+  border-radius: var(--radius-xl);
+}
+
+.searchLg {
+  height: 60px;
+  padding: var(--space-5) var(--space-8);
+  border-radius: var(--radius-2xl);
+}
+
+.search::placeholder {
+  color: var(--text-placeholder);
+}
+
+.searchWrapper:hover:not(:has(input:disabled)) {
+  border-width: var(--border-width-sm);
+  border-color: var(--border-neutral-primary-hover);
+}
+
+.searchWrapper:active:not(:has(input:focus)):not(:has(input:disabled)) {
+  border-width: var(--border-width-sm);
+  border-color: var(--border-neutral-primary-active);
+}
+
+.searchWrapper:has(input:focus) {
+  border-width: var(--border-width-sm);
+  border-color: var(--border-neutral-primary-active);
+}
+
+.searchWrapper:has(input:disabled) {
+  cursor: not-allowed;
+  background: var(--bg-neutral-disabled);
+}
+
+.search:disabled {
+  cursor: not-allowed;
+}
+
+.searchWrapper.error {
+  border-color: var(--border-error-bold);
+}
+
+.searchWrapper.error:has(input:focus),
+.searchWrapper.error:active {
+  border-width: var(--border-width-sm);
+  border-color: var(--border-error-bold);
+  outline-color: var(--border-error-bold);
+}
+
+.helperText {
+  color: var(--text-secondary);
+}
+
+.errorText {
+  color: var(--text-error-primary);
+}

@@ -1,0 +1,134 @@
+/* TextInput — labeled form field */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+/* ===== LABEL — typography via .body-md utility ===== */
+.label {
+  color: var(--text-primary);
+  padding-bottom: var(--space-2);
+  margin: 0;
+}
+
+.labelError {
+  color: var(--text-error-primary);
+}
+
+.labelDisabled {
+  color: var(--text-disabled);
+}
+
+/* ===== FIELD ===== */
+.field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--field-bg);
+  border: var(--border-width-sm) solid var(--field-border);
+  transition: border-color var(--transition-base), background var(--transition-base);
+}
+
+.sizeSm {
+  height: 36px;
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+}
+
+.sizeMd {
+  height: 44px;
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-xl);
+}
+
+.sizeLg {
+  height: 56px;
+  padding: var(--space-5) var(--space-8);
+  border-radius: var(--radius-2xl);
+}
+
+.field:hover:not(.disabled):not(.error) {
+  border-color: var(--field-border-hover);
+}
+
+.field:focus-within:not(.disabled):not(.error) {
+  border-color: var(--field-border-focus);
+}
+
+.error {
+  background: var(--bg-error-subtle);
+  border-color: var(--border-error-bold);
+}
+
+.disabled {
+  background: var(--field-bg-disabled);
+  border-color: transparent;
+}
+
+/* ===== INPUT — typography via .body-md utility ===== */
+.input {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+}
+
+.input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.input:disabled {
+  color: var(--text-disabled);
+  -webkit-text-fill-color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+/* ===== ICONS ===== */
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--icon-secondary);
+}
+
+.icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.tooltip {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--icon-placeholder);
+}
+
+.tooltipIcon {
+  width: 20px;
+  height: 20px;
+}
+
+/* ===== HINT — typography via .caption utility ===== */
+.hint {
+  color: var(--text-secondary);
+  padding-top: var(--space-2);
+  margin: 0;
+}
+
+.hintError {
+  color: var(--text-error-primary);
+}
+
+.hintDisabled {
+  color: var(--text-disabled);
+}

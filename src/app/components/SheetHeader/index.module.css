@@ -1,0 +1,101 @@
+/* Mobile sheet / page header */
+
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 375px;
+  box-sizing: border-box;
+  padding: var(--space-6) var(--space-8);
+  background: var(--bg-beige-primary);
+  border-bottom: var(--border-width-sm) solid var(--border-neutral-primary);
+}
+
+/* Collapsed (large-title) layout — button row stacked above the title */
+.column {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-4);
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ===== SLOTS ===== */
+.side {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.trailing {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+/* ===== TITLES — typography via .h4/.h6 utility classes ===== */
+.titleCenter {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.titleLarge {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+/* ===== HEADER ICON BUTTON (white circle) ===== */
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  background: var(--field-bg);
+  border: var(--border-width-sm) solid transparent;
+  color: var(--icon-primary);
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.iconBtn:hover:not(:disabled) {
+  background: var(--bg-neutral-primary-hover);
+}
+
+.iconBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.iconBtn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.iconBtn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .root {
+    max-width: 100%;
+  }
+}

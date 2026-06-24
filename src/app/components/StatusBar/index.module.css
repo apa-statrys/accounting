@@ -1,0 +1,41 @@
+/* iOS-style status bar (device chrome) */
+
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-8) var(--space-16);
+  overflow: hidden;
+  color: var(--text-primary);
+}
+
+/* Dark mode — light glyphs over a dark background */
+.dark {
+  color: var(--text-on-color);
+}
+
+/* Time.
+   Device chrome uses the platform system font (SF Pro on Apple devices), not a
+   design-system type style — so this intentionally sets font properties rather
+   than using a heading or body utility class, which would not exist for 17px SF Pro. */
+.time {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 17px;
+  letter-spacing: -0.5px;
+  font-feature-settings: 'ss03' 1;
+  white-space: nowrap;
+}
+
+.indicators {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.indicators svg {
+  display: block;
+}

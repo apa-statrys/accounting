@@ -1,0 +1,47 @@
+import React from 'react';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
+import { Button } from '../Buttons';
+import styles from './index.module.css';
+
+export interface EditCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  title: string;
+  description: string;
+  /** Leading icon inside the avatar (defaults to a brand person-add icon). */
+  icon?: React.ReactNode;
+  /** Hide the leading avatar entirely (e.g. a read-only recipient card). */
+  hideAvatar?: boolean;
+  /** Trailing action; defaults to a "Change" button wired to onChange. */
+  trailing?: React.ReactNode;
+  onChange?: () => void;
+  changeLabel?: string;
+  className?: string;
+}
+
+export const EditCard = React.forwardRef<HTMLDivElement, EditCardProps>(
+  ({ title, description, icon, hideAvatar, trailing, onChange, changeLabel = 'Change', className = '', ...rest }, ref) => {
+    return (
+      <div ref={ref} className={[styles.root, className].filter(Boolean).join(' ')} {...rest}>
+        {!hideAvatar && (
+          <div className={styles.avatar}>
+            {icon ?? <PersonAddAlt1Icon className={styles.defaultIcon} />}
+          </div>
+        )}
+
+        <div className={styles.body}>
+          <p className={`${styles.title} card-title-2xs`}>{title}</p>
+          <p className={`${styles.description} body-sm-medium`}>{description}</p>
+        </div>
+
+        {trailing ?? (
+          <Button variant="secondary" size="sm" className={styles.change} onClick={onChange}>
+            {changeLabel}
+          </Button>
+        )}
+      </div>
+    );
+  }
+);
+
+EditCard.displayName = 'EditCard';
+
+export default EditCard;

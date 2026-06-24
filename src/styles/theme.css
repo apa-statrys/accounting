@@ -1,0 +1,218 @@
+:root {
+
+/* BACKGROUNDS - Neutral */
+--bg-neutral-primary: var(--neutral-0);
+--bg-neutral-secondary: var(--beige-2);
+--bg-neutral-tertiary: var(--neutral-1);
+--bg-neutral-primary-hover: var(--beige-2);
+--bg-neutral-secondary-hover: rgba(238, 227, 201, 0.4);
+--bg-neutral-tertiary-hover: rgba(208, 208, 208, 0.4);
+--bg-neutral-primary-active: var(--beige-4);
+--bg-neutral-secondary-active: var(--beige-5);
+--bg-neutral-tertiary-active: var(--neutral-2);
+--bg-neutral-disabled: rgba(208, 208, 208, 0.2);
+
+/* BACKGROUNDS - Neutral Inverse */
+--bg-neutral-inverse-primary: var(--neutral-8);
+--bg-neutral-inverse-secondary: var(--neutral-7);
+--bg-neutral-inverse-tertiary: var(--neutral-6);
+--bg-neutral-inverse-primary-hover: var(--neutral-7);
+--bg-neutral-inverse-secondary-hover: var(--neutral-6);
+--bg-neutral-inverse-tertiary-hover: var(--neutral-5);
+--bg-neutral-inverse-primary-active: var(--neutral-6);
+--bg-neutral-inverse-secondary-active: var(--neutral-5);
+--bg-neutral-inverse-tertiary-active: var(--neutral-4);
+
+/* BACKGROUNDS - Beige */
+--bg-beige-primary: var(--beige-3);
+--bg-beige-secondary: var(--beige-4);
+--bg-beige-tertiary: var(--beige-5);
+--bg-beige-primary-hover: var(--beige-4);
+--bg-beige-secondary-hover: var(--beige-5);
+--bg-beige-tertiary-hover: rgba(222, 192, 116, 0.6);
+--bg-beige-primary-active: var(--beige-5);
+--bg-beige-secondary-active: var(--beige-6);
+--bg-beige-tertiary-active: var(--beige-7);
+
+/* BACKGROUNDS - Brand */
+--bg-brand-primary: var(--brand-5);
+--bg-brand-secondary: rgba(255, 255, 255, 0.2);
+--bg-brand-primary-hover: var(--brand-4);
+--bg-brand-secondary-hover: rgba(255, 255, 255, 0.3);
+--bg-brand-primary-active: var(--brand-2);
+--bg-brand-secondary-active: rgba(255, 255, 255, 0.5);
+
+/* BACKGROUNDS - Status */
+--bg-success-subtle: var(--green-1);
+--bg-success-bold: var(--green-6);
+--bg-warning-subtle: var(--yellow-1);
+--bg-warning-bold: var(--yellow-6);
+--bg-error-subtle: var(--red-1);
+--bg-error-bold: var(--red-6);
+--bg-info-subtle: var(--blue-1);
+--bg-info-bold: var(--blue-6);
+
+/* TEXT - Primary */
+--text-primary: var(--neutral-8);
+--text-secondary: var(--neutral-4);
+--text-placeholder: var(--neutral-3);
+--text-disabled: rgba(27, 27, 27, 0.3);
+--text-on-color: var(--neutral-0);
+--text-brand: var(--brand-5);
+
+/* TEXT - Neutral Inverse */
+--text-neutral-inverse-primary: var(--beige-3);
+--text-neutral-inverse-secondary: rgba(249, 245, 234, 0.7);
+--text-neutral-inverse-tertiary: rgba(249, 245, 234, 0.65);
+--text-neutral-inverse-disabled: rgba(249, 245, 234, 0.6);
+  
+/* TEXT - Status */
+--text-success-primary: var(--green-6);
+--text-success-inverse: var(--green-1);
+--text-warning-primary: var(--yellow-6);
+--text-warning-inverse: var(--yellow-1);
+--text-error-primary: var(--red-6);
+--text-error-inverse: var(--red-1);
+--text-info-primary: var(--blue-6);
+--text-info-inverse: var(--blue-1);
+
+/* ICON - Primary */
+--icon-primary: var(--neutral-8);
+--icon-secondary: var(--neutral-4);
+--icon-placeholder: var(--neutral-3);
+--icon-disabled: rgba(27, 27, 27, 0.3);
+--icon-on-color: var(--neutral-0);
+--icon-brand: var(--brand-5);
+
+/* ICON - Neutral Inverse */
+--icon-neutral-inverse-primary: var(--beige-3);
+--icon-neutral-inverse-secondary: rgba(249, 245, 234, 0.7);
+--icon-neutral-inverse-tertiary: rgba(249, 245, 234, 0.65);
+--icon-neutral-inverse-disabled: rgba(249, 245, 234, 0.6);
+
+/* ICON - Status */
+--icon-success-primary: var(--green-6);
+--icon-success-inverse: var(--green-1);
+--icon-warning-primary: var(--yellow-6);
+--icon-warning-inverse: var(--yellow-1);
+--icon-error-primary: var(--red-6);
+--icon-error-inverse: var(--red-1);
+--icon-info-primary: var(--blue-6);
+--icon-info-inverse: var(--blue-1);
+
+/* BORDER - Beige */
+--border-beige-primary: rgba(160, 160, 160, 0.2);
+--border-beige-primary-hover: rgba(160, 160, 160, 0.3);
+--border-beige-primary-active: rgba(160, 160, 160, 0.4);
+--border-beige-secondary: rgba(160, 160, 160, 0.2);
+--border-beige-secondary-hover: rgba(160, 160, 160, 0.3);
+--border-beige-secondary-active: rgba(160, 160, 160, 0.4);
+--border-beige-tertiary: rgba(160, 160, 160, 0.3);
+--border-beige-tertiary-hover: rgba(160, 160, 160, 0.5);
+--border-beige-tertiary-active: rgba(160, 160, 160, 0.7);
+
+/* BORDER - Neutral */
+--border-neutral-primary: rgba(208, 208, 208, 0.4);
+--border-neutral-primary-hover: rgba(208, 208, 208, 0.8);
+--border-neutral-primary-active: var(--neutral-2);
+--border-neutral-secondary: var(--neutral-2);
+--border-neutral-secondary-hover: rgba(208, 208, 208, 0.6);
+--border-neutral-secondary-active: var(--neutral-3);
+--border-neutral-tertiary: var(--neutral-2);
+--border-neutral-tertiary-hover: var(--neutral-3);
+--border-neutral-tertiary-active: var(--neutral-4);
+
+/* BORDER - Neutral Inverse */
+--border-neutral-inverse-primary: var(--neutral-6);
+--border-neutral-inverse-primary-hover: var(--neutral-5);
+--border-neutral-inverse-primary-active: var(--neutral-4);
+--border-neutral-inverse-secondary: var(--neutral-5);
+--border-neutral-inverse-secondary-hover: var(--neutral-4);
+--border-neutral-inverse-secondary-active: var(--neutral-3);
+--border-neutral-inverse-tertiary: var(--neutral-4);
+--border-neutral-inverse-tertiary-hover: var(--neutral-3);
+--border-neutral-inverse-tertiary-active: var(--neutral-2);
+
+/* BORDER - Brand */
+--border-brand-primary: var(--brand-5);
+--border-brand-primary-hover: var(--brand-4);
+--border-brand-primary-active: var(--brand-3);
+--border-brand-secondary: rgba(255, 255, 255, 0.4);
+--border-brand-secondary-hover: rgba(255, 255, 255, 0.5);
+--border-brand-secondary-active: rgba(255, 255, 255, 0.7);
+
+/* BORDER - Status */
+--border-success-subtle: var(--green-3);
+--border-success-bold: var(--green-6);
+--border-warning-subtle: var(--yellow-3);
+--border-warning-bold: var(--yellow-6);
+--border-error-subtle: var(--red-3);
+--border-error-bold: var(--red-6);
+--border-info-subtle: var(--blue-3);
+--border-info-bold: var(--blue-6);
+
+/* BUTTON */
+--btn-primary: var(--neutral-8);
+--btn-primary-hover: var(--brand-5);
+--btn-primary-active: var(--neutral-6);
+--btn-disabled: rgba(27, 27, 27, 0.3);
+
+--btn-secondary: var(--neutral-8);
+--btn-secondary-hover: var(--brand-5);
+--btn-secondary-active: var(--neutral-6);
+
+--btn-tertiary: var(--neutral-8);
+--btn-tertiary-hover: var(--beige-4);
+--btn-tertiary-active: var(--neutral-6);
+
+--btn-inverse: var(--beige-3);
+--btn-inverse-hover: var(--beige-4);
+--btn-inverse-active: var(--beige-5);
+--btn-inverse-disabled: rgba(249, 245, 234, 0.3);
+
+/* LINK */
+--link-primary: var(--neutral-8);
+--link-primary-hover: var(--brand-5);
+--link-primary-active: var(--neutral-6);
+--link-primary-disabled: rgba(27, 27, 27, 0.3);
+
+--link-inverse: var(--beige-3);
+--link-inverse-hover: var(--beige-4);
+--link-inverse-active: var(--beige-5);
+--link-inverse-disabled: rgba(249, 245, 234, 0.6);
+
+--link-brand: var(--brand-5);
+--link-brand-hover: var(--brand-4);
+--link-brand-active: var(--brand-3);
+--link-brand-disabled: rgba(255, 74, 21, 0.3);
+
+/* Field */
+--field-bg: var(--bg-neutral-primary);
+--field-bg-disabled: var(--bg-neutral-disabled);
+--field-border: var(--border-neutral-primary);
+--field-border-hover: var(--border-neutral-primary-hover);
+--field-border-focus: var(--neutral-8);
+
+/* FOCUS */
+--focus: var(--brand-5);
+--focus-inverse: var(--neutral-0);
+
+/* SCROLLBAR */
+--scroll-bg: rgba(27, 27, 27, 0.3);
+--scroll-inverse: rgba(249, 245, 234, 0.3);
+
+/* GRADIENTS */
+--gradient-strong: linear-gradient(42deg, #FF4A15 -15.69%, #FF553A 43.66%, #FF7FC4 153.43%);
+--gradient-default: linear-gradient(56deg, #FF4A15 23%, #FF553A 38.58%, #FF6264 58.41%, #FF6C86 78.24%, #FF74A1 99.49%, #FF7AB4 120.74%, #FF7DC0 141.98%, #FF7FC4 164.65%);
+--gradient-soft: linear-gradient(57deg, #FF4A15 -29.02%, #FF553A -7.68%, #FF6264 19.49%, #FF6C86 46.65%, #FF74A1 75.75%, #FF7AB4 104.85%, #FF7DC0 133.95%, #FF7FC4 165%);
+--gradient-direction-top-left: linear-gradient(43deg, #FF4A15 10.95%, #FF7FC4 99.34%);
+--gradient-direction-top-right: linear-gradient(46deg, #FF4A15 23.35%, #FF553A 32.97%, #FF6264 45.22%, #FF6C86 57.48%, #FF74A1 70.6%, #FF7AB4 83.73%, #FF7DC0 96.86%, #FF7FC4 110.86%);
+--gradient-direction-bottom-left: linear-gradient(102deg, #FF4A15 -2.47%, #FF7FC4 101.12%);
+--gradient-direction-bottom-right: linear-gradient(89deg, #FF4A15 1.41%, #FF7FC4 99.16%);
+--gradient-black-cta: linear-gradient(266deg, #1B1B1B 13.26%, rgba(27, 27, 27, 0.90) 101.71%);
+
+/* MISCELLANEOUS */
+--overlay: rgba(27, 27, 27, 0.6);
+--transparent: rgba(255, 255, 255, 0);
+
+}

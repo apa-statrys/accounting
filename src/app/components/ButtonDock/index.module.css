@@ -1,0 +1,84 @@
+/* Bottom action dock */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-width: 375px;
+  box-sizing: border-box;
+  background: var(--bg-neutral-primary);
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-8);
+}
+
+/* When the home indicator is present it provides the bottom space. */
+.withHomeIndicator {
+  padding-bottom: 0;
+}
+
+/* Upward shadow signalling scrollable content beneath the dock. */
+.overflow {
+  box-shadow: var(--shadow-dock-top);
+}
+
+/* ===== ACCESSORY (checkbox row) ===== */
+.accessory {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-8) var(--space-4);
+  cursor: pointer;
+}
+
+.accessoryLabel {
+  color: var(--text-primary);
+}
+
+/* ===== ACTIONS ===== */
+.actions {
+  display: flex;
+  gap: var(--space-6);
+  padding: 0 var(--space-8);
+}
+
+.equalButton {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-left: var(--space-6);
+  padding-right: var(--space-6);
+}
+
+/* Keep dock labels on a single line and a touch smaller, so longer labels
+   (e.g. "Record Payment") don't wrap and inflate the dock height. */
+.actions :global(.link-upper-md) {
+  font-size: var(--fs-body-sm);
+  white-space: nowrap;
+}
+
+.fullButton {
+  width: 100%;
+}
+
+/* ===== HOME INDICATOR (iOS) ===== */
+.homeIndicator {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 32px;
+  padding-bottom: var(--space-4);
+}
+
+.homeBar {
+  width: 134px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--text-primary);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .root {
+    max-width: 100%;
+  }
+}
