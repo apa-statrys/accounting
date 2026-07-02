@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ATTENTION_TASKS } from "./NeedAttention";
+import { ATTENTION_TASKS } from "../data/attentionTasks";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 const CARD_H = 62;
 
 interface AttentionItem {

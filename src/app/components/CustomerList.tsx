@@ -7,9 +7,9 @@ import { Search } from "./Search";
 import { Tile } from "./Tile";
 import { Button } from "./Buttons";
 import { SendSuccessToast } from "./SendSuccessToast";
-import type { Customer } from "./CreateSalesInvoice";
+import type { Customer } from "../types";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 
 export interface CustomerListProps {
   /** The client register (owned by App so the full-page add can append to it). */

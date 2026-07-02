@@ -2,7 +2,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { motion, AnimatePresence } from "motion/react";
 import { HeaderIconButton } from "./SheetHeader";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 
 const backdrop = {
   closed: { opacity: 0 },

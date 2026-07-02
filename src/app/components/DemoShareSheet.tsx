@@ -8,7 +8,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import FolderIcon from "@mui/icons-material/Folder";
 import LinkIcon from "@mui/icons-material/Link";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 
 const backdrop = { closed: { opacity: 0 }, open: { opacity: 1 } };
 const sheet = {

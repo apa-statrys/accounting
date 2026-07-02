@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 
 /** Animated "sent" checkmark — circle + tick draw in. */
 function AnimatedCheck() {

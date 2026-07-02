@@ -1,9 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { FinanceBottomNav } from "./FinanceBottomNav";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
-const INK = "#1b1b1b";
-const MUTED = "#808080";
+import { FONT, INK, MUTED } from "../lib/theme";
 
 interface AccountingHubProps {
   /** Back to the dashboard (the Hub is a reachable menu, not the landing). */

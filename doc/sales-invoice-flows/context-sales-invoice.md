@@ -3,6 +3,13 @@
 Handoff notes for continuing the mobile invoicing prototype. Read this first, then the
 ticket PDFs in `./tickets/` for the source requirements.
 
+> **2026-07-02 repo refactor (no behavior change):** file paths in this doc may be stale.
+> Shared types now live in `src/app/types.ts`, demo data in `src/app/data/`, shared helpers in
+> `src/app/lib/`, and the four big screens in `components/{sales-invoice-list, add-invoice-details,
+> credit-note-form, invoice-detail}/`. Current map + rules: **CLAUDE.md**. The invoice-detail /
+> credit-note / refund spec moved to `./invoice-detail-behavior.md`; per-ticket build notes to
+> `./history/`. All flows verified working after the refactor (browser click-through + typecheck).
+
 ## What this is
 
 A **mobile invoicing app prototype** ("Sales Invoice / Statrys"), built in React + TypeScript

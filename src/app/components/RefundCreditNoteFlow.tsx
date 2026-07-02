@@ -5,13 +5,11 @@ import StatusBar from "./StatusBar";
 import { SheetHeader, HeaderIconButton } from "./SheetHeader";
 import { ButtonDock } from "./ButtonDock";
 import { Tile } from "./Tile";
-import { RECEIVING_ACCOUNTS, getAccount } from "./ReceivingAccountSheet";
+import { RECEIVING_ACCOUNTS, getAccount } from "../data/receivingAccounts";
+import { money } from "../lib/format";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
-const INK = "#1b1b1b";
-const MUTED = "#808080";
+import { FONT, INK, MUTED } from "../lib/theme";
 
-const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /** DES-720 refund flow steps: choose method → (BA) pick the source account → review & confirm the draft. */
 type Step = "method" | "account" | "confirm" | "manual";

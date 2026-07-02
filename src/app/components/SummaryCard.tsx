@@ -1,4 +1,4 @@
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 
 /** Summary money format, e.g. "USD 80.00". */
 function fmt(currency: string, amount: number): string {

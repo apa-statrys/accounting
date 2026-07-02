@@ -4,7 +4,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import FlashOnOutlinedIcon from "@mui/icons-material/FlashOnOutlined";
 import StatusBar from "./StatusBar";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 const BRAND = "#FF4A15";
 
 /** Edge-detection corner bracket — one of the four framing the document. */

@@ -11,10 +11,10 @@ import { EditCard } from "./EditCard";
 import { TextInput } from "./TextInput";
 import { Checkbox } from "./ui/checkbox";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 /** The signed-in user's own email — used for the "Put me in cc" option. */
 const MY_EMAIL = "apa@gmail.com";
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { EMAIL_RE } from "../lib/format";
 
 function Label({ children }: { children: React.ReactNode }) {
   return (

@@ -4,7 +4,7 @@ import { TextInput } from "./TextInput";
 
 export type DiscountMode = "amount" | "percent";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 
 interface DiscountCardProps {
   /** Invoice currency — shown as the amount unit. */

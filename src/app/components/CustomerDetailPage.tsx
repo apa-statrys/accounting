@@ -7,13 +7,13 @@ import StatusBar from "./StatusBar";
 import { SheetHeader, HeaderIconButton } from "./SheetHeader";
 import { BottomSheet } from "./BottomSheet";
 import { SendSuccessToast } from "./SendSuccessToast";
-import { INVOICES, customerIdForInvoice, type Invoice, type Status } from "./SalesInvoiceList";
-import type { Customer } from "./CreateSalesInvoice";
+import { INVOICES, customerIdForInvoice } from "../data/invoices";
+import type { Invoice, Status } from "../types";
+import type { Customer } from "../types";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
-const INK = "#1b1b1b";
-const MUTED = "#808080";
+import { FONT, INK, MUTED } from "../lib/theme";
 
+// Intentionally a DIFFERENT (softer) palette than lib/status.ts STATUS_PILL — this page's compact rows.
 const STATUS_PILL: Record<Status, { bg: string; text: string }> = {
   Awaiting: { bg: "#fff7e6", text: "#b45309" },
   Draft: { bg: "#f1f1f1", text: "#6b7280" },

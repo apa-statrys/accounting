@@ -10,11 +10,14 @@ import { TextInput } from "./TextInput";
 import { Tile } from "./Tile";
 import { Search } from "./Search";
 import { CurrencySheet, CURRENCIES } from "./CurrencySheet";
-import { ReceivingAccountSheet, formatAccount } from "./ReceivingAccountSheet";
+import { ReceivingAccountSheet } from "./ReceivingAccountSheet";
+import { formatAccount } from "../data/receivingAccounts";
+import { DEFAULT_SETTINGS } from "../data/settings";
+import type { CompanySettings } from "../types";
 import { Toggle } from "./Toggle";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { FONT } from "../lib/theme";
+import { EMAIL_RE } from "../lib/format";
 
 // Company-logo upload rules (DES-764).
 const LOGO_TYPES = ["image/jpeg", "image/png"];
@@ -33,46 +36,6 @@ export const REMINDER_DEFS: { title: string; options: string[] }[] = [
     options: [REMINDER_OFF, "On due date", "1 day after due date", "3 days after due date", "7 days after due date", "14 days after due date"],
   },
 ];
-
-export interface CompanySettings {
-  currency: string;
-  companyName: string;
-  registrationNumber: string;
-  email: string;
-  phone: string;
-  website: string;
-  address: string;
-  city: string;
-  state: string;
-  zip: string;
-  country: string;
-  logo: { name: string; size: number } | null;
-  /** Default receiving account (id from RECEIVING_ACCOUNTS) customers pay into — seeds new invoices. */
-  paymentMethod: string;
-  /** Account-level default for the per-invoice automated-chaser toggle. */
-  chaserEnabled: boolean;
-  /** Chosen timing for each reminder (parallel to REMINDER_DEFS); REMINDER_OFF = that reminder disabled. */
-  reminders: string[];
-}
-
-/** Demo defaults — account settings already configured (Statrys HK), so invoices auto-apply them. */
-export const DEFAULT_SETTINGS: CompanySettings = {
-  currency: "USD",
-  companyName: "Lumen Studio",
-  registrationNumber: "2659283",
-  email: "hello@lumenstudio.co",
-  phone: "+852 1234 5678",
-  website: "lumenstudio.co",
-  address: "",
-  city: "Hong Kong Island",
-  state: "",
-  zip: "",
-  country: "Hong Kong",
-  logo: { name: "lumen-logo.svg", size: 12_400 },
-  paymentMethod: "personal", // Personal Saving — the PRIMARY receiving account
-  chaserEnabled: true,
-  reminders: ["3 days before due date", "3 days after due date"],
-};
 
 /** Inline brand mark — orange monogram tile from the company initial (no external asset; CSP-safe). */
 function LogoMark({ letter = "L", size = 40 }: { letter?: string; size?: number }) {

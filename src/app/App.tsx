@@ -1,27 +1,28 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Menu, X, ChevronRight } from "lucide-react";
-import { Dashboard, HERO_SCENARIOS } from "./components/Dashboard";
+import { Dashboard } from "./components/Dashboard";
 import { AccountingHub } from "./components/AccountingHub";
 import { CreditNotesList } from "./components/CreditNotesList";
 import { CustomerList } from "./components/CustomerList";
 import { CustomerDetailPage } from "./components/CustomerDetailPage";
 import { AddCustomerPage } from "./components/AddCustomerPage";
-import { CREDIT_NOTES } from "./components/creditNotesData";
-import { InvoiceDetailPage, type DetailStatus, type InvoiceEditSeed } from "./components/InvoiceDetailPage";
-import { CreditNoteForm } from "./components/CreditNoteForm";
-import type { InvoiceLine } from "./components/InvoicePreviewPage";
-import { CreateSalesInvoice, CUSTOMERS, type Customer } from "./components/CreateSalesInvoice";
-import { AddInvoiceDetails } from "./components/AddInvoiceDetails";
-import { SalesInvoiceList } from "./components/SalesInvoiceList";
+import { CREDIT_NOTES } from "./data/creditNotes";
+import { InvoiceDetailPage } from "./components/invoice-detail/InvoiceDetailPage";
+import { CreditNoteForm } from "./components/credit-note-form/CreditNoteForm";
+import { CreateSalesInvoice } from "./components/CreateSalesInvoice";
+import { AddInvoiceDetails } from "./components/add-invoice-details/AddInvoiceDetails";
+import { SalesInvoiceList } from "./components/sales-invoice-list/SalesInvoiceList";
 import { NeedAttention } from "./components/NeedAttention";
 import { DuplicateDecision } from "./components/DuplicateDecision";
 import { UploadInvoice } from "./components/UploadInvoice";
-import { InvoiceSettings, DEFAULT_SETTINGS, type CompanySettings } from "./components/InvoiceSettings";
+import { InvoiceSettings } from "./components/InvoiceSettings";
 import { GeneratingInvoice } from "./components/GeneratingInvoice";
-import { DEMO_EXTRACTION, DEMO_EXTRACTION_MATCHED, DEMO_EXTRACTION_NO_CUSTOMER, BLANK_EXTRACTION, EXISTING_INVOICES, type ExtractedInvoice, type ExistingInvoice } from "./components/extractInvoice";
-
-type Screen = "dashboard" | "list" | "customer" | "details" | "upload" | "extracting" | "send" | "invoiceDetail" | "needAttention" | "duplicateCheck" | "settings" | "creditNote" | "refundCreditNote" | "hub" | "creditNotes" | "customers" | "customerDetail" | "addCustomer" | "editCustomer";
+import { DEMO_EXTRACTION, DEMO_EXTRACTION_MATCHED, DEMO_EXTRACTION_NO_CUSTOMER, BLANK_EXTRACTION, EXISTING_INVOICES } from "./data/extraction";
+import { CUSTOMERS } from "./data/customers";
+import { DEFAULT_SETTINGS } from "./data/settings";
+import { HERO_SCENARIOS } from "./data/heroScenarios";
+import type { Screen, Customer, DetailStatus, InvoiceEditSeed, InvoiceLine, CompanySettings, ExtractedInvoice, ExistingInvoice } from "./types";
 
 /** OCR steps shown while an uploaded invoice is being read. */
 const OCR_STEPS = [

@@ -5,9 +5,9 @@ import StatusBar from "./StatusBar";
 import { SheetHeader, HeaderIconButton } from "./SheetHeader";
 import { ButtonDock } from "./ButtonDock";
 import { UploadedFileCard, FilePreviewOverlay, type UploadedFileInfo } from "./UploadedFile";
-import type { ExistingInvoice } from "./extractInvoice";
+import type { ExistingInvoice } from "../types";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 
 interface DuplicateDecisionProps {
   /** The matching draft already in the system. */

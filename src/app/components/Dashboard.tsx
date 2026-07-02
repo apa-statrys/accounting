@@ -1,63 +1,17 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { Bell, ChevronLeft, ChevronRight, FilePlus, FileText, Rocket, Settings } from "lucide-react";
-import { ATTENTION_TASKS } from "./NeedAttention";
+import { ATTENTION_TASKS } from "../data/attentionTasks";
+import { HERO_SCENARIOS } from "../data/heroScenarios";
 import { NeedAttentionStack } from "./NeedAttentionStack";
 import { CreateInvoiceSheet } from "./CreateInvoiceSheet";
 import { Button } from "./Buttons";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
-const INK = "#1b1b1b";
+import { FONT, INK } from "../lib/theme";
 const GREEN = "#006a1d";
 
 /** Peer-benchmark note shown under the hero card in every scenario. */
 const PEER_NOTE = "You’re ahead of 71% of similar businesses this month";
-
-/** Hero-card demo states (dev switcher). Collected + Outstanding = Expected; pct = collected/expected. */
-interface HeroScenario {
-  label: string;
-  expected: string;
-  pct: number;
-  collected: string;
-  collectedCount: number;
-  outstanding: string;
-  outstandingCount: number;
-  /** Overdue invoices within the outstanding count. */
-  overdue: number;
-}
-
-export const HERO_SCENARIOS: HeroScenario[] = [
-  {
-    label: "Happy path",
-    expected: "20,000.00", pct: 75,
-    collected: "15,000.00", collectedCount: 6,
-    outstanding: "5,000.00", outstandingCount: 2, overdue: 0,
-  },
-  {
-    label: "Some overdue",
-    expected: "20,000.00", pct: 75,
-    collected: "15,000.00", collectedCount: 6,
-    outstanding: "5,000.00", outstandingCount: 2, overdue: 1,
-  },
-  {
-    label: "All overdue",
-    expected: "20,000.00", pct: 75,
-    collected: "15,000.00", collectedCount: 6,
-    outstanding: "5,000.00", outstandingCount: 2, overdue: 2,
-  },
-  {
-    label: "Fully collected",
-    expected: "20,000.00", pct: 100,
-    collected: "20,000.00", collectedCount: 8,
-    outstanding: "0.00", outstandingCount: 0, overdue: 0,
-  },
-  {
-    label: "Nothing collected",
-    expected: "20,000.00", pct: 0,
-    collected: "0.00", collectedCount: 0,
-    outstanding: "20,000.00", outstandingCount: 8, overdue: 0,
-  },
-];
 
 interface DashboardProps {
   tab?: "dashboard" | "invoices" | "search";

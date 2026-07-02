@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useAnimationControls } from "motion/react";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { EditCard } from "./EditCard";
-import { convert, formatMoney, type ServiceLine } from "./serviceLine";
+import { convert } from "../lib/currency";
+import { formatMoney } from "../lib/format";
+import type { ServiceLine } from "../types";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 const REVEAL = 88;
 const SNAP = { type: "spring" as const, stiffness: 500, damping: 40 };
 

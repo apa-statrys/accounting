@@ -5,7 +5,7 @@ import StatusBar from "./StatusBar";
 import { SheetHeader, HeaderIconButton } from "./SheetHeader";
 import { ButtonDock } from "./ButtonDock";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 
 /** Inline brand mark — orange monogram tile from the company initial (matches the invoice preview). */
 function LogoMark({ letter = "L", size = 28 }: { letter?: string; size?: number }) {

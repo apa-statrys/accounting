@@ -6,7 +6,7 @@ import { TextInput } from "./TextInput";
 import { ButtonDock } from "./ButtonDock";
 import { UnitSheet } from "./UnitSheet";
 import { CurrencySheet } from "./CurrencySheet";
-import type { ServiceLine } from "./serviceLine";
+import type { ServiceLine } from "../types";
 
 interface AddServicesSheetProps {
   open: boolean;

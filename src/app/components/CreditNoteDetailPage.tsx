@@ -15,16 +15,10 @@ import { ShareLinkSheet } from "./ShareLinkSheet";
 import { SendSuccessToast } from "./SendSuccessToast";
 import { CreditNotePreviewPage } from "./CreditNotePreviewPage";
 import { FilePreviewOverlay, type UploadedFileInfo } from "./UploadedFile";
+import { money, fmtDate } from "../lib/format";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
-const INK = "#1b1b1b";
-const MUTED = "#808080";
+import { FONT, INK, MUTED } from "../lib/theme";
 
-const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const fmtDate = (iso: string) => {
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-};
 
 // Status chip palette (DES-721). Refunded = indigo, Pending Refund = amber, Applied/other = green.
 const STATUS_CHIP: Record<string, { bg: string; border: string; text: string }> = {

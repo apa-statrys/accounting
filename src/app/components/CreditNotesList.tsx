@@ -8,10 +8,12 @@ import StatusBar from "./StatusBar";
 import { SheetHeader, HeaderIconButton } from "./SheetHeader";
 import { BottomSheet } from "./BottomSheet";
 import { CreditNoteDetailPage } from "./CreditNoteDetailPage";
-import { CreditNoteForm, type CreditNotePayload, type DraftLine } from "./CreditNoteForm";
-import { CREDIT_NOTES, type CNStatus, type CreditNote } from "./creditNotesData";
+import { CreditNoteForm } from "./credit-note-form/CreditNoteForm";
+import type { CreditNotePayload, DraftLine } from "../types";
+import { CREDIT_NOTES } from "../data/creditNotes";
+import type { CNStatus, CreditNote } from "../types";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 
 const STATUS_PILL: Record<CNStatus, { bg: string; border: string; text: string }> = {
   Open: { bg: "#eef4ff", border: "#c7d8fe", text: "#2f5fd0" },

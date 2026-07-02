@@ -9,7 +9,7 @@ import { BottomSheet, sheetItem } from "./BottomSheet";
 import { ButtonDock } from "./ButtonDock";
 import { ScanDocument } from "./ScanDocument";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 
 // File rules (ticket: accepted formats + max size; duplicate/invalid blocked).
 const ACCEPTED = ["application/pdf", "image/png", "image/jpeg"];

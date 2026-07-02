@@ -1,7 +1,7 @@
 import { FileText, Eye } from "lucide-react";
 import { BottomSheet } from "./BottomSheet";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 
 export interface UploadedFileInfo {
   name: string;

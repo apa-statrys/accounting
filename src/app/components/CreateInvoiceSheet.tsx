@@ -1,9 +1,7 @@
 import { FilePlus2, UploadCloud } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
-const INK = "#1b1b1b";
-const MUTED = "#808080";
+import { FONT, INK, MUTED } from "../lib/theme";
 const BRAND = "#ff4a15";
 
 /** Shared open/close motion — matches the app's standard bottom-sheet animation. */

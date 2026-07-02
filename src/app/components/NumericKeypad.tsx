@@ -1,6 +1,6 @@
 import BackspaceOutlinedIcon from "@mui/icons-material/BackspaceOutlined";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 
 interface NumericKeypadProps {
   /** A digit "0"–"9" or "." was pressed. */

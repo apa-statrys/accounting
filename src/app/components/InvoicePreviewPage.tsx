@@ -3,8 +3,9 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import StatusBar from "./StatusBar";
 import { SheetHeader, HeaderIconButton } from "./SheetHeader";
 import { ButtonDock } from "./ButtonDock";
+import type { InvoiceLine } from "../types";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 
 /** Inline brand mark — orange monogram tile from the company initial (CSP-safe; matches the settings preview). */
 function LogoMark({ letter = "Y", size = 28 }: { letter?: string; size?: number }) {
@@ -19,15 +20,6 @@ function LogoMark({ letter = "Y", size = 28 }: { letter?: string; size?: number 
       </text>
     </svg>
   );
-}
-
-export interface InvoiceLine {
-  name: string;
-  description?: string;
-  qty: number;
-  unit: string;
-  unitPrice: number;
-  amount: number;
 }
 
 export interface InvoiceBank {

@@ -5,7 +5,8 @@ import { BottomSheet, sheetItem } from "./BottomSheet";
 import { Search } from "./Search";
 import { Tile } from "./Tile";
 import { Button } from "./Buttons";
-import { CUSTOMERS, type Customer } from "./CreateSalesInvoice";
+import { CUSTOMERS } from "../data/customers";
+import type { Customer } from "../types";
 
 interface CustomerSheetProps {
   open: boolean;

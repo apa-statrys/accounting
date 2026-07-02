@@ -13,13 +13,14 @@ import { Search } from "./Search";
 import { Tile } from "./Tile";
 import { CurrencySheet } from "./CurrencySheet";
 import { CountrySheet } from "./CountrySheet";
-import { PAYMENT_CONTACTS, type PaymentContact } from "./paymentContacts";
-import type { Customer } from "./CreateSalesInvoice";
+import { PAYMENT_CONTACTS } from "../data/paymentContacts";
+import type { PaymentContact } from "../types";
+import type { Customer } from "../types";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 const chevron = <ExpandMoreIcon style={{ fontSize: 20, color: "#808080" }} />;
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { EMAIL_RE } from "../lib/format";
 const PHONE_RE = /^[+()\d][\d\s()-]{5,}$/;
 const URL_RE = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/\S*)?$/;
 

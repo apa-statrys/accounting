@@ -8,7 +8,7 @@ import { BottomSheet, sheetItem } from "./BottomSheet";
 import { ButtonDock } from "./ButtonDock";
 import { DemoShareSheet } from "./DemoShareSheet";
 
-const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
+import { FONT } from "../lib/theme";
 
 interface ShareLinkSheetProps {
   open: boolean;
