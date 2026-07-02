@@ -19,8 +19,8 @@ const SPRING = { type: "spring", stiffness: 420, damping: 36 } as const;
 function AttentionCard({ title, sub, action, onAction }: AttentionItem & { onAction?: () => void }) {
   return (
     <div
-      className="bg-[#faf9f4] border border-[rgba(160,160,160,0.25)] rounded-xl px-[17px] py-[13px] flex items-center gap-3"
-      style={{ height: CARD_H, boxShadow: "0 2px 10px rgba(0,0,0,0.08)" }}
+      className="bg-white border border-dashed border-[rgba(160,160,160,0.2)] rounded-xl px-[17px] py-[13px] flex items-center gap-3"
+      style={{ height: CARD_H, boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}
     >
       <div className="flex-1 min-w-0">
         <p className="text-[14px] font-bold leading-[1.3] text-[#1b1b1b] truncate" style={FONT}>{title}</p>
@@ -102,7 +102,7 @@ export function NeedAttentionStack() {
                 zIndex: 5 - d,
                 height: CARD_H,
                 transform: `translateY(${d * 9}px) scale(${1 - d * 0.04})`,
-                background: d === 1 ? "#ece9e0" : "#e2ded2",
+                background: d === 1 ? "#e8e8e8" : "#dcdcdc",
               }}
             />
           );

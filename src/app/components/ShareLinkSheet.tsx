@@ -28,8 +28,6 @@ interface ShareLinkSheetProps {
 export function ShareLinkSheet({ open, link, onSent, onDismiss }: ShareLinkSheetProps) {
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
-  // Persistent: the link has been copied or shared at least once → "Mark as sent" enabled.
-  const [distributed, setDistributed] = useState(false);
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
 
   const copy = async () => {
@@ -39,7 +37,6 @@ export function ShareLinkSheet({ open, link, onSent, onDismiss }: ShareLinkSheet
       /* clipboard may be blocked in the sandbox — link is still generated */
     }
     setCopied(true);
-    setDistributed(true);
     setTimeout(() => setCopied(false), 1800);
   };
 
@@ -53,14 +50,12 @@ export function ShareLinkSheet({ open, link, onSent, onDismiss }: ShareLinkSheet
       return;
     }
     setShared(true);
-    setDistributed(true);
     setTimeout(() => setShared(false), 2200);
   };
 
   const reset = () => {
     setCopied(false);
     setShared(false);
-    setDistributed(false);
   };
   // ✕ / scrim: dismiss only — copying a link never marks the invoice sent (stays a draft).
   const dismiss = () => {
@@ -80,7 +75,7 @@ export function ShareLinkSheet({ open, link, onSent, onDismiss }: ShareLinkSheet
       open={open}
       title="Shareable link"
       onClose={dismiss}
-      footer={<ButtonDock type="single" primaryLabel="Mark as sent" onPrimary={markSent} primaryDisabled={!distributed} homeIndicator />}
+      footer={<ButtonDock type="single" primaryLabel="Mark as sent" onPrimary={markSent} homeIndicator />}
     >
       <div className="flex flex-col gap-4">
         {/* Link field — the single copy affordance (tap field or icon) */}

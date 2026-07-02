@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Bell, ChevronLeft, ChevronRight, FilePlus, Settings } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight, FilePlus, FileText, Rocket, Settings } from "lucide-react";
 import { ATTENTION_TASKS } from "./NeedAttention";
 import { NeedAttentionStack } from "./NeedAttentionStack";
 import { CreateInvoiceSheet } from "./CreateInvoiceSheet";
+import { Button } from "./Buttons";
 
 const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
 const INK = "#1b1b1b";
-const MUTED = "#808080";
 const GREEN = "#006a1d";
 
 /** Peer-benchmark note shown under the hero card in every scenario. */
@@ -66,6 +66,8 @@ interface DashboardProps {
   onOpenSearch?: () => void;
   /** Back out of the Sales Invoices section (to the Accounting hub). */
   onBack?: () => void;
+  /** Open the Accounting Hub menu (top-left grid icon). */
+  onMenu?: () => void;
   /** Open invoice settings (gear icon beside notifications). */
   onSettings?: () => void;
   /** Open the dedicated "Need attention" screen (NEED ATTENTION → View All). */
@@ -84,11 +86,21 @@ interface DashboardProps {
   scenario?: number;
 }
 
-/** Uppercase section header with an optional "View All" affordance (hidden when no handler). */
-function SectionHead({ title, onViewAll }: { title: string; onViewAll?: () => void }) {
+/** Uppercase section header with an optional count badge + "View All" affordance (hidden when no handler). */
+function SectionHead({ title, badge, onViewAll }: { title: string; badge?: number; onViewAll?: () => void }) {
   return (
     <div className="flex items-center justify-between">
-      <p className="flex-1 text-[14px] font-medium leading-[1.3]" style={{ ...FONT, color: INK }}>{title}</p>
+      <div className="flex items-center gap-1.5">
+        <p className="text-[14px] font-medium leading-[1.3]" style={{ ...FONT, color: INK }}>{title}</p>
+        {badge !== undefined && (
+          <span
+            className="flex items-center justify-center h-[18px] px-2 rounded-[4px] text-[14px] font-medium leading-none text-white"
+            style={{ ...FONT, background: "#ff4a15" }}
+          >
+            {badge}
+          </span>
+        )}
+      </div>
       {onViewAll && (
         <button onClick={onViewAll} className="flex items-center gap-1 h-[30px]">
           <span className="text-[14px] font-medium uppercase leading-none" style={{ ...FONT, color: INK }}>View All</span>
@@ -99,34 +111,74 @@ function SectionHead({ title, onViewAll }: { title: string; onViewAll?: () => vo
   );
 }
 
-function Badge({ kind }: { kind: "paid" | "awaiting" }) {
-  const paid = kind === "paid";
-  return (
-    <span
-      className="px-2 py-0.5 rounded-full border text-[10px] font-bold leading-[15px]"
-      style={{
-        ...FONT,
-        background: paid ? "#ebfcef" : "#f9f5ea",
-        borderColor: paid ? "#a3e9b6" : "#ff4a15",
-        color: paid ? GREEN : "#ff4a15",
-      }}
-    >
-      {paid ? "Paid" : "Awaiting Payment"}
-    </span>
-  );
+/** Recent-invoice status pill styling (Figma 757:10561 recent list). */
+const RECENT_PILL: Record<string, { bg: string; border: string; text: string }> = {
+  "Refund Pending": { bg: "transparent", border: "#d08700", text: "#d08700" },
+  "Awaiting Payment": { bg: "#f9f5ea", border: "#ff4a15", text: "#ff4a15" },
+  Draft: { bg: "#faf9f4", border: "rgba(160,160,160,0.2)", text: "#808080" },
+  Paid: { bg: "#ebfcef", border: "#a3e9b6", text: GREEN },
+};
+
+interface RecentInvoice {
+  client: string;
+  number: string;
+  meta: string;
+  amount: string;
+  status: keyof typeof RECENT_PILL;
+  /** Credit-note summary sub-row (shown on refund/credited invoices). */
+  creditNote?: { count: number; label: string; amount: string };
+  onClick?: () => void;
+  onOpenCN?: () => void;
 }
 
-function InvoiceRow({ client, meta, amount, kind, onClick }: { client: string; meta: string; amount: string; kind: "paid" | "awaiting"; onClick?: () => void }) {
+/** Recent-invoice card — same cream dashed card as the Sales Invoice List. */
+function RecentInvoiceCard({ client, number, meta, amount, status, creditNote, onClick, onOpenCN }: RecentInvoice) {
+  const pill = RECENT_PILL[status];
   return (
-    <button onClick={onClick} className="w-full bg-[#faf9f4] border border-dashed border-[rgba(160,160,160,0.2)] rounded-xl p-[17px] flex items-center gap-3 text-left active:bg-[#f4f1e6] transition-colors">
-      <div className="flex-1 min-w-0 flex flex-col gap-1">
-        <p className="text-[16px] font-medium leading-[0.9] tracking-tight text-[#101828] truncate" style={FONT}>{client}</p>
-        <p className="text-[12px] font-medium leading-[1.3]" style={{ ...FONT, color: MUTED }}>{meta}</p>
+    <button
+      onClick={onClick}
+      className="w-full text-left bg-[#faf9f4] border border-dashed border-[rgba(160,160,160,0.2)] rounded-xl p-[17px] flex flex-col gap-2 active:bg-[#f4f1e6] transition-colors"
+    >
+      <div className="w-full flex items-center gap-3">
+        <div className="flex-1 min-w-0 flex flex-col gap-1">
+          <p className="text-[16px] font-medium leading-[0.9] tracking-[-0.8px] text-[#101828] truncate" style={FONT}>{client}</p>
+          <div className="flex flex-col gap-0.5">
+            <p className="text-[12px] font-medium leading-[1.3] text-[#1b1b1b] truncate" style={FONT}>{number}</p>
+            <p className="text-[12px] font-medium leading-[1.3] text-[#808080] truncate" style={FONT}>{meta}</p>
+          </div>
+        </div>
+        <div className="shrink-0 flex flex-col items-end gap-1">
+          <p className="text-[16px] font-bold leading-[1.3] text-[#101828] whitespace-nowrap" style={FONT}>{amount}</p>
+          <span
+            className="inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold leading-[15px] whitespace-nowrap"
+            style={{ ...FONT, background: pill.bg, borderColor: pill.border, color: pill.text }}
+          >
+            {status}
+          </span>
+        </div>
       </div>
-      <div className="shrink-0 flex flex-col items-end gap-1">
-        <p className="text-[16px] font-bold leading-[1.3] text-[#101828]" style={FONT}>{amount}</p>
-        <Badge kind={kind} />
-      </div>
+
+      {/* Credit-note summary sub-row (divider + count + amount + View) */}
+      {creditNote && (
+        <>
+          <div className="h-px w-full bg-[rgba(160,160,160,0.25)]" />
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={(e) => { e.stopPropagation(); onOpenCN?.(); }}
+            className="w-full flex items-center justify-between"
+          >
+            <div className="flex items-start gap-1">
+              <FileText size={14} className="mt-0.5 shrink-0" style={{ color: "#1b1b1b" }} />
+              <div className="flex flex-col gap-0.5">
+                <p className="text-[12px] font-bold leading-[1.3] text-black" style={FONT}>{creditNote.count} Credit Note{creditNote.count > 1 ? "s" : ""}</p>
+                <p className="text-[12px] font-medium leading-[15px] text-[#808080]" style={FONT}>{creditNote.label}: {creditNote.amount}</p>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold leading-[15px] text-[#1b1b1b]" style={FONT}>{"View >"}</span>
+          </div>
+        </>
+      )}
     </button>
   );
 }
@@ -150,7 +202,7 @@ function CreditCardDollar({ size = 28 }: { size?: number }) {
   );
 }
 
-export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onSettings, onOpenNeedAttention, onOpenInvoice, onCreate, onUpload, onOpenPaid, onOpenOutstanding, scenario = 0 }: DashboardProps) {
+export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, onSettings, onOpenNeedAttention, onOpenInvoice, onCreate, onUpload, onOpenPaid, onOpenOutstanding, scenario = 0 }: DashboardProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const hero = HERO_SCENARIOS[scenario] ?? HERO_SCENARIOS[0];
   // Nothing left to chase — green bar, no outstanding side.
@@ -204,14 +256,20 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onSetting
 
         {/* Sheet header */}
         <div className="flex items-center justify-between w-full px-4 py-3">
-          {onBack ? (
-            <button onClick={onBack} aria-label="Back" className="size-[30px] rounded-full flex items-center justify-center">
+          {onBack && (
+            <button onClick={onBack} aria-label="Back" className="size-[30px] rounded-full flex items-center justify-center mr-1">
               <ChevronLeft size={16} style={{ color: INK }} />
             </button>
-          ) : (
-            <span className="size-[30px]" aria-hidden />
           )}
-          <p className="flex-1 text-[20px] font-black leading-none tracking-[-1px]" style={{ ...FONT, color: INK }}>Sales Invoices</p>
+          {/* Back arrow in front of the title returns to the Accounting Hub menu (the menu is the parent). */}
+          {onMenu ? (
+            <button onClick={onMenu} aria-label="Back to menu" className="flex-1 flex items-center gap-1.5">
+              <ChevronLeft size={22} style={{ color: INK }} />
+              <span className="text-[20px] font-black leading-none tracking-[-1px]" style={{ ...FONT, color: INK }}>Sales Invoices</span>
+            </button>
+          ) : (
+            <p className="flex-1 text-[20px] font-black leading-none tracking-[-1px]" style={{ ...FONT, color: INK }}>Sales Invoices</p>
+          )}
           <div className="flex items-center">
             <button className="relative size-10 rounded-full flex items-center justify-center">
               <Bell size={20} style={{ color: INK }} />
@@ -223,50 +281,48 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onSetting
           </div>
         </div>
 
-        {/* Dark hero card (Figma 484:4564) — Collected + Outstanding glassy sub-cards */}
+        {/* Dark hero card (Figma 757:10561) — layered: Expected + Collected on top, Outstanding behind */}
         <div className="w-full px-4">
-          <div
-            className="relative overflow-hidden rounded-[24px] px-4 pt-7 pb-4"
-            style={{ backgroundImage: "linear-gradient(265deg, #1b1b1b 13%, rgba(27,27,27,0.9) 102%)" }}
-          >
-            {/* Decorative swoosh */}
-            <svg className="absolute -left-3 top-0 h-full pointer-events-none" width="243" height="254" viewBox="0 0 243 254" fill="none" aria-hidden>
-              <path d="M-20 40 C 80 120, 180 60, 270 170" stroke="rgba(255,255,255,0.05)" strokeWidth="60" fill="none" />
-            </svg>
-
-            <div className="relative flex flex-col gap-3">
-              {/* Expected this month — aligned to the same 16px inset as the cards */}
-              <div>
-                <div className="flex items-center gap-1">
-                  <p className="flex-1 text-[16px] leading-[1.3] text-white" style={FONT}>Expected this month</p>
-                  <CreditCardDollar size={28} />
+          <div className="relative flex flex-col isolate">
+            {/* Top block — Expected this month + Collected sub-card (overlaps the Outstanding block below) */}
+            <div
+              className="relative z-[2] -mb-[31px] flex flex-col gap-4 rounded-[16px] bg-[#1b1b1b] p-4"
+              style={{ filter: "drop-shadow(0px 10px 15px rgba(255,255,255,0.07))" }}
+            >
+              {/* Expected this month */}
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                  <p className="text-[16px] leading-[1.3] text-[#f9f5ea]" style={FONT}>Expected this month</p>
+                  <p className="leading-none text-[#f9f5ea]" style={FONT}>
+                    <span className="text-[12px]">HKD </span>
+                    <span className="text-[24px] font-black tracking-[-1.2px]">{hero.expected}</span>
+                  </p>
                 </div>
-                <p className="mt-1 leading-none text-white" style={FONT}>
-                  <span className="text-[12px]">HKD </span>
-                  <span className="text-[18px] font-bold tracking-[-0.9px]">{hero.expected}</span>
-                </p>
+                <CreditCardDollar size={32} />
               </div>
 
-              {/* Collected card — amount + % + progress + peer note (tappable → Paid list) */}
-              <button
+              {/* Collected sub-card — amount + % + progress + peer note (tappable → Paid list) */}
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={onOpenPaid}
-                className="w-full text-left rounded-[6px] border border-white/20 backdrop-blur-[12px] p-2 flex flex-col gap-[5px]"
+                className="w-full flex flex-col gap-2 rounded-[8px] border border-[rgba(160,160,160,0.2)] p-2"
               >
-                <div className="flex items-start justify-between w-full">
-                  <div className="flex flex-col gap-[5px]">
-                    <p className="text-[14px] leading-[1.3] text-white" style={FONT}>Collected</p>
-                    <p className="leading-none text-white" style={FONT}>
+                <div className="flex items-start gap-1 w-full">
+                  <div className="flex-1 min-w-0 flex flex-col gap-1">
+                    <p className="text-[12px] font-medium leading-[1.3] text-[rgba(249,245,234,0.7)]" style={FONT}>Collected</p>
+                    <p className="leading-none text-[#f9f5ea]" style={FONT}>
                       <span className="text-[12px]">HKD </span>
-                      <span className="text-[16px] font-medium">{hero.collected}</span>
+                      <span className="text-[18px] font-bold tracking-[-0.9px]">{hero.collected}</span>
                     </p>
                   </div>
-                  <p className="text-[20px] font-bold leading-[1.1] text-right whitespace-nowrap" style={{ ...FONT, color: "#58c67f" }}>
+                  <p className="text-[20px] font-bold leading-[1.1] text-center whitespace-nowrap" style={{ ...FONT, color: "#ebfcef" }}>
                     {hero.pct}%
                   </p>
                 </div>
-                <div className="h-2 w-full rounded-full overflow-hidden" style={{ background: "#919191" }}>
+                <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "#3d3d3d" }}>
                   <div
-                    className="h-2 rounded-full transition-[width] duration-500"
+                    className="h-1.5 rounded-full transition-[width] duration-500"
                     style={{
                       width: `${hero.pct}%`,
                       backgroundImage: fullyCollected
@@ -275,81 +331,96 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onSetting
                     }}
                   />
                 </div>
-                <p className="text-[10px] leading-[1.3] tracking-[-0.5px] text-[#a0a0a0]" style={FONT}>{PEER_NOTE}</p>
-              </button>
+                <div className="flex items-center gap-1">
+                  <Rocket size={14} className="shrink-0 text-[#f9f5ea]" />
+                  <p className="text-[10px] leading-[1.3] tracking-[-0.5px] text-[#f9f5ea]" style={FONT}>{PEER_NOTE}</p>
+                </div>
+              </div>
+            </div>
 
-              {/* Outstanding card — amount + overdue line + View All (→ Outstanding list) */}
-              {!fullyCollected && (
-                <div className="w-full rounded-[6px] bg-white/10 backdrop-blur-[12px] p-2 flex items-center gap-[5px]">
-                  <div className="flex-1 min-w-0 flex flex-col gap-[5px]">
-                    <p className="text-[14px] leading-[1.3] text-white" style={FONT}>Outstanding</p>
-                    <p className="leading-none text-white" style={FONT}>
-                      <span className="text-[12px]">HKD </span>
-                      <span className="text-[16px] font-medium">{hero.outstanding}</span>
-                      {nothingCollected && <span className="text-[12px] text-white/70"> to collect</span>}
-                    </p>
-                    <p className="text-[13px] font-medium leading-[1.3]" style={FONT}>
-                      {hero.overdue === 0 ? (
-                        <span className="text-[#f9f5ea]">{hero.outstandingCount} {hero.outstandingCount === 1 ? "invoice" : "invoices"}</span>
-                      ) : hero.overdue === hero.outstandingCount ? (
-                        <>
-                          <span className="text-[#ff4a15]">{hero.overdue} overdue </span>
-                          <span className="text-[#f9f5ea]">{hero.overdue === 1 ? "invoice" : "invoices"}</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-[#ff4a15]">{hero.overdue} overdue </span>
-                          <span className="text-[#f9f5ea]">out of {hero.outstandingCount} invoices</span>
-                        </>
-                      )}
-                    </p>
-                  </div>
+            {/* Bottom block — Outstanding (sits behind the top block; padded to clear the overlap) */}
+            <div className="relative z-[1] flex flex-col gap-1 rounded-b-[16px] bg-[#1b1b1b] px-4 pb-4 pt-[43px]">
+              <div className="flex items-center gap-4 w-full">
+                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                  <p className="text-[12px] font-medium leading-[1.3] text-[rgba(249,245,234,0.7)]" style={FONT}>Outstanding</p>
+                  <p className="leading-none text-[#f9f5ea]" style={FONT}>
+                    <span className="text-[12px]">HKD </span>
+                    <span className="text-[18px] font-bold tracking-[-0.9px]">{hero.outstanding}</span>
+                    {nothingCollected && <span className="text-[12px] text-[rgba(249,245,234,0.7)]"> to collect</span>}
+                  </p>
+                  <p className="text-[12px] font-medium leading-[1.3]" style={FONT}>
+                    {hero.overdue === 0 ? (
+                      <span className="text-[#f9f5ea]">{hero.outstandingCount} {hero.outstandingCount === 1 ? "invoice" : "invoices"}</span>
+                    ) : hero.overdue === hero.outstandingCount ? (
+                      <>
+                        <span className="text-[#ff4a15]">{hero.overdue} overdue </span>
+                        <span className="text-[#f9f5ea]">{hero.overdue === 1 ? "invoice" : "invoices"}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-[#ff4a15]">{hero.overdue} overdue </span>
+                        <span className="text-[#f9f5ea]">out of {hero.outstandingCount} invoices</span>
+                      </>
+                    )}
+                  </p>
+                </div>
+                {!fullyCollected && (
                   <button
                     onClick={onOpenOutstanding}
-                    className="shrink-0 h-[30px] px-3 rounded-[4px] border border-[#f9f5ea] flex items-center justify-center"
+                    className="shrink-0 h-[30px] px-3 rounded-full flex items-center justify-center"
+                    style={{ backgroundImage: "linear-gradient(17.58deg, #ff4a15 15.7%, #ff553a 43.7%, #ff7fc4 153%)" }}
                   >
-                    <span className="text-[14px] font-medium uppercase leading-none text-white" style={FONT}>View All</span>
+                    <span className="text-[14px] font-medium uppercase leading-none text-[#f9f5ea]" style={FONT}>View All</span>
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Need Attention — "View All" + dedicated list only when there are more than 2 items. */}
+      {/* Action Required — count badge + "View All" (dedicated list only when there are more than 2 items). */}
       <div className="px-4 pt-5 flex flex-col gap-4">
         <SectionHead
-          title={`NEEDS ATTENTION (${ATTENTION_TASKS.length})`}
+          title="ACTION REQUIRED"
+          badge={ATTENTION_TASKS.length}
           onViewAll={ATTENTION_TASKS.length > 2 ? onOpenNeedAttention : undefined}
         />
         <NeedAttentionStack />
       </div>
 
-      {/* Recent Invoices */}
+      {/* Recent Invoices — same cream dashed invoice card as the Sales Invoice List (≥5 shown). */}
       <div className="px-4 pt-6 pb-28 flex flex-col gap-4">
         <SectionHead title="RECENT INVOICES" onViewAll={onOpenInvoices} />
         <div className="flex flex-col gap-2">
-          <InvoiceRow client="Marlow & Finch Studio" meta="INV-2026-00006 · Payment received" amount="$6,430.05" kind="paid"
-            onClick={() => onOpenInvoice?.({ number: "INV-2026-00006", client: "Marlow & Finch Studio", status: "Paid", origin: "created" })} />
-          <InvoiceRow client="Marlow & Finch Studio" meta="INV-2026-00005 · Due 25 Jun 2026" amount="$6,430.05" kind="awaiting"
-            onClick={() => onOpenInvoice?.({ number: "INV-2026-00005", client: "Marlow & Finch Studio", status: "Awaiting", origin: "created" })} />
-          <InvoiceRow client="Marlow & Finch Studio" meta="INV-2026-00004 · Payment received" amount="$6,430.05" kind="paid"
-            onClick={() => onOpenInvoice?.({ number: "INV-2026-00004", client: "Marlow & Finch Studio", status: "Paid", origin: "created" })} />
-          <InvoiceRow client="Northwind Traders" meta="INV-2026-00007 · Due 05 Jun 2026" amount="$2,150.00" kind="awaiting"
-            onClick={() => onOpenInvoice?.({ number: "INV-2026-00007", client: "Northwind Traders", status: "Awaiting", origin: "created" })} />
-          <InvoiceRow client="Lumen Creative" meta="INV-2026-00001 · Payment received" amount="$980.50" kind="paid"
-            onClick={() => onOpenInvoice?.({ number: "INV-2026-00001", client: "Lumen Creative", status: "Paid", origin: "created" })} />
+          <RecentInvoiceCard
+            client="Marlow & Finch Studio" number="INV-2026-000006" meta="Paid on 20 Jun 2026" amount="$6,345.00" status="Refund Pending"
+            creditNote={{ count: 1, label: "Refund amount", amount: "$2,450.00" }}
+            onClick={() => onOpenInvoice?.({ number: "INV-2026-000006", client: "Marlow & Finch Studio", status: "Paid", origin: "created" })}
+            onOpenCN={() => onOpenInvoice?.({ number: "INV-2026-000006", client: "Marlow & Finch Studio", status: "Paid", origin: "created" })}
+          />
+          <RecentInvoiceCard
+            client="Marlow & Finch Studio" number="INV-2026-000005" meta="Due 25 Jun 2026" amount="$6,430.05" status="Awaiting Payment"
+            onClick={() => onOpenInvoice?.({ number: "INV-2026-000005", client: "Marlow & Finch Studio", status: "Awaiting", origin: "created" })}
+          />
+          <RecentInvoiceCard
+            client="Bright Harbor Co." number="INV-2026-000003" meta="Created 20 Jun 2026" amount="$283.23" status="Draft"
+            onClick={() => onOpenInvoice?.({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Awaiting", origin: "created" })}
+          />
+          <RecentInvoiceCard
+            client="Otto Reyes" number="INV-2026-000002" meta="Created 18 Jun 2026" amount="$100,034.00" status="Draft"
+            onClick={() => onOpenInvoice?.({ number: "INV-2026-000002", client: "Otto Reyes", status: "Awaiting", origin: "created" })}
+          />
+          <RecentInvoiceCard
+            client="Northwind Traders" number="INV-2026-000001" meta="Paid on 12 Jun 2026" amount="$980.50" status="Paid"
+            onClick={() => onOpenInvoice?.({ number: "INV-2026-000001", client: "Northwind Traders", status: "Paid", origin: "created" })}
+          />
         </div>
 
         {/* Secondary "View all invoices" after the 5th recent row */}
-        <button
-          onClick={onOpenInvoices}
-          className="w-full h-11 rounded-full border border-[rgba(27,27,27,0.15)] flex items-center justify-center text-[15px] font-medium text-[#1b1b1b] active:bg-[#f4f1e6] transition-colors"
-          style={FONT}
-        >
+        <Button variant="secondary" className="w-full" onClick={onOpenInvoices}>
           View all invoices
-        </button>
+        </Button>
       </div>
       </motion.div>
 

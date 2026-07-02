@@ -14,24 +14,38 @@ export interface Customer {
   id: string;
   name: string;
   email: string;
+  // DES-713 full Client Field Spec (optional — only name/email are captured in the quick invoice-flow add).
+  firstName?: string;
+  lastName?: string;
+  regNo?: string;
+  phone?: string;
+  website?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  currency?: string;
 }
 
+// Seed clients carry the full DES-713 record so the customer detail page renders the complete profile.
+// Per-client `currency` also seeds a new invoice's currency (Halcyon/Northwind=GBP, Meridian/Verde=EUR, …).
 export const CUSTOMERS: Customer[] = [
-  { id: "marlow", name: "Marlow & Finch Studio", email: "finch@studio.com" },
-  { id: "bright", name: "Bright Harbor Co.", email: "billing@brightharbor.com" },
-  { id: "otto", name: "Otto Reyes", email: "otto@eyedesign.co" },
-  { id: "northwind", name: "Northwind Traders", email: "accounts@northwind.com" },
-  { id: "lumen", name: "Lumen Creative", email: "hello@lumencreative.io" },
-  { id: "atlas", name: "Atlas Logistics", email: "ap@atlaslogistics.com" },
-  { id: "verde", name: "Verde Coffee Roasters", email: "orders@verde.coffee" },
-  { id: "pinecrest", name: "Pinecrest Interiors", email: "studio@pinecrest.design" },
-  { id: "halcyon", name: "Halcyon Media Group", email: "finance@halcyon.media" },
-  { id: "cobalt", name: "Cobalt Systems", email: "billing@cobaltsystems.com" },
-  { id: "meridian", name: "Meridian Consulting", email: "invoices@meridian.co" },
-  { id: "saffron", name: "Saffron Kitchen", email: "hello@saffronkitchen.com" },
-  { id: "ironwood", name: "Ironwood Builders", email: "accounts@ironwood.build" },
-  { id: "azure", name: "Azure Coastal Rentals", email: "stay@azurecoastal.com" },
-  { id: "quill", name: "Quill & Co. Stationery", email: "shop@quillandco.com" },
+  { id: "marlow", name: "Marlow & Finch Studio", email: "finch@studio.com", firstName: "Daniel", lastName: "Finch", regNo: "201812345A", phone: "+65 6812 3400", website: "marlowfinch.co", address: "12 Craig Road, #03-01", city: "Singapore", zip: "089707", country: "Singapore", currency: "SGD" },
+  { id: "bright", name: "Bright Harbor Co.", email: "billing@brightharbor.com", firstName: "Elena", lastName: "Marsh", regNo: "C-4488210", phone: "+1 415 555 0110", website: "brightharbor.com", address: "88 Harborview Ave", city: "San Francisco", state: "CA", zip: "94105", country: "United States", currency: "USD" },
+  { id: "otto", name: "Otto Reyes", email: "otto@eyedesign.co", firstName: "Otto", lastName: "Reyes", phone: "+34 612 448 902", website: "eyedesign.co", address: "Carrer de Mallorca 201", city: "Barcelona", zip: "08036", country: "Spain", currency: "EUR" },
+  { id: "northwind", name: "Northwind Traders", email: "accounts@northwind.com", firstName: "James", lastName: "Okoro", regNo: "GB 09823411", phone: "+44 20 7946 0110", website: "northwind.com", address: "14 Camden High St", city: "London", zip: "NW1 0JH", country: "United Kingdom", currency: "GBP" },
+  { id: "lumen", name: "Lumen Creative", email: "hello@lumencreative.io", firstName: "Mia", lastName: "Lund", phone: "+1 646 555 0133", website: "lumencreative.io", address: "210 W 29th St", city: "New York", state: "NY", zip: "10001", country: "United States", currency: "USD" },
+  { id: "atlas", name: "Atlas Logistics", email: "ap@atlaslogistics.com", firstName: "Sofia", lastName: "Alvarez", regNo: "201905567H", phone: "+65 6710 4488", website: "atlaslogistics.com", address: "5 Changi North Way", city: "Singapore", zip: "498771", country: "Singapore", currency: "USD" },
+  { id: "verde", name: "Verde Coffee Roasters", email: "orders@verde.coffee", firstName: "Marco", lastName: "Bianchi", phone: "+39 02 8422 110", website: "verde.coffee", address: "Via Torino 22", city: "Milan", zip: "20123", country: "Italy", currency: "EUR" },
+  { id: "pinecrest", name: "Pinecrest Interiors", email: "studio@pinecrest.design", firstName: "Hannah", lastName: "Cole", phone: "+1 503 555 0177", website: "pinecrest.design", address: "210 Elm Street", city: "Portland", state: "OR", zip: "97205", country: "United States", currency: "USD" },
+  { id: "halcyon", name: "Halcyon Media Group", email: "finance@halcyon.media", firstName: "Oliver", lastName: "Hart", regNo: "GB 07711220", phone: "+44 161 555 0142", website: "halcyon.media", address: "3 Deansgate", city: "Manchester", zip: "M3 2BW", country: "United Kingdom", currency: "GBP" },
+  { id: "cobalt", name: "Cobalt Systems", email: "billing@cobaltsystems.com", firstName: "Raj", lastName: "Patel", regNo: "TX-88120", phone: "+1 512 555 0166", website: "cobaltsystems.com", address: "400 Congress Ave", city: "Austin", state: "TX", zip: "78701", country: "United States", currency: "USD" },
+  { id: "meridian", name: "Meridian Consulting", email: "invoices@meridian.co", firstName: "Claire", lastName: "Dubois", phone: "+33 1 4488 2210", website: "meridian.co", address: "18 Rue de Rivoli", city: "Paris", zip: "75004", country: "France", currency: "EUR" },
+  { id: "saffron", name: "Saffron Kitchen", email: "hello@saffronkitchen.com", firstName: "Wai", lastName: "Lam", regNo: "HK 2288104", phone: "+852 2890 4471", website: "saffronkitchen.com", address: "Shop 3, 18 Wan Chai Rd", city: "Hong Kong", country: "Hong Kong", currency: "HKD" },
+  { id: "ironwood", name: "Ironwood Builders", email: "accounts@ironwood.build", firstName: "Tom", lastName: "Hale", phone: "+1 720 555 0188", website: "ironwood.build", address: "77 Industrial Pkwy", city: "Denver", state: "CO", zip: "80216", country: "United States", currency: "USD" },
+  { id: "azure", name: "Azure Coastal Rentals", email: "stay@azurecoastal.com", firstName: "Nina", lastName: "Alba", phone: "+61 2 8099 4410", website: "azurecoastal.com", address: "24 Beach Rd", city: "Sydney", state: "NSW", zip: "2000", country: "Australia", currency: "AUD" },
+  { id: "quill", name: "Quill & Co. Stationery", email: "shop@quillandco.com", firstName: "George", lastName: "Bell", phone: "+44 20 7946 0155", website: "quillandco.com", address: "9 Charing Cross Rd", city: "London", zip: "WC2H 0EP", country: "United Kingdom", currency: "GBP" },
 ];
 
 /**
@@ -49,20 +63,22 @@ function initials(name: string): string {
 interface CreateSalesInvoiceProps {
   /** Currently selected customer id — keeps the tile highlighted on return. */
   selectedId?: string;
+  /** The shared client register (owned by App) — single source of truth across the app. */
+  customers?: Customer[];
   onClose?: () => void;
   /** Fired when a customer is chosen — advances to the next step. */
   onSelectCustomer?: (customer: Customer) => void;
   onAddCustomer?: () => void;
+  /** A client added via the in-invoice quick-add — App appends it to the shared register. */
+  onCustomerAdded?: (customer: Customer) => void;
 }
 
 /**
  * Create Sales Invoice — step 1: "Add a customer".
  * Choosing a customer advances the flow.
  */
-export function CreateSalesInvoice({ selectedId = "", onClose, onSelectCustomer, onAddCustomer }: CreateSalesInvoiceProps) {
+export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onClose, onSelectCustomer, onAddCustomer, onCustomerAdded }: CreateSalesInvoiceProps) {
   const [query, setQuery] = useState("");
-  // Locally extendable so a newly-added client appears immediately.
-  const [customers, setCustomers] = useState<Customer[]>(CUSTOMERS);
   const [addOpen, setAddOpen] = useState(false);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   // Selecting a tile only highlights it; "Continue" advances the flow.
@@ -227,7 +243,7 @@ export function CreateSalesInvoice({ selectedId = "", onClose, onSelectCustomer,
         existing={customers}
         onClose={() => setAddOpen(false)}
         onAdd={(c) => {
-          setCustomers((prev) => [c, ...prev]);
+          onCustomerAdded?.(c); // append to the shared register (App), so it appears everywhere
           setJustAdded(c.id);
           setPendingId(c.id);
           setQuery("");

@@ -7,7 +7,6 @@ import StatusBar from "./StatusBar";
 import { SheetHeader, HeaderIconButton } from "./SheetHeader";
 import { ButtonDock } from "./ButtonDock";
 import { BottomSheet } from "./BottomSheet";
-import { STATRYS_LOGO_WHITE } from "./statrysLogo";
 import { EditCard } from "./EditCard";
 import { TextInput } from "./TextInput";
 import { Checkbox } from "./ui/checkbox";
@@ -48,6 +47,8 @@ function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
 interface ReviewEmailProps {
   customerName: string;
   customerEmail: string;
+  /** Sender company for the email brand bar (from Invoice Settings; defaults to the demo company). */
+  companyName?: string;
   invoiceNo: string;
   /** Pre-formatted amount, e.g. "HKD 12,500.00". */
   amountLabel: string;
@@ -62,12 +63,14 @@ interface ReviewEmailProps {
 export function ReviewEmail({
   customerName,
   customerEmail,
+  companyName = "Lumen Studio",
   invoiceNo,
   amountLabel,
   dueDateLabel,
   onBack,
   onSend,
 }: ReviewEmailProps) {
+  const companyInitial = (companyName.trim()[0] ?? "L").toUpperCase();
   const [recipients, setRecipients] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
   const [cc, setCc] = useState(false);
@@ -164,9 +167,6 @@ export function ReviewEmail({
             <Label>Add Recipients</Label>
             <Toggle on={showRecipients} onClick={() => setShowRecipients((v) => !v)} />
           </div>
-          <p className="text-[12px] leading-[1.3] text-[#808080] -mt-1" style={FONT}>
-            Send a copy of this invoice to additional recipients.
-          </p>
 
           <AnimatePresence initial={false}>
             {showRecipients && (
@@ -230,7 +230,7 @@ export function ReviewEmail({
           <TextInput
             size="sm"
             value={subject}
-            onChange={(e) => setSubject(e.target.value)}
+            onChange={(e) => { setSubject(e.target.value); setSaveDefault(true); }}
             placeholder="Subject"
           />
         </div>
@@ -240,7 +240,7 @@ export function ReviewEmail({
           <Label>Message</Label>
           <textarea
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => { setMessage(e.target.value); setSaveDefault(true); }}
             rows={7}
             className="w-full resize-none rounded-xl border border-[rgba(160,160,160,0.45)] bg-white px-3.5 py-3 text-[14px] leading-[1.45] text-[#1b1b1b] outline-none focus:border-[#1b1b1b]"
             style={FONT}
@@ -269,9 +269,12 @@ export function ReviewEmail({
       {/* Email preview — bottom sheet */}
       <BottomSheet open={previewOpen} title="Email Preview" onClose={() => setPreviewOpen(false)}>
         <div className="rounded-xl overflow-hidden border border-[rgba(160,160,160,0.2)] shadow-sm">
-          {/* Brand bar */}
-          <div className="bg-[#1b1b1b] px-4 py-3.5 flex items-center">
-            <img src={STATRYS_LOGO_WHITE} alt="Statrys" className="h-[22px] w-auto" />
+          {/* Brand bar — the sender company (from Invoice Settings), not Statrys. */}
+          <div className="bg-[#1b1b1b] px-4 py-3.5 flex items-center gap-2.5">
+            <span className="w-[26px] h-[26px] rounded-[8px] flex items-center justify-center shrink-0" style={{ background: "#FF4A15" }}>
+              <span className="text-[14px] font-bold text-white" style={FONT}>{companyInitial}</span>
+            </span>
+            <span className="text-[18px] font-bold text-white tracking-[-0.3px]" style={FONT}>{companyName}</span>
           </div>
           {/* To / Subject band */}
           <div className="bg-[#f6f1e7] px-4 py-2.5 flex flex-col gap-0.5">

@@ -48,6 +48,18 @@
   min-width: 0;
 }
 
+.clearBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--icon-secondary);
+  cursor: pointer;
+  padding: 0;
+}
+
 /* Size Variants for Wrapper */
 .searchSm {
   height: 44px;

@@ -11,16 +11,18 @@ interface CustomerSheetProps {
   open: boolean;
   /** Selected customer id. */
   value?: string;
+  /** The shared client register (owned by App) — defaults to the seed list. */
+  customers?: Customer[];
   onClose?: () => void;
   onSelect?: (customer: Customer) => void;
   onAddNew?: () => void;
 }
 
 /** Customer picker — search, add new, and a selectable list. */
-export function CustomerSheet({ open, value, onClose, onSelect, onAddNew }: CustomerSheetProps) {
+export function CustomerSheet({ open, value, customers = CUSTOMERS, onClose, onSelect, onAddNew }: CustomerSheetProps) {
   const [query, setQuery] = useState("");
 
-  const filtered = CUSTOMERS.filter(
+  const filtered = customers.filter(
     (c) =>
       c.name.toLowerCase().includes(query.toLowerCase()) ||
       c.email.toLowerCase().includes(query.toLowerCase())

@@ -94,8 +94,8 @@ export function CreateInvoiceSheet({ open, onClose, onManual, onUpload }: Create
                 onClick={onManual}
               />
               <Tile
-                title="Upload Invoice"
-                sub="PDF, JPG and PNG up to 10MB"
+                title="Add Existing Invoice"
+                sub="Upload or scan an invoice"
                 icon={<UploadCloud size={32} strokeWidth={1.75} style={{ color: INK }} />}
                 onClick={onUpload}
               />

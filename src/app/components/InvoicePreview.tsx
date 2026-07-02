@@ -74,7 +74,7 @@ export function InvoicePreview({ onSend }: { onSend?: () => void }) {
           </p>
           <div className="flex items-center gap-3">
             <span className="bg-[#FF4A15] text-white text-[12px] font-semibold px-3 py-1 rounded-full">
-              INV-2026-00042
+              INV-2026-000042
             </span>
             <span className="text-[13px] text-gray-400">Due Jun 25, 2026</span>
           </div>

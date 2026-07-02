@@ -1,14 +1,17 @@
-import { ChevronRight, FileText, Users, FileDown, type LucideIcon } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { FinanceBottomNav } from "./FinanceBottomNav";
 
 const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
 const INK = "#1b1b1b";
 const MUTED = "#808080";
-const BRAND = "#ff4a15";
 
 interface AccountingHubProps {
-  /** Open the Sales Invoices flow (the only one built today). */
+  /** Back to the dashboard (the Hub is a reachable menu, not the landing). */
+  onBack?: () => void;
+  /** Open the Sales Invoices list. */
   onOpenSalesInvoices?: () => void;
+  /** Open the Credit Notes list (DES-763). */
+  onOpenCreditNotes?: () => void;
   /** Open the Customers flow. */
   onOpenCustomers?: () => void;
   /** Open the Purchase Invoices flow (not built yet). */
@@ -18,26 +21,19 @@ interface AccountingHubProps {
 interface EntryDef {
   id: string;
   label: string;
-  Icon: LucideIcon;
   onClick?: () => void;
   /** Flagged not-yet-built so stakeholders see scope at a glance. */
   soon?: boolean;
 }
 
-/** One tappable entry-point row inside the card. */
-function EntryRow({ label, Icon, onClick, soon, last }: EntryDef & { last: boolean }) {
+/** One tappable entry-point row inside the card (label + chevron, no leading icon). */
+function EntryRow({ label, onClick, soon, last }: EntryDef & { last: boolean }) {
   return (
     <button
       onClick={onClick}
       className="w-full flex items-center gap-3.5 px-4 py-4 text-left active:bg-black/[0.02] transition-colors"
       style={last ? undefined : { borderBottom: "1px solid rgba(160,160,160,0.16)" }}
     >
-      <span
-        className="shrink-0 size-11 rounded-2xl flex items-center justify-center"
-        style={{ background: "#f9f5ea" }}
-      >
-        <Icon size={20} style={{ color: BRAND }} strokeWidth={2} />
-      </span>
       <span className="flex-1 min-w-0 flex items-center gap-2">
         <span className="text-[15px] font-medium leading-tight" style={{ ...FONT, color: INK }}>
           {label}
@@ -71,19 +67,19 @@ function EntryCard({ items }: { items: EntryDef[] }) {
 }
 
 /**
- * Accounting entry-point hub. This is the screen a user reaches from the
- * finance app's Menu tab — it routes into the accounting flows. Modelled on
- * Qonto's invoicing section: grouped by money direction (Sales = money in,
- * Purchases = money out). Credit Notes intentionally omitted.
+ * Accounting entry-point hub — a reachable Menu (opened from the dashboard), not the landing.
+ * Modelled on Qonto's invoicing section: grouped by money direction (Sales = money in,
+ * Purchases = money out). Credit Notes live under Sales as a peer of Sales Invoices (DES-763).
  */
-export function AccountingHub({ onOpenSalesInvoices, onOpenCustomers, onOpenPurchaseInvoices }: AccountingHubProps) {
+export function AccountingHub({ onOpenSalesInvoices, onOpenCreditNotes, onOpenCustomers, onOpenPurchaseInvoices }: AccountingHubProps) {
   const sales: EntryDef[] = [
-    { id: "sales-invoices", label: "Sales Invoices", Icon: FileText, onClick: onOpenSalesInvoices },
-    { id: "customers", label: "Customers", Icon: Users, onClick: onOpenCustomers },
+    { id: "sales-invoices", label: "Sales Invoices", onClick: onOpenSalesInvoices },
+    { id: "credit-notes", label: "Credit Notes", onClick: onOpenCreditNotes },
+    { id: "customers", label: "Customers", onClick: onOpenCustomers },
   ];
 
   const purchases: EntryDef[] = [
-    { id: "purchase-invoices", label: "Purchase Invoices", Icon: FileDown, onClick: onOpenPurchaseInvoices, soon: true },
+    { id: "purchase-invoices", label: "Purchase Invoices", onClick: onOpenPurchaseInvoices, soon: true },
   ];
 
   return (
@@ -115,8 +111,8 @@ export function AccountingHub({ onOpenSalesInvoices, onOpenCustomers, onOpenPurc
             </div>
           </div>
 
-          {/* Title row */}
-          <div className="w-full px-4">
+          {/* Title row — the Menu is the top-level parent, so there's no back arrow here. */}
+          <div className="w-full px-4 flex items-center gap-2">
             <p className="text-[24px] font-black leading-none tracking-[-1px]" style={{ ...FONT, color: INK }}>
               Menu
             </p>

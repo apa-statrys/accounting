@@ -51,7 +51,7 @@ export function DiscountCard({ currency, enabled, onToggle, value, onChange, mod
     >
       {/* Header */}
       <div className="flex items-center justify-between">
-        <p className="text-[18px] font-bold leading-[1.1] text-[#1b1b1b]" style={FONT}>Discounts</p>
+        <p className="card-title-2xs text-[#1b1b1b]" style={FONT}>Discounts</p>
         <Toggle on={enabled} onClick={() => onToggle(!enabled)} />
       </div>
 
@@ -72,7 +72,7 @@ export function DiscountCard({ currency, enabled, onToggle, value, onChange, mod
                   showHint={false}
                   placeholder="e.g. 10.00"
                   inputMode="decimal"
-                  iconRight={<span className="text-[16px] font-medium text-[#1b1b1b]" style={FONT}>{currency}</span>}
+                  iconRight={<span className="text-[16px] font-medium text-[#1b1b1b]" style={FONT}>{mode === "percent" ? "%" : currency}</span>}
                   value={value}
                   onChange={(e) => onChange(e.target.value)}
                 />

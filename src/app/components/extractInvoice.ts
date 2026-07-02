@@ -28,9 +28,10 @@ export interface ExistingInvoice {
 
 /** Invoices already in the system — used for the duplicate-number warning (DES-716). */
 export const EXISTING_INVOICES: ExistingInvoice[] = [
-  { number: "INV-2026-00041", customer: "Bright Harbor Co.", issueDate: "20 Jun 2026", dueDate: "20 Jul 2026", currency: "USD", amount: "$283.23", status: "Draft" },
-  { number: "INV-2026-00042", customer: "Marlow & Finch Studio", issueDate: "12 Jun 2026", dueDate: "12 Jul 2026", currency: "USD", amount: "$6,430.05", status: "Draft" },
-  { number: "INV-2026-00043", customer: "Otto Reyes", issueDate: "18 Jun 2026", dueDate: "18 Jul 2026", currency: "USD", amount: "$100,034.00", status: "Draft" },
+  { number: "INV-2026-000041", customer: "Bright Harbor Co.", issueDate: "20 Jun 2026", dueDate: "20 Jul 2026", currency: "USD", amount: "$283.23", status: "Draft" },
+  // Issued match (demo for the "View Invoice" duplicate path — Awaiting Payment).
+  { number: "INV-2026-000042", customer: "Marlow & Finch Studio", issueDate: "12 Jun 2026", dueDate: "12 Jul 2026", currency: "USD", amount: "$6,430.05", status: "Awaiting" },
+  { number: "INV-2026-000043", customer: "Otto Reyes", issueDate: "18 Jun 2026", dueDate: "18 Jul 2026", currency: "USD", amount: "$100,034.00", status: "Draft" },
 ];
 
 /**
@@ -41,8 +42,27 @@ export const EXISTING_INVOICES: ExistingInvoice[] = [
  * sample invoice and flag the customer email as "not found" so the user fills it in.
  */
 export const DEMO_EXTRACTION: ExtractedInvoice = {
-  invoiceNumber: "INV-2026-00103",
+  invoiceNumber: "INV-2026-000103",
   customerName: "Daniel Smith",
+  customerEmail: "",
+  emailNotFound: true,
+  currency: "USD",
+  issueDate: new Date(2025, 4, 17),
+  dueDate: "26 May 2025",
+  services: [
+    { id: "ext-a", name: "Product A", currency: "USD", unit: "Piece", quantity: 10, unitPrice: 19.99 },
+    { id: "ext-b", name: "Product B", currency: "USD", unit: "Piece", quantity: 5, unitPrice: 9.99 },
+  ],
+};
+
+/**
+ * OCR read the invoice's LINE ITEMS but could NOT read the customer name or email (DES-716). The editor
+ * shows the "N out of M extracted" review card and empty Customer name + Email inputs (email flagged
+ * "Cannot extract the information"), plus the "Save … to my customer list" checkbox.
+ */
+export const DEMO_EXTRACTION_NO_CUSTOMER: ExtractedInvoice = {
+  invoiceNumber: "INV-2026-000103",
+  customerName: "",
   customerEmail: "",
   emailNotFound: true,
   currency: "USD",
@@ -75,7 +95,7 @@ export const BLANK_EXTRACTION: ExtractedInvoice = {
  * Used to show the "auto-matched" trigger case on the upload review screen.
  */
 export const DEMO_EXTRACTION_MATCHED: ExtractedInvoice = {
-  invoiceNumber: "INV-2026-00042", // already exists → demonstrates the duplicate-number warning
+  invoiceNumber: "INV-2026-000042", // already exists → demonstrates the duplicate-number warning
   customerName: "Marlow & Finch Studio",
   customerEmail: "finch@studio.com",
   emailNotFound: false,

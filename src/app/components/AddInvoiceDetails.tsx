@@ -27,23 +27,23 @@ import { InvoicePreviewPage } from "./InvoicePreviewPage";
 import { ReviewEmail } from "./ReviewEmail";
 import { CustomerSheet } from "./CustomerSheet";
 import { CUSTOMERS } from "./CreateSalesInvoice";
+import { CURRENCIES } from "./CurrencySheet";
+import { Toggle } from "./Toggle";
 import { Checkbox } from "./ui/checkbox";
 import { convert, type ServiceLine } from "./serviceLine";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 import { DueDateSheet } from "./DueDateSheet";
 import { IssueDateSheet } from "./IssueDateSheet";
-import { CurrencySheet } from "./CurrencySheet";
 import { ReceivingAccountSheet, formatAccount, getAccount } from "./ReceivingAccountSheet";
 import { AddServicesSheet } from "./AddServicesSheet";
 import type { Customer } from "./CreateSalesInvoice";
 import { EXISTING_INVOICES, type ExtractedInvoice, type ExistingInvoice } from "./extractInvoice";
 
-/** Account/functional currency from Settings — seeds the invoice default (not overridden here). */
-const SETTINGS_CURRENCY = "USD";
-
 interface AddInvoiceDetailsProps {
   customer?: Customer | null;
+  /** The shared client register (owned by App) — feeds the change-customer picker. */
+  customers?: Customer[];
   /** Pre-filled data read from an uploaded invoice; flagged fields become editable inputs. */
   extracted?: ExtractedInvoice | null;
   onClose?: () => void;
@@ -90,6 +90,14 @@ interface AddInvoiceDetailsProps {
   numberRecommended?: boolean;
   /** Edit-existing-from-duplicate: show ✕ (not back) on the editor → save as draft and return to list. */
   editExitToList?: boolean;
+  /** Account default currency (DES-764 Invoice Settings) — seeds a fresh invoice's currency. */
+  defaultCurrency?: string;
+  /** Sender company for the email brand bar (from Invoice Settings). */
+  companyName?: string;
+  /** Account default for the automated-chaser toggle (DES-764 AC5) — seeds the per-invoice toggle. */
+  defaultChaser?: boolean;
+  /** Default receiving account id (DES-764 Payment Method) — seeds the invoice's Receiving Account. */
+  defaultAccountId?: string;
 }
 
 const FONT = { fontFamily: "GT Walsheim LC, sans-serif" } as const;
@@ -111,6 +119,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
  */
 export function AddInvoiceDetails({
   customer,
+  customers,
   extracted,
   onClose,
   onChangeCustomer,
@@ -128,6 +137,10 @@ export function AddInvoiceDetails({
   uploadedFile,
   numberRecommended,
   editExitToList,
+  defaultCurrency = "USD",
+  companyName = "Lumen Studio",
+  defaultChaser = true,
+  defaultAccountId = "personal",
 }: AddInvoiceDetailsProps) {
   // When `extracted` is present we came from an upload.
   const isExtracted = !!extracted;
@@ -164,7 +177,8 @@ export function AddInvoiceDetails({
   const name = isExtracted ? (linked ? linked.name : editName) : linked?.name ?? "Marlow & Finch Studio";
   const email = isExtracted ? (linked ? linked.email : editEmail) : linked?.email ?? "apa@marlowfinch.co";
 
-  // Email couldn't be read off the file — flag until supplied (unmatched state).
+  // Customer name / email couldn't be read off the file — flag until supplied (unmatched state).
+  const nameMissing = isExtracted && !linked && editName.trim() === "";
   const emailMissing = isExtracted && !linked && editEmail.trim() === "";
   const emailValid = EMAIL_RE.test(editEmail.trim());
 
@@ -195,10 +209,12 @@ export function AddInvoiceDetails({
   const [issueSheetOpen, setIssueSheetOpen] = useState(false);
   const [dueDate, setDueDate] = useState(extracted?.dueDate || "Next 30 days");
   const [dueSheetOpen, setDueSheetOpen] = useState(false);
-  // Per-invoice override, seeded from the Settings default (never writes back to Settings).
-  const [currency, setCurrency] = useState(extracted?.currency || initial?.currency || SETTINGS_CURRENCY);
-  const [currencySheetOpen, setCurrencySheetOpen] = useState(false);
-  const [accountId, setAccountId] = useState("personal");
+  // DES-764: fixed account default — seeded from Settings (or OCR for an uploaded invoice),
+  // displayed read-only, never chosen per invoice.
+  const [currency] = useState(extracted?.currency || initial?.currency || defaultCurrency);
+  // DES-764 AC5: per-invoice automated-chaser toggle, seeded from the account default.
+  const [chaser, setChaser] = useState(defaultChaser);
+  const [accountId, setAccountId] = useState(defaultAccountId);
   const [accountSheetOpen, setAccountSheetOpen] = useState(false);
   const [servicesSheetOpen, setServicesSheetOpen] = useState(false);
   const [services, setServices] = useState<ServiceLine[]>(extracted?.services ?? initial?.services ?? seedServices ?? []);
@@ -222,7 +238,7 @@ export function AddInvoiceDetails({
   const total = subtotal - discountAmount;
 
   // Uploaded → user-entered number; manual → system-generated (or the edited invoice's number).
-  const invoiceNo = isExtracted ? editInvoiceNo : initial?.invoiceNo ?? "INV-2026-00042";
+  const invoiceNo = isExtracted ? editInvoiceNo : initial?.invoiceNo ?? "INV-2026-000042";
   // Duplicate check fires on Create (DES-716): warn (showing the existing one), then allow override.
   const existingInvoice = isExtracted
     ? EXISTING_INVOICES.find((i) => i.number.toLowerCase() === editInvoiceNo.trim().toLowerCase())
@@ -334,14 +350,20 @@ export function AddInvoiceDetails({
 
   // Limited edit (issued invoice): only issue-bound fields are locked. Business fields —
   // customer, due date, items, receiving account (payment method), discount — stay editable.
+  // DES-764: currency is the account default and is FIXED — never chosen per invoice (seeded from
+  // Settings / OCR; line items may still differ and convert into it). Shown read-only with a flag,
+  // matching the Invoice Settings currency row — not dimmed, no chevron.
+  const curMeta = CURRENCIES.find((c) => c.code === currency);
+  const currencyLabel = curMeta ? `${curMeta.flag}  ${curMeta.code}` : currency;
+
   const details = [
     ...(lockedEdit
-      ? [{ label: "Invoice Number", value: invoiceNo, onClick: () => {}, locked: true }]
+      ? [{ label: "Invoice Number", value: invoiceNo, onClick: () => {}, locked: true, readOnly: false }]
       : []),
-    { label: "Issue Date", value: format(issueDate, "d MMM yyyy"), onClick: () => setIssueSheetOpen(true), locked: lockedEdit },
-    { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false },
-    { label: "Currency", value: currency, onClick: () => setCurrencySheetOpen(true), locked: lockedEdit },
-    { label: "Receiving Account", value: formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false },
+    { label: "Currency", value: currencyLabel, onClick: () => {}, locked: false, readOnly: true },
+    { label: "Issue Date", value: format(issueDate, "d MMM yyyy"), onClick: () => setIssueSheetOpen(true), locked: lockedEdit, readOnly: false },
+    { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false, readOnly: false },
+    { label: "Receiving Account", value: formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false, readOnly: false },
   ];
 
   return (
@@ -478,12 +500,22 @@ export function AddInvoiceDetails({
         ) : (
           /* Case B — no matching customer: fill details inline, optionally save to the customer list */
           <div ref={flaggedRef} className="scroll-mt-24 flex flex-col gap-3">
-            <TextInput
-              label="Customer name"
-              placeholder="Customer name"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-            />
+            {/* Customer name — warning highlight + caption when OCR couldn't read it */}
+            <div className="flex flex-col gap-1">
+              <TextInput
+                label="Customer name"
+                placeholder="Customer name"
+                required
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                highlight={nameMissing}
+              />
+              {nameMissing && (
+                <p className="text-[12px] leading-[1.4] text-[#b45309]" style={FONT}>
+                  Couldn't extract this field. Enter it manually.
+                </p>
+              )}
+            </div>
 
             {/* Email — warning highlight + caption when OCR couldn't read it */}
             <div className="flex flex-col gap-1">
@@ -496,18 +528,21 @@ export function AddInvoiceDetails({
                 highlight={emailMissing}
               />
               {emailMissing && (
-                <p className="text-[12px] leading-[1.3] text-[#b45309]" style={FONT}>
-                  Cannot extract the information
+                <p className="text-[12px] leading-[1.4] text-[#b45309]" style={FONT}>
+                  Couldn't extract this field. Enter it manually.
                 </p>
               )}
             </div>
 
-            <label className="flex items-center gap-2 cursor-pointer">
-              <Checkbox checked={saveAsClient} onCheckedChange={(c) => setSaveAsClient(c === true)} />
-              <span className="text-[14px] leading-[1.3] text-[#1b1b1b]" style={FONT}>
-                {editName.trim() ? `Save ${editName.trim().split(" ")[0]} to my customer list` : "Save to my customer list"}
-              </span>
-            </label>
+            {/* Save-to-list only appears once BOTH name + email are entered — they're required to save. */}
+            {editName.trim() !== "" && editEmail.trim() !== "" && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox checked={saveAsClient} onCheckedChange={(c) => setSaveAsClient(c === true)} />
+                <span className="text-[14px] leading-[1.3] text-[#1b1b1b]" style={FONT}>
+                  Save {editName.trim().split(" ")[0]} to my customer list
+                </span>
+              </label>
+            )}
           </div>
         )}
 
@@ -516,7 +551,8 @@ export function AddInvoiceDetails({
           <div ref={invoiceNoRef} className="scroll-mt-20 flex flex-col gap-1">
             <TextInput
               label="Invoice Number"
-              placeholder="e.g. INV-2026-00042"
+              placeholder="e.g. INV-2026-000042"
+              required
               value={editInvoiceNo}
               onChange={(e) => setEditInvoiceNo(e.target.value)}
               iconRight={
@@ -547,6 +583,7 @@ export function AddInvoiceDetails({
                 value={d.value}
                 onClick={d.onClick}
                 disabled={d.locked}
+                readOnly={d.readOnly}
               />
             ))}
           </div>
@@ -616,6 +653,27 @@ export function AddInvoiceDetails({
           </motion.div>
         )}
 
+        {/* Automated chaser (DES-764 AC5) — per-invoice toggle, seeded from the account default.
+            Discount-card style; backend auto-deactivates it once the invoice is Paid (out of scope). */}
+        {services.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div
+              className="w-full bg-white border border-dashed border-[rgba(160,160,160,0.2)] rounded-xl p-[17px] flex items-center justify-between gap-3"
+              style={{ boxShadow: "var(--shadow-card-soft)" }}
+            >
+              <span className="min-w-0 flex flex-col gap-1">
+                <span className="card-title-2xs text-[#1b1b1b]" style={FONT}>Automatic reminders</span>
+                <span className="body-sm-medium text-[#808080]" style={FONT}>Email until invoice is paid</span>
+              </span>
+              <Toggle checked={chaser} onChange={setChaser} aria-label="Automatic reminders" />
+            </div>
+          </motion.div>
+        )}
+
         {/* Summary — appears with the line items */}
         {services.length > 0 && (
           <motion.div
@@ -640,7 +698,9 @@ export function AddInvoiceDetails({
             type="single"
             overflow
             primaryLabel="Save"
-            primaryDisabled={services.length === 0}
+            // Edit-existing-from-duplicate is still a draft — Save is always allowed (user can
+            // leave at any time). The limited edit-from-detail flow keeps the items gate.
+            primaryDisabled={services.length === 0 && !editExitToList}
             onPrimary={onEditSave}
             homeIndicator
           />
@@ -660,8 +720,9 @@ export function AddInvoiceDetails({
             primaryLabel="Create Invoice"
             primaryDisabled={!(linked || emailValid)}
             // Uploaded invoices are record-only by default (DES-716): issuing moves them
-            // to Awaiting Payment; sending is offered later on the detail page, not here.
-            onPrimary={() => onSend?.({ title: "Saved as awaiting payment" }, recentSent)}
+            // to Awaiting Payment (sending happened elsewhere). The toast confirms the record
+            // action — the Awaiting Payment status is shown by the detail-page badge.
+            onPrimary={() => onSend?.({ title: "Invoice created successfully" }, recentSent)}
             homeIndicator
           />
         ) : (
@@ -671,7 +732,7 @@ export function AddInvoiceDetails({
             primaryLabel="Send Invoice"
             secondaryLabel="Send Later"
             primaryDisabled={services.length === 0}
-            onSecondary={() => onSend?.({ title: "Saved as awaiting payment" }, recentSent)}
+            onSecondary={saveDraft}
             onPrimary={() => setSendSheetOpen(true)}
             homeIndicator
           />
@@ -695,16 +756,6 @@ export function AddInvoiceDetails({
         onSelect={(title) => {
           setDueDate(title);
           setDueSheetOpen(false);
-        }}
-      />
-
-      <CurrencySheet
-        open={currencySheetOpen}
-        value={currency}
-        onClose={() => setCurrencySheetOpen(false)}
-        onSelect={(code) => {
-          setCurrency(code);
-          setCurrencySheetOpen(false);
         }}
       />
 
@@ -772,6 +823,7 @@ export function AddInvoiceDetails({
           <ReviewEmail
             customerName={name}
             customerEmail={email}
+            companyName={companyName}
             invoiceNo={invoiceNo}
             amountLabel={amountLabel}
             dueDateLabel={dueDateLabel}
@@ -841,6 +893,7 @@ export function AddInvoiceDetails({
             invoiceNo={invoiceNo}
             customerName={name}
             customerEmail={email}
+            companyName={companyName}
             issueDateLabel={format(issueDate, "d MMM yyyy")}
             dueDateLabel={dueDateLabel}
             currency={currency}
@@ -858,6 +911,7 @@ export function AddInvoiceDetails({
                 currency: a?.currency ?? currency,
               };
             })()}
+            status={{ label: "Pending", bg: "#fff7e6", border: "#fde68a", text: "#b45309" }}
             onBack={() => setPdfPreviewOpen(false)}
             onDownloaded={() => {
               setPdfPreviewOpen(false);
@@ -870,6 +924,7 @@ export function AddInvoiceDetails({
       <CustomerSheet
         open={customerSheetOpen}
         value={currentCustomer?.id}
+        customers={customers}
         onClose={() => setCustomerSheetOpen(false)}
         onSelect={(c) => {
           setCurrentCustomer(c);

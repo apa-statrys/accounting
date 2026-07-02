@@ -10,10 +10,14 @@ export interface Currency {
   flag: string;
 }
 
-const CURRENCIES: Currency[] = [
+export const CURRENCIES: Currency[] = [
   { code: "SGD", name: "Singapore Dollar", flag: "🇸🇬" },
   { code: "HKD", name: "Hong Kong Dollar", flag: "🇭🇰" },
   { code: "USD", name: "US Dollar", flag: "🇺🇸" },
+  { code: "EUR", name: "Euro", flag: "🇪🇺" },
+  { code: "GBP", name: "British Pound", flag: "🇬🇧" },
+  { code: "AUD", name: "Australian Dollar", flag: "🇦🇺" },
+  { code: "JPY", name: "Japanese Yen", flag: "🇯🇵" },
 ];
 
 interface CurrencySheetProps {

@@ -14,6 +14,8 @@ export interface ItemProps {
   onClick?: () => void;
   /** Locked (e.g. non-editable field on a limited edit): dimmed, no chevron, not tappable. */
   disabled?: boolean;
+  /** Read-only (e.g. a fixed account default): no chevron, not tappable, but NOT dimmed. */
+  readOnly?: boolean;
   className?: string;
 }
 
@@ -29,8 +31,10 @@ export const Item: React.FC<ItemProps> = ({
   actionLabel = 'Edit',
   onClick,
   disabled = false,
+  readOnly = false,
   className = '',
 }) => {
+  const interactive = !disabled && !readOnly;
   if (variant === 'button') {
     return (
       <div className={[styles.root, className].filter(Boolean).join(' ')}>
@@ -45,15 +49,15 @@ export const Item: React.FC<ItemProps> = ({
   return (
     <button
       type="button"
-      onClick={disabled ? undefined : onClick}
-      disabled={disabled}
+      onClick={interactive ? onClick : undefined}
+      disabled={!interactive}
       className={[styles.root, styles.rowButton, className].filter(Boolean).join(' ')}
-      style={disabled ? { opacity: 0.5, cursor: 'default' } : undefined}
+      style={disabled ? { opacity: 0.5, cursor: 'default' } : readOnly ? { cursor: 'default' } : undefined}
     >
       <span className={`${styles.label} body-sm`}>{label}</span>
       <span className={styles.value}>
         {value && <span className={`${styles.valueText} body-sm-medium`}>{value}</span>}
-        {!disabled && <ChevronRightIcon className={styles.chevron} />}
+        {interactive && <ChevronRightIcon className={styles.chevron} />}
       </span>
     </button>
   );

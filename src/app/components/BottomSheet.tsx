@@ -44,6 +44,8 @@ interface BottomSheetProps {
   heightClass?: string;
   /** Hide the header close (✕) — e.g. a confirm dialog dismissed via its buttons. */
   hideClose?: boolean;
+  /** Fires when the scrollable content scrolls (e.g. to collapse an inline search). */
+  onContentScroll?: React.UIEventHandler<HTMLDivElement>;
 }
 
 /** Shared fixed height for the Add-Services sheet and its nested pickers, so they match exactly. */
@@ -54,7 +56,7 @@ export const SERVICE_SHEET_HEIGHT = "h-[68%]";
  * The parent screen handles the "book-page" recede of the page behind.
  * See memory: bottom-sheet-animation.
  */
-export function BottomSheet({ open, title, onClose, children, footer, tall, heightClass, hideClose }: BottomSheetProps) {
+export function BottomSheet({ open, title, onClose, children, footer, tall, heightClass, hideClose, onContentScroll }: BottomSheetProps) {
   return (
     <AnimatePresence>
       {open && (
@@ -84,7 +86,7 @@ export function BottomSheet({ open, title, onClose, children, footer, tall, heig
               )}
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto thin-scrollbar bg-white px-6 pt-5 pb-8">
+            <div className="flex-1 min-h-0 overflow-y-auto thin-scrollbar bg-white px-6 pt-5 pb-8" onScroll={onContentScroll}>
               <motion.div variants={list}>{children}</motion.div>
             </div>
 

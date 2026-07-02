@@ -51,7 +51,7 @@ function Row({
 interface SummaryCardProps {
   currency: string;
   subtotal: number;
-  /** Discount amount in the invoice currency (the Discount row hides when 0). */
+  /** Discount amount in the invoice currency (the Discount row always shows, 0.00 when none). */
   discount: number;
   total: number;
 }
@@ -63,7 +63,8 @@ export function SummaryCard({ currency, subtotal, discount, total }: SummaryCard
       style={{ boxShadow: "var(--shadow-card-soft)" }}
     >
       <Row label="Subtotal" value={fmt(currency, subtotal)} />
-      {discount > 0 && <Row label="Discount" value={`- ${fmt(currency, discount)}`} brand />}
+      {/* Always shown — 0.00 when there's no discount. */}
+      <Row label="Discount" value={discount > 0 ? `- ${fmt(currency, discount)}` : fmt(currency, 0)} brand={discount > 0} />
       <Row label="Total" value={fmt(currency, total)} beige boldLabel boldValue />
     </div>
   );

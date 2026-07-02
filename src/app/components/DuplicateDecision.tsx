@@ -15,22 +15,32 @@ interface DuplicateDecisionProps {
   /** The file the user uploaded — shown here with a Preview button. */
   file?: UploadedFileInfo | null;
   onBack?: () => void;
-  /** Primary — open the existing draft's editor to keep editing it. */
+  /** Primary (DRAFT match) — open the existing draft's editor to keep editing it. */
   onEditExisting?: () => void;
+  /** Primary (issued match — Awaiting/Paid) — open the existing invoice's detail page. */
+  onViewInvoice?: () => void;
   /** Secondary — create a new draft from the OCR data with a freshly generated number. */
   onCreateNew?: () => void;
 }
 
+/** Pill label + palette per matched status (Draft = neutral, Awaiting = brand, Paid = green). */
+const STATUS_PILL: Record<string, { label: string; bg: string; border: string; text: string }> = {
+  Draft: { label: "Draft", bg: "#faf9f4", border: "rgba(160,160,160,0.4)", text: "#808080" },
+  Awaiting: { label: "Awaiting Payment", bg: "#f9f5ea", border: "#ff4a15", text: "#ff4a15" },
+  Paid: { label: "Paid", bg: "#ebfcef", border: "#a3e9b6", text: "#006a1d" },
+};
+
 function SummaryRow({ label, value, status }: { label: string; value: string; status?: boolean }) {
+  const pill = status ? (STATUS_PILL[value] ?? STATUS_PILL.Draft) : null;
   return (
     <div className="flex items-center justify-between py-3 border-b border-[rgba(160,160,160,0.18)] last:border-b-0">
       <span className="text-[14px] leading-[1.3]" style={{ ...FONT, color: "#808080" }}>{label}</span>
-      {status ? (
+      {pill ? (
         <span
           className="px-2 py-0.5 rounded-full border text-[11px] font-bold leading-[16px]"
-          style={{ ...FONT, background: "#faf9f4", borderColor: "rgba(160,160,160,0.4)", color: "#808080" }}
+          style={{ ...FONT, background: pill.bg, borderColor: pill.border, color: pill.text }}
         >
-          {value}
+          {pill.label}
         </span>
       ) : (
         <span className="text-[14px] font-medium leading-[1.3] text-right" style={{ ...FONT, color: "#1b1b1b" }}>{value}</span>
@@ -40,12 +50,15 @@ function SummaryRow({ label, value, status }: { label: string; value: string; st
 }
 
 /**
- * Duplicate decision page (DES-716): shown after OCR when an uploaded invoice matches an
- * existing DRAFT. A decision screen — NOT the editor. The user either opens the existing
- * draft to keep editing it, or creates a brand-new invoice from the upload.
+ * Duplicate decision page (DES-716): shown after OCR when an uploaded invoice matches an existing
+ * invoice. A decision screen — NOT the editor. Behaviour depends on the match's status:
+ *  • DRAFT   → primary "Edit Existing Draft" (open its editor) + secondary "Create New Invoice".
+ *  • ISSUED  → primary "View Invoice" (open its detail) + secondary "Create New Invoice"
+ *    (Awaiting Payment / Paid — an issued invoice can't be edited from here).
  */
-export function DuplicateDecision({ existing, file, onBack, onEditExisting, onCreateNew }: DuplicateDecisionProps) {
+export function DuplicateDecision({ existing, file, onBack, onEditExisting, onViewInvoice, onCreateNew }: DuplicateDecisionProps) {
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
+  const isDraft = existing.status === "Draft";
   return (
     <div className="relative bg-[#F9F5EA] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
       <StatusBar />
@@ -69,8 +82,9 @@ export function DuplicateDecision({ existing, file, onBack, onEditExisting, onCr
           </div>
           <p className="text-[20px] font-bold leading-[1.2] text-[#1b1b1b]" style={FONT}>Duplicate invoice found</p>
           <p className="text-[14px] leading-[1.4]" style={{ ...FONT, color: "#808080" }}>
-            This invoice already exists. You can continue editing the existing draft or create a new
-            invoice from this upload.
+            {isDraft
+              ? "This upload matches an existing draft invoice. Continue editing the draft or create a new invoice."
+              : "This upload matches an existing invoice. Review the existing invoice or continue with a new one if needed."}
           </p>
         </div>
 
@@ -87,13 +101,13 @@ export function DuplicateDecision({ existing, file, onBack, onEditExisting, onCr
         {file && <UploadedFileCard file={file} onPreview={() => setFilePreviewOpen(true)} />}
       </div>
 
-      {/* Decision — standard ButtonDock: primary (Edit Existing Draft) dominant, Create New secondary. */}
+      {/* Decision — primary depends on the match: DRAFT → Edit Existing Draft, ISSUED → View Invoice. */}
       <ButtonDock
         type="double"
         overflow
-        primaryLabel="Edit Existing Draft"
+        primaryLabel={isDraft ? "Edit Existing Draft" : "View Invoice"}
         secondaryLabel="Create New Invoice"
-        onPrimary={onEditExisting}
+        onPrimary={isDraft ? onEditExisting : onViewInvoice}
         onSecondary={onCreateNew}
         homeIndicator
       />
