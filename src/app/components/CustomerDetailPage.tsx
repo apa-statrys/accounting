@@ -1,38 +1,14 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import StatusBar from "./StatusBar";
 import { SheetHeader, HeaderIconButton } from "./SheetHeader";
 import { BottomSheet } from "./BottomSheet";
 import { SendSuccessToast } from "./SendSuccessToast";
-import { INVOICES, customerIdForInvoice } from "../data/invoices";
-import type { Invoice, Status } from "../types";
 import type { Customer } from "../types";
 
 import { FONT, INK, MUTED } from "../lib/theme";
-
-// Intentionally a DIFFERENT (softer) palette than lib/status.ts STATUS_PILL — this page's compact rows.
-const STATUS_PILL: Record<Status, { bg: string; text: string }> = {
-  Awaiting: { bg: "#fff7e6", text: "#b45309" },
-  Draft: { bg: "#f1f1f1", text: "#6b7280" },
-  PartiallyPaid: { bg: "#fff7e6", text: "#b45309" },
-  Paid: { bg: "#ecfdf3", text: "#067647" },
-  Cancelled: { bg: "#f3f3f3", text: "#9a9a9a" },
-};
-
-/** Map a list Invoice to the shape App's invoice-detail flow expects. */
-export type OpenInvoicePayload = { number: string; client: string; status: Status; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean };
-const toOpen = (inv: Invoice): OpenInvoicePayload => ({
-  number: inv.id.replace(/[a-z]$/, ""),
-  client: inv.client,
-  status: inv.status,
-  origin: inv.origin ?? "created",
-  cnNo: inv.cnNo,
-  cnAmount: inv.cnAmount,
-  cnSent: inv.cnSent,
-});
 
 function initials(name: string): string {
   const words = name.replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
@@ -72,8 +48,6 @@ function Section({ title, rows }: { title: string; rows: { label: string; value?
 export interface CustomerDetailPageProps {
   customer: Customer;
   onBack?: () => void;
-  /** Open one of this customer's invoices in the invoice detail. */
-  onOpenInvoice?: (payload: OpenInvoicePayload) => void;
   /** DES-714 — open the full-page Edit form for this client (from the Client List only). */
   onEdit?: () => void;
   /** One-off confirmation (e.g. "Changes saved" after returning from Edit). */
@@ -83,23 +57,13 @@ export interface CustomerDetailPageProps {
 
 /**
  * Customer detail (Option B — beyond the ticket, Qonto/Stripe pattern): the full client record (DES-713
- * Client Field Spec, present fields only) + this customer's invoices, with Edit in the ⋯ menu. Invoices are
- * linked from the shared INVOICES demo data by client name; tapping one opens the invoice detail.
+ * Client Field Spec, present fields only), with Edit in the ⋯ menu.
  * (DES-714 note: Edit should become the full-page form + unsaved-changes warning — still on the bottom sheet.)
  */
-export function CustomerDetailPage({ customer, onBack, onOpenInvoice, onEdit, flash, onFlashDone }: CustomerDetailPageProps) {
+export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDone }: CustomerDetailPageProps) {
   // The record is owned by App now (edits happen on the full-page form and flow back via props).
   const record = customer;
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // Link by stable customer id (rename-safe); fall back to name for records not in the register.
-  const invoices = useMemo(
-    () => INVOICES.filter((inv) => {
-      const cid = customerIdForInvoice(inv);
-      return cid ? cid === record.id : inv.client.trim().toLowerCase() === record.name.trim().toLowerCase();
-    }),
-    [record.id, record.name]
-  );
   const contactPerson = [record.firstName, record.lastName].filter(Boolean).join(" ");
 
   return (
@@ -148,41 +112,6 @@ export function CustomerDetailPage({ customer, onBack, onOpenInvoice, onEdit, fl
         <Section title="Billing" rows={[
           { label: "Default currency", value: record.currency },
         ]} />
-
-        {/* Invoices (Qonto-style, beyond the ticket) */}
-        <div className="flex flex-col gap-1.5">
-          <p className="px-1 text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>Invoices ({invoices.length})</p>
-          {invoices.length > 0 ? (
-            <div className="bg-[#faf9f4] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4">
-              {invoices.map((inv, i) => {
-                const number = inv.id.replace(/[a-z]$/, "");
-                const rest = inv.meta.split("·").slice(1).join("·").trim();
-                const pill = STATUS_PILL[inv.status];
-                return (
-                  <button
-                    key={inv.id}
-                    onClick={() => onOpenInvoice?.(toOpen(inv))}
-                    className={`group w-full flex items-center gap-3 py-3 text-left ${i === invoices.length - 1 ? "" : "border-b border-[rgba(160,160,160,0.18)]"}`}
-                  >
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-[14px] font-medium truncate" style={{ ...FONT, color: INK }}>{number}</span>
-                      <span className="block text-[12px] truncate mt-0.5" style={{ ...FONT, color: MUTED }}>{rest}</span>
-                    </span>
-                    <span className="flex flex-col items-end gap-1 shrink-0">
-                      <span className="text-[14px] font-medium" style={{ ...FONT, color: INK }}>{inv.amount}</span>
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ ...FONT, background: pill.bg, color: pill.text }}>{inv.status}</span>
-                    </span>
-                    <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5 shrink-0" style={{ fontSize: 18, color: MUTED }} />
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="bg-[#faf9f4] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4 py-8">
-              <p className="text-center text-[13px]" style={{ ...FONT, color: MUTED }}>No invoices for this customer yet.</p>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* ⋯ actions */}

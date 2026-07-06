@@ -8,6 +8,7 @@ import {
   startOfDay,
   isSameDay,
   isBefore,
+  isAfter,
   setMonth,
   setYear,
   format,
@@ -25,6 +26,8 @@ interface CalendarProps {
   onChange?: (date: Date) => void;
   /** Disable dates before today. */
   disablePast?: boolean;
+  /** Disable (grey out) any date after this day — e.g. the 6-month due-date cap. */
+  maxDate?: Date;
 }
 
 function MonthYearPicker({ view, onPick }: { view: Date; onPick: (d: Date) => void }) {
@@ -68,13 +71,16 @@ function MonthYearPicker({ view, onPick }: { view: Date; onPick: (d: Date) => vo
   );
 }
 
-export function Calendar({ value, onChange, disablePast = false }: CalendarProps) {
+export function Calendar({ value, onChange, disablePast = false, maxDate }: CalendarProps) {
   const [view, setView] = useState<Date>(value ?? new Date());
   const [picking, setPicking] = useState(false);
 
   const firstWeekday = getDay(startOfMonth(view));
   const dayCount = getDaysInMonth(view);
   const today = startOfDay(new Date());
+  const maxDay = maxDate ? startOfDay(maxDate) : undefined;
+  const isDisabled = (date: Date) =>
+    (disablePast && isBefore(date, today)) || (maxDay ? isAfter(date, maxDay) : false);
 
   const cells: (Date | null)[] = [];
   for (let i = 0; i < firstWeekday; i++) cells.push(null);
@@ -141,7 +147,7 @@ export function Calendar({ value, onChange, disablePast = false }: CalendarProps
               ) : (
                 <div key={date.toISOString()} className="flex items-center justify-center py-1">
                   <button
-                    disabled={disablePast && isBefore(date, today)}
+                    disabled={isDisabled(date)}
                     onClick={() => onChange?.(date)}
                     style={
                       value && isSameDay(date, value)
@@ -151,7 +157,7 @@ export function Calendar({ value, onChange, disablePast = false }: CalendarProps
                     className={`w-9 h-9 flex items-center justify-center rounded-full text-[15px] transition-colors ${
                       value && isSameDay(date, value)
                         ? "text-white font-bold"
-                        : disablePast && isBefore(date, today)
+                        : isDisabled(date)
                         ? "text-[#c8c8c8]"
                         : "text-[#1b1b1b] hover:bg-[#faf9f4]"
                     }`}

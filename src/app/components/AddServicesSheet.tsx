@@ -5,7 +5,6 @@ import { BottomSheet, sheetItem, SERVICE_SHEET_HEIGHT } from "./BottomSheet";
 import { TextInput } from "./TextInput";
 import { ButtonDock } from "./ButtonDock";
 import { UnitSheet } from "./UnitSheet";
-import { CurrencySheet } from "./CurrencySheet";
 import type { ServiceLine } from "../types";
 
 interface AddServicesSheetProps {
@@ -33,16 +32,14 @@ export function AddServicesSheet({
 }: AddServicesSheetProps) {
   const [serviceName, setServiceName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [currencyOverride, setCurrencyOverride] = useState<string | null>(initial?.currency ?? null);
   const [unit, setUnit] = useState(initial?.unit ?? "");
   const [quantity, setQuantity] = useState(initial ? String(initial.quantity) : "");
   const [unitPrice, setUnitPrice] = useState(initial ? String(initial.unitPrice) : "");
 
   const [unitSheetOpen, setUnitSheetOpen] = useState(false);
-  const [currencySheetOpen, setCurrencySheetOpen] = useState(false);
 
-  // Follows the invoice currency unless the user picks a different one for this line.
-  const currency = currencyOverride ?? invoiceCurrency;
+  // Every line uses the invoice currency — it's shown (read-only) here, not chosen per line.
+  const currency = invoiceCurrency;
 
   // Everything is required except Description.
   const canAdd = Boolean(
@@ -62,7 +59,6 @@ export function AddServicesSheet({
     // Reset for the next line.
     setServiceName("");
     setDescription("");
-    setCurrencyOverride(null);
     setUnit("");
     setQuantity("");
     setUnitPrice("");
@@ -130,15 +126,11 @@ export function AddServicesSheet({
               value={unitPrice}
               onChange={(e) => setUnitPrice(e.target.value)}
               iconLeft={
-                <button
-                  type="button"
-                  onClick={() => setCurrencySheetOpen(true)}
-                  className="flex items-center gap-0.5 text-[15px] font-medium text-[#808080] -ml-0.5 pr-2 mr-1 border-r border-[#e5e5e5]"
-                  aria-label="Change currency"
+                <span
+                  className="flex items-center text-[15px] font-medium text-[#808080] -ml-0.5 pr-2 mr-1 border-r border-[#e5e5e5]"
                 >
                   {currency || "—"}
-                  <ExpandMoreIcon style={{ fontSize: 18, color: "#b3b3b3" }} />
-                </button>
+                </span>
               }
             />
           </motion.div>
@@ -177,16 +169,6 @@ export function AddServicesSheet({
         onSelect={(u) => {
           setUnit(u);
           setUnitSheetOpen(false);
-        }}
-      />
-
-      <CurrencySheet
-        open={currencySheetOpen}
-        value={currency}
-        onClose={() => setCurrencySheetOpen(false)}
-        onSelect={(code) => {
-          setCurrencyOverride(code);
-          setCurrencySheetOpen(false);
         }}
       />
     </>

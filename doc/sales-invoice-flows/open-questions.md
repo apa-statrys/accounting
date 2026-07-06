@@ -76,6 +76,7 @@ This file = open questions for stakeholders + pending build items + session deci
 - **Upload Browse-Files** demo → OCR can't read customer name+email → both fields warning-highlighted + "Cannot extract" + **Save-to-list checkbox shows only after both filled**.
 - **Automatic reminders** = simple on/off toggle (removed the schedule sub-page).
 - **Try-again failure state** dropped from create-credit-note.
+- **Invoice terminal status label = "Void"** (decided 2026-07-03) 🔴 ticket conflict: **DES-715** status matrix uses **Void**; **DES-719** had briefly renamed it to **Cancelled**. Reverted the *displayed* label to **Void** across the invoice side (list pill, detail pill, filter chip, card subtitles, customer-detail invoice rows). **Internal status key stays `Cancelled`** (unchanged in code/data) and the **credit-note "Cancelled" status (DES-763) is untouched** — different concept. Confirm with Beatrice that Void is the canonical wording.
 
 ---
 

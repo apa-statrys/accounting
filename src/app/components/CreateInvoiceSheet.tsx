@@ -1,8 +1,11 @@
-import { FilePlus2, UploadCloud } from "lucide-react";
+import { FilePlus2, UploadCloud, Repeat } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 import { FONT, INK, MUTED } from "../lib/theme";
 const BRAND = "#ff4a15";
+
+/** Recurring invoices (DES-782) are built but hidden from the Create sheet for now — flip to re-enable. */
+const SHOW_RECURRING = false;
 
 /** Shared open/close motion — matches the app's standard bottom-sheet animation. */
 const backdrop = { closed: { opacity: 0 }, open: { opacity: 1 } };
@@ -54,13 +57,16 @@ interface CreateInvoiceSheetProps {
   onClose?: () => void;
   onManual?: () => void;
   onUpload?: () => void;
+  /** Start a recurring invoice series (DES-782) — same create flow + a schedule. */
+  onRecurring?: () => void;
 }
 
 /**
- * "Create" bottom sheet (Figma 426:13541): slides up from the FAB with two
- * choices — build manually or upload a file. Auto-height, grabber handle.
+ * "Create" bottom sheet (Figma 426:13541): slides up from the FAB with three
+ * choices — build manually, upload a file, or set up a recurring series (DES-782).
+ * Auto-height, grabber handle.
  */
-export function CreateInvoiceSheet({ open, onClose, onManual, onUpload }: CreateInvoiceSheetProps) {
+export function CreateInvoiceSheet({ open, onClose, onManual, onUpload, onRecurring }: CreateInvoiceSheetProps) {
   return (
     <AnimatePresence>
       {open && (
@@ -97,6 +103,14 @@ export function CreateInvoiceSheet({ open, onClose, onManual, onUpload }: Create
                 icon={<UploadCloud size={32} strokeWidth={1.75} style={{ color: INK }} />}
                 onClick={onUpload}
               />
+              {SHOW_RECURRING && (
+                <Tile
+                  title="Recurring Invoice"
+                  sub="Bill a customer on a set schedule"
+                  icon={<Repeat size={32} strokeWidth={1.75} style={{ color: INK }} />}
+                  onClick={onRecurring}
+                />
+              )}
             </motion.div>
 
             {/* Home indicator */}

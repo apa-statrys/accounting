@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { motion } from "motion/react";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { FileText } from "lucide-react";
+import { FileText, Repeat } from "lucide-react";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { STATUS_PILL } from "../../lib/status";
 import { FONT } from "../../lib/theme";
@@ -56,7 +56,16 @@ export function InvoiceCard({ inv, highlighted, onClick, onDelete, onOpenCN, ref
       {/* Invoice number on its own line; the date phrase ("Due in N days" / "Overdue by N days" /
           "Paid on …") sits beneath it. */}
       <div className="flex flex-col gap-0.5 mt-1">
-        <p className="text-[12px] font-medium leading-[1.2] text-[#808080] truncate" style={FONT}>{meta.number}</p>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <p className="text-[12px] font-medium leading-[1.2] text-[#808080] truncate" style={FONT}>{meta.number}</p>
+          {/* Recurring-series badge (DES-782) — marks invoices generated from a recurring series. */}
+          {inv.recurring && (
+            <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-[#fff6f2] border border-[#ffd9c2] px-1.5 py-0.5">
+              <Repeat size={10} strokeWidth={2.5} style={{ color: "#ff4a15" }} />
+              <span className="text-[10px] font-bold leading-none" style={{ ...FONT, color: "#ff4a15" }}>Recurring</span>
+            </span>
+          )}
+        </div>
         <p className="text-[12px] leading-[1.2]" style={{ ...FONT, color: meta.danger ? "#d92d20" : "#a0a0a0", fontWeight: meta.danger ? 600 : 400 }}>{meta.rest}</p>
       </div>
     </div>

@@ -1,20 +1,14 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import ContactsOutlinedIcon from "@mui/icons-material/ContactsOutlined";
 import StatusBar from "./StatusBar";
 import { SheetHeader, HeaderIconButton } from "./SheetHeader";
 import { TextInput } from "./TextInput";
 import { ButtonDock } from "./ButtonDock";
 import { BottomSheet } from "./BottomSheet";
-import { Search } from "./Search";
-import { Tile } from "./Tile";
 import { CurrencySheet } from "./CurrencySheet";
 import { CountrySheet } from "./CountrySheet";
-import { PAYMENT_CONTACTS } from "../data/paymentContacts";
-import type { PaymentContact } from "../types";
 import type { Customer } from "../types";
 
 import { FONT } from "../lib/theme";
@@ -86,51 +80,24 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
     currency !== (initial?.currency ?? defaultCurrency);
 
   const requestBack = () => (dirty ? setDiscardOpen(true) : onBack?.());
-  // AC2 — prefill from a Statrys payment contact (contact picker).
-  const [contactOpen, setContactOpen] = useState(false);
-  const [contactQuery, setContactQuery] = useState("");
-
-  const contactMatches = useMemo(() => {
-    const q = contactQuery.trim().toLowerCase();
-    if (!q) return PAYMENT_CONTACTS;
-    return PAYMENT_CONTACTS.filter((c) =>
-      [c.name, c.email, c.city, c.country].some((v) => v?.toLowerCase().includes(q))
-    );
-  }, [contactQuery]);
-
-  // AC2: auto-fill every matching field from the selected contact; all remain editable afterwards.
-  const prefillFromContact = (c: PaymentContact) => {
-    setCompany(c.name ?? "");
-    setEmail(c.email ?? "");
-    setFirstName(c.firstName ?? "");
-    setLastName(c.lastName ?? "");
-    setRegNo(c.regNo ?? "");
-    setPhone(c.phone ?? "");
-    setWebsite(c.website ?? "");
-    setAddress(c.address ?? "");
-    setCity(c.city ?? "");
-    setStateVal(c.state ?? "");
-    setCountry(c.country ?? "");
-    setZip(c.country && NO_POSTAL_COUNTRIES.includes(c.country) ? "" : (c.zip ?? ""));
-    if (c.currency) setCurrency(c.currency);
-    setOverrideDup(false);
-    setContactOpen(false);
-    setContactQuery("");
-  };
 
   const noPostal = NO_POSTAL_COUNTRIES.includes(country);
 
   // Required (DES-713 final spec): Company Name, Email, Address, City, Zip/Postal, Country. Optional
   // fields validate format only when filled. Zip is not required for no-postal countries (e.g. HK).
+  // All fields are required EXCEPT Company Registration Number. Fields with a format also validate it.
   const errors = {
     company: !company.trim() && "Company name is required",
     email: !email.trim() ? "Email is required" : !EMAIL_RE.test(email.trim()) && "Enter a valid email",
+    firstName: !firstName.trim() && "First name is required",
+    lastName: !lastName.trim() && "Last name is required",
+    phone: !phone.trim() ? "Phone number is required" : !PHONE_RE.test(phone.trim()) ? "Enter a valid phone number" : false,
+    website: !website.trim() ? "Website is required" : !URL_RE.test(website.trim()) ? "Enter a valid website" : false,
     address: !address.trim() && "Address is required",
     city: !city.trim() && "City is required",
     zip: !noPostal && !zip.trim() ? "Postal code is required" : false,
     country: !country.trim() && "Country is required",
-    phone: phone.trim() && !PHONE_RE.test(phone.trim()) ? "Enter a valid phone number" : false,
-    website: website.trim() && !URL_RE.test(website.trim()) ? "Enter a valid website" : false,
+    state: !stateVal.trim() && "State is required",
   } as const;
 
   const isValid = !Object.values(errors).some(Boolean);
@@ -139,8 +106,8 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
   // (bad email/phone/website) surface live, once the field has content, so the user sees why it's blocked.
   const err = (key: keyof typeof errors) => {
     if (key === "email") return email.trim() && !EMAIL_RE.test(email.trim()) ? "Enter a valid email" : false;
-    if (key === "phone") return errors.phone;
-    if (key === "website") return errors.website;
+    if (key === "phone") return phone.trim() && !PHONE_RE.test(phone.trim()) ? "Enter a valid phone number" : false;
+    if (key === "website") return website.trim() && !URL_RE.test(website.trim()) ? "Enter a valid website" : false;
     return false;
   };
 
@@ -187,31 +154,6 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
 
       <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pt-5 pb-28">
         <div className="flex flex-col gap-4">
-          {/* AC2 — prefill from a Statrys payment contact (add flow only; editing an existing record skips it). */}
-          {!isEdit && (
-            <>
-              <button
-                type="button"
-                onClick={() => setContactOpen(true)}
-                className="group flex items-center gap-3 rounded-xl border border-dashed border-[rgba(160,160,160,0.4)] bg-[#faf9f4] px-3.5 py-3 text-left"
-              >
-                <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "#f0eee6" }}>
-                  <ContactsOutlinedIcon style={{ fontSize: 18, color: "#1b1b1b" }} />
-                </span>
-                <span className="flex-1 min-w-0">
-                  <span className="block text-[14px] font-semibold" style={{ ...FONT, color: "#1b1b1b" }}>Prefill from a payment contact</span>
-                  <span className="block text-[12px] mt-0.5" style={{ ...FONT, color: "#808080" }}>Reuse a saved Statrys contact</span>
-                </span>
-                <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5 shrink-0" style={{ fontSize: 18, color: "#808080" }} />
-              </button>
-              <div className="flex items-center gap-3">
-                <span className="h-px flex-1 bg-[rgba(160,160,160,0.25)]" />
-                <span className="text-[11px] font-medium uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>or enter manually</span>
-                <span className="h-px flex-1 bg-[rgba(160,160,160,0.25)]" />
-              </div>
-            </>
-          )}
-
           {duplicate && overrideDup && (
             <div className="flex items-start gap-2.5 rounded-xl bg-[#fff4ec] border border-[#ffd9c2] px-3.5 py-3">
               <ErrorOutlineIcon style={{ fontSize: 18, color: "#ff4a15", marginTop: 1 }} />
@@ -228,19 +170,19 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
             error={err("email")} value={email} onChange={(e) => setEmail(e.target.value)} />
 
           <div className="flex gap-4">
-            <TextInput label="First Name" placeholder="e.g. Daniel" size="md" showHint={false} className="flex-1"
-              value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-            <TextInput label="Last Name" placeholder="e.g. Smith" size="md" showHint={false} className="flex-1"
-              value={lastName} onChange={(e) => setLastName(e.target.value)} />
+            <TextInput label="First Name" placeholder="e.g. Daniel" size="md" required showHint={!err("firstName")} className="flex-1"
+              error={err("firstName")} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+            <TextInput label="Last Name" placeholder="e.g. Smith" size="md" required showHint={!err("lastName")} className="flex-1"
+              error={err("lastName")} value={lastName} onChange={(e) => setLastName(e.target.value)} />
           </div>
 
           <TextInput label="Company Registration Number" placeholder="e.g. 201912345A" size="md" showHint={false}
             value={regNo} onChange={(e) => setRegNo(e.target.value)} />
 
-          <TextInput label="Phone Number" type="tel" placeholder="+65 8123 4567" size="md" showHint={!err("phone")}
+          <TextInput label="Phone Number" type="tel" placeholder="+65 8123 4567" size="md" required showHint={!err("phone")}
             error={err("phone")} value={phone} onChange={(e) => setPhone(e.target.value)} />
 
-          <TextInput label="Website" placeholder="e.g. marlowfinch.co" size="md" showHint={!err("website")}
+          <TextInput label="Website" placeholder="e.g. marlowfinch.co" size="md" required showHint={!err("website")}
             error={err("website")} value={website} onChange={(e) => setWebsite(e.target.value)} />
 
           <TextInput label="Address" placeholder="Street address" size="md" required showHint={!err("address")}
@@ -258,10 +200,10 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
             )}
           </div>
 
-          <TextInput label="State" placeholder="e.g. Central" size="md" showHint={false}
-            value={stateVal} onChange={(e) => setStateVal(e.target.value)} />
+          <TextInput label="State" placeholder="e.g. Central" size="md" required showHint={!err("state")}
+            error={err("state")} value={stateVal} onChange={(e) => setStateVal(e.target.value)} />
 
-          <TextInput label="Default Currency" placeholder="Select currency" size="md" showHint={false} readOnly
+          <TextInput label="Default Currency" placeholder="Select currency" size="md" required showHint={false} readOnly
             iconRight={chevron} value={currency} onClick={() => setCurrencyOpen(true)} />
         </div>
       </div>
@@ -273,26 +215,6 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         onPrimary={handleSave}
         homeIndicator
       />
-
-      {/* AC2 — payment-contact picker: search + select → prefill (all fields stay editable). */}
-      <BottomSheet open={contactOpen} title="Prefill from a payment contact" onClose={() => setContactOpen(false)} heightClass="h-[72%]">
-        <div className="flex flex-col gap-3">
-          <Search placeholder="Search contacts" value={contactQuery} onChange={(e) => setContactQuery(e.target.value)} />
-          <div className="flex flex-col gap-2">
-            {contactMatches.map((c) => (
-              <Tile
-                key={c.id}
-                title={c.name}
-                description={[c.email, [c.city, c.country].filter(Boolean).join(", ")].filter(Boolean).join(" · ")}
-                onClick={() => prefillFromContact(c)}
-              />
-            ))}
-            {contactMatches.length === 0 && (
-              <p className="py-8 text-center text-[13px]" style={{ ...FONT, color: "#808080" }}>No contacts found.</p>
-            )}
-          </div>
-        </div>
-      </BottomSheet>
 
       <CountrySheet
         open={countryOpen}

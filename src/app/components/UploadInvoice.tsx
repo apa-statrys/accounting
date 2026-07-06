@@ -93,6 +93,15 @@ export function UploadInvoice({ onBack, onContinue, initialFiles = [] }: UploadI
     setFiles((prev) => [...prev, file]);
   };
 
+  // Demo file sources go STRAIGHT to OCR — the picked demo file is fixed, so the separate "Continue"
+  // step just hid the extraction screen. Validation still runs (rejects oversized/unsupported).
+  const pickAndContinue = (file: File) => {
+    const err = validate(file);
+    if (err) { setError(err); return; }
+    setError(null);
+    onContinue?.([file]);
+  };
+
   const removeFile = (i: number) => {
     setError(null);
     setFiles((prev) => prev.filter((_, idx) => idx !== i));
@@ -140,12 +149,12 @@ export function UploadInvoice({ onBack, onContinue, initialFiles = [] }: UploadI
                 <SourceRow
                   label="Choose from Photos"
                   icon={<PhotoLibraryOutlinedIcon style={{ fontSize: 22 }} />}
-                  onClick={() => addFile(makeDemoFile("invoice-scan.png", "image/png", 1.2))}
+                  onClick={() => pickAndContinue(makeDemoFile("invoice-scan.png", "image/png", 1.2))}
                 />
                 <SourceRow
                   label="Browse Files"
                   icon={<InsertDriveFileOutlinedIcon style={{ fontSize: 22 }} />}
-                  onClick={() => addFile(makeDemoFile("invoice.pdf", "application/pdf", 0.4))}
+                  onClick={() => pickAndContinue(makeDemoFile("invoice.pdf", "application/pdf", 0.4))}
                 />
               </div>
 

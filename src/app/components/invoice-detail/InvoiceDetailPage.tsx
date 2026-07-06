@@ -25,6 +25,8 @@ import { FONT, INK, MUTED } from "../../lib/theme";
 import type { CreditNotePayload, DraftLine, DetailStatus, InvoiceEditSeed, InvoiceLine } from "../../types";
 import { ITEMS, SUBTOTAL, DISCOUNT, TOTAL, PAID_PARTIAL, SENT_TODAY, REFUND_DATE_ISO, EDITED_TODAY } from "./demoInvoice";
 import type { CreditNote, RefundProof } from "./creditNoteTypes";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { Repeat } from "lucide-react";
 import { MetaRow, InfoCard } from "./InfoBits";
 import { CreditsAppliedSection } from "./CreditsAppliedSection";
 import { ActionsMenu } from "./ActionsMenu";
@@ -35,6 +37,14 @@ interface InvoiceDetailPageProps {
   initialStatus?: DetailStatus;
   /** Where a Draft came from — sets the default emphasis (DES-715 vs DES-716 AC4). */
   origin?: "created" | "uploaded";
+  /** Generated from a recurring series (DES-782) — shows a tappable Recurrence card → series detail. */
+  recurring?: boolean;
+  recurringFrequency?: string;
+  recurringNextDate?: string;
+  /** Current series status (owned by App so the series-detail page stays in sync). */
+  seriesStatus?: "Active" | "Paused" | "Cancelled";
+  /** Open the recurring-series detail page (Pause / Resume / Cancel live there). */
+  onOpenSeries?: () => void;
   invoiceNo?: string;
   customerName?: string;
   customerEmail?: string;
@@ -66,6 +76,11 @@ interface InvoiceDetailPageProps {
 export function InvoiceDetailPage({
   initialStatus = "Awaiting",
   origin = "created",
+  recurring = false,
+  recurringFrequency = "Monthly",
+  recurringNextDate = "1 Aug 2026",
+  seriesStatus = "Active",
+  onOpenSeries,
   invoiceNo = "INV-2026-000042",
   customerName = "Marlow & Finch Studio",
   customerEmail = "apa@marlowfinch.co",
@@ -149,6 +164,10 @@ export function InvoiceDetailPage({
   const [resendPromptOpen, setResendPromptOpen] = useState(false);
   const [recordPayOpen, setRecordPayOpen] = useState(false);
   const [recordAmount, setRecordAmount] = useState("");
+  // "Mark as paid" also captures which bank account received it + an optional payment date (DES-715
+  // comment — indicator for reconciliation; no GL impact). Seeded to the primary receiving account.
+  const [recordAccountId, setRecordAccountId] = useState("personal");
+  const [recordDate, setRecordDate] = useState<Date | null>(null);
   const [paidAmount, setPaidAmount] = useState(PAID_PARTIAL);
   // Amount received beyond the total (DES-715/716 AC6 — flagged for review).
   const [overpayment, setOverpayment] = useState(0);
@@ -253,7 +272,7 @@ export function InvoiceDetailPage({
       : `Overdue by ${overdueDays} days · was due ${dueDateLabel}`,
     PartiallyPaid: `${money(paidAmount)} received · ${money(remaining)} still due`,
     Paid: overpayment > 0 ? `Paid · overpaid by ${money(overpayment)}, flagged for review` : "Paid in full",
-    Cancelled: "Cancelled with a credit note · no longer collectable",
+    Cancelled: "Voided with a credit note · no longer collectable",
     // DES-720: refund context leads with the amount to refund; remaining paid is the secondary line.
     PendingRefund: `${money(outstanding)} remaining paid`,
     Refunded: credited >= TOTAL - 0.001 ? "Refunded in full" : `${money(outstanding)} remaining paid`,
@@ -586,6 +605,45 @@ export function InvoiceDetailPage({
             onAddRefund={() => setRefundFormOpen(true)}
             onPreviewProof={setProofPreview}
           />
+        )}
+
+        {/* Recurring series (DES-782) — tap to open the series detail (Pause / Resume / Cancel live there). */}
+        {recurring && (
+          <button
+            type="button"
+            onClick={onOpenSeries}
+            className="group w-full bg-white border border-dashed border-[rgba(160,160,160,0.2)] rounded-xl px-4 text-left"
+            style={{ boxShadow: "var(--shadow-card-soft)" }}
+          >
+            <div className="py-3 flex items-center justify-between gap-2 border-b border-[rgba(160,160,160,0.18)]">
+              <span className="flex items-center gap-2 min-w-0">
+                <Repeat size={16} strokeWidth={2.25} style={{ color: "#ff4a15" }} />
+                <span className="text-[15px] font-medium truncate" style={{ ...FONT, color: INK }}>Recurring series</span>
+              </span>
+              <span className="shrink-0 flex items-center gap-1.5">
+                <span
+                  className="inline-flex items-center px-2.5 py-1 rounded-full border text-[11px] font-bold leading-[15px]"
+                  style={{
+                    ...FONT,
+                    ...(seriesStatus === "Active"
+                      ? { background: "#ebfcef", borderColor: "#a3e9b6", color: "#006a1d" }
+                      : seriesStatus === "Paused"
+                      ? { background: "#fff7e6", borderColor: "#fde68a", color: "#b45309" }
+                      : { background: "#f4f4f4", borderColor: "#e0e0e0", color: "#808080" }),
+                  }}
+                >
+                  {seriesStatus}
+                </span>
+                <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5" style={{ fontSize: 18, color: "#808080" }} />
+              </span>
+            </div>
+            <MetaRow label="Frequency" value={recurringFrequency} />
+            <MetaRow
+              label="Next invoice"
+              value={seriesStatus === "Active" ? recurringNextDate : seriesStatus === "Paused" ? "Paused" : "Series cancelled"}
+              last
+            />
+          </button>
         )}
 
         {/* Customer — avatar removed for now (pending invoice-number confirmation) */}
@@ -968,6 +1026,10 @@ export function InvoiceDetailPage({
         value={recordAmount}
         onChange={setRecordAmount}
         total={TOTAL}
+        accountId={recordAccountId}
+        onAccountChange={setRecordAccountId}
+        date={recordDate}
+        onDateChange={setRecordDate}
         onSubmit={() => {
           const amt = Math.max(0, Number(recordAmount) || 0);
           setRecordPayOpen(false);

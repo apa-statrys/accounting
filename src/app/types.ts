@@ -24,7 +24,8 @@ export type Screen =
   | "customers"
   | "customerDetail"
   | "addCustomer"
-  | "editCustomer";
+  | "editCustomer"
+  | "recurringSeries";
 
 // ---------------------------------------------------------------------------
 // Customers
@@ -87,14 +88,18 @@ export interface Invoice {
   due?: string;
   /** Drafts only: where it came from (sets the detail page's default emphasis). */
   origin?: "created" | "uploaded";
+  /** Generated from a recurring series (DES-782) — shows a "Recurring" badge on the list card. */
+  recurring?: boolean;
   /** A linked credit note (Cancelled = full; Awaiting = partial via cnAmount) + sent state. */
   cnNo?: string;
   cnAmount?: number;
   cnSent?: boolean;
 }
 
-/** The full invoice lifecycle on the DETAIL page (DES-715 / DES-716 status matrix). "Cancelled"
- *  (DES-719) replaces the earlier "Void" wording — a fully credited invoice ends in Cancelled. */
+/** The full invoice lifecycle on the DETAIL page (DES-715 / DES-716 status matrix). The internal key
+ *  stays "Cancelled" (a fully credited invoice ends here), but the DISPLAYED label is "Void" per the
+ *  DES-715 status matrix — see lib/status.ts. (DES-719 briefly used "Cancelled" wording; reverted
+ *  to "Void" 2026-07-03 to match DES-715. Do NOT confuse with the credit-note "Cancelled" status.) */
 export type DetailStatus = "Draft" | "Awaiting" | "Overdue" | "PartiallyPaid" | "Paid" | "Cancelled" | "PendingRefund" | "Refunded";
 
 /** What Edit carries up so the form opens prefilled with this invoice. */

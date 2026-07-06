@@ -51,9 +51,11 @@ interface SalesInvoiceListProps {
   recent?: { client: string; amount: string; status: Status; meta: string } | null;
   onBack?: () => void;
   /** Open an invoice's detail page. */
-  onOpenInvoice?: (inv: { number: string; client: string; status: Status; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean }) => void;
+  onOpenInvoice?: (inv: { number: string; client: string; status: Status; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; recurring?: boolean }) => void;
   onManual?: () => void;
   onUpload?: () => void;
+  /** Start a recurring invoice series (DES-782). */
+  onRecurring?: () => void;
   /** Preset the status chip when opened from a dashboard tile (e.g. "Paid"). */
   initialStatus?: StatusMatch;
   /** Preset the due-date quick filter when opened from elsewhere (e.g. "week"). */
@@ -62,7 +64,7 @@ interface SalesInvoiceListProps {
   refundState?: Record<string, "partial" | "full">;
 }
 
-export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, onSuccessDone, recent, onBack, onOpenInvoice, onManual, onUpload, initialStatus, initialDue, refundState }: SalesInvoiceListProps) {
+export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, onSuccessDone, recent, onBack, onOpenInvoice, onManual, onUpload, onRecurring, initialStatus, initialDue, refundState }: SalesInvoiceListProps) {
   const initialActive = initialStatus ? Math.max(0, FILTERS.findIndex((f) => f.match === initialStatus)) : 0;
   const [active, setActive] = useState(initialActive);
   // Keep the selected status chip scrolled into view (e.g. when opened pre-filtered from the hero).
@@ -247,7 +249,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
               key={inv.id}
               inv={inv}
               highlighted={highlightRecent && inv.id === "recent-new"}
-              onClick={() => onOpenInvoice?.({ number: inv.id.replace(/[a-z]$/, ""), client: inv.client, status: inv.status, origin: inv.origin ?? "created", cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent })}
+              onClick={() => onOpenInvoice?.({ number: inv.id.replace(/[a-z]$/, ""), client: inv.client, status: inv.status, origin: inv.origin ?? "created", cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent, recurring: inv.recurring })}
               onDelete={() => setConfirmDeleteId(inv.id)}
               onOpenCN={openCnForInvoice}
               refundOverride={refundState?.[inv.id.replace(/[a-z]$/, "")]}
@@ -277,6 +279,10 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
         onUpload={() => {
           setSheetOpen(false);
           onUpload?.();
+        }}
+        onRecurring={() => {
+          setSheetOpen(false);
+          onRecurring?.();
         }}
       />
 

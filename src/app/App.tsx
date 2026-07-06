@@ -11,6 +11,7 @@ import { CREDIT_NOTES } from "./data/creditNotes";
 import { InvoiceDetailPage } from "./components/invoice-detail/InvoiceDetailPage";
 import { CreditNoteForm } from "./components/credit-note-form/CreditNoteForm";
 import { CreateSalesInvoice } from "./components/CreateSalesInvoice";
+import { RecurringSeriesDetail } from "./components/RecurringSeriesDetail";
 import { AddInvoiceDetails } from "./components/add-invoice-details/AddInvoiceDetails";
 import { SalesInvoiceList } from "./components/sales-invoice-list/SalesInvoiceList";
 import { NeedAttention } from "./components/NeedAttention";
@@ -22,7 +23,7 @@ import { DEMO_EXTRACTION, DEMO_EXTRACTION_MATCHED, DEMO_EXTRACTION_NO_CUSTOMER, 
 import { CUSTOMERS } from "./data/customers";
 import { DEFAULT_SETTINGS } from "./data/settings";
 import { HERO_SCENARIOS } from "./data/heroScenarios";
-import type { Screen, Customer, DetailStatus, InvoiceEditSeed, InvoiceLine, CompanySettings, ExtractedInvoice, ExistingInvoice } from "./types";
+import type { Screen, Customer, DetailStatus, InvoiceEditSeed, InvoiceLine, CompanySettings, ExtractedInvoice, ExistingInvoice, ServiceLine } from "./types";
 
 /** OCR steps shown while an uploaded invoice is being read. */
 const OCR_STEPS = [
@@ -53,6 +54,11 @@ const NAV_GROUPS: { heading: string; items: { id: Screen; label: string }[] }[] 
       { id: "refundCreditNote", label: "Sales Refund Credit Notes" },
     ],
   },
+];
+
+/** Demo line items used when editing the recurring series (DES-782) — one monthly retainer line. */
+const RECURRING_SERIES_ITEMS: ServiceLine[] = [
+  { id: "rs-1", name: "Monthly retainer", currency: "USD", unit: "Month", quantity: 1, unitPrice: 6450 },
 ];
 
 /** Demo line items + invoice context for previewing the standalone Credit Note form. */
@@ -175,7 +181,7 @@ export default function App() {
   // Freshly created/saved invoice to surface + highlight at the top of the list.
   const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string } | null>(null);
   // The invoice opened into the detail page (status drives the lifecycle UI).
-  const [openInvoice, setOpenInvoice] = useState<{ number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean }>({
+  const [openInvoice, setOpenInvoice] = useState<{ number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; recurring?: boolean }>({
     number: "INV-2026-000042",
     client: "Marlow & Finch Studio",
     status: "Awaiting",
@@ -211,6 +217,14 @@ export default function App() {
   const [detailReturn, setDetailReturn] = useState<Screen>("list");
   // The screen the upload sheet is presented over (shown dimmed behind it).
   const [uploadReturn, setUploadReturn] = useState<"dashboard" | "list">("list");
+  // Recurring-series create flow (DES-782) — reuses the customer → details flow with a schedule.
+  const [recurring, setRecurring] = useState(false);
+  // Series status for the opened recurring invoice — shared by the invoice detail card + series page.
+  const [seriesStatus, setSeriesStatus] = useState<"Active" | "Paused" | "Cancelled">("Active");
+  // Editing an existing series (DES-782 AC4) — reuses the recurring form with a "Save changes" CTA.
+  const [editingSeries, setEditingSeries] = useState(false);
+  // Where the full-page Add Customer returns: the Customers list, or the invoice customer picker.
+  const [addCustomerReturn, setAddCustomerReturn] = useState<"customers" | "customer">("customers");
   // Preset filter to apply when the list is opened from a dashboard hero stat.
   const [listPreset, setListPreset] = useState<{ status?: "Paid" | "Awaiting" } | null>(null);
   // Dev: which hero demo state the dashboard renders (switched from QuickNav).
@@ -246,11 +260,23 @@ export default function App() {
           }}
           onCreate={() => {
             setExtracted(null);
+            setRecurring(false);
+            setEditingSeries(false);
             setScreen("customer");
           }}
           onUpload={() => {
             setUploadReturn("dashboard");
+            setRecurring(false);
+            setEditingSeries(false);
+            setCustomer(null); // customer comes from OCR — don't carry a previously-selected one in
             setScreen("upload");
+          }}
+          onRecurring={() => {
+            setExtracted(null);
+            setEditInitial(null);
+            setRecurring(true);
+            setEditingSeries(false);
+            setScreen("customer");
           }}
         />
       )}
@@ -276,20 +302,27 @@ export default function App() {
           onFlashDone={() => setCustomerFlash(null)}
           onBack={() => setScreen("hub")}
           onOpenCustomer={(c) => { setSelectedCustomer(c); setScreen("customerDetail"); }}
-          onAddCustomer={() => setScreen("addCustomer")}
+          onAddCustomer={() => { setAddCustomerReturn("customers"); setScreen("addCustomer"); }}
         />
       )}
 
-      {/* Add Client — full page (DES-713, Client List entry point). Post-save: append + return to list. */}
+      {/* Add Client — full page (DES-713). Entry from the Customers list OR the invoice customer picker;
+          post-save it appends + returns to wherever it was opened (the picker pre-selects the new one). */}
       {screen === "addCustomer" && (
         <AddCustomerPage
           existing={customers.map((c) => ({ name: c.name, email: c.email }))}
           defaultCurrency={settings.currency}
-          onBack={() => setScreen("customers")}
+          onBack={() => setScreen(addCustomerReturn)}
           onAdd={(cust) => {
             setCustomers((prev) => [...prev, cust]);
-            setCustomerFlash(`${cust.name} added`);
-            setScreen("customers");
+            if (addCustomerReturn === "customer") {
+              // In-invoice add → return to the picker with the new customer selected.
+              setCustomer(cust);
+              setScreen("customer");
+            } else {
+              setCustomerFlash(`${cust.name} added`);
+              setScreen("customers");
+            }
           }}
         />
       )}
@@ -301,13 +334,6 @@ export default function App() {
           onFlashDone={() => setCustomerFlash(null)}
           onBack={() => setScreen("customers")}
           onEdit={() => setScreen("editCustomer")}
-          onOpenInvoice={(payload) => {
-            setOpenInvoice(payload);
-            setDetailFlash(null);
-            setEditFromDuplicate(false);
-            setDetailReturn("customerDetail");
-            setScreen("invoiceDetail");
-          }}
         />
       )}
 
@@ -405,11 +431,23 @@ export default function App() {
           }}
           onManual={() => {
             setExtracted(null);
+            setRecurring(false);
+            setEditingSeries(false);
             setScreen("customer");
           }}
           onUpload={() => {
             setUploadReturn("list");
+            setRecurring(false);
+            setEditingSeries(false);
+            setCustomer(null); // customer comes from OCR — don't carry a previously-selected one in
             setScreen("upload");
+          }}
+          onRecurring={() => {
+            setExtracted(null);
+            setEditInitial(null);
+            setRecurring(true);
+            setEditingSeries(false);
+            setScreen("customer");
           }}
         />
       )}
@@ -418,6 +456,9 @@ export default function App() {
         <InvoiceDetailPage
           initialStatus={openInvoice.status}
           origin={openInvoice.origin}
+          recurring={openInvoice.recurring}
+          seriesStatus={seriesStatus}
+          onOpenSeries={() => setScreen("recurringSeries")}
           invoiceNo={openInvoice.number}
           customerName={openInvoice.client}
           customerEmail={CREDIT_NOTES.find((c) => c.no === openInvoice.cnNo)?.email}
@@ -447,6 +488,8 @@ export default function App() {
             setEditInitial(seed);
             setNumberRecommended(false);
             setEditFromDuplicate(false);
+            setRecurring(false);
+            setEditingSeries(false);
             setScreen("details");
           }}
           onIssued={() => {
@@ -574,9 +617,11 @@ export default function App() {
           }}
           onCreateNew={() => {
             // New draft from the OCR data, with a freshly generated (unique) invoice number.
+            // Uploaded invoices use the UPL-YYYY-NNNNNN register (never our INV-YYYY-NNNNNN format);
+            // this is the "system recommended" number the user can still overwrite.
             const nums = EXISTING_INVOICES.map((i) => parseInt(i.number.split("-").pop() || "0", 10)).filter((n) => !Number.isNaN(n));
             const next = (nums.length ? Math.max(...nums) : 0) + 1;
-            const newNo = `INV-2026-${String(next).padStart(6, "0")}`;
+            const newNo = `UPL-2026-${String(next).padStart(6, "0")}`;
             const base = pendingExtraction ?? DEMO_EXTRACTION;
             setExtracted({ ...base, invoiceNumber: newNo });
             setEditInitial(null);
@@ -593,7 +638,8 @@ export default function App() {
         <CreateSalesInvoice
           selectedId={customer?.id ?? ""}
           customers={customers}
-          onCustomerAdded={(c) => setCustomers((prev) => [...prev, c])}
+          recurring={recurring}
+          onAddCustomer={() => { setAddCustomerReturn("customer"); setScreen("addCustomer"); }}
           onClose={() => setScreen("list")}
           onSelectCustomer={(c) => {
             setCustomer(c);
@@ -609,6 +655,9 @@ export default function App() {
         <AddInvoiceDetails
           customer={customer}
           customers={customers}
+          recurring={recurring}
+          editingSeries={editingSeries}
+          seedServices={editingSeries ? RECURRING_SERIES_ITEMS : undefined}
           companyName={settings.companyName}
           extracted={extracted}
           // Invoice-currency seed precedence (DES-713): OCR (extracted) → edit-seed → CUSTOMER default →
@@ -652,6 +701,7 @@ export default function App() {
           onChangeCustomer={() => setScreen("customer")}
           onSend={(t, r) => {
             setRecent(r ?? null);
+            setEditingSeries(false);
             if (extracted) {
               // Any upload create (OCR-missing, create-new, etc.) → land on the new invoice's
               // detail page in Awaiting Payment, not the list.
@@ -700,6 +750,37 @@ export default function App() {
             setRecent(draft ? { ...draft, status: "Draft" } : null);
             setScreen("list");
           }}
+        />
+      )}
+
+      {/* Recurring series detail (DES-782) — Pause / Resume / Cancel the series */}
+      {screen === "recurringSeries" && (
+        <RecurringSeriesDetail
+          status={seriesStatus}
+          customerName={openInvoice.client}
+          amountLabel="$6,450.00"
+          frequency="Monthly"
+          startDate="1 Jul 2026"
+          nextDate="1 Aug 2026"
+          ends="Never"
+          autoSend={false}
+          onBack={() => setScreen("invoiceDetail")}
+          onEdit={() => {
+            // Edit the series (DES-782 AC4) — reuse the recurring form, seeded with the series' customer
+            // + line items. Customer/currency/start-date locking is a follow-up.
+            const cust = customers.find((c) => c.name === openInvoice.client) ?? { id: "series", name: openInvoice.client, email: "" };
+            setCustomer(cust);
+            setExtracted(null);
+            setEditInitial(null);
+            setNumberRecommended(false);
+            setEditFromDuplicate(false);
+            setRecurring(true);
+            setEditingSeries(true);
+            setScreen("details");
+          }}
+          onPause={() => { setSeriesStatus("Paused"); setScreen("invoiceDetail"); }}
+          onResume={() => { setSeriesStatus("Active"); setScreen("invoiceDetail"); }}
+          onCancel={() => { setSeriesStatus("Cancelled"); setScreen("invoiceDetail"); }}
         />
       )}
 

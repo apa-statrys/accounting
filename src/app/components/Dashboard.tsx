@@ -32,6 +32,8 @@ interface DashboardProps {
   onCreate?: () => void;
   /** Upload a file to extract an invoice. */
   onUpload?: () => void;
+  /** Start a recurring invoice series (DES-782). */
+  onRecurring?: () => void;
   /** Open the list filtered to paid invoices (Collected hero stat). */
   onOpenPaid?: () => void;
   /** Open the list filtered to outstanding/awaiting invoices (Outstanding hero stat). */
@@ -156,7 +158,7 @@ function CreditCardDollar({ size = 28 }: { size?: number }) {
   );
 }
 
-export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, onSettings, onOpenNeedAttention, onOpenInvoice, onCreate, onUpload, onOpenPaid, onOpenOutstanding, scenario = 0 }: DashboardProps) {
+export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, onSettings, onOpenNeedAttention, onOpenInvoice, onCreate, onUpload, onRecurring, onOpenPaid, onOpenOutstanding, scenario = 0 }: DashboardProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const hero = HERO_SCENARIOS[scenario] ?? HERO_SCENARIOS[0];
   // Nothing left to chase — green bar, no outstanding side.
@@ -399,6 +401,10 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
         onUpload={() => {
           setSheetOpen(false);
           onUpload?.();
+        }}
+        onRecurring={() => {
+          setSheetOpen(false);
+          onRecurring?.();
         }}
       />
     </div>

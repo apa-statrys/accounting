@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { motion } from "motion/react";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import StatusBar from "./StatusBar";
@@ -8,7 +7,6 @@ import { Search } from "./Search";
 import { Tile } from "./Tile";
 import { Button } from "./Buttons";
 import { ButtonDock } from "./ButtonDock";
-import { AddCustomerSheet } from "./AddCustomerSheet";
 import { CUSTOMERS } from "../data/customers";
 import type { Customer } from "../types";
 
@@ -32,19 +30,18 @@ interface CreateSalesInvoiceProps {
   onClose?: () => void;
   /** Fired when a customer is chosen — advances to the next step. */
   onSelectCustomer?: (customer: Customer) => void;
+  /** Open the full-page Add Customer flow (App navigates; returns here with the new one selected). */
   onAddCustomer?: () => void;
-  /** A client added via the in-invoice quick-add — App appends it to the shared register. */
-  onCustomerAdded?: (customer: Customer) => void;
+  /** Recurring-series flow (DES-782) — reflected in the header title. */
+  recurring?: boolean;
 }
 
 /**
  * Create Sales Invoice — step 1: "Add a customer".
  * Choosing a customer advances the flow.
  */
-export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onClose, onSelectCustomer, onAddCustomer, onCustomerAdded }: CreateSalesInvoiceProps) {
+export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onClose, onSelectCustomer, onAddCustomer, recurring = false }: CreateSalesInvoiceProps) {
   const [query, setQuery] = useState("");
-  const [addOpen, setAddOpen] = useState(false);
-  const [justAdded, setJustAdded] = useState<string | null>(null);
   // Selecting a tile only highlights it; "Continue" advances the flow.
   const [pendingId, setPendingId] = useState<string>(selectedId);
 
@@ -64,27 +61,19 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
   const others = filtered.filter((c) => !FREQUENT_IDS.includes(c.id));
 
   const renderTile = (c: Customer) => (
-    <motion.div
+    <Tile
       key={c.id}
-      initial={justAdded === c.id ? { opacity: 0, y: -8 } : false}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <Tile
-        title={c.name}
-        description={c.email}
-        selected={pendingId === c.id}
-        onClick={() => setPendingId(c.id)}
-      />
-    </motion.div>
+      title={c.name}
+      description={c.email}
+      selected={pendingId === c.id}
+      onClick={() => setPendingId(c.id)}
+    />
   );
 
   const GROUP_LABEL = "text-[12px] font-medium leading-[1.3] text-[#808080]";
 
-  const openAdd = () => {
-    onAddCustomer?.();
-    setAddOpen(true);
-  };
+  // Add a new customer on a full page (App handles it, then returns here with the new one selected).
+  const openAdd = () => onAddCustomer?.();
 
   return (
     <div
@@ -94,7 +83,7 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
       <StatusBar />
 
       <SheetHeader
-        title="New Invoice"
+        title={recurring ? "New Recurring Invoice" : "New Invoice"}
         type="inside-page"
         state="fixed"
         leading={
@@ -201,19 +190,6 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
         }}
       />
 
-      {/* Add new customer sheet (DES-713 Client Field Specification) */}
-      <AddCustomerSheet
-        open={addOpen}
-        existing={customers}
-        onClose={() => setAddOpen(false)}
-        onAdd={(c) => {
-          onCustomerAdded?.(c); // append to the shared register (App), so it appears everywhere
-          setJustAdded(c.id);
-          setPendingId(c.id);
-          setQuery("");
-          setAddOpen(false);
-        }}
-      />
     </div>
   );
 }

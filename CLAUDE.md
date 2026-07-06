@@ -105,10 +105,13 @@ in-session only — a reload resets it (expected prototype limit).
   built-per-ticket 715/716/718 + screen history).
 - `doc/sales-invoice-flows/open-questions.md` — pending decisions (e.g. lock a CN once sent?,
   edit→auto-resend, provisional draft numbers — all pending Beatrice).
-- `doc/sales-invoice-flows/tickets/` — the Jira PDFs. Read with `pypdf` (poppler/`pdftotext` and the
-  Read tool's PDF render are unavailable): `python3 -m pip install --quiet --user pypdf`, then a small
-  pypdf script. Two FigJam exports: `Sales Invoices Details User Flows.pdf` (authoritative for
-  detail-page actions) and `Upload sales invoice flow.pdf`.
+- `doc/sales-invoice-flows/tickets/` — the Jira tickets. **Preferred: fetch tickets live via the
+  Jira (Atlassian) connector** and save them as `.md` files in the feature's `tickets/` folder — if
+  it isn't authenticated this session, ask the user to run `/mcp` → "claude.ai Atlassian Rovo".
+  Fallback for the existing PDFs: `pypdf` (poppler/`pdftotext` and the Read tool's PDF render are
+  unavailable): `python3 -m pip install --quiet --user pypdf`, then a small pypdf script. Two FigJam
+  exports: `Sales Invoices Details User Flows.pdf` (authoritative for detail-page actions) and
+  `Upload sales invoice flow.pdf`.
 
 ## Out of scope / backend (unchanged by any of this)
 

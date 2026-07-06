@@ -43,6 +43,7 @@ export function ActionsMenu({
   return (
     <BottomSheet open={open} title="Invoice actions" onClose={onClose}>
       <div className="flex flex-col">
+
         {/* Plain Paid invoice (no refund yet) → start a refund with a credit note (DES-720). Once a refund
             is in progress, this drops out and the ⋯ shows Duplicate invoice instead. */}
         {status === "Paid" && creditNotesCount === 0 && (

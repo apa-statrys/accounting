@@ -96,7 +96,7 @@ export const FILTERS: { label: string; match: StatusMatch }[] = [
   { label: "Overdue", match: "Overdue" },
   { label: "Partially Paid", match: "PartiallyPaid" },
   { label: "Paid", match: "Paid" },
-  { label: "Cancelled", match: "Cancelled" },
+  { label: "Void", match: "Cancelled" },
 ];
 
 /** Displayed status — Overdue is derived (Awaiting + past due), Qonto-style. */
@@ -162,7 +162,7 @@ export function metaLine(inv: Invoice, eff: EffectiveStatus): { number: string; 
     return { number, rest: diff <= 0 ? "Due today" : diff === 1 ? "Due tomorrow" : `Due in ${diff} days`, danger: false };
   }
   // Terminal statuses keep the authored absolute date, normalised to read "<verb> on <date>".
-  return { number, rest: rest.replace(/^(Paid|Created|Uploaded|Cancelled) (?=\d)/, "$1 on "), danger: false };
+  return { number, rest: rest.replace(/^(Paid|Created|Uploaded|Void) (?=\d)/, "$1 on "), danger: false };
 }
 
 /** Refund-status filter — lives in the Filters sheet, not a top chip (a refund is still a Paid invoice). */

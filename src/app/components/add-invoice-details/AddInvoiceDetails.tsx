@@ -6,6 +6,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AddIcon from "@mui/icons-material/Add";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import CheckIcon from "@mui/icons-material/Check";
 import StatusBar from "../StatusBar";
 import { SheetHeader, HeaderIconButton } from "../SheetHeader";
@@ -23,11 +24,15 @@ import { ShareLinkSheet } from "../ShareLinkSheet";
 import { InvoicePreviewPage } from "../InvoicePreviewPage";
 import { ReviewEmail } from "../ReviewEmail";
 import { CustomerSheet } from "../CustomerSheet";
-import { CURRENCIES } from "../CurrencySheet";
+import { CURRENCIES, CurrencySheet } from "../CurrencySheet";
 import { Toggle } from "../Toggle";
-import { Checkbox } from "../ui/checkbox";
 import { DueDateSheet } from "../DueDateSheet";
 import { IssueDateSheet } from "../IssueDateSheet";
+import { BottomSheet } from "../BottomSheet";
+import { Tile } from "../Tile";
+import { Calendar } from "../Calendar";
+import { RecurrenceSection } from "./RecurrenceSection";
+import { FREQUENCIES, type Frequency } from "./recurrence";
 import { ReceivingAccountSheet } from "../ReceivingAccountSheet";
 import { AddServicesSheet } from "../AddServicesSheet";
 import { CUSTOMERS } from "../../data/customers";
@@ -98,6 +103,10 @@ interface AddInvoiceDetailsProps {
   defaultChaser?: boolean;
   /** Default receiving account id (DES-764 Payment Method) — seeds the invoice's Receiving Account. */
   defaultAccountId?: string;
+  /** Recurring-series setup (DES-782): shows the Recurrence section + schedule instead of a one-off issue. */
+  recurring?: boolean;
+  /** Editing an existing series (DES-782 AC4) — recurring form with a "Save changes" CTA. */
+  editingSeries?: boolean;
 }
 
 import { FONT } from "../../lib/theme";
@@ -141,6 +150,8 @@ export function AddInvoiceDetails({
   companyName = "Lumen Studio",
   defaultChaser = true,
   defaultAccountId = "personal",
+  recurring = false,
+  editingSeries = false,
 }: AddInvoiceDetailsProps) {
   // When `extracted` is present we came from an upload.
   const isExtracted = !!extracted;
@@ -150,6 +161,9 @@ export function AddInvoiceDetails({
   const isEditing = !!initial;
   // Limited edit of an issued invoice — lock fields bound at issue (DES-715 AC4).
   const lockedEdit = isEditing && !!initial?.limited;
+  // Recurring-series setup (DES-782): the pure create path, or an explicit series edit (AC4). Never an
+  // uploaded invoice or a normal invoice edit (guards against a stale `recurring` flag leaking in).
+  const isRecurring = editingSeries || (recurring && !isEditing && !isExtracted);
 
   // Step 5 (Qonto-style): try to match the OCR'd customer to an existing client.
   const autoMatch = useMemo(() => {
@@ -168,7 +182,6 @@ export function AddInvoiceDetails({
   // Preview the original uploaded file (demo: a representative document, no real bytes).
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
   // Whether to also save the typed-in customer to the client list (default on).
-  const [saveAsClient, setSaveAsClient] = useState(true);
 
   // The linked client (auto-matched or picked). When null on an upload, we're in
   // the "no match" state and the customer name/email are editable inline.
@@ -195,13 +208,25 @@ export function AddInvoiceDetails({
   const [issueSheetOpen, setIssueSheetOpen] = useState(false);
   const [dueDate, setDueDate] = useState(extracted?.dueDate || "Next 30 days");
   const [dueSheetOpen, setDueSheetOpen] = useState(false);
-  // DES-764: fixed account default — seeded from Settings (or OCR for an uploaded invoice),
-  // displayed read-only, never chosen per invoice.
-  const [currency] = useState(extracted?.currency || initial?.currency || defaultCurrency);
+  // Currency seeds from the customer default (→ Settings default), or OCR/edit-seed for an
+  // uploaded/edited invoice. The user MAY pick a different currency per invoice; that choice lives
+  // only on this invoice and is never written back to the customer or Settings.
+  const [currency, setCurrency] = useState(extracted?.currency || initial?.currency || defaultCurrency);
+  const [currencySheetOpen, setCurrencySheetOpen] = useState(false);
   // DES-764 AC5: per-invoice automated-chaser toggle, seeded from the account default.
   const [chaser, setChaser] = useState(defaultChaser);
   const [accountId, setAccountId] = useState(defaultAccountId);
   const [accountSheetOpen, setAccountSheetOpen] = useState(false);
+
+  // Recurring-series setup (DES-782) — only surfaced when `recurring`.
+  const [recFreq, setRecFreq] = useState<Frequency>("Monthly");
+  const [recStart, setRecStart] = useState<Date>(() => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1); return d; });
+  const [recEnd, setRecEnd] = useState<{ mode: "never" } | { mode: "count"; count: number } | { mode: "date"; date: Date }>({ mode: "never" });
+  const [recAutoSend, setRecAutoSend] = useState(false);
+  const [recFreqOpen, setRecFreqOpen] = useState(false);
+  const [recStartOpen, setRecStartOpen] = useState(false);
+  const [recEndOpen, setRecEndOpen] = useState(false);
+  const [recEndDateOpen, setRecEndDateOpen] = useState(false);
   const [servicesSheetOpen, setServicesSheetOpen] = useState(false);
   const [services, setServices] = useState<ServiceLine[]>(extracted?.services ?? initial?.services ?? seedServices ?? []);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -225,16 +250,15 @@ export function AddInvoiceDetails({
 
   // Uploaded → user-entered number; manual → system-generated (or the edited invoice's number).
   const invoiceNo = isExtracted ? editInvoiceNo : initial?.invoiceNo ?? "INV-2026-000042";
-  // Duplicate check fires on Create (DES-716): warn (showing the existing one), then allow override.
+  // Duplicate check = INVOICE NUMBER ONLY (PO decision, overrides DES-716's "warn + override"):
+  // an invoice number can never be re-used. Any entered number that already exists HARD-BLOCKS
+  // "Create Invoice" — the only way forward is to open the existing invoice, or edit the number to
+  // a free one. The customer is intentionally NOT part of the match.
   const existingInvoice = isExtracted
     ? EXISTING_INVOICES.find((i) => i.number.toLowerCase() === editInvoiceNo.trim().toLowerCase())
     : undefined;
-  // Case 1 — a Draft duplicate is continued in its editor; an issued/closed one opens its detail page.
+  // Draft duplicate → continue in its editor; an issued/closed one opens its detail page.
   const existingPrimaryLabel = existingInvoice?.status === "Draft" ? "Open existing draft" : "Open existing invoice";
-  // The duplicate only stands while the upload still matches the existing invoice. Editing the
-  // number (breaks the lookup) or changing the customer flips the CTA back to "Create Invoice".
-  const existingMatchesCustomer =
-    !!existingInvoice && name.trim().toLowerCase() === existingInvoice.customer.trim().toLowerCase();
   const amountLabel = `${currency} ${total.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -272,7 +296,7 @@ export function AddInvoiceDetails({
     const t = setTimeout(() => setSaveState("saved"), 700);
     return () => clearTimeout(t);
   }, [
-    editName, editEmail, editInvoiceNo, currentCustomer, saveAsClient,
+    editName, editEmail, editInvoiceNo, currentCustomer,
     issueDate, dueDate, currency, accountId, services, discount, discountMode, discountOn,
   ]);
 
@@ -317,19 +341,30 @@ export function AddInvoiceDetails({
 
   // Limited edit (issued invoice): only issue-bound fields are locked. Business fields —
   // customer, due date, items, receiving account (payment method), discount — stay editable.
-  // DES-764: currency is the account default and is FIXED — never chosen per invoice (seeded from
-  // Settings / OCR; line items may still differ and convert into it). Shown read-only with a flag,
-  // matching the Invoice Settings currency row — not dimmed, no chevron.
+  // Currency seeds from the customer default (line items may differ and convert into it). It's
+  // selectable per invoice in the create/edit flow (tap → currency sheet), but LOCKED for an issued
+  // invoice (limited edit) — matching the Invoice Settings currency row, read-only and no chevron.
   const curMeta = CURRENCIES.find((c) => c.code === currency);
   const currencyLabel = curMeta ? `${curMeta.flag}  ${curMeta.code}` : currency;
+
+  // Recurring series labels (DES-782). Each generated invoice gets its own issue/due date from the
+  // schedule, so the one-off Issue/Due rows are hidden in recurring mode.
+  const recEndLabel =
+    recEnd.mode === "never" ? "Never (until cancelled)"
+    : recEnd.mode === "count" ? `After ${recEnd.count} invoices`
+    : format(recEnd.date, "d MMM yyyy");
 
   const details = [
     ...(lockedEdit
       ? [{ label: "Invoice Number", value: invoiceNo, onClick: () => {}, locked: true, readOnly: false }]
       : []),
-    { label: "Currency", value: currencyLabel, onClick: () => {}, locked: false, readOnly: true },
-    { label: "Issue Date", value: format(issueDate, "d MMM yyyy"), onClick: () => setIssueSheetOpen(true), locked: lockedEdit, readOnly: false },
-    { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false, readOnly: false },
+    { label: "Currency", value: currencyLabel, onClick: lockedEdit ? () => {} : () => setCurrencySheetOpen(true), locked: false, readOnly: lockedEdit },
+    ...(isRecurring
+      ? []
+      : [
+          { label: "Issue Date", value: format(issueDate, "d MMM yyyy"), onClick: () => setIssueSheetOpen(true), locked: lockedEdit, readOnly: false },
+          { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false, readOnly: false },
+        ]),
     { label: "Receiving Account", value: formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false, readOnly: false },
   ];
 
@@ -343,7 +378,7 @@ export function AddInvoiceDetails({
         <StatusBar />
 
       <SheetHeader
-        title={isEditing ? "Edit invoice" : "New Invoice"}
+        title={editingSeries ? "Edit recurring series" : isRecurring ? "New Recurring Invoice" : isEditing ? "Edit invoice" : "New Invoice"}
         type="inside-page"
         state="fixed"
         leading={
@@ -393,7 +428,7 @@ export function AddInvoiceDetails({
         )}
 
         {/* Duplicate found — informational; the action lives in the dock ("Continue existing draft"). */}
-        {isExtracted && existingInvoice && existingMatchesCustomer && <DuplicateBanner />}
+        {isExtracted && existingInvoice && <DuplicateBanner />}
 
         {/* Customer — matched / unmatched (upload) or the selected card */}
         {!isExtracted ? (
@@ -430,7 +465,8 @@ export function AddInvoiceDetails({
             />
           </button>
         ) : (
-          /* Case B — no matching customer: fill details inline, optionally save to the customer list */
+          /* Case B — no matching customer: fill details inline; the new client is saved to the
+             customer list automatically on create (no opt-in checkbox). */
           <div ref={flaggedRef} className="scroll-mt-24 flex flex-col gap-3">
             {/* Customer name — warning highlight + caption when OCR couldn't read it */}
             <div className="flex flex-col gap-1">
@@ -455,6 +491,7 @@ export function AddInvoiceDetails({
                 label="Email address"
                 type="email"
                 placeholder="name@email.com"
+                required
                 value={editEmail}
                 onChange={(e) => setEditEmail(e.target.value)}
                 highlight={emailMissing}
@@ -465,16 +502,6 @@ export function AddInvoiceDetails({
                 </p>
               )}
             </div>
-
-            {/* Save-to-list only appears once BOTH name + email are entered — they're required to save. */}
-            {editName.trim() !== "" && editEmail.trim() !== "" && (
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox checked={saveAsClient} onCheckedChange={(c) => setSaveAsClient(c === true)} />
-                <span className="text-[14px] leading-[1.3] text-[#1b1b1b]" style={FONT}>
-                  Save {editName.trim().split(" ")[0]} to my customer list
-                </span>
-              </label>
-            )}
           </div>
         )}
 
@@ -483,12 +510,20 @@ export function AddInvoiceDetails({
           <div ref={invoiceNoRef} className="scroll-mt-20 flex flex-col gap-1">
             <TextInput
               label="Invoice Number"
-              placeholder="e.g. INV-2026-000042"
+              placeholder="e.g. UPL-2026-000042"
               required
+              highlight={!!existingInvoice}
               value={editInvoiceNo}
               onChange={(e) => setEditInvoiceNo(e.target.value)}
               iconRight={
-                numberRecommended ? (
+                existingInvoice ? (
+                  <span
+                    className="shrink-0 px-2 py-0.5 rounded-full bg-[#fff4ec] border border-[#ffd9c2] text-[10px] font-bold leading-[15px] text-[#b42318]"
+                    style={FONT}
+                  >
+                    Already exists
+                  </span>
+                ) : numberRecommended ? (
                   <span
                     className="shrink-0 px-2 py-0.5 rounded-full bg-[#ebfcef] border border-[#a3e9b6] text-[10px] font-bold leading-[15px] text-[#006a1d]"
                     style={FONT}
@@ -520,6 +555,20 @@ export function AddInvoiceDetails({
             ))}
           </div>
         </Section>
+
+        {/* Recurrence — schedule for the series (DES-782), only in recurring mode */}
+        {isRecurring && (
+          <Section title="Recurrence">
+            <RecurrenceSection
+              frequency={recFreq}
+              startLabel={format(recStart, "d MMM yyyy")}
+              endLabel={recEndLabel}
+              onFrequency={() => setRecFreqOpen(true)}
+              onStart={() => setRecStartOpen(true)}
+              onEnd={() => setRecEndOpen(true)}
+            />
+          </Section>
+        )}
 
         {/* Services / products */}
         <div ref={servicesRef} className="scroll-mt-5">
@@ -585,9 +634,33 @@ export function AddInvoiceDetails({
           </motion.div>
         )}
 
+        {/* Auto-send to customer (DES-782) — recurring only; sits below Discount. On generation, send
+            automatically (→ Awaiting) or leave each invoice as a Draft to review. */}
+        {isRecurring && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div
+              className="w-full bg-white border border-dashed border-[rgba(160,160,160,0.2)] rounded-xl p-[17px] flex items-center justify-between gap-3"
+              style={{ boxShadow: "var(--shadow-card-soft)" }}
+            >
+              <span className="min-w-0 flex flex-col gap-1">
+                <span className="card-title-2xs text-[#1b1b1b]" style={FONT}>Auto-send to customer</span>
+                <span className="body-sm-medium text-[#808080]" style={FONT}>
+                  {recAutoSend ? "Send invoices automatically" : "Saved as a draft to review"}
+                </span>
+              </span>
+              <Toggle checked={recAutoSend} onChange={setRecAutoSend} aria-label="Auto-send to customer" />
+            </div>
+          </motion.div>
+        )}
+
         {/* Automated chaser (DES-764 AC5) — per-invoice toggle, seeded from the account default.
-            Discount-card style; backend auto-deactivates it once the invoice is Paid (out of scope). */}
-        {services.length > 0 && (
+            Discount-card style; backend auto-deactivates it once the invoice is Paid (out of scope).
+            Hidden in recurring mode — the Recurrence section's "Auto-send to customer" covers sending. */}
+        {services.length > 0 && !isRecurring && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -625,7 +698,17 @@ export function AddInvoiceDetails({
         )}
       </div>
 
-        {isEditing ? (
+        {isRecurring ? (
+          // Recurring series (DES-782): create schedules the first invoice; edit saves changes to the series.
+          <ButtonDock
+            type="single"
+            overflow
+            primaryLabel={editingSeries ? "Save changes" : "Create recurring series"}
+            primaryDisabled={services.length === 0}
+            onPrimary={() => onSend?.({ title: editingSeries ? "Recurring series updated" : "Recurring series created" }, recentSent)}
+            homeIndicator
+          />
+        ) : isEditing ? (
           <ButtonDock
             type="single"
             overflow
@@ -636,8 +719,9 @@ export function AddInvoiceDetails({
             onPrimary={onEditSave}
             homeIndicator
           />
-        ) : isExtracted && existingInvoice && existingMatchesCustomer ? (
-          // Exact duplicate: continue the existing draft (→ its editor) instead of creating a copy.
+        ) : isExtracted && existingInvoice ? (
+          // Duplicate number (match by number only): creating a copy is hard-blocked — the only
+          // action is to open the existing invoice (or edit the number to a free one).
           <ButtonDock
             type="single"
             overflow
@@ -659,17 +743,27 @@ export function AddInvoiceDetails({
           />
         ) : (
           <ButtonDock
-            type="double"
+            type="single"
             overflow
             primaryLabel="Send Invoice"
-            secondaryLabel="Send Later"
             primaryDisabled={services.length === 0}
-            onSecondary={saveDraft}
             onPrimary={() => setSendSheetOpen(true)}
             homeIndicator
           />
         )}
       </div>
+
+      {/* Per-invoice currency — the choice stays on this invoice; it is never written back to the
+          customer default or Settings. */}
+      <CurrencySheet
+        open={currencySheetOpen}
+        value={currency}
+        onClose={() => setCurrencySheetOpen(false)}
+        onSelect={(code) => {
+          setCurrency(code);
+          setCurrencySheetOpen(false);
+        }}
+      />
 
       <IssueDateSheet
         open={issueSheetOpen}
@@ -701,6 +795,44 @@ export function AddInvoiceDetails({
         }}
         onUseExternal={() => setAccountSheetOpen(false)}
       />
+
+      {/* Recurring-series pickers (DES-782) */}
+      <BottomSheet open={recFreqOpen} title="Frequency" onClose={() => setRecFreqOpen(false)}>
+        <div className="flex flex-col gap-2">
+          {FREQUENCIES.map((f) => (
+            <Tile key={f} title={f} selected={recFreq === f} onClick={() => { setRecFreq(f); setRecFreqOpen(false); }} />
+          ))}
+        </div>
+      </BottomSheet>
+
+      <BottomSheet open={recStartOpen} title="Start Date" onClose={() => setRecStartOpen(false)}>
+        <Calendar value={recStart} disablePast onChange={(d) => { setRecStart(d); setRecStartOpen(false); }} />
+      </BottomSheet>
+
+      <BottomSheet open={recEndOpen} title="Ends" onClose={() => setRecEndOpen(false)}>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Tile title="Never (until cancelled)" selected={recEnd.mode === "never"} onClick={() => { setRecEnd({ mode: "never" }); setRecEndOpen(false); }} />
+            {[3, 6, 12].map((n) => (
+              <Tile key={n} title={`After ${n} invoices`} selected={recEnd.mode === "count" && recEnd.count === n} onClick={() => { setRecEnd({ mode: "count", count: n }); setRecEndOpen(false); }} />
+            ))}
+          </div>
+
+          {/* On a specific date — date-picker input (same style as the due-date custom date). */}
+          <TextInput
+            label="On a specific date"
+            placeholder="dd/mm/yy"
+            readOnly
+            value={recEnd.mode === "date" ? format(recEnd.date, "d MMM yyyy") : ""}
+            iconRight={<CalendarTodayIcon style={{ fontSize: 20 }} />}
+            onClick={() => setRecEndDateOpen(true)}
+          />
+        </div>
+      </BottomSheet>
+
+      <BottomSheet open={recEndDateOpen} title="End Date" onClose={() => setRecEndDateOpen(false)}>
+        <Calendar value={recEnd.mode === "date" ? recEnd.date : undefined} disablePast onChange={(d) => { setRecEnd({ mode: "date", date: d }); setRecEndDateOpen(false); setRecEndOpen(false); }} />
+      </BottomSheet>
 
       <AddServicesSheet
         key={editingId ?? "new"}

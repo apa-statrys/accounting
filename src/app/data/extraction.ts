@@ -3,8 +3,9 @@ import type { ExtractedInvoice, ExistingInvoice } from "../types";
 /** Invoices already in the system — used for the duplicate-number warning (DES-716). */
 export const EXISTING_INVOICES: ExistingInvoice[] = [
   { number: "INV-2026-000041", customer: "Bright Harbor Co.", issueDate: "20 Jun 2026", dueDate: "20 Jul 2026", currency: "USD", amount: "$283.23", status: "Draft" },
-  // Issued match (demo for the "View Invoice" duplicate path — Awaiting Payment).
-  { number: "INV-2026-000042", customer: "Marlow & Finch Studio", issueDate: "12 Jun 2026", dueDate: "12 Jul 2026", currency: "USD", amount: "$6,430.05", status: "Awaiting" },
+  // Issued match (demo for the "View Invoice" duplicate path — Awaiting Payment). This one was
+  // UPLOADED, so it uses the uploaded-invoice format UPL-YYYY-NNNNNN (never our INV-YYYY-NNNNNN).
+  { number: "UPL-2026-000042", customer: "Marlow & Finch Studio", issueDate: "12 Jun 2026", dueDate: "12 Jul 2026", currency: "USD", amount: "$6,430.05", status: "Awaiting" },
   { number: "INV-2026-000043", customer: "Otto Reyes", issueDate: "18 Jun 2026", dueDate: "18 Jul 2026", currency: "USD", amount: "$100,034.00", status: "Draft" },
 ];
 
@@ -16,7 +17,7 @@ export const EXISTING_INVOICES: ExistingInvoice[] = [
  * sample invoice and flag the customer email as "not found" so the user fills it in.
  */
 export const DEMO_EXTRACTION: ExtractedInvoice = {
-  invoiceNumber: "INV-2026-000103",
+  invoiceNumber: "UPL-2026-000103", // uploaded invoices use UPL-YYYY-NNNNNN, not our INV format
   customerName: "Daniel Smith",
   customerEmail: "",
   emailNotFound: true,
@@ -35,7 +36,7 @@ export const DEMO_EXTRACTION: ExtractedInvoice = {
  * "Cannot extract the information"), plus the "Save … to my customer list" checkbox.
  */
 export const DEMO_EXTRACTION_NO_CUSTOMER: ExtractedInvoice = {
-  invoiceNumber: "INV-2026-000103",
+  invoiceNumber: "UPL-2026-000103", // uploaded invoices use UPL-YYYY-NNNNNN, not our INV format
   customerName: "",
   customerEmail: "",
   emailNotFound: true,
@@ -69,7 +70,7 @@ export const BLANK_EXTRACTION: ExtractedInvoice = {
  * Used to show the "auto-matched" trigger case on the upload review screen.
  */
 export const DEMO_EXTRACTION_MATCHED: ExtractedInvoice = {
-  invoiceNumber: "INV-2026-000042", // already exists → demonstrates the duplicate-number warning
+  invoiceNumber: "UPL-2026-000042", // already exists → demonstrates the duplicate-number warning
   customerName: "Marlow & Finch Studio",
   customerEmail: "finch@studio.com",
   emailNotFound: false,

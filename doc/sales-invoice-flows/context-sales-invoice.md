@@ -1,801 +1,91 @@
-# Sales Invoice Flows — Working Context
+# Sales Invoice Flows — Current Handoff
 
-Handoff notes for continuing the mobile invoicing prototype. Read this first, then the
-ticket PDFs in `./tickets/` for the source requirements.
+Read this first when continuing sales-invoice work. **Keep this file under ~150 lines:** it holds
+only the CURRENT state and next steps — overwrite/trim it each session. Dated narratives go to
+`./history/session-log.md`; the full invoice-detail/credit-note/refund spec is
+`./invoice-detail-behavior.md`; repo map + conventions + run/verify commands are **CLAUDE.md**.
 
-> **2026-07-02 repo refactor (no behavior change):** file paths in this doc may be stale.
-> Shared types now live in `src/app/types.ts`, demo data in `src/app/data/`, shared helpers in
-> `src/app/lib/`, and the four big screens in `components/{sales-invoice-list, add-invoice-details,
-> credit-note-form, invoice-detail}/`. Current map + rules: **CLAUDE.md**. The invoice-detail /
-> credit-note / refund spec moved to `./invoice-detail-behavior.md`; per-ticket build notes to
-> `./history/`. All flows verified working after the refactor (browser click-through + typecheck).
+## Current state (2026-07-02)
 
-## What this is
+All Block-1 sales-invoice stories are **built and working** on the dev server:
 
-A **mobile invoicing app prototype** ("Sales Invoice / Statrys"), built in React + TypeScript
-to eventually port to **Figma Make**. Work proceeds **screen-by-screen**, implementing Figma
-frames and matching Jira ticket requirements.
+| Ticket | Story | State |
+|---|---|---|
+| DES-713 | Add Client (full page + in-invoice quick-add sheet, prefill-from-contact) | Built |
+| DES-714 | Edit Client (edit mode of AddCustomerPage, dirty-gated, discard warning) | Built |
+| DES-715 | Create Sale Invoice (draft → issue → limited edit → mark as paid) | Built |
+| DES-716 | Upload Invoice (OCR demo, duplicate decision page, review card) | Built |
+| DES-718 | Send Invoice (email / share link / PDF, validation, failure-retry) | Built |
+| DES-719 | Create Credit Note (corrected-invoice model, cumulative, edit + re-send) | Built |
+| DES-720 | Refund with Credit Note (money-based lifecycle, BA/manual payout, proof) | Built |
+| DES-721 | View Credit Note (CreditNoteDetailPage, status-aware dock) | Built |
+| DES-763 | Credit Notes List + Apply model (invoice-centric statuses) | Starter built |
+| DES-764 | Invoice Settings (currency/payment-method/reminders wired into create) | Built |
+| DES-766 | Manage Invoice List | Partially read — reconciliation with 713 pending |
 
-- Stack: **React 18 + TS, CSS Modules + Tailwind utilities, Vite 6, pnpm** (via `corepack enable`).
-- Animation: **`motion`** (framer-motion v12) — import from `"motion/react"`.
-- Icons: `@mui/icons-material/*` and `lucide-react`.
-- Phone frame: fixed **375 × 812**, internal scroll with hidden scrollbar.
-- Working dir: `/Users/ayepapamyo/Projects/Accounting/`. Components in `src/app/components/`.
+**2026-07-02: repo refactored for maintainability (no behavior change), all flows re-verified**
+(browser click-through + full typecheck). Structure and rules now live in CLAUDE.md — types in
+`src/app/types.ts`, demo data in `src/app/data/`, helpers in `src/app/lib/`, the four big screens
+in `src/app/components/{sales-invoice-list, add-invoice-details, credit-note-form, invoice-detail}/`.
 
-## How to run / verify locally
+## Reading tickets
 
-- Dev server: Vite on **http://localhost:5173/** (`pnpm dev`, started via corepack).
-- Transform-check a file:
-  `curl -s -o /tmp/m.out -w "HTTP %{http_code}" "http://localhost:5173/src/app/components/X.tsx"`
-  then grep `/tmp/m.out` for `Failed to resolve|Transform failed|SyntaxError`.
-- **This check is transform-only** — it does NOT catch runtime ReferenceErrors from missing
-  imports. After using a new component/symbol, always grep that the import exists.
+Preferred: the **Jira (Atlassian) connector** — fetch the issue directly ("fetch DES-XXX and save
+it as markdown in ./tickets/"). If the connector isn't authenticated this session, ask the user to
+run `/mcp` → "claude.ai Atlassian Rovo". Fallback: the ticket PDFs in `./tickets/` via `pypdf`
+(`python3 -m pip install --quiet --user pypdf`; poppler and the Read tool's PDF render are
+unavailable). FigJam exports in `./tickets/`: `Sales Invoices Details User Flows.pdf`
+(authoritative for detail-page actions) and `Upload sales invoice flow.pdf`.
 
 ## Workflow rules (from the user)
 
-- **Build everything locally in Claude first**; finish all flows on localhost before porting
-  to Figma Make. Skip per-change "re-paste this file" notes; consolidate the Figma Make file
-  list at the very end.
+- Build everything locally on the Vite dev server first; port to Figma Make at the very end
+  (consolidate the file list then — skip per-change re-paste notes).
 - Implement only what's asked / only the changed parts of a Figma frame.
-
-## Reading ticket PDFs
-
-`pdftotext`/poppler and the Read tool's PDF render are NOT available. Extract text with:
-`python3 -m pip install --quiet --user pypdf` then a small pypdf script. Tickets live in
-`./tickets/` (DES-713, 714, 716, 718, 719, 720, 721). **DES-715 (Create Sale Invoice) is NOT
-in the repo** — reconcile the manual-create flow when the user provides it.
-
-## App structure & navigation
-
-`src/app/App.tsx` is the screen router. `type Screen = "dashboard" | "list" | "customer" | "details" |
-"upload" | "extracting" | "send" | "invoiceDetail" | "needAttention" | "duplicateCheck"`.
-The app **lands on `dashboard`** (the Accounting Hub was removed 2026-06-24). A dev-only **QuickNav** FAB
-(bottom-left) jumps between sections. Key shared state in App: `customer`, `extracted`, `pendingExtraction`,
-`toast`, and `recent` (the just-created/saved card to highlight on the list).
-
-Screen flow:
-- **dashboard** (`Dashboard.tsx`) → list / create / upload.
-- **customer** (`CreateSalesInvoice.tsx`) — select customer (15 demo customers, search shown
-  only at ≥5).
-- **details** (`AddInvoiceDetails.tsx`) — the central screen, used for BOTH manual create
-  AND upload review.
-- **upload** (`UploadInvoice.tsx`) → **extracting** (`GeneratingInvoice.tsx`, OCR steps) →
-  details.
-- **list** (`SalesInvoiceList.tsx`).
-- **send** — dev preview that opens AddInvoiceDetails straight to the Delivery-method sheet.
-
-## Key components
-
-- **AddInvoiceDetails.tsx** — central invoice screen. `isExtracted = !!extracted` switches
-  between manual and upload-review modes. Handles: customer match/no-match, editable invoice
-  number with duplicate warn+override, line items, discount, autosave indicator
-  ("Saving…"/"Saved"), and the send sub-flows.
-- **extractInvoice.ts** — `ExtractedInvoice` type + `DEMO_EXTRACTION` (no-match Daniel Smith,
-  missing email, new number) and `DEMO_EXTRACTION_MATCHED` (Marlow & Finch, duplicate number
-  INV-2026-0042). `EXISTING_INVOICES` backs the duplicate-number warning.
-- **SalesInvoiceList.tsx** — grouped list, scrollable status chips with dynamic counts,
-  per-chip Sort/Filter sheets (see "Sort/Filter IA" below). `STATUS_PILL` styles per status
-  (Awaiting/Overdue/Draft/Paid/Void); **Overdue is derived** (Awaiting + past due).
-- Send sub-flows: **SendInvoiceSheet** (Delivery method) → **ReviewEmail** / **ShareLinkSheet**
-  (+ **DemoShareSheet** visual iOS sheet) / **InvoicePreviewPage** (real invoice PDF with full
-  "How to pay" bank details). **AddCustomerSheet** (quick-add + optional expander, DES-713).
-- **AccountingHub.tsx** / **FinanceBottomNav.tsx** — the finance-app **Menu** hub. **Removed from the
-  app 2026-06-24** (no longer the landing screen; the files remain on disk but are unused). The
-  **Dashboard is now the root** screen, with **no back arrow**.
-- **InvoiceDetailPage.tsx** — status-aware invoice detail for the full lifecycle (Draft /
-  Awaiting / Overdue / Partially Paid / Paid / Void), opened by tapping a list card. Per-status
-  actions: Draft→Issue/Edit/Delete; Awaiting/Overdue→Send/Edit/Download/Cancel-with-credit-note;
-  Paid/Void→Download (read-only). **Optional send lives here** (reuses SendInvoiceSheet/
-  ReviewEmail/ShareLinkSheet/InvoicePreviewPage). **Edit prefills the form** via an
-  `InvoiceEditSeed` (customer + invoice no + line items) passed up through `onEdit` into
-  `AddInvoiceDetails`'s `initial` prop. In edit mode (`initial` set, Qonto-style) the form
-  retitles to **"Edit invoice"**, swaps the ✕ for a **back arrow**, and shows a single **"Save"**
-  CTA — back arrow and Save both **return to the invoice detail page** (not the list).
-  Cancel-with-credit-note is a stubbed entry point (DES-719 flow not built; just flips to Void).
-- **Draft detail is origin-aware** (`origin: "created" | "uploaded"`, threaded list→App→page):
-  **created** draft → primary **Send invoice** (validation-gated; picking any method in the send sheet
-  issues it → Awaiting + sent), secondary **Mark as paid**; ⋯ Edit + Duplicate + Delete. **uploaded**
-  draft → primary **Mark as paid**, secondary **Mark as sent** (record-only → Awaiting, DES-716 AC4
-  default); ⋯ Send invoice + Edit + Duplicate + Delete. (Uploaded primary/secondary are **swapped vs
-  created** — already sent elsewhere, so recording payment leads.) Post-issue sending for either also
-  lives on the Awaiting detail (its secondary = Resend invoice / Send invoice for uploaded). Demo: list
-  INV-003 = created draft, INV-002 (Otto Reyes) = uploaded draft.
-- Shared: **BottomSheet**, **SheetHeader**, **ButtonDock**, **TextInput** (has `highlight`
-  prop for OCR-missing yellow), **SendSuccessToast**.
-
-## Behaviors decided in earlier sessions (don't re-litigate)
-
-> **Several items below were revised on 2026-06-23 — see "Session update (2026-06-23)" near the
-> end for the current truth** (invoice-number format, detail-page action labels/toasts, customer
-> avatars removed, delivery method = full page, recede removed, Needs Attention, etc.).
-
-- **Save as draft = tapping ✕ (close)** on the invoice screen, in BOTH flows. Routes through
-  `onSaveDraft`, shows "Saved as draft" toast, returns to list. The "Save as draft" secondary
-  button was removed from the upload flow.
-- **Recent-card highlight on the list**: after save-draft OR create/send, the list prepends a
-  single card (`id: "recent-new"`) at the top with an **orange border + soft ring glow that
-  fades after 2.6s**. Only that one card glows (gated on `id === "recent-new"`); cards use
-  `initial={false}` so they don't flash on list mount.
-  - The recent card carries a **meta line**: drafts → `INV-… · Created <issue date>`;
-    created/sent → `INV-… · Due <due date>`. Status pill: Draft vs Awaiting Payment.
-  - Plumbing: AddInvoiceDetails builds the summary and passes it via `onSaveDraft(draft)` and
-    `onSend(toast, recent)`; App stores it in `recent` and passes to `SalesInvoiceList recent`.
-    `recent` is set fresh on each issue/save and cleared elsewhere; both the dev "send" and
-    the real "details" screens wire it.
-- **Send method → marked as sent** via toast for all of email/link/PDF. Shareable link marks
-  sent on copy/share (Qonto/Qonto-aligned option B), single copy affordance.
-- **Invoice number** (upload): user-entered/editable, NOT system-generated; duplicate →
-  "Similar invoice found" amber card with "View invoice ›" detail sheet + "Create Invoice"
-  override (scrolls back to the section first time).
-- **Invoice currency** seeds from Settings default but a per-invoice override must NOT write
-  back to Settings.
-- **Detail-page actions follow `Sales Invoices Details User Flows.pdf` (FigJam):**
-  - **Created draft** → primary **Send invoice** (validation-gated), secondary **Mark as paid**;
-    ⋯ Edit + Duplicate + Delete.
-  - **Uploaded draft** → primary **Mark as paid**, secondary **Mark as sent** (→ Awaiting via
-    `onIssued`); ⋯ Send invoice + Edit + Duplicate + Delete. **Primary/secondary are swapped vs
-    created** — an uploaded invoice was already sent elsewhere, so recording payment is the likely
-    next step. Branches on `origin === "uploaded"` in `InvoiceDetailPage`.
-  - **Awaiting / Overdue / Partially Paid** → **primary = Mark as paid**, **secondary = Resend
-    invoice** (created) / **Send invoice** (uploaded — the app never sent it, so "Resend" is wrong);
-    ⋯ = **Edit invoice** (Awaiting/Overdue only) + **Duplicate invoice** + **Void invoice**
-    (Awaiting/Overdue only). **Mark as paid** opens an amount sheet: full → **Paid**, less →
-    **Partially Paid** (updates `paidAmount`/`status` in place). Void → Void (credit note = DES-719, later).
-  - Edit opens `AddInvoiceDetails` **limited mode** (`initial.limited`): editable = customer, due
-    date, items, receiving account, discount; locked/dimmed = invoice number (shown), issue date,
-    currency.
-  - **OPEN questions from the flow** (pending Beatrice): which fields are editable in Awaiting
-    (line items/amount/customer vs admin-only); and whether saving an edit auto-resends or asks.
-    Current build: edit Save just returns (no auto-resend).
-- **Payment reference** (DES-718) shows under the receiving-account **accordion** only on
-  **issued** invoices (= the invoice number); not shown on any draft.
-- **Invoice number visibility on the detail page**: a **created draft shows NO invoice number**
-  (system-generated only on issue — DES-715 AC2); an **uploaded draft shows the user-entered /
-  OCR-extracted number** (DES-716); issued invoices always show it. Gated on
-  `issued || uploadedDraft` in `InvoiceDetailPage`.
-- **Toasts are single-line** (one message, no subtext), keyed to the action: **"Saved as
-  draft"** (✕/save), **"Saved as awaiting payment"** (issue / Send Later record-only),
-  **"Invoice created successfully"** (upload-flow **Create Invoice** — record-only, lands on the
-  Awaiting Payment detail), **"Invoice marked as sent"** (any send channel), **"Draft deleted"**,
-  **"Changes saved"** (edit save). Don't reintroduce two-tier title+subtext toasts.
-
-## Sales Invoice List — Sort/Filter IA + Overdue model (DES-766 area, FINALISED)
-
-Diverges from DES-766 in two **confirmed product calls** (flag to Beatrice; don't re-litigate):
-the date filter is **due-based**, not issue-date; and the **summary tiles live on the Dashboard
-hero**, not on the list.
-
-- **Overdue is a *derived* status (Qonto-style), not stored.** `effectiveStatus(inv)` promotes
-  an **Awaiting + past-due** invoice to **"Overdue"** (red pill `#d92d20`). Used everywhere —
-  pill, chip counts, filtering. `TODAY` is pinned to **2026-06-22** for deterministic demos.
-- **Status chips** (order): **All · Draft · Awaiting · Overdue · Paid · Void**.
-  - **Awaiting** chip = *all unpaid* (on-time **+** overdue) = "Outstanding". **Overdue** chip =
-    the past-due subset (overlaps Awaiting count by design). Void has one demo row (INV-008).
-- **Sort options are per-chip** (`sortKeysFor`) with per-chip **defaults** (`defaultSortFor`):
-  - **Draft** → Issue Date Newest*/Oldest only.
-  - **Paid / Void** → Issue Date Newest*/Oldest + Amount High/Low (no due-date sorts).
-  - **All / Awaiting / Overdue** → all six (Issue ×2, Due ×2, Amount ×2).
-  - Defaults (*): **All/Paid/Draft/Void → Issue Date: Newest**; **Awaiting/Overdue → Due Date:
-    Earliest**. Sort labels: **Issue Date: Newest/Oldest**, **Due Date: Earliest/Oldest**,
-    **Amount: High to Low / Low to High** (in that order).
-  - **Switching a chip resets sort to that chip's default** (`selectChip`) — so you never land
-    on a sort the chip doesn't offer. The active status chip auto-**scrolls into view** on mount
-    (`activeChipRef.scrollIntoView`) so a pre-filtered open (from the hero) shows it selected.
-- **Filter sheet facets** (in order): **Due date** (Due This Week / Due This Month — *upcoming*
-  only; Overdue is NOT here, it's the chip) · **Issue date** (Start/End date as input
-  *placeholders*, the native `dd/mm/yyyy` hidden) · **Customer** (label is "Customer", search
-  placeholder "Search by Customer name", multi-select, shown only at **≥5** clients). Active-filter
-  **count badge** on the Filters button; chips are single-select with tap-to-deselect.
-  - **Due date section shows only on All + Awaiting**; hidden on Overdue/Paid/Draft/Void
-    (`showDueFilter`), and the due filter resets to "all" when switching to a chip that hides it.
-  - **Footer (Reset + "Show N invoices") only renders once a filter is active** — no button dock
-    when nothing is selected (`footer={filterCount === 0 ? undefined : …}`).
-- **No animation on status-tab switch** — `layout` was removed from the cards; the filtered list
-  re-renders instantly.
-
-## Invoice list card (`InvoiceCard` in SalesInvoiceList.tsx)
-
-- **Layout:** customer name (truncates) · **status-aware meta line** · amount + status pill.
-  (The leading initials **avatar was removed 2026-06-23** — see Session update; `initials()` deleted.)
-- **Meta line is status-derived** (`metaLine`): Awaiting → "Due in N days" (relative); Overdue →
-  red "Overdue by N days"; Paid → "Paid <date>"; Void → "Voided <date>"; Draft keeps Created/
-  Uploaded. The meta is **`whitespace-nowrap`, never truncated** (number + status phrase always
-  show); only the customer *name* truncates. **Paid/Void are NOT dimmed** (tried it, reverted —
-  looked disabled).
-- **Swipe-to-delete on Draft cards only.** Implemented with **plain pointer events + CSS
-  `translateX`** (NOT framer `drag` — that rendered blank inside the `overflow-hidden` wrapper).
-  Reveals a rounded red **Delete** tile (Mobbin-style, icon + label); a drag is swallowed so it
-  doesn't also open the detail page. Delete → confirm sheet **"Delete Draft Invoice?"** (no ✕ via
-  `hideClose`, `ButtonDock` Cancel/Delete). Removal is local (`deletedIds`).
-- **⚠️ CRITICAL flexbox gotcha (cost a whole session):** a flex item with `overflow: hidden` gets
-  `min-height: 0`, so in the scrollable `flex flex-col` list the draft cards (whose swipe wrapper
-  is `overflow-hidden`) **shrank to ~0 height → invisible**, and wrapping every card made them all
-  overlap. **Fix: `shrink-0` on every card** (both the `motion.button` and the draft wrapper). If
-  cards ever vanish/overlap/space unevenly again, check `shrink-0` first.
-
-## Dashboard hero card (`Dashboard.tsx`, Figma 484:4524)
-
-- Dark gradient card: "Expected this month" HKD amount · **linear progress bar** (orange→pink)
-  with **"X% collected" / "Y% outstanding"** labels above it · two amount columns below — **Collected**
-  (left, tappable → Paid list) and **Outstanding** (right, tappable → Awaiting list) · divider ·
-  fixed peer note **"You're ahead of 71% of similar businesses this month"** (`PEER_NOTE`, all states).
-  Drill-downs wired via `App` `listPreset` → `SalesInvoiceList initialStatus`. (The earlier circular
-  ring + the 2 separate summary tiles were both tried and removed.)
-- Outstanding sub-line: "N invoices" / "X overdue out of N" / (all overdue) "N overdue invoices".
-- **Five demo states** (`HERO_SCENARIOS`), switched from the **QuickNav dev FAB** ("Hero state"):
-  - **Happy path** (no overdue) · **Some overdue** · **All overdue** · **Fully collected** (green
-    bar + green amount, no outstanding side, only "100% collected") · **Nothing collected** (0% bar,
-    no collected column, outstanding shown left as "HKD 20,000.00 to collect", only "100% outstanding").
-
-## Form & detail tweaks (earlier session)
-
-- **Select Customer** (`CreateSalesInvoice`): tapping a tile only **selects** it; a single
-  **"Continue"** `ButtonDock` (disabled until one is picked) advances. Seeds from `selectedId`.
-- **Add Services/Products** (`AddServicesSheet`): **Currency + Unit Price combined** — currency is
-  a **quiet tappable pill** (muted grey, default = invoice currency) inside the Unit Price field's
-  left adornment, opening `CurrencySheet`. `CurrencySheet`/`UnitSheet` size to content (no `tall`).
-- **Service item preview** shows the unit: "3 Hours x $10.00" (pluralised). `ServiceItemCard`
-  swipe-to-delete uses the same Mobbin red tile + drag-click guard as the list.
-- **Draft detail page** (`InvoiceDetailPage`): secondary button is **"Mark as paid"** (opens
-  Record Payment at total → Paid); **Edit moved into the ⋯ menu** ("Edit invoice").
-- **ReviewEmail**: "Save the content as default" (customer name removed); demo "simulate failed
-  send" toggle removed (failure/retry scaffolding kept, untriggered).
-- **Demo data** is now **9 invoices** (was 5): added INV-005/006/007 to reach ≥5 unique customers
-  (so the Customer search renders) + INV-008 Void (so the Void chip isn't 0).
-
-## Session update (2026-06-23)
-
-Latest decisions/changes. Where these conflict with older sections above, **this wins.**
-
-### Invoice number format — 5-digit (FINALISED; flag the spec conflict)
-- All invoice numbers now use **`INV-YYYY-NNNNN`** (5-digit, zero-padded, e.g. `INV-2026-00001`).
-  Updated everywhere: SalesInvoiceList rows (both `id` used for nav **and** `meta`; the duplicate
-  display-number pair keeps `…00001a` / `…00001b` ids so the `replace(/[a-z]$/,"")` nav still works),
-  Dashboard rows, NeedAttentionStack/NeedAttention, `extractInvoice` (`EXISTING_INVOICES` + demos — the
-  duplicate-warning demo still collides on `INV-2026-00042`), `AddInvoiceDetails` default+placeholder,
-  `InvoiceDetailPage` default, `InvoicePreview`.
-- **Spec conflict to reconcile with Beatrice:** the DES-715/716 *field-spec table* says **6 digits
-  `INV-YYYY-######` (start 000001)**; **DES-766 list-view rules + the FigJam mockups say 5 digits
-  `INV-YYYY-#####` (`INV-2026-00001`)**. We chose **5-digit** (matches DES-766 + mockups). One-line
-  change if they standardise on 6.
-- **Draft numbering** (Qonto-checked): Qonto assigns the sequential number **at finalize/issue**, not
-  at draft creation (so deleting a draft leaves no gap). Created drafts keep **no visible number** until
-  issue. Design team floated showing a *provisional* number on drafts — not implemented.
-
-### Invoice detail — action labels & navigation (supersedes the old bullets)
-> **NOTE (2026-06-24): the uploaded-draft order below was later swapped** — see Session update
-> (2026-06-24) → detail-page actions. Current: uploaded draft = primary **Mark as paid**, secondary
-> **Mark as sent**; uploaded Awaiting/Overdue/PartiallyPaid secondary = **Send invoice** (not Resend).
-- **Uploaded draft**: primary **"Mark as sent"** (→ Awaiting payment via `onIssued`, toast
-  **"Invoice marked as sent"**); secondary **"Mark as paid"** (opens Record Payment → Paid). Rationale:
-  the common case for an uploaded invoice is "already sent externally, just track it" (Qonto imported-
-  receivables model — outstanding by default, Mark-as-paid is the explicit secondary). ⋯ still has
-  "Send invoice". **Replaces the old "Record Invoice" primary.**
-- **Awaiting / Overdue / Partially Paid**: primary relabeled **"Record Payment" → "Mark as paid"**
-  (secondary "Resend invoice" — now **"Send invoice"** for uploaded origin). Same amount sheet underneath
-  (partial/overpayment unchanged).
-- **Back AND in-page actions return to origin.** `onIssued/onDeleted/onSent` now `setScreen(detailReturn)`
-  (was hardcoded `"list"`); the back arrow already used `detailReturn`. Drafts open only from the list →
-  return to list; dashboard / Needs-Attention origins return there. **Caveat:** the success toast is
-  rendered by `SalesInvoiceList`, not the dashboard — a dashboard-origin action won't show its toast.
-
-### Customer avatars removed (temporary — pending invoice-number confirmation)
-- Removed from: SalesInvoiceList rows (and deleted the now-unused `initials()` helper), InvoiceDetailPage
-  customer card, AddInvoiceDetails (selected-customer `EditCard hideAvatar` + the upload "matched client"
-  card), CustomerBottomSheet picker rows. Marked with `// Avatar removed for now (pending invoice-number
-  confirmation)`. Restore later (e.g. re-add `hideAvatar`-off / the circle markup).
-
-### Invoice list meta weights
-- `InvoiceCard` meta line: **invoice number = medium (500)**, **due/paid date = regular (400)**; Overdue
-  stays **600** red. (Line is `font-normal`; per-span weights override.)
-
-### Create flow — customer & product cards share one arrow (with hover)
-- **Customer card** (`AddInvoiceDetails`): "CHANGE" button replaced by a **chevron arrow**; whole card
-  tappable (opens customer picker).
-- **"Add your services" (product) card**: package icon removed (`hideAvatar`); whole card tappable
-  (opens Add services).
-- **Both use the same arrow** — plain 16px `var(--icon-primary)` chevron with a **hover nudge**
-  (`group` on the card + `group-hover:translate-x-1` + transition). Matches the Issue Date/Currency rows.
-- **Filled service-line** (`ServiceItemCard`) icon also removed (`hideAvatar`); it shows the amount, no
-  arrow.
-
-### Customer selection grouped (`CreateSalesInvoice`)
-- Flat list → two groups using the **same `Tile`**: **FREQUENTLY USED (3)** (`FREQUENT_IDS =
-  marlow/bright/otto`) + **OTHERS (rest)**. Typing collapses to a single **RESULTS (n)** list (groups
-  hidden) + a "No customers found" empty state. New customers land in Others. No caption under the
-  Frequently-used header (removed per request).
-
-### Sheets / labels
-- **Add Services sheet** CTA: **"Add into Invoice" → "Add item"** (edit mode still "Save").
-- **Delivery method** "Download" → **"Preview as PDF"** (description hidden via `showDescription={false}`).
-- **Currency sheet height = Add Services sheet height**: shared **`SERVICE_SHEET_HEIGHT = "h-[68%]"`** via
-  a new `heightClass` prop on `BottomSheet`; both sheets pass it. (`tall` = min-h-78% was taller and is
-  still used by CountrySheet — left intact.) **Supersedes the old "CurrencySheet sizes to content".**
-
-### Bottom-sheet backdrop — book-page recede REMOVED
-- In `AddInvoiceDetails` the page no longer scales / shifts / re-rounds when a sheet opens; the dark
-  status-bar strip and `anySheetOpen` flag were removed. Open sheets just dim the full-size page with the
-  `BottomSheet` `bg-black/25` scrim. **Supersedes the recede described earlier.** (Other screens'
-  BottomSheet usage unchanged.)
-
-### Delivery method is now a full PAGE (not a bottom sheet)
-- `SendInvoiceSheet` rewritten as a full-screen page: **slides in from the right, close ✕ top-left**,
-  inside-page header, white body, same 3 `Tile` options. API unchanged (`open/onClose/onConfirm`).
-- **✕ behavior**: create flow → **saves as draft** (`saveDraft()` → "Saved as draft" toast → invoice
-  list), since the invoice isn't issued/sent at that step; detail-page resend → back to the detail page.
-  (`onSendLater` is now unused in AddInvoiceDetails.)
-- **No transition between Delivery method ⇄ Email review.** The delivery page stays mounted and the email
-  review renders **instantly** on top (plain conditional `div`, no slide); Back closes it instantly.
-  Applied in both `AddInvoiceDetails` and `InvoiceDetailPage`. For **email** `onConfirm` no longer closes
-  the delivery page; **link/PDF** still close it first.
-
-### Dashboard — Settings icon
-- Added a **Settings (gear) button** to the right of the notification bell (`onSettings` prop). **Not
-  wired** to a screen yet (no Invoice Settings screen — that's DES-764).
-
-### Needs Attention (new feature)
-- Renamed **"Needs Attention"** everywhere (dashboard header `NEEDS ATTENTION (N)`, screen title,
-  QuickNav label).
-- New dedicated screen **`NeedAttention.tsx`** (App screen `"needAttention"`): full inside-page, back
-  arrow, helper text **"N items require action. Open an item to resolve it."**, scrollable card list.
-- **Cards = invoice-card cream** (`#faf9f4` + dashed `rgba(160,160,160,0.2)`) with a **black CTA pill**
-  (white uppercase). The **dashboard preview stack (`NeedAttentionStack`) stays dark/black.**
-- **`ATTENTION_TASKS`** (exported from `NeedAttention.tsx`) is the **single source of truth** — the
-  dashboard count *and* the stack preview derive from it. 5 demo task **types**: `payment-match`,
-  `extracted`, `overdue`, `duplicate`, `overpayment`; each carries the invoice it opens.
-- **Tapping a card or its CTA opens that invoice's detail** (`detailReturn = "needAttention"` → back
-  returns here). CTAs currently all just open the invoice (no in-place resolve yet).
-- **View-all gating**: the dashboard shows **"View All" + the dedicated list only when `> 2` items**
-  (`SectionHead` hides View All when no `onViewAll`). At **≤2**: no View All, no list page — the stack
-  shows the ≤2 cards inline.
-
-## Session update (2026-06-24)
-
-Latest decisions/changes. Where these conflict with anything above, **this wins.**
-
-### New screens / components / App state
-- **`DuplicateDecision.tsx`** — App screen `"duplicateCheck"`. The duplicate **decision page** (below).
-- **`NeedAttention.tsx`** — App screen `"needAttention"` (from the 2026-06-23 work; data source `ATTENTION_TASKS`).
-- **`UploadedFile.tsx`** — shared **`UploadedFileCard`** (file chip + Preview button) and **`FilePreviewOverlay`**
-  (original-file viewer — a **`BottomSheet`** titled "Original file", `heightClass="h-[72%]"`, on the cream
-  theme; render at PAGE ROOT, not inside a scroll container, or it clips). Used by both the upload review
-  (`AddInvoiceDetails`) and the decision page.
-- **App `Screen`** now includes `"needAttention"` and `"duplicateCheck"`. New App state: `uploadedFile`
-  (`{name,size}`), `uploadedFiles` (`File[]`, re-seeds the upload sheet on Back from the duplicate page),
-  `dupExisting` (matched `ExistingInvoice`), `numberRecommended`, `editFromDuplicate`.
-
-### Upload → duplicate flow (Case 1, exact duplicate) — REDESIGNED
-- After OCR (`GeneratingInvoice` `onDone`), App checks the extracted number against `EXISTING_INVOICES`.
-  **If it matches an existing DRAFT → route to the `duplicateCheck` decision page** (not the editor).
-  Otherwise → straight to the editor (`details`). Blank/OCR-missing → editor with the review card (below).
-- **`DuplicateDecision` page** (decision page, NOT an editor): headline "Duplicate invoice found" +
-  description *"This invoice already exists. You can continue editing the existing draft or create a new
-  invoice from this upload."*; a **match summary card** (Client / Invoice number / Issue date / Amount /
-  Status pill); the **uploaded-file card + Preview**; and a standard **`ButtonDock`** —
-  - **Back arrow** → **reopens the Upload Invoice sheet with the user's file still attached**
-    (App keeps `uploadedFiles: File[]`, passed to `UploadInvoice` as `initialFiles`). Dismissing that
-    sheet saves nothing and clears the attachment → returns to where upload opened (list/dashboard).
-  - **Primary "Edit Existing Draft"** → opens the existing draft's **editor**, prefilled. **Items are
-    seeded from the OCR extraction** (`pendingExtraction.services`) — the existing draft stores only a
-    total, but this came from an upload where items were already filled. Existing draft otherwise unchanged.
-    (Non-draft match → label "Open existing invoice" → its detail page instead.)
-  - **Secondary "Create New Invoice"** → new draft from the OCR data with a **freshly generated unique
-    number** (`INV-2026-000NN`, next after `EXISTING_INVOICES`) → editor. Existing draft untouched.
-- **Edit-existing editor (`editExitToList` / `editFromDuplicate`, set only on this path)**: the leading
-  icon is an **✕**; tapping it **saves as draft → "Saved as draft" → list**. **Save is always enabled**
-  here (it's still a draft — user can leave anytime; the items-count gate is skipped). **Save → "Changes
-  saved" → detail page**; pressing **back from that detail page shows a "Saved as draft" toast** and
-  returns to the list (the invoice stays a draft). The flag is reset on every other detail entry point so
-  the toast can't leak. (Normal edit-from-detail keeps the back arrow → detail page and the items gate.)
-- **Create-New editor**: shows a green **"Recommended"** chip inside the Invoice Number input
-  (`numberRecommended`, set only on this path). The uploaded-file preview is **not** shown again here
-  (already previewed on the decision page — `uploadedFile` cleared).
-- The old **in-editor duplicate warning** (yellow card + "Continue/Open existing" dock) is now **dormant**
-  — the decision page intercepts before the editor. It only resurfaces if a duplicate number is typed
-  manually in the editor (`existingInvoice && existingMatchesCustomer`).
-
-### Upload sources — Take Photo / Choose from Photos / Browse Files (+ scanner demo)
-- **`UploadInvoice` ("Add Existing Invoice") opens straight into the source picker** — **no dropzone
-  middle step, no separate "Add a file" sub-sheet** (both removed 2026-06-24). The sheet body shows
-  **three source rows**: **Take Photo / Choose from Photos / Browse Files**, then the **always-visible
-  `InfoRow` rules under them** (**Accepted file types → PDF, JPG, PNG** / **Maximum file size → 10 MB**).
-  **A validation error renders inline ABOVE Take Photo** (red callout; no modal). **No Continue while
-  picking** — the footer CTA appears **only after a file is attached**, when the rows are replaced by a
-  **file chip (icon + name + `TYPE · size`, e.g. "PDF · 0.4 MB" + remove)**. All sources converge on the
-  same `onContinue(files)` → OCR → duplicate/review → create pipeline.
-- **Source → demo OCR case** (file names encode the case; routed in App `onContinue`):
-  - **Take Photo** (`invoice-photo.jpg`) → **happy path, 9/9 extracted** (`DEMO_EXTRACTION_COMPLETE`,
-    non-duplicate `INV-2026-00118`, email present) → editor shows the **green "9 out of 9 extracted.
-    Review and create your invoice."** all-clear card.
-  - **Choose from Photos** (`invoice-scan.png`) → **duplicate** (`DEMO_EXTRACTION_MATCHED`,
-    `INV-2026-00042` matches an existing DRAFT) → `duplicateCheck` decision page.
-  - **Browse Files** (`invoice.pdf`) → **email missing** (`DEMO_EXTRACTION`) → editor with the purple
-    **"8 out of 9 extracted. Please review…"** card + highlighted email input.
-  - **Simulate an unreadable scan** → nothing read (`BLANK_EXTRACTION`) → blank editor.
-- **"Take Photo"** opens **`ScanDocument.tsx`** — a full-screen **dark camera/scanner demo**: a framed
-  document with pulsing **orange edge-detection corner brackets** + "Position the invoice within the
-  frame" → white **shutter** → **scanning sweep** (orange band + spinner, "Scanning…") → `onCapture`
-  (fires **exactly once** — held in a ref, timer deps on `phase` only) adds the demo photo and closes.
-- **Native plan = Option A (decided 2026-06-24): use the OS document scanner** — iOS **VisionKit**
-  (`VNDocumentCameraViewController`) / Android **ML Kit Document Scanner**. The OS draws its **own**
-  camera UI (live edge detect, auto-capture, multi-page, deskew) and returns image(s)/PDF; only the
-  **capture result** flows back into the sheet. So in the real build **`ScanDocument` is replaced by the
-  native scanner** — it exists only as the prototype's stand-in (it mirrors the look of the rejected
-  Option B "custom-branded camera"). Not code-shareable across platforms → bridge both with one
-  cross-platform plugin, plain-camera fallback where ML Kit is unavailable.
-
-### Upload create routing — lands on the invoice detail page
-- **Any upload "Create Invoice"** (OCR-missing, create-new, etc. — i.e. `extracted` is set) now navigates
-  to the **new invoice's detail page in Awaiting Payment** (origin `uploaded`) with a one-off
-  **"Invoice created successfully"** flash, instead of the list. (Status stays **Awaiting Payment** —
-  shown by the detail badge; the toast just confirms the record action. Rationale: an uploaded invoice
-  was already sent elsewhere, so this is record-only.) The **manual** send flow (no `extracted`) still
-  returns to the list with its toast.
-- The detail page's **back now clears `detailFlash`** so the flash shows once and never re-fires.
-
-### Upload review (OCR-missing / partial-extraction case) — `AddInvoiceDetails`
-- **"N out of M extracted. Please review before creating"** card at the **top** (purple AI style), shown
-  **only when a field couldn't be read** (`fieldsNeedAttention > 0`); hidden for fully-extracted, matched,
-  and blank cases. (`extractedFields` now counts 7 core fields incl. amount + line items → demo reads
-  **8 out of 9**.)
-- **Uploaded-file card moved to the top** (`UploadedFileCard` + **Preview** → `FilePreviewOverlay`, a
-  demo document viewer — we only keep name/size, no real bytes).
-- No-match (Case B): **Customer name + Email** inputs; email gets the warning highlight **+ caption
-  "Cannot extract the information"**; **"Save &lt;FirstName&gt; to my customer list"** checkbox, default checked.
-- **No auto-scroll on arrival** — both the services-section scroll (now only fires when items GROW, robust
-  to StrictMode double-invoke) and the missing-field `flaggedRef` scroll were removed, so the review page
-  opens at the **top** (so the duplicate / review card up top is visible).
-
-### Send sub-flow — no transitions
-- The **Delivery method** page stays mounted; **Email review, Share-link sheet, and PDF preview all open
-  INSTANTLY over it (no slide)**. Delivery page is `z-40`; email/PDF overlays are `z-50`; the share sheet
-  (`BottomSheet`, z-40, later in DOM) stacks above it. Back from any of them just closes the overlay.
-- **`ShareLinkSheet`**: CTA is **"Mark as sent"**, **disabled until the link is copied or shared**
-  (persistent `distributed` flag). Copying then closing (✕) does **NOT** mark sent → stays draft. Only
-  the explicit CTA marks sent. (Supersedes the old "marked sent on copy/share = option B".)
-- **`ReviewEmail`**: helper text under "Add Recipients" (*"Send a copy of this invoice to additional
-  recipients."*) and the cc checkbox relabeled **"Send me a copy"**.
-- Delivery-method "Download" option is labeled **"Preview as PDF"**.
-
-### Dashboard (Figma 484:4564) — hero REDESIGNED + recent list
-- Hero is now **two glassy sub-cards** on the dark gradient: **Collected** (`border-white/20` + blur:
-  label + amount, green `#58c67f` **%** on the right, gradient progress bar, peer note inside) and
-  **Outstanding** (`bg-white/10` + blur: label + amount + overdue line + outlined **View All** →
-  Outstanding list). Header/expected-amount + `CreditCardDollar` on top; cards inset 16px. Scenario logic
-  preserved (fullyCollected hides Outstanding + green bar; nothingCollected shows "to collect").
-  Outstanding invoice-count line is 13px medium. **Sub-cards use `px-4 py-4` (16px) internal padding**
-  (⚠️ watch Tailwind class concatenation — a missing space once produced `py-4flex`, silently dropping
-  the padding). Hero card outer padding **`pt-6 pb-6`**; peer note **11px**.
-- **Settings gear** beside the notification bell (`onSettings`, unwired — DES-764). A **decorative
-  (non-clickable) back chevron** sits beside the "Sales Invoices" title (dashboard is the root).
-- **Recent Invoices = 5 rows** + a secondary **"View all invoices"** button (the shared `Button`
-  component, `variant="secondary"` full width → uppercase label) after the 5th → invoice list.
-- **Needs Attention** (renamed): dashboard `NEEDS ATTENTION (N)` + dark preview stack; **"View All" only
-  when > 2**. Cards (both the stack and the `NeedAttention` list screen) are **cream `#faf9f4` + solid
-  border `rgba(160,160,160,0.25)` + black CTA pill**; the dashboard stack's peek cards are warm beige.
-  Helper text on the screen: *"N items require action. Open an item to resolve it."*
-
-### Create-invoice customer page (`CreateSalesInvoice`)
-- **Frequently used = horizontal row of 5 circular initial avatars** (50px, white, light border; **orange
-  `#ff4a15` fill + white initials when selected**) with truncated names below; header **"FREQUENTLY USED
-  (5)"** (`FREQUENT_IDS` = marlow/bright/otto/northwind/lumen, capped at 5). **OTHERS** below stays `Tile`
-  rows. Searching collapses to one flat **RESULTS** list.
-
-### Misc
-- **Accounting Hub removed** — app **lands on `dashboard`** (the root); Dashboard has **no back arrow**;
-  `AccountingHub.tsx` / `FinanceBottomNav.tsx` remain on disk but unused. QuickNav no longer lists it
-  (nor "Invoice Detail" / "Needs Attention" — reached by tapping through). **Hero states are nested
-  under Dashboard in QuickNav** (Happy path is the default).
-- File uploader dropzone label: **"Select one file under 10 MB"**.
-- **Customer avatars removed** app-wide remains in effect (temporary, pending invoice-number confirmation).
-- Numbers are **5-digit `INV-YYYY-NNNNN`** (from 2026-06-23).
-
-### Repo / deploy
-- Git repo pushed to **private GitHub `apa-statrys/accounting`** over **SSH**
-  (`git@github.com:apa-statrys/accounting.git`; ed25519 key in `~/.ssh/id_ed25519`). Local git identity
-  set on the repo (name `apa-statrys`, email `ayepapa.myo@statrys.com`). **The user runs commits/pushes
-  themselves — only stage** (see memory [[git-user-commits]]).
-- Added a real **`.gitignore`** (node_modules, dist, `*.zip`, `.DS_Store`, env, caches, etc.).
-- **Vercel deploy**: it runs `pnpm install --frozen-lockfile`. We hit `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`
-  because `package.json` had a `pnpm.overrides` ({vite}) not in the lockfile — **removed the redundant
-  override** (vite already pinned in devDeps) so they match. Possible next snag: `pnpm-workspace.yaml`
-  has a placeholder `allowBuilds:` block ("set this to true or false") — convert to a real
-  `onlyBuiltDependencies` list if build scripts (oxide/esbuild) get skipped.
-
-## Session update (2026-06-25) — Invoice Settings (DES-764) built
-
-`InvoiceSettings.tsx`, App screen **`settings`**, opened from the **dashboard gear** (`onSettings`). DES-764
-defines every account-level field (currency, logo, company info) set once and auto-applied to all invoices,
-not editable per-invoice. The create/upload flows already satisfied the other ACs; this story = the screen.
-
-- **No Save button** — edits apply **live**; the **back arrow persists** via `onExit(settings)` → App
-  `settings` state. Bottom CTA = **"Preview invoice template"** → `InvoiceTemplatePreview` (full-page mock
-  invoice rendering the live settings: logo, From block, currency total). Intro copy: *"These settings apply
-  to all new sales invoices."* Cards `gap-4` (16px).
-- **Layout (identity-first):** ① identity header (logo + company name + email — custom card matching the
-  EditCard look, since the avatar needs a real 40px logo) → **"Company Profile"** sheet; ② **Currency**
-  (`SectionCard`, value + "Default currency for invoices") → `CurrencySheet`; ③ **Company Details**
-  (`SectionCard` summary, subtitle "Registration, phone, website") → sheet; ④ **Business Address**
-  (`SectionCard` summary) → sheet. `SectionCard` = title + subtitle + chevron, **no icon, no field count**.
-- **Logo** = inline **`LogoMark`** (orange monogram tile from the company initial; CSP-safe, no external
-  asset — swap for the real logo later). Upload = centered dashed dropzone ("Upload company logo" / "JPG or
-  PNG • Up to 10 MB"), rules JPG/PNG ≤10 MB. Demo company **Lumen Studio** (`DEFAULT_SETTINGS`, HK; address +
-  zip blank by default).
-- **One sheet per section** (not per field). **"Save changes"** CTA is **dirty-gated** (snapshot `baseline`
-  on open; disabled until something changes) **and** validity-gated (required fields filled; email valid).
-  Inputs use meaningful **placeholders, no helper text**.
-- **Business Address dependency chain:** **Country first (dropdown)** → drives **City** (dropdown if the
-  country has preset cities in `COUNTRY_DATA`, else free text) and **State** (dropdown, shown **only** when the
-  country has states). Changing country **resets city/state (+ zip)**. **Zip hidden for Hong Kong**
-  (`NO_POSTAL_COUNTRIES`; not required there). **Address is last.** Country/city/state pickers reuse the
-  **`Tile`** selection card (customer-selection style: dashed default / gradient selected, **no focus ring**);
-  country options carry a **flag** (`COUNTRY_FLAGS`); the 20-country list has a **search** (shown when `>8`
-  options). The Address sheet and the picker share **`h-[72%]`** height.
-- **Currency wired live:** `AddInvoiceDetails` now takes a **`defaultCurrency`** prop (replaced the hardcoded
-  `SETTINGS_CURRENCY`); App passes `settings.currency`, so the saved default seeds a new invoice's currency
-  (per-invoice override still does NOT write back — see [[invoice-currency-default]]). Other company fields
-  are demo-only (no backend / not yet on a real PDF). Accountant-only fields (functional-currency amount, COA
-  per line) are out of scope; customer/vendor info comes from the client record.
-
-## Session update (2026-06-30) — Refund (DES-720) method + gated edit, list refund display, nav
-
-> The most current cross-cutting truth is **CLAUDE.md** (credit-note/refund/settings model). This entry
-> records the concrete UI/code landed on 2026-06-29→30. Credit-note flows (DES-719/720/763) are BUILT —
-> ignore the older "not started / Void stub / 5-digit" lines in *Pending / deferred work* below.
-
-### Refund method step (DES-720 AC3) — `InvoiceDetailPage.tsx`
-- A refund-pending invoice's dock primary is **"Refund Credit Note"** (secondary = Send/Resend Credit
-  Note). It opens a **`BottomSheet` refund-method picker** with two selectable rows:
-  **Statrys Business Account** ("Send the refund as a bank transfer (auto-reconciled)") and
-  **Mark as already refunded** ("Record a refund you made another way"). Footer CTA label follows the
-  choice: **"Continue"** (BA) / **"Done"** (manual). State: `refundMethodOpen`, `refundMethod:"ba"|"manual"`.
-- `handleRefundMethod()`: **BA** → stub toast "Refund sent to your Business Account to confirm" (invoice
-  stays Pending Refund; real BA payment flow is out of scope). **Manual** → `setStatus("Refunded")` + toast
-  "Marked as refunded". **Either path sets `refundInitiated = true`** (locks the CN, see gating below).
-- `refundPending = status === "PendingRefund" || refundTag === "Refund pending"` drives the dock branch
-  (covers both the live `PendingRefund` status and the list-derived `Paid + refundTag` case).
-
-### Refund/Refunded headline (detail page)
-- `isRefundContext` → headline leads with **amount to refund** (`credited`) + small **"Amount to refund"**
-  / "Amount refunded" label; **the "Paid" status badge is suppressed** (the **refund tag chip** is the
-  primary badge). The removed "remaining paid" line is replaced by a **smaller (11px) green
-  "<amount> Paid on 10 Jun 2026"** line. No banner in refund context.
-- **Credits Applied section moved ABOVE the customer/details cards** for ANY invoice that has a credit
-  note (was below Details).
-
-### Gated edit of a refund credit note (DES-720, decided + built)
-- **Decision:** a refund CN is editable **only while unsent AND no refund method initiated** (audit-clean —
-  the document drives money movement once a method starts). Corrections after that go via a NEW note.
-  Contrast: a **cancellation** CN (DES-719 AC4) stays editable after send while the invoice is unpaid.
-- Per-row helper `isCnEditable(cn, idx)`: `Awaiting/Overdue` → always true; refund context → unsent AND
-  **unpaid** (`creditedThrough(idx) > refundedOut`); else false. (Superseded the old `!refundInitiated`
-  boolean — see the 2026-07-01 entry.) The ledger row's edit arrow + tap-to-edit are gated on it.
-- Editing a refund CN opens `CreditNoteForm` with **`refund` mode** (cap = amount paid = `outstanding +
-  cn.amount`). `saveCreditNote` **keeps the invoice in Pending Refund** regardless of amount (the move to
-  Refunded only happens via the method step), vs cancellation edits (full → Cancelled).
-
-### CN number collision fix (`InvoiceDetailPage.tsx`)
-- Was `CN-2026-${creditNotes.length + 1}` → a fresh note started at **000001**, colliding with the seeded
-  register. Now imports `CREDIT_NOTES` and continues **past the register max**: `nextCreditNoteNo =
-  CN-2026-(CN_SEQ_MAX + creditNotes.length + 1)`. Register tops at …000005 → new notes start **…000006**.
-
-### Sales Invoice List — refund row display (`SalesInvoiceList.tsx`)
-- A refund-pending/refunded invoice stays `status:"Paid"` but the **right-side pill shows the refund state**
-  (amber "Refund pending" / indigo "Refunded") via `pill` (derived from the linked CN), with a **History
-  (clock) icon**. The paid date moved into the meta line ("· Paid 26 Jun 2026") — no duplication.
-- Under the bold invoice amount: a secondary amber line **"Refunding −$1,200.00"** ("Refunded −$…" when
-  done) from `linkedCn.original`. The big number always stays the invoice amount (Stripe/Qonto pattern).
-- The CN badge now reads **"Credit note ›"** (wording, not the number) and sits on its own line (no wrap);
-  tap → that CN's detail. Demo **INV-2026-000011 Cobalt → CN-2026-000004** is now **`cnSent:false`** so the
-  gated edit arrow is visible on its Pending Refund detail.
-
-### Navigation — Menu is the parent (`Dashboard.tsx`, `AccountingHub.tsx`)
-- Dashboard header: removed the grid icon; **"Sales Invoices" title has a back chevron IN FRONT**
-  (`onMenu`) → returns to the Accounting Hub **Menu** (the menu is the top-level parent). Bell + gear right.
-- **AccountingHub Menu has NO back arrow** (nothing above it). `onBack` prop kept on the interface but
-  unused; removed the now-unused `ChevronLeft` import.
-
-## Session update (2026-07-01) — Refund: send-at-creation (AC6) + cumulative refund notes
-
-> Current truth for the refund lifecycle (supersedes the one-shot `refundInitiated`/`refundResult` model in
-> the 2026-06-30 entry). CLAUDE.md → the "Cumulative refunds + AC6 send" bullet mirrors this.
-
-### Money-based refund lifecycle (`InvoiceDetailPage.tsx`)
-- Replaced the single-shot booleans with a **number `refundedOut`** (money actually paid out) alongside
-  `credited` (total committed to refund CNs). **`refundPending = credited − refundedOut`** = a refund still
-  awaiting payout. `refundedOut` **seeds** from the list-sync tag, so a demo invoice opening
-  "Partially Refunded"/"Refunded" starts *settled* (`refundedOut = credited`) — no phantom pending payout.
-- Derived: **`fullyRefunded`** (`refundedOut ≥ TOTAL`); **`effectiveRefundTag`** = Refunded / Partially
-  Refunded (by `refundedOut`) / else the list-sync `refundTag`; **`refundDone`** = `refundPending ≤ 0`.
-- **`settleRefund(toast)`** (shared by `completeBaRefund` / `markAlreadyRefunded`): sets `refundedOut =
-  credited`; cumulative = TOTAL → `Refunded`, else Partially Refunded. Payout amount handed to
-  `RefundCreditNoteFlow` = **`refundPending`** (the unpaid portion), not the cumulative total.
-- The invoice can now **cycle** Pending Refund → Partially Refunded → *(raise another note)* → Pending
-  Refund → … → Refunded.
-
-### AC6 — send the credit note before paying the refund
-- The refund-context dock is a **two-action dock while `refundPending > 0`**: primary **"Refund Credit
-  Note"** (money-out) + secondary **"Send/Resend Credit Note"** (document, by `lastCnSent`). Once
-  `refundDone`, it collapses to the single **"Send/Resend Credit Note"**. So sending the CN document and
-  moving the money are independent (ticket AC3 vs AC6, both off a created refund CN).
-
-### Per-note send + picker sheet (refund AND unpaid/cancellation)
-- Each credit note is its own document with its own `sent`/`sentDate`, so the send flow is parameterised
-  by **`sendCnIndex`** (was always the latest). Dock label = **"Send"** when any note is unsent
-  (`anyUnsent`), else **"Resend"**.
-- **`openSendCreditNote()`** is the single dock entry point: **2+ unsent notes** → open the **"Send credit
-  note" picker `BottomSheet`** (`Tile` selection cards, recent-first, **default selection = latest note**,
-  sent notes carry a "SENT" badge; footer CTA "Send credit note") → pick → send flow. **0–1 unsent** → skip
-  the sheet and send directly (the one unsent note, else the latest = resend).
-- `completeSend` stamps the **selected** note (`sendCnIndex`) sent; the edit→re-send prompt (AC4) sets
-  `sendCnIndex` to the edited note. Fixes the "CN1 paid-but-unsent stranded once CN2 exists" edge.
-
-### Refund record + proof, and read-only view of a locked CN (DES-720)
-- **Both** refund paths persist a `RefundProof` (date / method / amount + optional file) on the note(s)
-  settled by that payout (`settleRefund(toast, proof)`): **manual** ("mark as already refunded") stores the
-  captured date/method + optional **attachment**; **BA transfer** (`completeBaRefund(fromAccountId)`) records
-  `Statrys · <account> · <date>` (no file — transfer flow owns execution).
-- Rendered on the Credits Applied row (Qonto/Brex idiom, not inline text): a **green "Refunded" chip +
-  method·date**, and — manual only — a **tappable file row** → `FilePreviewOverlay`. `fmtDate` formats ISO.
-- **View-mode:** every row is now tappable. Unpaid/unsent → edit (AC4); **locked (settled/sent) → opens
-  `CreditNotePreviewPage` read-only** (`viewingCnIndex`). The proof attachment button uses `stopPropagation`
-  so it opens the file, not the CN view.
-
-## Session update (2026-07-01) — View Credit Note (DES-721) = a detail page, not the PDF
-
-- **New `CreditNoteDetailPage.tsx`** is the structured landing view for a credit note (Stripe/Temu
-  reference: detail + actions in the dock, PDF is secondary). Mirrors the invoice detail — dashed cream
-  cards, **type chip** + **status chip** (`STATUS_CHIP` incl. Pending Refund / Refunded / Partially
-  Refunded / Applied / Open / Cancelled), CN total, **Related invoice → View** card (AC3), Credit-to +
-  reason, items credited, and the DES-720 **refund record + proof attachment**. Dock = **"Send/Resend
-  Credit Note"** (AC4). ⋯ = Preview PDF + View invoice.
-- It **hosts its own send sub-flow** (`SendInvoiceSheet`/`ReviewEmail`/`ShareLinkSheet` + PDF
-  `CreditNotePreviewPage`) so Send works standalone; `onSent` reports up to persist the sent state. The PDF
-  paper (`CreditNotePreviewPage`) is now only the **"Preview PDF"** screen, opened from the detail or the
-  send flow — never the landing.
-- **All 3 entry points wired to it:** ① invoice detail Credits Applied locked row (`viewingCnIndex`, full
-  data; `onViewInvoice` = back to this invoice; `onSent` marks the note sent); ② Sales Invoice List "View ›"
-  (`cnPreview`; `onViewInvoice` navigates via `onOpenInvoice`; `kind`/`status` from register + `refundState`);
-  ③ Credit Notes List (`preview`, no invoice nav → Related-invoice renders as a static row).
-- **Decisions:** section name stays **"Credits Applied"**; row-tap routing stays editable→Edit /
-  locked→detail. `CreditNotePreviewPage` keeps its `variant` prop but the detail page supersedes the "view"
-  variant. **TODO:** DES-763 list send is now functional via the detail page; a shared send-flow component
-  (vs the copy in `CreditNoteDetailPage` + `InvoiceDetailPage`) could de-dupe later.
-
-### CN status model corrected (2026-07-01) — two axes, split by type
-- **Bug found:** the detail was showing the DES-763 **register reconciliation** status (Open / Partially
-  Applied / Fully Applied) — a concept that's out of scope in Block 1 and unrelated to what the client does.
-- **Fix:** the status chip now splits by credit-note type:
-  - **Cancellation CN** (unpaid invoice) → **Not sent** (amber) / **Sent** (green), derived from `sent`;
-    type badge reworded to plain **"Credit note"**.
-  - **Refund CN** (paid invoice) → **Pending Refund / Partially Refunded / Refunded** (`status`); type badge
-    **"Refund credit note"**.
-- **Cancel/void:** ⋯ shows **"Cancel credit note"** only while **unsent** (once sent it's locked). Wired on
-  the invoice-detail entry (`voidCreditNote` — removes it, restores outstanding, reverts Cancelled→Awaiting);
-  the list entries are register demo (read-only) so no void there.
-- `sent` threaded from every entry: invoice `cn.sent`; Sales Invoice List `inv.cnSent` (`cnPreviewSent`);
-  Credit Notes List a new `sent` field on `creditNotesData` (Harbor CN-000003 sent; Vela/Saffron not).
-- **STATUS_CHIP** in `CreditNoteDetailPage` reduced to the two relevant axes (Sent/Not sent + refund
-  lifecycle); the register-only statuses were removed from it.
-
-### Credit Note detail — final spec (2026-07-01)
-Consolidated required info for `CreditNoteDetailPage` (the landing view for every CN entry point):
-- **Header** = the **CN number** (`SheetHeader` title). No type badge.
-- **Top card:** status chip only. Subline = "Credit note / Refund credit note · **Created <date>**" → flips to
-  "**Updated <date>**" once edited (`updatedDateLabel`; demo `EDITED_TODAY`) · **Sent / Not sent** indicator.
-- **Related invoice** card → View (AC3; static row when no invoice-nav callback).
-- **Credit to** (name + email) + **Reason**.
-- **Items credited** = **item NAMES only** (no amounts). List/register entries pass NO lines → the card is
-  hidden for them; the invoice-detail entry shows real item names.
-- **Summary** (cancellation, when `invoiceTotal` known):
-  - **Invoice Total** = linked invoice total
-  - **Credit Amount** = −CN total
-  - **Remaining Balance** = Invoice Total − Credit Amount; sublabel **"(after applying)"** (Open) / "(after
-    credit)" (applied).
-  - Refund / no invoiceTotal → fallback "Total credited". **No GST/tax row** (ticket = VAT; HK demo = none).
-- **Dock by status:** Open → Apply to invoice + Edit; Partially/Fully Applied → Preview as PDF + Send;
-  Cancelled → Preview only; Refund → Send/Resend. From the LIST (no Apply wired) Open falls back to
-  Preview + Send. ⋯: Open → Cancel + Preview; Applied → Edit; Refund → Preview.
-- **Data threaded:** `invoiceTotal` (invoice `TOTAL` / list `inv.amount` / register `invoiceTotal`), `sent`,
-  `updatedDate`, `applied`. Register `CreditNote` now requires `kind`, `applied`, `invoiceTotal`.
-
-### DES-763 Apply model adopted (2026-07-01) — SUPERSEDES the "Not sent/Sent" experiment below
-- Re-read DES-763's **CN Status Rules**: it DOES define reconciliation (Open → Partially Applied → Fully
-  Applied + Apply-to-invoice + Applied/Remaining). My earlier "reconciliation is OoS / use Not sent/Sent"
-  was wrong; reverted.
-- **Cancellation credit note lifecycle = 2-step:** create → **Open** (does NOT reduce the invoice) → **Apply
-  to invoice** → **Fully Applied** (whole CN absorbed — the normal case since the CN is capped at outstanding)
-  or **Partially Applied** (CN had leftover). "CN < invoice total" → **Fully Applied** (NOT partial — that
-  was the user's initial inversion; Partially Applied = the CN itself has remaining). Void only while Open.
-- **`CreditNoteDetailPage`**: status chip = Open/Partially/Fully Applied (cancellation) or Pending
-  Refund/Refunded (refund); `sent` demoted to a secondary line. Dock: Open/Partially → **Apply to invoice /
-  Apply remainder** (primary) + **Edit** (secondary); else Send/Resend. ⋯: Preview PDF, View invoice, Send
-  (when dock busy), Cancel (void, Open only). New props `onApply`/`onEdit`/`onCancel`.
-- **`InvoiceDetailPage`**: CN type gains **`applied`**; `refundCtx` flag; cancellation `credited` = Σ applied
-  (Open notes don't reduce the invoice). `applyCreditNote` now creates **Open + lands on the CN detail**;
-  **`applyCnToInvoice`** offsets the invoice and Cancels it when fully covered; seeded CN opens pre-applied.
-  Credits Applied rows always open the detail; row hint shows Open/Partially/Fully Applied. `saveCreditNote`
-  no longer auto-cancels on edit (status changes only via Apply). Void = remove (Open only).
-- **Register (`creditNotesData`) + List + SalesInvoiceList reverted** to the application statuses + `applied`.
-  Cancellation demo CNs: Saffron …005 = Open; Harbor …003 / Vela …002 / Bright Harbor …001 = Fully Applied.
-- **Limitation:** real Apply is wired only from the invoice detail (live state); the register/list is static,
-  so its CN detail shows status but no working Apply. Partially Applied is reachable only via multiple Open
-  notes on one invoice (second apply gets capped) — noted.
-
-### (superseded) Credit Notes List (DES-763) realigned to the same model (2026-07-01)
-- `creditNotesData.ts`: **`CNStatus` = Not sent | Sent | Pending Refund | Refunded | Cancelled** (dropped
-  Open / Partially Applied / Fully Applied). `CreditNote` gains **`kind`** (`cancellation`|`refund`), keeps
-  `sent`, and **drops `applied`/`remaining`** (reconciliation artifacts). Seed data re-tagged: refund CNs
-  (…004/006/007) = Pending Refund; cancellation CNs (…001/002/003/005) = Sent/Not sent by `sent`.
-- `CreditNotesList.tsx`: `STATUS_PILL` + `FILTERS` rebuilt to the new set (All / Not sent / Sent / Pending
-  Refund / Refunded); removed the "Remaining: High to Low" sort; `effStatus` only flips a **refund** CN to
-  Refunded via `refundState`. Detail wiring now uses `preview.kind` directly.
-- `SalesInvoiceList.tsx`: the `openCnForInvoice` fallback CN uses `kind:"cancellation", status:"Not sent"`
-  (no applied/remaining); the CN-detail `kind` reads `cnPreview.kind`. The invoice-card refund pill still
-  keys on the refund CN statuses (Pending Refund / Refunded), unaffected.
-- **Answer captured:** a credit note on an *unpaid* invoice is **Sent / Not sent**, never
-  Open/Partially/Fully Applied — those were a Qonto **reconciliation** (Model B) concept never built here.
-
-### Cumulative refund notes (the "refund again a month later" case)
-- New **"+ Add refund credit note"** button in the Credits Applied card, shown when **`isRefundContext &&
-  !fullyRefunded && outstanding > 0`** — *including after* an earlier refund settled. It reopens the refund
-  form (cap = `outstanding`, corrected pre-fill); the new note pushes `credited` above `refundedOut`, so
-  `refundPending > 0` and the **"Refund Credit Note" CTA reappears**. Next payout settles only that portion.
-- **Headline:** `refundPending > 0` → "Amount to refund" (pending amount); else "Amount refunded"
-  (cumulative `refundedOut`).
-- **CN row editability:** unsent AND unpaid (`creditedThrough(idx) > refundedOut`) — settled notes lock.
-
-### Open / still pending Beatrice
-- Lock-CN-once-sent (vs DES-719 AC4 editable-after-send) — refund side now gated to unsent; cancellation
-  side still editable-after-send. Confirm whether to unify.
-- Per-invoice **emails / line items** in the list are still shared demo defaults (e.g. Cobalt shows
-  `apa@marlowfinch.co`) — opening any invoice uses `InvoiceDetailPage`'s single `ITEMS`/email defaults.
-- BA refund "Continue" next step (pre-filled Business Account payment draft) = stubbed toast; real BA
-  payment flow out of scope (DES-720 Phase 2).
+- Stage changes only (`git add`) — the user commits/pushes themselves.
+
+## Known gaps / next steps
+
+- **DES-766 reconciliation** with the DES-713 list spec still pending (we added Overdue +
+  Partially Paid chips beyond its filter set — flag to Beatrice).
+- **Per-invoice line items/emails are shared demo defaults** — every invoice detail opens with the
+  same `ITEMS` (`invoice-detail/demoInvoice.ts`) and email regardless of which card opened it.
+- **Needs Attention CTAs** (Confirm/Review/Remind) just open the invoice detail — no in-place
+  resolve; `ATTENTION_TASKS` is static demo data.
+- **Customer avatars** removed app-wide (temporary — restore once the invoice-number layout is
+  confirmed).
+- **Refund Phase 3 polish:** "awaiting refund" list filter, richer Pending/Refunded detail
+  rendering; BA transfer execution stays a stub.
+- **AC6 (DES-713) save-failure recovery** unbuilt.
+- Real per-customer invoice link (list ↔ customer detail is name-match, demo-only).
+- Final step before Figma Make port: consolidate the file list (`index.html`, `src/main.tsx` are
+  local-only scaffolding, not needed in Make).
+
+## Open decisions (pending Beatrice) — details in `./open-questions.md`
+
+- Lock a credit note once SENT? (today: editable + re-send prompt per DES-719 AC4; refund side
+  already locks after payout — confirm whether to unify).
+- Edit an issued invoice → auto-resend or ask? (today: Save just returns, no resend).
+- Provisional number on drafts (today: DF-… display number only).
+- Zip required for no-postal countries (we hide it for Hong Kong, diverging from the ticket).
+- Invoice-number format resolved → **6-digit** (DES-764, 27/Jun); 5-vs-6 conflict closed.
 
 ## Design tokens
 
 INK `#1b1b1b`, secondary `#808080`, brand orange `#ff4a15`, beige `#f9f5ea`/`#faf9f4`,
 success green `#006a1d`/`#ebfcef`/`#a3e9b6`, AI violet `#7c3aed`/`#f6f1ff`, amber attention
-`#fffbeb`/`#fde68a`/`#b45309`. `FONT = { fontFamily: "GT Walsheim LC, sans-serif" }`.
+`#fffbeb`/`#fde68a`/`#b45309`. `FONT`/`INK`/`MUTED` come from `src/app/lib/theme.ts` — never
+re-declare them per file.
 
-## Pending / deferred work
+## Hard-won gotchas (keep)
 
-- **Invoice detail page** — built (`InvoiceDetailPage.tsx`, all 6 statuses, optional send,
-  Draft delete/issue, **Edit prefills the form**). Still shallow: detail data is demo/static
-  (line items are the same `ITEMS` regardless of which card opened it; email defaults);
-  **limited-edit → regenerate+re-send** semantics (DES-715 AC4) not modelled (Edit just opens
-  the populated form).
-- **DES-715** now in repo — read. Gaps vs manual flow: issue is merged into Send (no explicit
-  Issue→Awaiting step); editing an issued invoice not modelled (see above).
-- DES-716 "nothing extracted" OCR-failure — **NO LONGER a dead-end screen**. On a total miss the
-  extracting step now drops the user **straight into the upload form blank** (`BLANK_EXTRACTION`,
-  upload mode) with an **amber "We couldn't read this file. Please enter the details below." banner**
-  (dismissible, + "Upload a clearer file" link → re-upload). Required-fields gate still blocks
-  save/issue until filled. `ExtractionFailed.tsx` is now unused (kept in repo). Demo trigger:
-  UploadInvoice "Simulate an unreadable scan" (App routes `blank/unreadable` → `pendingExtraction =
-  null` → `BLANK_EXTRACTION` + `extractionFailed`). UploadInvoice itself is now a **BottomSheet**
-  over the originating screen (dashboard/list), with source pick (library/files) as an inline
-  "Add a file" sub-sheet. OCR "Reading your invoice" step shortened (`durationMs={1400}`).
-- DES-718 send hardening — **built**: ReviewEmail **validates every recipient address** before
-  sending (inline error); the email **preview shows the structured content** (Open-invoice button
-  + invoice number / amount due / due date / **payment reference**); and a **delivery-failure /
-  retry state** (AC4) — on failure the form keeps all content, shows an error banner, and the
-  primary becomes "Try again" (demo trigger: "Simulate a failed send" toggle at the bottom).
-- DES-715/716 **overpayment** (AC6) — Record Payment > total → **Paid with the overpayment
-  flagged for review** (shown in the Paid banner: "overpaid by $X, flagged for review").
-- Credit-note flows (DES-719/720/721) not started — Cancel-with-credit-note on the detail page
-  is a stub that just flips status to Void.
-- **DES-766** (Create & Manage Sales Invoice List) — partially read for the invoice-number format
-  (5-digit list rule). Full reconciliation with the 713 list spec still pending.
-- **Invoice Settings (DES-764)** — **BUILT** (`InvoiceSettings.tsx`, `settings` screen, gear wired). See
-  "Session update (2026-06-25)". Only the **default currency** feeds the create flow; other company fields
-  are demo-only (no backend / not yet on a real PDF). Real logo asset + PDF rendering = backend/later.
-- **Invoice number 6-vs-5 digit** conflict (field-spec vs DES-766/mockups) — flag to Beatrice; currently
-  5-digit. Plus the open "provisional number on drafts" idea.
-- **Needs Attention CTAs** (Confirm/Review/Remind) currently all just **open the invoice detail** — no
-  in-place resolve (e.g. one-tap reconcile/remind) yet. `ATTENTION_TASKS` data is demo/static.
-- **Customer avatars** removed app-wide as a temporary call — restore once the invoice-number layout is
-  confirmed.
-- Final step: consolidate the Figma Make file list (local-only scaffolding `index.html`,
-  `src/main.tsx` are NOT needed in Figma Make).
+- **Flex cards vanishing:** a flex item with `overflow:hidden` gets `min-height:0` — in scrollable
+  `flex flex-col` lists cards can shrink to 0 height. Fix: `shrink-0` on every card. Check this
+  FIRST if cards vanish/overlap.
+- **Tailwind class concatenation:** a missing space once produced `py-4flex`, silently dropping
+  padding — eyeball concatenated className strings.
+- Framer `drag` renders blank inside `overflow-hidden` wrappers — swipe gestures use plain pointer
+  events + CSS `translateX` instead.
+- The curl transform-check is transform-only — it does NOT catch runtime ReferenceErrors; grep
+  that new imports exist, and click through the flow.
+- `pnpm build` fails locally (pnpm v11 build-scripts gate) — use `./node_modules/.bin/vite build`.
