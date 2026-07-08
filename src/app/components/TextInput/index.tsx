@@ -48,20 +48,32 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
     const hasError = Boolean(error);
     const errorText = typeof error === 'string' ? error : undefined;
     const hint = errorText ?? hintText;
-    // Deterministic "filled" check so a pre-filled (controlled) input floats its label on mount —
-    // not reliant on the flaky CSS `:placeholder-shown` for controlled values.
-    const hasValue =
-      (rest.value !== undefined && rest.value !== null && String(rest.value) !== '') ||
-      (rest.defaultValue !== undefined && rest.defaultValue !== null && String(rest.defaultValue) !== '');
     const sizeClass = size === 'sm' ? styles.sizeSm : size === 'lg' ? styles.sizeLg : styles.sizeMd;
 
     return (
       <div className={[styles.root, className].filter(Boolean).join(' ')}>
+        {/* Static label sits ABOVE the field (with a grey placeholder shown inside). */}
+        {label && (
+          <label
+            htmlFor={id}
+            className={[
+              'body-md',
+              styles.label,
+              hasError ? styles.labelError : '',
+              disabled ? styles.labelDisabled : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            {label}
+            {rest.required && <span className={styles.asterisk}>*</span>}
+          </label>
+        )}
+
         <div
           className={[
             styles.field,
             sizeClass,
-            label ? styles.fieldFloating : '',
             hasError ? styles.error : '',
             disabled ? styles.disabled : '',
           ]
@@ -71,36 +83,14 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
         >
           {iconLeft && <span className={styles.icon}>{iconLeft}</span>}
 
-          <div className={[styles.body, label ? styles.floating : '', hasValue ? styles.filled : ''].filter(Boolean).join(' ')}>
-            {/* input first so the sibling selectors `:focus ~ .label` / `:not(:placeholder-shown) ~ .label` can float the label */}
-            <input
-              ref={ref}
-              id={id}
-              disabled={disabled}
-              aria-invalid={hasError || undefined}
-              className={`body-md ${styles.input}`}
-              {...rest}
-              /* a label needs a non-empty placeholder so `:placeholder-shown` can detect "empty" and rest the label */
-              placeholder={rest.placeholder ?? (label ? ' ' : undefined)}
-            />
-
-            {label && (
-              <label
-                htmlFor={id}
-                className={[
-                  'body-md',
-                  styles.label,
-                  hasError ? styles.labelError : '',
-                  disabled ? styles.labelDisabled : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
-                {label}
-                {rest.required && <span className={styles.asterisk}>*</span>}
-              </label>
-            )}
-          </div>
+          <input
+            ref={ref}
+            id={id}
+            disabled={disabled}
+            aria-invalid={hasError || undefined}
+            className={`body-md ${styles.input}`}
+            {...rest}
+          />
 
           {iconRight && <span className={styles.icon}>{iconRight}</span>}
 

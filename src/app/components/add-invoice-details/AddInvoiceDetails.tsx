@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { UploadedFileCard, FilePreviewOverlay } from "../UploadedFile";
 import CloseIcon from "@mui/icons-material/Close";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AddIcon from "@mui/icons-material/Add";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import CheckIcon from "@mui/icons-material/Check";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import StatusBar from "../StatusBar";
 import { SheetHeader, HeaderIconButton } from "../SheetHeader";
 import { ButtonDock } from "../ButtonDock";
@@ -31,8 +31,7 @@ import { IssueDateSheet } from "../IssueDateSheet";
 import { BottomSheet } from "../BottomSheet";
 import { Tile } from "../Tile";
 import { Calendar } from "../Calendar";
-import { RecurrenceSection } from "./RecurrenceSection";
-import { FREQUENCIES, type Frequency } from "./recurrence";
+import { FREQUENCIES, type Frequency, nextDates } from "./recurrence";
 import { ReceivingAccountSheet } from "../ReceivingAccountSheet";
 import { AddServicesSheet } from "../AddServicesSheet";
 import { CUSTOMERS } from "../../data/customers";
@@ -114,11 +113,23 @@ import { FONT } from "../../lib/theme";
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="w-full flex flex-col gap-2">
-      <p className="text-[18px] font-bold leading-[1.1] text-[#1b1b1b]" style={FONT}>
+      <p className="text-[12px] font-bold uppercase leading-[1.3] text-[#a0a0a0]" style={FONT}>
         {title}
       </p>
       {children}
     </div>
+  );
+}
+
+/** Radio indicator — 26px ring; brand-filled dot when selected (used by the "Ends Recurring" sheet). */
+function RadioDot({ selected }: { selected: boolean }) {
+  return (
+    <span
+      className="shrink-0 rounded-full flex items-center justify-center"
+      style={{ width: 26, height: 26, border: `2px solid ${selected ? "#ff4a15" : "#cdcfd0"}` }}
+    >
+      {selected && <span className="rounded-full" style={{ width: 12, height: 12, background: "#ff4a15" }} />}
+    </span>
   );
 }
 
@@ -161,9 +172,13 @@ export function AddInvoiceDetails({
   const isEditing = !!initial;
   // Limited edit of an issued invoice — lock fields bound at issue (DES-715 AC4).
   const lockedEdit = isEditing && !!initial?.limited;
-  // Recurring-series setup (DES-782): the pure create path, or an explicit series edit (AC4). Never an
-  // uploaded invoice or a normal invoice edit (guards against a stale `recurring` flag leaking in).
-  const isRecurring = editingSeries || (recurring && !isEditing && !isExtracted);
+  // Recurring-series setup (DES-782): a per-invoice "Recurring Invoice" toggle (below Invoice Details)
+  // turns a one-off into a series and reveals the schedule. Seeded from the legacy `recurring` prop for
+  // back-compat. Never for an uploaded invoice or a normal invoice edit / issued-invoice edit.
+  const [recurringOn, setRecurringOn] = useState(recurring && !isEditing && !isExtracted);
+  const isRecurring = editingSeries || (recurringOn && !isEditing && !isExtracted);
+  // The toggle is only offered on a fresh manual create (not uploads, edits, or a dedicated series edit).
+  const canToggleRecurring = !isExtracted && !isEditing && !editingSeries;
 
   // Step 5 (Qonto-style): try to match the OCR'd customer to an existing client.
   const autoMatch = useMemo(() => {
@@ -220,8 +235,11 @@ export function AddInvoiceDetails({
 
   // Recurring-series setup (DES-782) — only surfaced when `recurring`.
   const [recFreq, setRecFreq] = useState<Frequency>("Monthly");
-  const [recStart, setRecStart] = useState<Date>(() => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1); return d; });
-  const [recEnd, setRecEnd] = useState<{ mode: "never" } | { mode: "count"; count: number } | { mode: "date"; date: Date }>({ mode: "never" });
+  // Default the series start to this invoice's issue date — the invoice being created is occurrence #1.
+  const [recStart, setRecStart] = useState<Date>(issueDate);
+  const [recEnd, setRecEnd] = useState<{ mode: "never" } | { mode: "count"; count: number } | { mode: "date"; date?: Date }>({ mode: "never" });
+  // Free-form "max invoices" text for the Ends sheet (lets the user pick any count, not just presets).
+  const [recMaxInput, setRecMaxInput] = useState("");
   const [recAutoSend, setRecAutoSend] = useState(false);
   const [recFreqOpen, setRecFreqOpen] = useState(false);
   const [recStartOpen, setRecStartOpen] = useState(false);
@@ -351,8 +369,8 @@ export function AddInvoiceDetails({
   // schedule, so the one-off Issue/Due rows are hidden in recurring mode.
   const recEndLabel =
     recEnd.mode === "never" ? "Never (until cancelled)"
-    : recEnd.mode === "count" ? `After ${recEnd.count} invoices`
-    : format(recEnd.date, "d MMM yyyy");
+    : recEnd.mode === "count" ? (recEnd.count > 0 ? `After ${recEnd.count} invoices` : "After a number of invoices")
+    : recEnd.date ? format(recEnd.date, "d MMM yyyy") : "On a specific date";
 
   const details = [
     ...(lockedEdit
@@ -536,6 +554,82 @@ export function AddInvoiceDetails({
           </div>
         )}
 
+        {/* Recurring (DES-782) — sits directly under the customer. Discount-card pattern: a toggle header
+            that expands the schedule fields inside the same card. Off by default; also shown (locked on)
+            when editing an existing series. When on, Invoice Details hides Issue/Due (dates come from the
+            schedule) and Automatic Reminders becomes Auto-send. */}
+        {(canToggleRecurring || editingSeries) && (
+          <div
+            className="w-full bg-white border border-dashed border-[rgba(160,160,160,0.2)] rounded-xl p-[17px] flex flex-col gap-3"
+            style={{ boxShadow: "var(--shadow-card-soft)" }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <span className="card-title-2xs text-[#101828]" style={FONT}>Recurring Invoice</span>
+              <Toggle checked={isRecurring} onChange={setRecurringOn} disabled={editingSeries} aria-label="Recurring Invoice" />
+            </div>
+
+            {/* Body — schedule fields, revealed when on */}
+            <AnimatePresence initial={false}>
+              {isRecurring && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex flex-col">
+                    {[
+                      { label: "Frequency", value: recFreq, onClick: () => setRecFreqOpen(true) },
+                      { label: "Start Date", value: format(recStart, "d MMM yyyy"), onClick: () => setRecStartOpen(true) },
+                      { label: "Ends", value: recEndLabel, onClick: () => setRecEndOpen(true) },
+                    ].map((r, i) => (
+                      <button
+                        key={r.label}
+                        type="button"
+                        onClick={r.onClick}
+                        className="flex items-center justify-between gap-3 py-3 text-left"
+                        style={{ borderTop: i === 0 ? "none" : "1px solid rgba(160,160,160,0.2)" }}
+                      >
+                        <span className="body-sm text-[#808080]" style={FONT}>{r.label}</span>
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="body-sm-medium text-[#101828] truncate" style={FONT}>{r.value}</span>
+                          <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* Invoice Schedule (DES-782) — recap of the recurring schedule; sits right under the Recurring
+            Invoice card and appears as soon as the series is set up (start/ends both default when on). */}
+        {isRecurring && (
+          <div
+            className="w-full rounded-[12px] p-[17px] flex flex-col gap-3"
+            style={{ background: "#f5f4f1", border: "1px dashed rgba(160,160,160,0.2)" }}
+          >
+            <div className="flex items-center gap-2">
+              <CalendarTodayIcon style={{ fontSize: 16, color: "#ff4a15" }} />
+              <span className="card-title-2xs text-[#101828]" style={FONT}>Invoice Schedule</span>
+            </div>
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col gap-2 py-2 items-start">
+                <span className="text-[12px] font-medium uppercase leading-[1.3] text-[#808080]" style={FONT}>Starts</span>
+                <span className="body-sm-medium text-[#101828]" style={FONT}>{format(recStart, "d MMM yyyy")}</span>
+              </div>
+              <div className="flex flex-col gap-2 py-2 items-end">
+                <span className="text-[12px] font-medium uppercase leading-[1.3] text-[#ff4a15]" style={FONT}>Next Invoice</span>
+                <span className="body-sm-medium text-[#101828]" style={FONT}>{format(nextDates(recStart, recFreq, 2)[1], "d MMM yyyy")}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Invoice details */}
         <Section title="Invoice Details">
           <div
@@ -556,23 +650,9 @@ export function AddInvoiceDetails({
           </div>
         </Section>
 
-        {/* Recurrence — schedule for the series (DES-782), only in recurring mode */}
-        {isRecurring && (
-          <Section title="Recurrence">
-            <RecurrenceSection
-              frequency={recFreq}
-              startLabel={format(recStart, "d MMM yyyy")}
-              endLabel={recEndLabel}
-              onFrequency={() => setRecFreqOpen(true)}
-              onStart={() => setRecStartOpen(true)}
-              onEnd={() => setRecEndOpen(true)}
-            />
-          </Section>
-        )}
-
         {/* Services / products */}
         <div ref={servicesRef} className="scroll-mt-5">
-        <Section title="Services/Products">
+        <Section title="Services / Products">
           {services.length === 0 ? (
             <EditCard
               title="Add your services"
@@ -634,9 +714,9 @@ export function AddInvoiceDetails({
           </motion.div>
         )}
 
-        {/* Auto-send to customer (DES-782) — recurring only; sits below Discount. On generation, send
-            automatically (→ Awaiting) or leave each invoice as a Draft to review. */}
-        {isRecurring && (
+        {/* Auto-send to customer (DES-782) — the recurring counterpart of Automatic Reminders; appears
+            once items are added. On generation, send automatically (→ Awaiting) or leave each as a Draft. */}
+        {services.length > 0 && isRecurring && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -647,7 +727,7 @@ export function AddInvoiceDetails({
               style={{ boxShadow: "var(--shadow-card-soft)" }}
             >
               <span className="min-w-0 flex flex-col gap-1">
-                <span className="card-title-2xs text-[#1b1b1b]" style={FONT}>Auto-send to customer</span>
+                <span className="card-title-2xs text-[#101828]" style={FONT}>Auto-send to customer</span>
                 <span className="body-sm-medium text-[#808080]" style={FONT}>
                   {recAutoSend ? "Send invoices automatically" : "Saved as a draft to review"}
                 </span>
@@ -671,7 +751,7 @@ export function AddInvoiceDetails({
               style={{ boxShadow: "var(--shadow-card-soft)" }}
             >
               <span className="min-w-0 flex flex-col gap-1">
-                <span className="card-title-2xs text-[#1b1b1b]" style={FONT}>Automatic reminders</span>
+                <span className="card-title-2xs text-[#101828]" style={FONT}>Automatic reminders</span>
                 <span className="body-sm-medium text-[#808080]" style={FONT}>Email until invoice is paid</span>
               </span>
               <Toggle checked={chaser} onChange={setChaser} aria-label="Automatic reminders" />
@@ -703,7 +783,7 @@ export function AddInvoiceDetails({
           <ButtonDock
             type="single"
             overflow
-            primaryLabel={editingSeries ? "Save changes" : "Create recurring series"}
+            primaryLabel={editingSeries ? "Save changes" : "Create Invoice"}
             primaryDisabled={services.length === 0}
             onPrimary={() => onSend?.({ title: editingSeries ? "Recurring series updated" : "Recurring series created" }, recentSent)}
             homeIndicator
@@ -809,29 +889,84 @@ export function AddInvoiceDetails({
         <Calendar value={recStart} disablePast onChange={(d) => { setRecStart(d); setRecStartOpen(false); }} />
       </BottomSheet>
 
-      <BottomSheet open={recEndOpen} title="Ends" onClose={() => setRecEndOpen(false)}>
+      <BottomSheet
+        open={recEndOpen}
+        title="Ends Recurring"
+        onClose={() => setRecEndOpen(false)}
+        footer={
+          <ButtonDock
+            type="single"
+            overflow
+            primaryLabel="Confirm"
+            primaryDisabled={(recEnd.mode === "count" && recEnd.count <= 0) || (recEnd.mode === "date" && !recEnd.date)}
+            onPrimary={() => setRecEndOpen(false)}
+            homeIndicator
+          />
+        }
+      >
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Tile title="Never (until cancelled)" selected={recEnd.mode === "never"} onClick={() => { setRecEnd({ mode: "never" }); setRecEndOpen(false); }} />
-            {[3, 6, 12].map((n) => (
-              <Tile key={n} title={`After ${n} invoices`} selected={recEnd.mode === "count" && recEnd.count === n} onClick={() => { setRecEnd({ mode: "count", count: n }); setRecEndOpen(false); }} />
-            ))}
+          {/* Never */}
+          <button
+            type="button"
+            onClick={() => { setRecEnd({ mode: "never" }); setRecMaxInput(""); }}
+            className="w-full min-h-[66px] flex items-center gap-3 rounded-[12px] bg-[#faf9f4] px-2 py-4 text-left"
+          >
+            <RadioDot selected={recEnd.mode === "never"} />
+            <span className="card-title-2xs text-[#101828]" style={FONT}>Never ( Run until you cancelled )</span>
+          </button>
+
+          {/* After a certain number of invoices — reveals a max-count field when selected */}
+          <div className="w-full flex flex-col gap-3 rounded-[12px] bg-[#faf9f4] px-2 py-4">
+            <button
+              type="button"
+              onClick={() => { const n = parseInt(recMaxInput, 10); setRecEnd({ mode: "count", count: Number.isFinite(n) && n > 0 ? n : 0 }); }}
+              className="w-full flex items-center gap-3 text-left"
+            >
+              <RadioDot selected={recEnd.mode === "count"} />
+              <span className="card-title-2xs text-[#101828]" style={FONT}>After a certain number of invoices</span>
+            </button>
+            {recEnd.mode === "count" && (
+              <TextInput
+                placeholder="Enter max invoices"
+                inputMode="numeric"
+                showHint={false}
+                value={recMaxInput}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  setRecMaxInput(digits);
+                  const n = parseInt(digits, 10);
+                  setRecEnd({ mode: "count", count: Number.isFinite(n) && n > 0 ? n : 0 });
+                }}
+              />
+            )}
           </div>
 
-          {/* On a specific date — date-picker input (same style as the due-date custom date). */}
-          <TextInput
-            label="On a specific date"
-            placeholder="dd/mm/yy"
-            readOnly
-            value={recEnd.mode === "date" ? format(recEnd.date, "d MMM yyyy") : ""}
-            iconRight={<CalendarTodayIcon style={{ fontSize: 20 }} />}
-            onClick={() => setRecEndDateOpen(true)}
-          />
+          {/* On a specific date — reveals a date field when selected; tapping it opens the calendar */}
+          <div className="w-full flex flex-col gap-3 rounded-[12px] bg-[#faf9f4] px-2 py-4">
+            <button
+              type="button"
+              onClick={() => setRecEnd({ mode: "date", date: recEnd.mode === "date" ? recEnd.date : undefined })}
+              className="w-full flex items-center gap-3 text-left"
+            >
+              <RadioDot selected={recEnd.mode === "date"} />
+              <span className="card-title-2xs text-[#101828]" style={FONT}>On a specific date</span>
+            </button>
+            {recEnd.mode === "date" && (
+              <TextInput
+                placeholder="dd/mm/yy"
+                readOnly
+                showHint={false}
+                value={recEnd.date ? format(recEnd.date, "d MMM yyyy") : ""}
+                iconRight={<CalendarTodayIcon style={{ fontSize: 20, color: "#808080" }} />}
+                onClick={() => setRecEndDateOpen(true)}
+              />
+            )}
+          </div>
         </div>
       </BottomSheet>
 
       <BottomSheet open={recEndDateOpen} title="End Date" onClose={() => setRecEndDateOpen(false)}>
-        <Calendar value={recEnd.mode === "date" ? recEnd.date : undefined} disablePast onChange={(d) => { setRecEnd({ mode: "date", date: d }); setRecEndDateOpen(false); setRecEndOpen(false); }} />
+        <Calendar value={recEnd.mode === "date" ? recEnd.date : undefined} disablePast onChange={(d) => { setRecEnd({ mode: "date", date: d }); setRecMaxInput(""); setRecEndDateOpen(false); }} />
       </BottomSheet>
 
       <AddServicesSheet

@@ -1,4 +1,4 @@
-import { FilePlus2, UploadCloud, Repeat } from "lucide-react";
+import { FilePlus2, Upload, Repeat } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 import { FONT, INK, MUTED } from "../lib/theme";
@@ -18,36 +18,37 @@ const sheet = {
 const list = { closed: {}, open: { transition: { staggerChildren: 0.06, delayChildren: 0.12 } } };
 const item = { closed: { opacity: 0, y: 14 }, open: { opacity: 1, y: 0, transition: { duration: 0.25 } } };
 
-interface TileProps {
+interface RowProps {
   title: string;
   sub: string;
   icon: React.ReactNode;
+  divider: boolean;
   onClick?: () => void;
 }
 
-/** Beige action tile with hover (lift + brand outline) and selected/pressed (sink + solid brand) states. */
-function Tile({ title, sub, icon, onClick }: TileProps) {
+/** List row — left icon + title/subtitle, with a thin divider below (except the last). */
+function Row({ title, sub, icon, divider, onClick }: RowProps) {
   return (
     <motion.button
       variants={item}
       onClick={onClick}
       initial={false}
-      whileHover={{ borderColor: "rgba(255,74,21,0.6)", boxShadow: "0 10px 26px rgba(0,0,0,0.08)", y: -2 }}
-      whileTap={{ scale: 0.98, borderColor: BRAND, backgroundColor: "#f4ede0" }}
-      transition={{ type: "spring", stiffness: 420, damping: 32 }}
-      className="w-full flex flex-col items-center justify-center gap-4 rounded-xl p-[25px]"
-      style={{
-        background: "#f9f5ea",
-        borderWidth: 1,
-        borderStyle: "dashed",
-        borderColor: "rgba(160,160,160,0.45)",
-      }}
+      whileTap="pressed"
+      className="w-full flex items-center gap-3 py-3 text-left"
+      style={{ borderBottom: divider ? "1px solid rgba(160,160,160,0.2)" : "none" }}
     >
-      {icon}
-      <div className="flex flex-col items-center gap-1 text-center">
-        <p className="text-[18px] font-bold leading-[1.1]" style={{ ...FONT, color: INK }}>{title}</p>
-        <p className="text-[16px] font-medium leading-[1.3]" style={{ ...FONT, color: MUTED }}>{sub}</p>
-      </div>
+      {/* On press, only the icon recolors to brand (no row fill) — currentColor drives the lucide stroke. */}
+      <motion.span
+        variants={{ pressed: { color: BRAND } }}
+        className="shrink-0 flex items-center justify-center"
+        style={{ color: INK }}
+      >
+        {icon}
+      </motion.span>
+      <span className="flex flex-col">
+        <span className="text-[18px] font-medium leading-[1.1]" style={{ ...FONT, color: INK }}>{title}</span>
+        <span className="text-[14px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>{sub}</span>
+      </span>
     </motion.button>
   );
 }
@@ -62,11 +63,19 @@ interface CreateInvoiceSheetProps {
 }
 
 /**
- * "Create" bottom sheet (Figma 426:13541): slides up from the FAB with three
- * choices — build manually, upload a file, or set up a recurring series (DES-782).
+ * "Create" bottom sheet (Figma 898:17090): slides up from the FAB with a list of choices — build
+ * manually or upload/scan a file. Recurring (DES-782) is built but gated off for now (SHOW_RECURRING).
  * Auto-height, grabber handle.
  */
 export function CreateInvoiceSheet({ open, onClose, onManual, onUpload, onRecurring }: CreateInvoiceSheetProps) {
+  const rows = [
+    { title: "Create Invoice", sub: "Build a new invoice step by step", icon: <FilePlus2 size={24} strokeWidth={1.75} />, onClick: onManual },
+    { title: "Upload Invoice", sub: "Scan or upload existing invoice", icon: <Upload size={24} strokeWidth={1.75} />, onClick: onUpload },
+    ...(SHOW_RECURRING
+      ? [{ title: "Recurring Invoice", sub: "Bill a customer on a set schedule", icon: <Repeat size={24} strokeWidth={1.75} />, onClick: onRecurring }]
+      : []),
+  ];
+
   return (
     <AnimatePresence>
       {open && (
@@ -82,35 +91,19 @@ export function CreateInvoiceSheet({ open, onClose, onManual, onUpload, onRecurr
 
           {/* Sheet */}
           <motion.div
-            className="absolute inset-x-0 bottom-0 bg-white rounded-t-[28px] pt-3"
+            className="absolute inset-x-0 bottom-0 bg-white rounded-t-[16px] pt-3"
+            style={{ boxShadow: "0px 10px 30px 0px rgba(0,0,0,0.2)" }}
             variants={sheet}
           >
             {/* Grabber */}
             <div className="flex justify-center pt-1 pb-1">
-              <div className="h-1 w-10 rounded-full bg-[#d1d5dc]" />
+              <div className="h-[5px] w-12 rounded-full bg-[#cdcfd0]" />
             </div>
 
-            <motion.div variants={list} className="flex flex-col gap-4 px-6 pt-5 pb-2">
-              <Tile
-                title="Create Invoice"
-                sub="Build a new invoice step by step"
-                icon={<FilePlus2 size={32} strokeWidth={1.75} style={{ color: INK }} />}
-                onClick={onManual}
-              />
-              <Tile
-                title="Add Existing Invoice"
-                sub="Upload or scan an invoice"
-                icon={<UploadCloud size={32} strokeWidth={1.75} style={{ color: INK }} />}
-                onClick={onUpload}
-              />
-              {SHOW_RECURRING && (
-                <Tile
-                  title="Recurring Invoice"
-                  sub="Bill a customer on a set schedule"
-                  icon={<Repeat size={32} strokeWidth={1.75} style={{ color: INK }} />}
-                  onClick={onRecurring}
-                />
-              )}
+            <motion.div variants={list} className="flex flex-col px-4 pt-2 pb-2">
+              {rows.map((r, i) => (
+                <Row key={r.title} title={r.title} sub={r.sub} icon={r.icon} onClick={r.onClick} divider={i < rows.length - 1} />
+              ))}
             </motion.div>
 
             {/* Home indicator */}

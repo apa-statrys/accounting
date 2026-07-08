@@ -310,7 +310,7 @@ export default function App() {
           post-save it appends + returns to wherever it was opened (the picker pre-selects the new one). */}
       {screen === "addCustomer" && (
         <AddCustomerPage
-          existing={customers.map((c) => ({ name: c.name, email: c.email }))}
+          existing={customers}
           defaultCurrency={settings.currency}
           onBack={() => setScreen(addCustomerReturn)}
           onAdd={(cust) => {
@@ -342,7 +342,7 @@ export default function App() {
         <AddCustomerPage
           mode="edit"
           initial={selectedCustomer}
-          existing={customers.filter((c) => c.id !== selectedCustomer.id).map((c) => ({ name: c.name, email: c.email }))}
+          existing={customers.filter((c) => c.id !== selectedCustomer.id)}
           onBack={() => setScreen("customerDetail")}
           onAdd={(updated) => {
             setCustomers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
