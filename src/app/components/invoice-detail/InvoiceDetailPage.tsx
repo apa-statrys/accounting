@@ -215,15 +215,14 @@ export function InvoiceDetailPage({
   // Invoice details → Items → Summary. Only the header + hero line differ by source (uploaded shows
   // the UL number + "Uploaded on"; created shows "Invoice Detail" + "Created on").
   const draftDetail = status === "Draft" && !recurring;
-  // The same sectioned layout also drives the issued Awaiting + Overdue detail (real INV number,
-  // invoice-number row). Recurring occurrences keep their own layout.
-  const sectionedLayout = (status === "Draft" || status === "Awaiting" || status === "Overdue") && !recurring;
   // The account shown on the created-draft receiving card (default = the primary Statrys account).
   const receivingAcct = RECEIVING_ACCOUNTS.find((a) => a.primary) ?? RECEIVING_ACCOUNTS[0];
   // Read-only states for content. Paid still exposes a ⋯ menu (Refund with Credit Note); Cancelled/
   // Refunded have no menu actions.
   const terminal = status === "Paid" || status === "Cancelled" || status === "Refunded";
-  const showMenu = !terminal || status === "Paid";
+  // ⋯ menu: Draft (edit/delete), Awaiting/Overdue (edit / add credit note), PendingRefund. Paid,
+  // Partially Paid and Void expose their actions on the dock instead, so no menu (DES-817 review).
+  const showMenu = !terminal && status !== "PartiallyPaid";
   const sendable = status === "Awaiting" || status === "Overdue" || status === "PartiallyPaid";
   const overdueDays = 17; // demo
 
@@ -289,8 +288,8 @@ export function InvoiceDetailPage({
       ? `${money(credited)} credited from ${money(TOTAL)}`
       : `Overdue by ${overdueDays} days`,
     PartiallyPaid: `${money(paidAmount)} received · ${money(remaining)} still due`,
-    Paid: overpayment > 0 ? `Paid · overpaid by ${money(overpayment)}, flagged for review` : "Paid in full",
-    Cancelled: "Voided with a credit note · no longer collectable",
+    Paid: overpayment > 0 ? `Paid · overpaid by ${money(overpayment)}, flagged for review` : "Paid on 28 Jun 2026",
+    Cancelled: "Voided with a credit note on 8 Jun 2026",
     // DES-720: refund context leads with the amount to refund; remaining paid is the secondary line.
     PendingRefund: `${money(outstanding)} remaining paid`,
     Refunded: credited >= TOTAL - 0.001 ? "Refunded in full" : `${money(outstanding)} remaining paid`,
@@ -311,6 +310,13 @@ export function InvoiceDetailPage({
     : refundedOut > 0.001 ? "Partially Refunded"
     : refundTag;
   const isRefundContext = status === "PendingRefund" || status === "Refunded" || !!effectiveRefundTag;
+  // The sectioned layout (Bill To → Receiving card → Invoice Details → Items → Summary) drives Draft,
+  // Awaiting, Overdue, Partially Paid, Void and plain Paid. Recurring occurrences and the
+  // refund-context detail keep their own layout.
+  const sectionedLayout =
+    (status === "Draft" || status === "Awaiting" || status === "Overdue" || status === "PartiallyPaid" ||
+      status === "Cancelled" || (status === "Paid" && !isRefundContext)) &&
+    !recurring;
   // Headline: while a payout is due, lead with the pending amount ("Amount to refund"); once settled,
   // show the cumulative amount refunded to date.
   const headlineAmount =
@@ -591,11 +597,16 @@ export function InvoiceDetailPage({
                 <span className="text-[12px] leading-none" style={{ ...FONT, color: MUTED }}>{headlineLabel}</span>
               )}
             </div>
-            {headlineBanner && (
+            {/* Partially Paid — keep the wording but highlight the amount still due. */}
+            {status === "PartiallyPaid" ? (
+              <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
+                {money(paidAmount)} received · <span style={{ color: "#b45309", fontWeight: 600 }}>{money(remaining)} still due</span>
+              </p>
+            ) : headlineBanner ? (
               <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: status === "Overdue" ? "#b42318" : MUTED }}>
                 {headlineBanner}
               </p>
-            )}
+            ) : null}
             {/* Draft hero carries a source line under the amount (DES-817 UI): created drafts show
                 "Created on", uploaded drafts show "Uploaded on". */}
             {draftDetail && (
@@ -611,11 +622,6 @@ export function InvoiceDetailPage({
                 <span style={{ color: MUTED }}> · </span>
                 <span style={{ color: "#0f9d58", fontWeight: 500 }}>Paid full on 28 Jun 2026</span>
               </p>
-            )}
-            {status === "PartiallyPaid" && (
-              <div className="w-full mt-1 h-2 rounded-full bg-[#f0eee6] overflow-hidden">
-                <div className="h-full rounded-full bg-[#b45309]" style={{ width: `${(paidAmount / TOTAL) * 100}%` }} />
-              </div>
             )}
           </div>
         </InfoCard>
@@ -707,9 +713,9 @@ export function InvoiceDetailPage({
 
         {/* Details — sectioned layout (DES-817) titles it "Invoice Details" and leads with Currency. */}
         <InfoCard title={sectionedLayout ? "Invoice Details" : undefined}>
-          {/* No invoice-number row on a draft: created drafts have no number until issue (DES-715),
-              and the uploaded draft carries its UL- label in the header instead. Shown once issued. */}
-          {issued && <MetaRow label="Invoice number" value={invoiceNo} />}
+          {/* Invoice-number row only on Awaiting / Overdue. Drafts have no number yet (or carry the
+              UL- label); Paid / Partially Paid / Void show the number in the page header instead. */}
+          {(status === "Awaiting" || status === "Overdue") && <MetaRow label="Invoice number" value={invoiceNo} />}
           {sectionedLayout ? (
             <>
               <MetaRow label="Currency" value={currency} />
@@ -775,12 +781,6 @@ export function InvoiceDetailPage({
               </div>
             </>
           )}
-          {status === "PartiallyPaid" && (
-            <div className="flex items-center justify-between pb-3">
-              <span className="text-[13px]" style={{ ...FONT, color: "#b45309" }}>Remaining due</span>
-              <span className="text-[13px] font-medium" style={{ ...FONT, color: "#b45309" }}>{money(remaining)}</span>
-            </div>
-          )}
         </InfoCard>
 
         {/* Receiving payment details — only the critical fields; rest behind an accordion.
@@ -820,8 +820,9 @@ export function InvoiceDetailPage({
         )}
       </div>
 
-      {/* Primary action — per status */}
-      {status === "Draft" ? (
+      {/* Primary action — per status. Void has no dock action (terminal, credit note lives on its
+          own detail page). */}
+      {status === "Cancelled" ? null : status === "Draft" ? (
         scheduledRecurring ? (
           // Scheduled recurring draft — invoice-level actions only (same as a normal draft): Send now +
           // Edit (a one-off, content-only edit of this occurrence). Delete lives in the ⋯ menu. All
@@ -898,14 +899,15 @@ export function InvoiceDetailPage({
             homeIndicator
           />
         )
-      ) : status === "Cancelled" && creditNotes.length > 0 ? (
-        // Cancelled via a credit note → the credit note is the persistent action (send or resend).
-        // The header back arrow handles "later", so no secondary is needed.
+      ) : status === "Paid" ? (
+        // Paid (DES-817): Preview as PDF (primary) + Refund with a credit note (secondary). No ⋯ menu.
         <ButtonDock
-          type="single"
+          type="double"
           overflow
-          primaryLabel={anyUnsent ? "Send Credit Note" : "Resend Credit Note"}
-          onPrimary={openSendCreditNote}
+          secondaryLabel="Refund"
+          primaryLabel="Preview as PDF"
+          onSecondary={() => setRefundFormOpen(true)}
+          onPrimary={() => setPdfPreviewOpen(true)}
           homeIndicator
         />
       ) : (
