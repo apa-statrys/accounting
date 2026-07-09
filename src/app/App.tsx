@@ -179,7 +179,7 @@ export default function App() {
   // Toast shown on the list after returning from the create flow.
   const [toast, setToast] = useState<{ title: string; subtext?: string } | null>(null);
   // Freshly created/saved invoice to surface + highlight at the top of the list.
-  const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string } | null>(null);
+  const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string; recurring?: boolean } | null>(null);
   // The invoice opened into the detail page (status drives the lifecycle UI).
   const [openInvoice, setOpenInvoice] = useState<{ number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; recurring?: boolean }>({
     number: "INV-2026-000042",
@@ -221,6 +221,24 @@ export default function App() {
   const [recurring, setRecurring] = useState(false);
   // Series status for the opened recurring invoice — shared by the invoice detail card + series page.
   const [seriesStatus, setSeriesStatus] = useState<"Active" | "Paused" | "Cancelled">("Active");
+  // Which demo log the series detail shows — set when the series is opened. "draft" = a fresh series,
+  // nothing sent yet (>3 rows → accordion); "midrun" = one paid, one awaiting, one still scheduled.
+  const [seriesScenario, setSeriesScenario] = useState<"draft" | "midrun">("midrun");
+  const seriesInvoices = seriesScenario === "draft"
+    ? [
+        { number: "series-1", label: "Next Invoice", date: "01 Jul 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+        { number: "series-2", label: "Invoice #2", date: "01 Aug 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+        { number: "series-3", label: "Invoice #3", date: "01 Sep 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+        { number: "series-4", label: "Invoice #4", date: "01 Oct 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+        { number: "series-5", label: "Invoice #5", date: "01 Nov 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+      ]
+    : [
+        { number: "INV-2026-000001", label: "INV-2026-000001", date: "01 Jul 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
+        { number: "INV-2026-000002", label: "INV-2026-000002", date: "01 Aug 2026", status: "Awaiting" as DetailStatus, kind: "await" as const },
+        { number: "series-3", label: "Next Invoice", date: "01 Sep 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+        { number: "series-4", label: "Invoice #4", date: "01 Oct 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+        { number: "series-5", label: "Invoice #5", date: "01 Nov 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+      ];
   // Editing an existing series (DES-782 AC4) — reuses the recurring form with a "Save changes" CTA.
   const [editingSeries, setEditingSeries] = useState(false);
   // Where the full-page Add Customer returns: the Customers list, or the invoice customer picker.
@@ -458,7 +476,7 @@ export default function App() {
           origin={openInvoice.origin}
           recurring={openInvoice.recurring}
           seriesStatus={seriesStatus}
-          onOpenSeries={() => setScreen("recurringSeries")}
+          onOpenSeries={() => { setSeriesScenario(openInvoice.status === "Draft" ? "draft" : "midrun"); setScreen("recurringSeries"); }}
           invoiceNo={openInvoice.number}
           customerName={openInvoice.client}
           customerEmail={CREDIT_NOTES.find((c) => c.no === openInvoice.cnNo)?.email}
@@ -488,6 +506,8 @@ export default function App() {
             setEditInitial(seed);
             setNumberRecommended(false);
             setEditFromDuplicate(false);
+            // Invoice "Edit" = a one-off content edit of this occurrence — never the schedule (that's on
+            // the series). The combined content+schedule editor is reached via Series → Edit recurring.
             setRecurring(false);
             setEditingSeries(false);
             setScreen("details");
@@ -760,10 +780,10 @@ export default function App() {
           customerName={openInvoice.client}
           amountLabel="$6,450.00"
           frequency="Monthly"
-          startDate="1 Jul 2026"
-          nextDate="1 Aug 2026"
-          ends="Never"
-          autoSend={false}
+          startDate="01 Jul 2026"
+          nextDate="01 Sep 2026"
+          ends="01 Dec 2026 (5 invoices)"
+          autoSend={true}
           onBack={() => setScreen("invoiceDetail")}
           onEdit={() => {
             // Edit the series (DES-782 AC4) — reuse the recurring form, seeded with the series' customer
@@ -781,6 +801,14 @@ export default function App() {
           onPause={() => { setSeriesStatus("Paused"); setScreen("invoiceDetail"); }}
           onResume={() => { setSeriesStatus("Active"); setScreen("invoiceDetail"); }}
           onCancel={() => { setSeriesStatus("Cancelled"); setScreen("invoiceDetail"); }}
+          invoices={seriesInvoices}
+          onOpenInvoice={(inv) => {
+            // AC5 — open a generated invoice from the log; back returns here to the series.
+            setOpenInvoice({ number: inv.number, client: openInvoice.client, status: inv.status, origin: "created", recurring: true });
+            setDetailReturn("recurringSeries");
+            setDetailFlash(null);
+            setScreen("invoiceDetail");
+          }}
         />
       )}
 

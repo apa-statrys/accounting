@@ -1,0 +1,234 @@
+<title>Invoice statuses — Manual vs Upload</title>
+<style>
+  :root{
+    --ground:#efece6; --panel:#ffffff; --sub:#f6f5f1; --ink:#17171a; --ink2:#101828; --muted:#83828a; --faint:#a2a1a8;
+    --hair:rgba(150,150,158,.20); --border:rgba(160,160,160,.30);
+    --brand:#ff4a15;
+    --draft-bg:#eeeef0; --draft-tx:#65656d;
+    --await-bg:#fdeae2; --await-tx:#d43a10;
+    --over-bg:#fdecec; --over-tx:#c0392f;
+    --partial-bg:#fbeaca; --partial-tx:#b16a00;
+    --paid-bg:#dff3e8; --paid-tx:#0f7a52;
+    --void-bg:#eeeef0; --void-tx:#77777d;
+    --refundp-bg:#fbeaca; --refundp-tx:#b16a00;
+    --refunded-bg:#e6e9f7; --refunded-tx:#3f4a8a;
+    --shadow:0 1px 2px rgba(30,25,15,.05),0 12px 26px -16px rgba(40,32,15,.24);
+    --font:"GT Walsheim",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ground:#111010; --panel:#1a1918; --sub:#232120; --ink:#f2efe9; --ink2:#f2efe9; --muted:#9a9891; --faint:#7c7a82;
+    --hair:rgba(255,255,255,.08); --border:rgba(255,255,255,.12);
+    --draft-bg:#2a2928; --draft-tx:#b7b6bd; --await-bg:#3a2015; --await-tx:#ff8a5c; --over-bg:#3a1f1c; --over-tx:#f0a49b;
+    --partial-bg:#3a2f12; --partial-tx:#f4b64a; --paid-bg:#173a2c; --paid-tx:#4cd6a0; --void-bg:#242322; --void-tx:#8b8992;
+    --refundp-bg:#3a2f12; --refundp-tx:#f4b64a; --refunded-bg:#23264a; --refunded-tx:#aab1e6;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 30px -18px rgba(0,0,0,.75);}}
+  :root[data-theme="dark"]{
+    --ground:#111010; --panel:#1a1918; --sub:#232120; --ink:#f2efe9; --ink2:#f2efe9; --muted:#9a9891; --faint:#7c7a82;
+    --hair:rgba(255,255,255,.08); --border:rgba(255,255,255,.12);
+    --draft-bg:#2a2928; --draft-tx:#b7b6bd; --await-bg:#3a2015; --await-tx:#ff8a5c; --over-bg:#3a1f1c; --over-tx:#f0a49b;
+    --partial-bg:#3a2f12; --partial-tx:#f4b64a; --paid-bg:#173a2c; --paid-tx:#4cd6a0; --void-bg:#242322; --void-tx:#8b8992;
+    --refundp-bg:#3a2f12; --refundp-tx:#f4b64a; --refunded-bg:#23264a; --refunded-tx:#aab1e6;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 30px -18px rgba(0,0,0,.75);}
+  :root[data-theme="light"]{
+    --ground:#efece6; --panel:#ffffff; --sub:#f6f5f1; --ink:#17171a; --ink2:#101828; --muted:#83828a; --faint:#a2a1a8;
+    --hair:rgba(150,150,158,.20); --border:rgba(160,160,160,.30);
+    --draft-bg:#eeeef0; --draft-tx:#65656d; --await-bg:#fdeae2; --await-tx:#d43a10; --over-bg:#fdecec; --over-tx:#c0392f;
+    --partial-bg:#fbeaca; --partial-tx:#b16a00; --paid-bg:#dff3e8; --paid-tx:#0f7a52; --void-bg:#eeeef0; --void-tx:#77777d;
+    --refundp-bg:#fbeaca; --refundp-tx:#b16a00; --refunded-bg:#e6e9f7; --refunded-tx:#3f4a8a;
+    --shadow:0 1px 2px rgba(30,25,15,.05),0 12px 26px -16px rgba(40,32,15,.24);}
+
+  *{box-sizing:border-box;} body{margin:0;}
+  .wrap{font-family:var(--font); background:var(--ground); color:var(--ink); min-height:100vh; padding:44px 20px 72px; -webkit-font-smoothing:antialiased;}
+  .col{max-width:1080px; margin:0 auto;}
+  .eyebrow{font-size:11px; letter-spacing:.17em; text-transform:uppercase; font-weight:800; color:var(--brand);}
+  h1{font-size:27px; line-height:1.12; margin:9px 0 8px; font-weight:800; letter-spacing:-.02em; text-wrap:balance;}
+  .lede{margin:0 0 26px; color:var(--muted); font-size:15px; line-height:1.55; max-width:76ch;}
+  .lede b{color:var(--ink); font-weight:600;}
+
+  .band{font-size:13px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; color:var(--ink); margin:26px 0 6px; display:flex; align-items:center; gap:10px;}
+  .band::after{content:""; flex:1; height:1px; background:var(--hair);}
+  .band .sm{font-size:12px; font-weight:500; letter-spacing:0; text-transform:none; color:var(--muted);}
+  .bandnote{font-size:12.5px; color:var(--muted); line-height:1.5; margin:0 0 16px; max-width:80ch;}
+  .bandnote b{color:var(--ink); font-weight:600;}
+
+  .two{display:grid; grid-template-columns:repeat(2,1fr); gap:16px;}
+  .three{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+  @media (max-width:840px){.three{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:560px){.two,.three{grid-template-columns:1fr;}}
+
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column;}
+  .card.entry{border-width:1.5px;}
+  .card .cap{padding:12px 15px 11px; border-bottom:1px solid var(--hair); display:flex; align-items:baseline; gap:8px;}
+  .card .cap .t{font-size:15px; font-weight:800; letter-spacing:-.01em;}
+  .card .cap .tag{font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--faint); margin-left:auto;}
+  .card .cap .s{font-size:11.5px; color:var(--muted); font-weight:500; letter-spacing:0;}
+  .body{padding:14px 15px; display:flex; flex-direction:column; gap:12px; flex:1;}
+
+  .badge{align-self:flex-start; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;}
+  .b-draft{background:var(--draft-bg);color:var(--draft-tx);} .b-await{background:var(--await-bg);color:var(--await-tx);}
+  .b-over{background:var(--over-bg);color:var(--over-tx);} .b-partial{background:var(--partial-bg);color:var(--partial-tx);}
+  .b-paid{background:var(--paid-bg);color:var(--paid-tx);} .b-void{background:var(--void-bg);color:var(--void-tx);}
+  .b-refundp{background:var(--refundp-bg);color:var(--refundp-tx);} .b-refunded{background:var(--refunded-bg);color:var(--refunded-tx);}
+
+  .meta{font-size:12px; color:var(--muted); line-height:1.45; margin-top:-4px;}
+  .meta b{color:var(--ink); font-weight:600;}
+
+  .lab{font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; font-weight:800; color:var(--faint); margin-bottom:6px;}
+  .dock{display:flex; gap:8px;}
+  .btn{flex:1; text-align:center; font-size:12px; font-weight:700; padding:9px 6px; border-radius:9px; border:1px solid var(--border);}
+  .btn.pri{background:var(--ink2); color:var(--panel); border-color:var(--ink2);}
+  :root[data-theme="dark"] .btn.pri{color:#1a1918;}
+  .btn.sec{background:transparent; color:var(--ink);}
+  .btn.none{background:transparent; border:1px dashed var(--border); color:var(--faint); font-weight:600;}
+
+  .menu{display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:11px;}
+  .menu .k{font-weight:900; color:var(--faint); font-size:13px;}
+  .menu .it{background:var(--sub); border:1px solid var(--hair); border-radius:6px; padding:3px 8px; font-weight:600; color:var(--ink);}
+  .menu .it.danger{color:var(--over-tx);}
+  .menu .em{color:var(--faint); font-style:italic;}
+
+  .grp{display:flex; flex-direction:column; gap:7px;}
+  .note{font-size:11.5px; line-height:1.45; color:var(--muted); border-top:1px dashed var(--hair); padding-top:10px; margin-top:auto;}
+  .note b{color:var(--ink); font-weight:600;}
+
+  .merge{display:flex; align-items:center; gap:12px; margin:30px 0 6px;}
+  .merge .pipe{width:2px; height:34px; border-radius:2px; background:linear-gradient(var(--brand),transparent);}
+  .merge .txt{font-size:13px; color:var(--muted); line-height:1.4;}
+  .merge .txt b{color:var(--ink); font-weight:700;}
+
+  .foot{border-top:1px solid var(--hair); padding-top:18px; margin-top:30px; color:var(--muted); font-size:13px; line-height:1.6;}
+  .foot b{color:var(--ink); font-weight:600;} .foot p{margin:0 0 9px;} .foot code{font-size:12px; background:var(--sub); padding:1px 5px; border-radius:4px;}
+</style>
+
+<div class="wrap"><div class="col">
+  <div class="eyebrow">Invoice · status &amp; actions</div>
+  <h1>Invoice statuses by entry point — Manual vs Upload</h1>
+  <p class="lede">A normal (non-recurring) invoice enters one of two ways: <b>created manually</b> in the app, or <b>uploaded</b> and read by OCR. The two behave differently at the <b>Draft</b> stage only — because an uploaded invoice was already issued <i>outside</i> the app, so you <b>record</b> it rather than <b>send</b> it. Once issued, both follow one identical lifecycle. Docks show the two dock CTAs; ⋯ lists the actions sheet.</p>
+
+  <!-- DIVERGE -->
+  <div class="band">Where they differ <span class="sm">— the Draft stage</span></div>
+  <p class="bandnote">Same grey <b>Draft</b> badge, opposite intent. Manual has <b>no number yet</b> and its primary action is to <b>send</b>; Upload already <b>carries the scanned number</b> and its primary action is to <b>record</b> what happened outside the app.</p>
+  <div class="two">
+
+    <!-- Manual Draft -->
+    <div class="card entry">
+      <div class="cap"><span class="t">Manual</span><span class="s">created in-app</span><span class="tag">Entry point</span></div>
+      <div class="body">
+        <span class="badge b-draft">Draft</span>
+        <div class="meta"><b>No number at all.</b> The header just reads <b>Draft</b>; the real <b>INV-…</b> is assigned on issue.</div>
+        <div class="grp"><div class="lab">Dock</div><div class="dock"><span class="btn sec">Mark as paid</span><span class="btn pri">Send invoice</span></div></div>
+        <div class="grp"><div class="lab">⋯ Actions</div><div class="menu"><span class="k">⋯</span><span class="it">Edit invoice</span><span class="it danger">Delete draft</span></div></div>
+        <div class="note"><b>Not issued yet.</b> Sending assigns the number and moves it to Awaiting Payment.</div>
+      </div>
+    </div>
+
+    <!-- Upload Draft -->
+    <div class="card entry">
+      <div class="cap"><span class="t">Upload</span><span class="s">scanned / OCR-extracted</span><span class="tag">Entry point</span></div>
+      <div class="body">
+        <span class="badge b-draft">Draft</span>
+        <div class="meta"><b>Number from the document.</b> The scanned <b>INV-…</b> shows on the draft right away.</div>
+        <div class="grp"><div class="lab">Dock</div><div class="dock"><span class="btn sec">Mark as sent</span><span class="btn pri">Mark as paid</span></div></div>
+        <div class="grp"><div class="lab">⋯ Actions</div><div class="menu"><span class="k">⋯</span><span class="it">Send invoice</span><span class="it">Edit invoice</span><span class="it danger">Delete draft</span></div></div>
+        <div class="note"><b>Already issued externally.</b> "Mark as sent" moves it to Awaiting without emailing; "Send invoice" (optional) emails a copy.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MERGE -->
+  <div class="merge"><div class="pipe"></div><div class="txt"><b>Once issued, the two converge.</b> From Awaiting Payment onward the entry point no longer matters — the status, dock, and ⋯ menu are identical for both.</div></div>
+
+  <!-- CONVERGE -->
+  <div class="band">Where they converge <span class="sm">— Manual &amp; Upload, identical from here</span></div>
+  <div class="three">
+
+    <!-- Awaiting -->
+    <div class="card">
+      <div class="cap"><span class="t">Awaiting Payment</span><span class="tag">Both</span></div>
+      <div class="body">
+        <span class="badge b-await">Awaiting Payment</span>
+        <div class="meta"><b>Sent, unpaid, within term.</b> Number is assigned.</div>
+        <div class="grp"><div class="lab">Dock</div><div class="dock"><span class="btn sec">Send invoice</span><span class="btn pri">Mark as paid</span></div></div>
+        <div class="grp"><div class="lab">⋯ Actions</div><div class="menu"><span class="k">⋯</span><span class="it">Edit (limited)</span><span class="it danger">Create Credit Note</span></div></div>
+        <div class="note">"Send invoice" resends; the primary is to record payment.</div>
+      </div>
+    </div>
+
+    <!-- Overdue -->
+    <div class="card">
+      <div class="cap"><span class="t">Overdue</span><span class="tag">Both</span></div>
+      <div class="body">
+        <span class="badge b-over">Overdue</span>
+        <div class="meta"><b>Sent, unpaid, past due.</b> Derived from Awaiting + past the due date.</div>
+        <div class="grp"><div class="lab">Dock</div><div class="dock"><span class="btn sec">Send invoice</span><span class="btn pri">Mark as paid</span></div></div>
+        <div class="grp"><div class="lab">⋯ Actions</div><div class="menu"><span class="k">⋯</span><span class="it">Edit (limited)</span><span class="it danger">Create Credit Note</span></div></div>
+        <div class="note">Same actions as Awaiting — only the badge and banner change.</div>
+      </div>
+    </div>
+
+    <!-- Partially Paid -->
+    <div class="card">
+      <div class="cap"><span class="t">Partially Paid</span><span class="tag">Both</span></div>
+      <div class="body">
+        <span class="badge b-partial">Partially Paid</span>
+        <div class="meta"><b>Part received.</b> A balance still remains to collect.</div>
+        <div class="grp"><div class="lab">Dock</div><div class="dock"><span class="btn sec">Send invoice</span><span class="btn pri">Mark as paid</span></div></div>
+        <div class="grp"><div class="lab">⋯ Actions</div><div class="menu"><span class="k">⋯</span><span class="it danger">Create Credit Note</span></div></div>
+        <div class="note">No "Edit" here — a partly-paid invoice is locked to its lines. Mark as paid settles the rest.</div>
+      </div>
+    </div>
+
+    <!-- Paid -->
+    <div class="card">
+      <div class="cap"><span class="t">Paid</span><span class="tag">Both</span></div>
+      <div class="body">
+        <span class="badge b-paid">Paid</span>
+        <div class="meta"><b>Settled in full.</b> Closed record; stays Paid forever.</div>
+        <div class="grp"><div class="lab">Dock</div><div class="dock"><span class="btn none">Preview as PDF</span></div></div>
+        <div class="grp"><div class="lab">⋯ Actions</div><div class="menu"><span class="k">⋯</span><span class="it danger">Refund with Credit Note</span></div></div>
+        <div class="note">Read-only. The only forward path is a refund (DES-720).</div>
+      </div>
+    </div>
+
+    <!-- Void -->
+    <div class="card">
+      <div class="cap"><span class="t">Void</span><span class="tag">Both</span></div>
+      <div class="body">
+        <span class="badge b-void">Void</span>
+        <div class="meta"><b>Cancelled with a credit note.</b> No longer collectable; kept for the record.</div>
+        <div class="grp"><div class="lab">Dock</div><div class="dock"><span class="btn pri" style="flex:1">Send / Resend Credit Note</span></div></div>
+        <div class="grp"><div class="lab">⋯ Actions</div><div class="menu"><span class="em">no ⋯ menu — terminal</span></div></div>
+        <div class="note">Voided <b>by</b> a cancellation credit note — so the one persistent action is (re)sending that note: "Send" until it goes out, then "Resend".</div>
+      </div>
+    </div>
+
+    <!-- Pending Refund -->
+    <div class="card">
+      <div class="cap"><span class="t">Pending Refund</span><span class="tag">Both</span></div>
+      <div class="body">
+        <span class="badge b-refundp">Pending Refund</span>
+        <div class="meta"><b>Refund raised, payout in progress</b> (a refund credit note exists).</div>
+        <div class="grp"><div class="lab">Dock</div><div class="dock"><span class="btn sec">Send invoice</span><span class="btn pri">Continue Refund</span></div></div>
+        <div class="grp"><div class="lab">⋯ Actions</div><div class="menu"><span class="em">refund actions live in the dock</span></div></div>
+        <div class="note">Stays here until the payout settles, then → Refunded (DES-720).</div>
+      </div>
+    </div>
+
+    <!-- Refunded -->
+    <div class="card">
+      <div class="cap"><span class="t">Refunded</span><span class="tag">Both</span></div>
+      <div class="body">
+        <span class="badge b-refunded">Refunded</span>
+        <div class="meta"><b>Fully refunded</b> to the customer. Money returned.</div>
+        <div class="grp"><div class="lab">Dock</div><div class="dock"><span class="btn pri" style="flex:1">Send / Resend Credit Note</span></div></div>
+        <div class="grp"><div class="lab">⋯ Actions</div><div class="menu"><span class="em">no ⋯ menu — terminal</span></div></div>
+        <div class="note">Once the payout settles, the money-out action drops and only the refund credit note's send/resend remains. Partial refunds stay at Pending Refund with a "Partially Refunded" tag.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <p><b>The one real difference is the Draft dock.</b> Manual leads with <code>Send invoice</code> (it hasn't gone out yet); Upload leads with <code>Mark as sent</code> / <code>Mark as paid</code> (it already went out — you're logging it). Upload also carries <code>Send invoice</code> in its ⋯ menu as an optional "email a copy."</p>
+    <p><b>The spine is shared:</b> Draft → Awaiting Payment → Paid. Overdue is a derived state of Awaiting; Partially Paid, Void, and the two refund states are branches off a sent invoice — identical for both entry points.</p>
+  </footer>
+</div></div>
