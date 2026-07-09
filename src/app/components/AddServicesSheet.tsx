@@ -97,6 +97,7 @@ export function AddServicesSheet({
           <motion.div variants={sheetItem}>
             <TextInput
               label="Service Name"
+              required
               placeholder="e.g. Brand Identity Design"
               size="md"
               showHint={false}
@@ -107,7 +108,7 @@ export function AddServicesSheet({
 
           <motion.div variants={sheetItem}>
             <TextInput
-              label="Description (optional)"
+              label="Description"
               placeholder="e.g. About Service"
               size="md"
               showHint={false}
@@ -119,6 +120,7 @@ export function AddServicesSheet({
           <motion.div variants={sheetItem}>
             <TextInput
               label="Unit Price"
+              required
               placeholder="e.g. 10.00"
               size="md"
               showHint={false}
@@ -138,6 +140,7 @@ export function AddServicesSheet({
           <motion.div variants={sheetItem} className="flex gap-4">
             <TextInput
               label="Quantity"
+              required
               placeholder="e.g. 3 Hours"
               size="md"
               showHint={false}
@@ -149,6 +152,7 @@ export function AddServicesSheet({
             />
             <TextInput
               label="Unit"
+              required
               placeholder="e.g. Hour"
               size="md"
               showHint={false}

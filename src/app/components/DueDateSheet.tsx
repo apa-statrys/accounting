@@ -7,11 +7,9 @@ import { Tile } from "./Tile";
 import { TextInput } from "./TextInput";
 import { Calendar } from "./Calendar";
 
+// DES-715: users choose 30 / 60 / 90 days or a custom date (below).
 const DUE_OPTIONS = [
-  { id: "issue", title: "Same as issue date", description: "11 Jun 2026" },
-  { id: "15", title: "Next 15 days", description: "Due 30 Jun 2026" },
   { id: "30", title: "Next 30 days", description: "Due 15 Jul 2026" },
-  { id: "45", title: "Next 45 days", description: "Due 30 Jul 2026" },
   { id: "60", title: "Next 60 days", description: "Due 14 Aug 2026" },
   { id: "90", title: "Next 90 days", description: "Due 13 Sep 2026" },
 ];

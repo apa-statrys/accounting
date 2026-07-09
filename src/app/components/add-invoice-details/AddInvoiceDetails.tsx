@@ -902,7 +902,8 @@ export function AddInvoiceDetails({
           setAccountId(id);
           setAccountSheetOpen(false);
         }}
-        onUseExternal={() => setAccountSheetOpen(false)}
+        // External (non-Statrys) accounts are out of scope for DES-715 → Statrys accounts only.
+        hideExternal
       />
 
       {/* Recurring-series pickers (DES-782) */}
