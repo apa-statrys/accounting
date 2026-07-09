@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useAnimationControls } from "motion/react";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { EditCard } from "./EditCard";
 import { convert } from "../lib/currency";
 import { formatMoney } from "../lib/format";
@@ -91,15 +92,19 @@ export function ServiceItemCard({ line, invoiceCurrency, onClick, onDelete, hint
             description={`${line.quantity}${line.unit ? ` ${line.unit}${line.quantity !== 1 ? "s" : ""}` : ""} x ${formatMoney(line.unitPrice, line.currency)}`}
             hideAvatar
             trailing={
-              <div className="flex flex-col items-end leading-[1.3] whitespace-nowrap" style={FONT}>
-                <span className="text-[16px] font-bold text-[#1b1b1b]">
-                  {formatMoney(invoiceTotal, invoiceCurrency)}
-                </span>
-                {showFx && (
-                  <span className="text-[12px] text-[#808080]">
-                    = {formatMoney(itemTotal, line.currency)}
+              <div className="flex items-center gap-1">
+                <div className="flex flex-col items-end leading-[1.3] whitespace-nowrap" style={FONT}>
+                  <span className="text-[16px] font-bold text-[#1b1b1b]">
+                    {formatMoney(invoiceTotal, invoiceCurrency)}
                   </span>
-                )}
+                  {showFx && (
+                    <span className="text-[12px] text-[#808080]">
+                      = {formatMoney(itemTotal, line.currency)}
+                    </span>
+                  )}
+                </div>
+                {/* Tap-to-edit affordance — items stay editable in the draft editor. */}
+                <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
               </div>
             }
           />

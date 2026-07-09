@@ -15,8 +15,6 @@ interface AddServicesSheetProps {
   initial?: Omit<ServiceLine, "id"> | null;
   onClose?: () => void;
   onAdd?: (line: Omit<ServiceLine, "id">) => void;
-  /** Remove the line being edited (edit mode only). */
-  onRemove?: () => void;
 }
 
 const chevron = <ExpandMoreIcon style={{ fontSize: 20, color: "#808080" }} />;
@@ -28,7 +26,6 @@ export function AddServicesSheet({
   initial,
   onClose,
   onAdd,
-  onRemove,
 }: AddServicesSheetProps) {
   const [serviceName, setServiceName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -41,9 +38,9 @@ export function AddServicesSheet({
   // Every line uses the invoice currency — it's shown (read-only) here, not chosen per line.
   const currency = invoiceCurrency;
 
-  // Everything is required except Description.
+  // DES-817: every line field is required (Item Name, Description, Quantity, Unit, Unit Price).
   const canAdd = Boolean(
-    serviceName.trim() && currency && unit && quantity.trim() && unitPrice.trim()
+    serviceName.trim() && description.trim() && currency && unit && quantity.trim() && unitPrice.trim()
   );
 
   const handleAdd = () => {
@@ -72,25 +69,14 @@ export function AddServicesSheet({
         onClose={onClose}
         heightClass={SERVICE_SHEET_HEIGHT}
         footer={
-          initial ? (
-            <ButtonDock
-              type="double"
-              secondaryLabel="Remove"
-              primaryLabel="Save"
-              onSecondary={onRemove}
-              onPrimary={handleAdd}
-              primaryDisabled={!canAdd}
-              homeIndicator
-            />
-          ) : (
-            <ButtonDock
-              type="single"
-              primaryLabel="Add item"
-              onPrimary={handleAdd}
-              primaryDisabled={!canAdd}
-              homeIndicator
-            />
-          )
+          // Editing an item: single "Save Changes" CTA — removal is done by swiping the line left.
+          <ButtonDock
+            type="single"
+            primaryLabel={initial ? "Save Changes" : "Add item"}
+            onPrimary={handleAdd}
+            primaryDisabled={!canAdd}
+            homeIndicator
+          />
         }
       >
         <div className="flex flex-col gap-4">
@@ -109,6 +95,7 @@ export function AddServicesSheet({
           <motion.div variants={sheetItem}>
             <TextInput
               label="Description"
+              required
               placeholder="e.g. About Service"
               size="md"
               showHint={false}

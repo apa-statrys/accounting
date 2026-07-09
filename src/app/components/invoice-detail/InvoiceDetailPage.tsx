@@ -17,7 +17,7 @@ import { ReviewEmail } from "../ReviewEmail";
 import { ShareLinkSheet } from "../ShareLinkSheet";
 import { InvoicePreviewPage } from "../InvoicePreviewPage";
 import { SendSuccessToast } from "../SendSuccessToast";
-import { getAccount } from "../../data/receivingAccounts";
+import { getAccount, RECEIVING_ACCOUNTS } from "../../data/receivingAccounts";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { money } from "../../lib/format";
 import { DETAIL_STATUS_META } from "../../lib/status";
@@ -201,12 +201,22 @@ export function InvoiceDetailPage({
   // carries a separate DF (draft) number; a scheduled recurring draft just reads "Invoice".
   const headerTitle = scheduledRecurring
     ? "Invoice"
+    : status === "Draft" && origin === "uploaded"
+    ? (invoiceNo ? invoiceNo.replace(/^INV/, "UL") : "Uploaded invoice") // uploaded draft (DES-716/817)
+    : status === "Draft" && !recurring
+    ? "Invoice Detail" // created manual draft (DES-817)
     : status === "Draft"
     ? (invoiceNo ? invoiceNo.replace(/^INV/, "DF") : "Draft")
     : (invoiceNo || "Invoice");
   // Uploaded drafts default to "Mark as sent" (already issued externally → Awaiting payment);
   // "Mark as paid" is the secondary path for invoices already settled. Created drafts default to sending.
   const uploaded = origin === "uploaded";
+  // Created + uploaded drafts share the DES-817 detail layout: Bill To → Receiving account card →
+  // Invoice details → Items → Summary. Only the header + hero line differ by source (uploaded shows
+  // the UL number + "Uploaded on"; created shows "Invoice Detail" + "Created on").
+  const draftDetail = status === "Draft" && !recurring;
+  // The account shown on the created-draft receiving card (default = the primary Statrys account).
+  const receivingAcct = RECEIVING_ACCOUNTS.find((a) => a.primary) ?? RECEIVING_ACCOUNTS[0];
   // Read-only states for content. Paid still exposes a ⋯ menu (Refund with Credit Note); Cancelled/
   // Refunded have no menu actions.
   const terminal = status === "Paid" || status === "Cancelled" || status === "Refunded";
@@ -583,6 +593,13 @@ export function InvoiceDetailPage({
                 {headlineBanner}
               </p>
             )}
+            {/* Draft hero carries a source line under the amount (DES-817 UI): created drafts show
+                "Created on", uploaded drafts show "Uploaded on". */}
+            {draftDetail && (
+              <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
+                {uploaded ? "Uploaded on" : "Created on"} {issueDateLabel}
+              </p>
+            )}
             {/* Refund context: the refund amount is primary above, so the paid amount drops to a secondary
                 line with a green "Paid on <date>" note beside it. */}
             {isRefundContext && (
@@ -657,8 +674,9 @@ export function InvoiceDetailPage({
           </button>
         )}
 
-        {/* Customer — avatar removed for now (pending invoice-number confirmation) */}
-        <InfoCard>
+        {/* Customer — avatar removed for now (pending invoice-number confirmation).
+            Draft detail (DES-817) labels it "Bill To". */}
+        <InfoCard title={draftDetail ? "Bill To" : undefined}>
           <div className="py-3 flex items-center gap-3">
             <div className="min-w-0">
               <p className="text-[15px] font-medium leading-tight truncate" style={{ ...FONT, color: INK }}>{customerName}</p>
@@ -667,21 +685,48 @@ export function InvoiceDetailPage({
           </div>
         </InfoCard>
 
-        {/* Details */}
-        <InfoCard>
-          {/* Created draft: number is system-generated only on issue (DES-715), so none yet.
-              Uploaded draft: show the user-entered / OCR-extracted number (DES-716). */}
-          {(issued || uploaded) && <MetaRow label="Invoice number" value={invoiceNo} />}
-          <MetaRow label="Issue date" value={issueDateLabel} />
-          {/* A recurring draft has no issue date yet, so its due date is the inherited default TERM
-              (DES-782 — each generated invoice is a standard invoice; term applied on issue), not a
-              fixed date. Once issued, it shows the concrete date like any other invoice. */}
-          <MetaRow label="Due date" value={recurring && status === "Draft" ? "Next 30 days after issue" : `Next 30 days · ${dueDateLabel}`} />
-          <MetaRow label="Currency" value={currency} last />
+        {/* Receiving account (DES-817, draft detail) — display-only card styled like the recurring
+            series card (no icon, no chevron: there's no separate account detail screen to open). */}
+        {draftDetail && (
+          <div className="flex flex-col gap-1.5">
+            <p className="px-1 text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>Receiving Account</p>
+            <div className="w-full bg-[#faf9f4] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4 py-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[15px] font-medium truncate" style={{ ...FONT, color: INK }}>{receivingAcct.name}</span>
+                {receivingAcct.primary && (
+                  <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold leading-[14px]" style={{ ...FONT, background: "#101828", color: "#fff" }}>PRIMARY</span>
+                )}
+              </div>
+              <p className="text-[13px] leading-[1.4] mt-0.5 truncate" style={{ ...FONT, color: MUTED }}>{receivingAcct.number}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Details — draft detail (DES-817) titles it "Invoice Details" and leads with Currency. */}
+        <InfoCard title={draftDetail ? "Invoice Details" : undefined}>
+          {/* No invoice-number row on a draft: created drafts have no number until issue (DES-715),
+              and the uploaded draft carries its UL- label in the header instead. Shown once issued. */}
+          {issued && <MetaRow label="Invoice number" value={invoiceNo} />}
+          {draftDetail ? (
+            <>
+              <MetaRow label="Currency" value={currency} />
+              <MetaRow label="Issue Date" value={issueDateLabel} />
+              <MetaRow label="Due Date" value={`Next 30 days · ${dueDateLabel}`} last />
+            </>
+          ) : (
+            <>
+              <MetaRow label="Issue date" value={issueDateLabel} />
+              {/* A recurring draft has no issue date yet, so its due date is the inherited default TERM
+                  (DES-782 — each generated invoice is a standard invoice; term applied on issue), not a
+                  fixed date. Once issued, it shows the concrete date like any other invoice. */}
+              <MetaRow label="Due date" value={recurring && status === "Draft" ? "Next 30 days after issue" : `Next 30 days · ${dueDateLabel}`} />
+              <MetaRow label="Currency" value={currency} last />
+            </>
+          )}
         </InfoCard>
 
         {/* Line items — items only; totals live in their own Summary card below */}
-        <InfoCard title="Items">
+        <InfoCard title={draftDetail ? `Items ( ${ITEMS.length} )` : "Items"}>
           {ITEMS.map((it, i) => (
             <div key={it.name} className={`flex items-start justify-between py-2.5 ${i === ITEMS.length - 1 ? "" : "border-b border-[rgba(160,160,160,0.18)]"}`}>
               <div className="flex-1 min-w-0 pr-3">
@@ -702,15 +747,16 @@ export function InvoiceDetailPage({
             <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Subtotal</span>
             <span className="text-[13px]" style={{ ...FONT, color: INK }}>{money(SUBTOTAL)}</span>
           </div>
-          {/* Discount row always shown (0.00 when none). */}
+          {/* Discount row always shown (0.00 when none). Draft detail (DES-817) shows it in the
+              accent colour to echo the Figma. */}
           <div className="flex items-center justify-between py-2.5">
             <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Discount</span>
-            <span className="text-[13px] font-medium" style={{ ...FONT, color: INK }}>{DISCOUNT > 0 ? `−${money(DISCOUNT)}` : money(0)}</span>
+            <span className="text-[13px] font-medium" style={{ ...FONT, color: draftDetail ? "#ff4a15" : INK }}>{DISCOUNT > 0 ? `−${money(DISCOUNT)}` : money(0)}</span>
           </div>
           {/* When credit is APPLIED, Total is just a reference and Amount due is the prominent figure.
               An UNapplied (Open) credit note isn't shown here — it's surfaced in the Credits Applied card
               above, and doesn't touch the invoice amount until applied. */}
-          <div className={`flex items-center justify-between pt-3 border-t border-[rgba(160,160,160,0.25)] ${credited > 0 ? "pb-1.5" : "pb-3"}`}>
+          <div className={`flex items-center justify-between ${credited > 0 ? "pb-1.5" : "pb-3"} ${draftDetail ? "pt-3 mt-1 -mx-4 px-4 rounded-lg bg-[#f2efe4]" : "pt-3 border-t border-[rgba(160,160,160,0.25)]"}`}>
             <span className={credited > 0 ? "text-[13px] font-medium" : "text-[15px] font-bold"} style={{ ...FONT, color: credited > 0 ? MUTED : INK }}>Total</span>
             <span className={credited > 0 ? "text-[13px] font-medium" : "text-[15px] font-bold"} style={{ ...FONT, color: credited > 0 ? MUTED : INK }}>{money(TOTAL)}</span>
           </div>
@@ -734,8 +780,9 @@ export function InvoiceDetailPage({
           )}
         </InfoCard>
 
-        {/* Receiving payment details — only the critical fields; rest behind an accordion */}
-        {status !== "Cancelled" && (
+        {/* Receiving payment details — only the critical fields; rest behind an accordion.
+            Draft detail shows the receiving account as a card up top (DES-817), so skip it here. */}
+        {status !== "Cancelled" && !draftDetail && (
           <InfoCard title={status === "Paid" ? "Payment received to" : "Receiving account"}>
             <MetaRow label="Account holder" value={bank.holder} />
             <MetaRow label="Account number" value={bank.number} />

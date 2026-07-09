@@ -461,20 +461,26 @@ export function AddInvoiceDetails({
 
         {/* Customer — matched / unmatched (upload) or the selected card */}
         {!isExtracted ? (
-          <EditCard
-            title={name}
-            description={email}
-            hideAvatar
-            role="button"
-            onClick={onChangeCustomer}
-            className="group cursor-pointer"
-            trailing={
-              <ChevronRightIcon
-                className="transition-transform duration-200 group-hover:translate-x-1"
-                style={{ fontSize: 16, color: "var(--icon-primary)" }}
-              />
-            }
-          />
+          isEditing ? (
+            /* DES-817: Client (Customer) is not editable in Draft/after Send — locked once created.
+               To change it the user must start a new invoice (or edit the client record). */
+            <EditCard title={name} description={email} hideAvatar trailing={<></>} />
+          ) : (
+            <EditCard
+              title={name}
+              description={email}
+              hideAvatar
+              role="button"
+              onClick={onChangeCustomer}
+              className="group cursor-pointer"
+              trailing={
+                <ChevronRightIcon
+                  className="transition-transform duration-200 group-hover:translate-x-1"
+                  style={{ fontSize: 16, color: "var(--icon-primary)" }}
+                />
+              }
+            />
+          )
         ) : linked ? (
           /* Case A — auto-matched to an existing client (tap to change, chevron arrow) */
           <button
@@ -1028,11 +1034,6 @@ export function AddInvoiceDetails({
             setHintFirst(true);
             setTimeout(() => setHintFirst(false), 6000);
           }
-        }}
-        onRemove={() => {
-          setServices((prev) => prev.filter((s) => s.id !== editingId));
-          setServicesSheetOpen(false);
-          setEditingId(null);
         }}
       />
 
