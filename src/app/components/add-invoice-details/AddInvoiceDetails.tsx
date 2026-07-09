@@ -63,7 +63,7 @@ interface AddInvoiceDetailsProps {
    *  `recent` lets the list surface + highlight the just-created card. */
   onSend?: (
     toast?: { title: string; subtext?: string },
-    recent?: { client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string }
+    recent?: { client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string; recurring?: boolean }
   ) => void;
   /** Dev preview — open the Delivery method sheet on mount. */
   autoOpenSend?: boolean;
@@ -108,7 +108,7 @@ interface AddInvoiceDetailsProps {
   editingSeries?: boolean;
 }
 
-import { FONT } from "../../lib/theme";
+import { FONT, MUTED } from "../../lib/theme";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -173,12 +173,12 @@ export function AddInvoiceDetails({
   // Limited edit of an issued invoice — lock fields bound at issue (DES-715 AC4).
   const lockedEdit = isEditing && !!initial?.limited;
   // Recurring-series setup (DES-782): a per-invoice "Recurring Invoice" toggle (below Invoice Details)
-  // turns a one-off into a series and reveals the schedule. Seeded from the legacy `recurring` prop for
-  // back-compat. Never for an uploaded invoice or a normal invoice edit / issued-invoice edit.
-  const [recurringOn, setRecurringOn] = useState(recurring && !isEditing && !isExtracted);
-  const isRecurring = editingSeries || (recurringOn && !isEditing && !isExtracted);
-  // The toggle is only offered on a fresh manual create (not uploads, edits, or a dedicated series edit).
-  const canToggleRecurring = !isExtracted && !isEditing && !editingSeries;
+  // turns a one-off into a series and reveals the schedule. Shown on a fresh create AND when editing a
+  // scheduled recurring draft (combined content + schedule edit) — but never for uploads or a normal edit.
+  const [recurringOn, setRecurringOn] = useState(recurring && !isExtracted);
+  const isRecurring = editingSeries || (recurringOn && !isExtracted);
+  // The recurring card shows on a fresh create, or when editing a recurring draft (isEditing && recurring).
+  const canToggleRecurring = !isExtracted && !editingSeries && (!isEditing || recurring);
 
   // Step 5 (Qonto-style): try to match the OCR'd customer to an existing client.
   const autoMatch = useMemo(() => {
@@ -235,8 +235,14 @@ export function AddInvoiceDetails({
 
   // Recurring-series setup (DES-782) — only surfaced when `recurring`.
   const [recFreq, setRecFreq] = useState<Frequency>("Monthly");
-  // Default the series start to this invoice's issue date — the invoice being created is occurrence #1.
-  const [recStart, setRecStart] = useState<Date>(issueDate);
+  // Default the series start to the invoice's issue date, but never in the past — DES-782 requires a
+  // future start (the start picker also disables past dates). Falls back to today when the issue date
+  // is already past.
+  const [recStart, setRecStart] = useState<Date>(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return issueDate > today ? issueDate : today;
+  });
   const [recEnd, setRecEnd] = useState<{ mode: "never" } | { mode: "count"; count: number } | { mode: "date"; date?: Date }>({ mode: "never" });
   // Free-form "max invoices" text for the Ends sheet (lets the user pick any count, not just presets).
   const [recMaxInput, setRecMaxInput] = useState("");
@@ -367,9 +373,14 @@ export function AddInvoiceDetails({
 
   // Recurring series labels (DES-782). Each generated invoice gets its own issue/due date from the
   // schedule, so the one-off Issue/Due rows are hidden in recurring mode.
+  // For a count-based end, show the date the series actually stops (the Nth invoice's date) with the
+  // count in parens — so the user sees *when* it ends without counting periods themselves.
   const recEndLabel =
     recEnd.mode === "never" ? "Never (until cancelled)"
-    : recEnd.mode === "count" ? (recEnd.count > 0 ? `After ${recEnd.count} invoices` : "After a number of invoices")
+    : recEnd.mode === "count"
+      ? (recEnd.count > 0
+          ? `${format(nextDates(recStart, recFreq, recEnd.count)[recEnd.count - 1], "d MMM yyyy")} (${recEnd.count} ${recEnd.count === 1 ? "invoice" : "invoices"})`
+          : "After a number of invoices")
     : recEnd.date ? format(recEnd.date, "d MMM yyyy") : "On a specific date";
 
   const details = [
@@ -396,7 +407,7 @@ export function AddInvoiceDetails({
         <StatusBar />
 
       <SheetHeader
-        title={editingSeries ? "Edit recurring series" : isRecurring ? "New Recurring Invoice" : isEditing ? "Edit invoice" : "New Invoice"}
+        title={editingSeries ? "Edit recurring series" : isRecurring ? (isEditing ? "Edit invoice" : "New Recurring Invoice") : isEditing ? "Edit invoice" : "New Invoice"}
         type="inside-page"
         state="fixed"
         leading={
@@ -563,10 +574,13 @@ export function AddInvoiceDetails({
             className="w-full bg-white border border-dashed border-[rgba(160,160,160,0.2)] rounded-xl p-[17px] flex flex-col gap-3"
             style={{ boxShadow: "var(--shadow-card-soft)" }}
           >
-            {/* Header */}
+            {/* Header — the toggle only appears on a fresh create; in edit it's fixed on (can't be turned
+                off), so the title just sits as a label. */}
             <div className="flex items-center justify-between">
               <span className="card-title-2xs text-[#101828]" style={FONT}>Recurring Invoice</span>
-              <Toggle checked={isRecurring} onChange={setRecurringOn} disabled={editingSeries} aria-label="Recurring Invoice" />
+              {!isEditing && !editingSeries && (
+                <Toggle checked={isRecurring} onChange={setRecurringOn} aria-label="Recurring Invoice" />
+              )}
             </div>
 
             {/* Body — schedule fields, revealed when on */}
@@ -611,7 +625,7 @@ export function AddInvoiceDetails({
         {isRecurring && (
           <div
             className="w-full rounded-[12px] p-[17px] flex flex-col gap-3"
-            style={{ background: "#f5f4f1", border: "1px dashed rgba(160,160,160,0.2)" }}
+            style={{ background: "#f8f8f9", border: "1px dashed rgba(160,160,160,0.2)" }}
           >
             <div className="flex items-center gap-2">
               <CalendarTodayIcon style={{ fontSize: 16, color: "#ff4a15" }} />
@@ -779,13 +793,28 @@ export function AddInvoiceDetails({
       </div>
 
         {isRecurring ? (
-          // Recurring series (DES-782): create schedules the first invoice; edit saves changes to the series.
+          // Recurring (DES-782): create schedules the first invoice; a series edit saves the cadence; a
+          // recurring-DRAFT edit (isEditing) saves the combined content + schedule and returns to the detail.
           <ButtonDock
             type="single"
             overflow
-            primaryLabel={editingSeries ? "Save changes" : "Create Invoice"}
+            primaryLabel={editingSeries || isEditing ? "Save changes" : "Create Invoice"}
             primaryDisabled={services.length === 0}
-            onPrimary={() => onSend?.({ title: editingSeries ? "Recurring series updated" : "Recurring series created" }, recentSent)}
+            onPrimary={
+              isEditing && !editingSeries
+                ? onEditSave
+                : () =>
+                    onSend?.(
+                      { title: editingSeries ? "Recurring series updated" : "Recurring series created" },
+                      // Editing a series updates the schedule only — no new invoice row. Creating one drops
+                      // the first invoice into the list as Draft + Recurring badge. It's ALWAYS Draft at
+                      // creation: the invoice is scheduled for a future date and hasn't been sent yet, so it
+                      // can't be Awaiting — auto-send moves it to Awaiting on the scheduled date (backend).
+                      editingSeries
+                        ? undefined
+                        : { ...recentSent, status: "Draft", recurring: true, meta: `— · Scheduled on ${format(recStart, "d MMM yyyy")}` }
+                    )
+            }
             homeIndicator
           />
         ) : isEditing ? (
@@ -926,18 +955,25 @@ export function AddInvoiceDetails({
               <span className="card-title-2xs text-[#101828]" style={FONT}>After a certain number of invoices</span>
             </button>
             {recEnd.mode === "count" && (
-              <TextInput
-                placeholder="Enter max invoices"
-                inputMode="numeric"
-                showHint={false}
-                value={recMaxInput}
-                onChange={(e) => {
-                  const digits = e.target.value.replace(/\D/g, "");
-                  setRecMaxInput(digits);
-                  const n = parseInt(digits, 10);
-                  setRecEnd({ mode: "count", count: Number.isFinite(n) && n > 0 ? n : 0 });
-                }}
-              />
+              <div className="flex flex-col gap-1.5">
+                <TextInput
+                  placeholder="Enter max invoices"
+                  inputMode="numeric"
+                  showHint={false}
+                  value={recMaxInput}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "");
+                    setRecMaxInput(digits);
+                    const n = parseInt(digits, 10);
+                    setRecEnd({ mode: "count", count: Number.isFinite(n) && n > 0 ? n : 0 });
+                  }}
+                />
+                {recEnd.count > 0 && (
+                  <span className="text-[12px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
+                    Last invoice on {format(nextDates(recStart, recFreq, recEnd.count)[recEnd.count - 1], "d MMM yyyy")}
+                  </span>
+                )}
+              </div>
             )}
           </div>
 
