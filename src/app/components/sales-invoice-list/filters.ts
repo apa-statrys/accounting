@@ -153,6 +153,13 @@ const DAY_MS = 86400000;
 export function metaLine(inv: Invoice, eff: EffectiveStatus): { number: string; rest: string; danger: boolean } {
   const number = inv.meta.split(" · ")[0];
   const rest = inv.meta.slice(number.length + 3); // text after " · "
+  // Draft display by entry point: MANUAL drafts have no number yet (assigned on issue, DES-715);
+  // RECURRING drafts have no number and read "Scheduled on <date>" (no invoice until it's sent);
+  // UPLOAD drafts keep the number the user entered.
+  if (eff === "Draft") {
+    const norm = rest.replace(/^(Created|Uploaded|Scheduled) (?=\d)/, "$1 on ");
+    return { number: inv.origin === "uploaded" ? number : "", rest: norm, danger: false };
+  }
   if (inv.due && (eff === "Overdue" || eff === "Awaiting")) {
     const diff = Math.round((parseISO(inv.due).getTime() - TODAY.getTime()) / DAY_MS);
     if (eff === "Overdue") {

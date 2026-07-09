@@ -43,7 +43,7 @@ interface InvoiceDetailPageProps {
   recurringNextDate?: string;
   /** Current series status (owned by App so the series-detail page stays in sync). */
   seriesStatus?: "Active" | "Paused" | "Cancelled";
-  /** Open the recurring-series detail page (Pause / Resume / Cancel live there). */
+  /** Open the recurring-series detail page (Edit recurring / Pause / Cancel live there). */
   onOpenSeries?: () => void;
   invoiceNo?: string;
   customerName?: string;
@@ -194,9 +194,14 @@ export function InvoiceDetailPage({
 
   const meta = DETAIL_STATUS_META[status];
   const issued = status !== "Draft";
+  // A recurring invoice awaiting its auto-send date reads as "Scheduled" — a display label only; the real
+  // status stays Draft so it still filters under Draft (DES-782). It has no number until issued.
+  const scheduledRecurring = recurring && status === "Draft";
   // Page header = the document's number. A draft has no invoice number yet (assigned on issue), so it
-  // carries a separate DF (draft) number; issued invoices show their INV number.
-  const headerTitle = status === "Draft"
+  // carries a separate DF (draft) number; a scheduled recurring draft just reads "Invoice".
+  const headerTitle = scheduledRecurring
+    ? "Invoice"
+    : status === "Draft"
     ? (invoiceNo ? invoiceNo.replace(/^INV/, "DF") : "Draft")
     : (invoiceNo || "Invoice");
   // Uploaded drafts default to "Mark as sent" (already issued externally → Awaiting payment);
@@ -304,7 +309,13 @@ export function InvoiceDetailPage({
     : refundPending > 0.001 ? "Amount to refund"
     : "Amount refunded";
   // Refund context shows just the amount to refund (no "remaining paid" line); other statuses keep their banner.
-  const headlineBanner = isRefundContext ? "" : bannerText[status];
+  // Paused in-session → show the pause date (today, for the demo).
+  const pausedLabel = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const headlineBanner = scheduledRecurring
+    ? seriesStatus === "Paused"
+      ? `Paused on ${pausedLabel}`
+      : `Scheduled on ${issueDateLabel}`
+    : isRefundContext ? "" : bannerText[status];
   // Refund dock (DES-720): while a payout is due (refundPending > 0) the primary action is "Refund Credit
   // Note"; once everything committed has been paid out the remaining action is sending the credit-note
   // document (AC6) → "Send/Resend Credit Note". A new note raised later re-opens a pending payout.
@@ -662,7 +673,10 @@ export function InvoiceDetailPage({
               Uploaded draft: show the user-entered / OCR-extracted number (DES-716). */}
           {(issued || uploaded) && <MetaRow label="Invoice number" value={invoiceNo} />}
           <MetaRow label="Issue date" value={issueDateLabel} />
-          <MetaRow label="Due date" value={`Next 30 days · ${dueDateLabel}`} />
+          {/* A recurring draft has no issue date yet, so its due date is the inherited default TERM
+              (DES-782 — each generated invoice is a standard invoice; term applied on issue), not a
+              fixed date. Once issued, it shows the concrete date like any other invoice. */}
+          <MetaRow label="Due date" value={recurring && status === "Draft" ? "Next 30 days after issue" : `Next 30 days · ${dueDateLabel}`} />
           <MetaRow label="Currency" value={currency} last />
         </InfoCard>
 
@@ -758,7 +772,20 @@ export function InvoiceDetailPage({
 
       {/* Primary action — per status */}
       {status === "Draft" ? (
-        uploaded ? (
+        scheduledRecurring ? (
+          // Scheduled recurring draft — invoice-level actions only (same as a normal draft): Send now +
+          // Edit (a one-off, content-only edit of this occurrence). Delete lives in the ⋯ menu. All
+          // series actions (Edit recurring / Pause / Cancel) live on the series detail.
+          <ButtonDock
+            type="double"
+            overflow
+            secondaryLabel="Edit invoice"
+            primaryLabel="Send now"
+            onSecondary={openEdit}
+            onPrimary={() => setSendSheetOpen(true)}
+            homeIndicator
+          />
+        ) : uploaded ? (
           // Uploaded draft: it was already sent elsewhere, so the likely next step is recording
           // payment → "Mark as paid" primary, "Mark as sent" (→ Awaiting) secondary.
           <ButtonDock
@@ -841,6 +868,7 @@ export function InvoiceDetailPage({
         onClose={() => setActionsOpen(false)}
         status={status}
         uploaded={uploaded}
+        scheduledRecurring={scheduledRecurring}
         terminal={terminal}
         cancellable={cancellable}
         creditNotesCount={creditNotes.length}

@@ -17,7 +17,7 @@ export const INVOICES: Invoice[] = [
   // the invoice to Refunded (status path Paid → Refunded).
   { id: "INV-2026-000015", client: "Solstice Media", meta: "INV-2026-000015 · Paid 22 Jun 2026", amount: "$6,450.00", status: "Paid", date: "2026-06-22", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false },
   { id: "INV-2026-000003", client: "Bright Harbor Co.", meta: "INV-2026-000003 · Created 20 Jun 2026", amount: "$283.23", status: "Draft", date: "2026-06-20" },
-  { id: "INV-2026-000006", client: "Lumen Creative", meta: "INV-2026-000006 · Created 12 Jun 2026", amount: "$980.50", status: "Draft", date: "2026-06-12", recurring: true },
+  { id: "INV-2026-000006", client: "Lumen Creative", meta: "INV-2026-000006 · Scheduled on 20 Jul 2026", amount: "$980.50", status: "Draft", date: "2026-06-12", recurring: true },
   { id: "INV-2026-000002", client: "Otto Reyes", meta: "INV-2026-000002 · Uploaded 18 Jun 2026", amount: "$100,034.00", status: "Draft", origin: "uploaded", date: "2026-06-18" },
   { id: "INV-2026-000005", client: "Atlas Logistics", meta: "INV-2026-000005 · Paid 12 Jun 2026", amount: "$4,725.00", status: "Paid", date: "2026-05-28", due: "2026-06-10" },
   { id: "INV-2026-000001b", client: "Bright Harbor Co.", meta: "INV-2026-000001 · Created 10 May 2026", amount: "$342.27", status: "Draft", date: "2026-05-10" },

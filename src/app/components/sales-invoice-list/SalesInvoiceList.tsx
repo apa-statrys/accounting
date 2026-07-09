@@ -48,7 +48,7 @@ interface SalesInvoiceListProps {
   successSubtext?: string;
   onSuccessDone?: () => void;
   /** A just-created/saved invoice to surface + temporarily highlight at the top of the list. */
-  recent?: { client: string; amount: string; status: Status; meta: string } | null;
+  recent?: { client: string; amount: string; status: Status; meta: string; recurring?: boolean } | null;
   onBack?: () => void;
   /** Open an invoice's detail page. */
   onOpenInvoice?: (inv: { number: string; client: string; status: Status; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; recurring?: boolean }) => void;
@@ -117,9 +117,9 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
 
   // The freshly created/saved invoice (if any), prepended as a real card.
   const recentRow: Invoice | null = recent
-    ? { id: "recent-new", client: recent.client, meta: recent.meta, amount: recent.amount, status: recent.status, date: TODAY_ISO }
+    ? { id: "recent-new", client: recent.client, meta: recent.meta, amount: recent.amount, status: recent.status, date: TODAY_ISO, recurring: recent.recurring }
     : null;
-  const allRows = useMemo(() => (recentRow ? [recentRow, ...INVOICES] : INVOICES), [recentRow?.client, recentRow?.amount, recentRow?.status]);
+  const allRows = useMemo(() => (recentRow ? [recentRow, ...INVOICES] : INVOICES), [recentRow?.client, recentRow?.amount, recentRow?.status, recentRow?.recurring]);
   // Drafts removed via swipe-to-delete are hidden locally; deletion goes through a confirm sheet.
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);

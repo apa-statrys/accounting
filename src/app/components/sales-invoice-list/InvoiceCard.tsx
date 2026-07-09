@@ -56,17 +56,23 @@ export function InvoiceCard({ inv, highlighted, onClick, onDelete, onOpenCN, ref
       {/* Invoice number on its own line; the date phrase ("Due in N days" / "Overdue by N days" /
           "Paid on …") sits beneath it. */}
       <div className="flex flex-col gap-0.5 mt-1">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <p className="text-[12px] font-medium leading-[1.2] text-[#808080] truncate" style={FONT}>{meta.number}</p>
-          {/* Recurring-series badge (DES-782) — marks invoices generated from a recurring series. */}
-          {inv.recurring && (
-            <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-[#fff6f2] border border-[#ffd9c2] px-1.5 py-0.5">
-              <Repeat size={10} strokeWidth={2.5} style={{ color: "#ff4a15" }} />
-              <span className="text-[10px] font-bold leading-none" style={{ ...FONT, color: "#ff4a15" }}>Recurring</span>
-            </span>
+        {/* Number line — hidden when there's no number (manual / recurring drafts). The neutral ↻
+            recurring flag (provenance, not status) sits before the number, or before the description
+            when there's no number, so it never competes with the status pill's colour. */}
+        {meta.number && (
+          <div className="flex items-center gap-1.5 min-w-0">
+            {inv.recurring && (
+              <Repeat size={12} strokeWidth={2.4} className="shrink-0" style={{ color: "#808080" }} aria-label="Recurring" />
+            )}
+            <p className="text-[12px] font-medium leading-[1.2] text-[#808080] truncate" style={FONT}>{meta.number}</p>
+          </div>
+        )}
+        <p className="text-[12px] leading-[1.2] flex items-center gap-1.5 min-w-0" style={{ ...FONT, color: meta.danger ? "#d92d20" : "#a0a0a0", fontWeight: meta.danger ? 600 : 400 }}>
+          {inv.recurring && !meta.number && (
+            <Repeat size={12} strokeWidth={2.4} className="shrink-0" style={{ color: "#808080" }} aria-label="Recurring" />
           )}
-        </div>
-        <p className="text-[12px] leading-[1.2]" style={{ ...FONT, color: meta.danger ? "#d92d20" : "#a0a0a0", fontWeight: meta.danger ? 600 : 400 }}>{meta.rest}</p>
+          <span className="truncate">{meta.rest}</span>
+        </p>
       </div>
     </div>
   );

@@ -3,7 +3,6 @@
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import { BottomSheet } from "../BottomSheet";
 import { FONT, INK } from "../../lib/theme";
@@ -14,6 +13,8 @@ interface ActionsMenuProps {
   onClose: () => void;
   status: DetailStatus;
   uploaded: boolean;
+  /** Scheduled recurring draft — surfaces "Send invoice" here (its dock leads with Pause series). */
+  scheduledRecurring?: boolean;
   terminal: boolean;
   cancellable: boolean;
   creditNotesCount: number;
@@ -30,6 +31,7 @@ export function ActionsMenu({
   onClose,
   status,
   uploaded,
+  scheduledRecurring = false,
   terminal,
   cancellable,
   creditNotesCount,
@@ -56,7 +58,7 @@ export function ActionsMenu({
           </button>
         )}
 
-        {/* Uploaded drafts: sending stays optional (default is record-only) */}
+        {/* Uploaded drafts: sending stays optional (record-only default). */}
         {status === "Draft" && uploaded && (
           <button
             onClick={onSendInvoice}
@@ -67,24 +69,15 @@ export function ActionsMenu({
           </button>
         )}
 
-        {/* Edit — full for a draft, limited for an issued still-editable invoice */}
-        {(status === "Draft" || status === "Awaiting" || status === "Overdue") && (
+        {/* Edit — full for a draft, limited for an issued still-editable invoice. Hidden for a scheduled
+            recurring draft (it's the dock's secondary CTA there). */}
+        {(status === "Draft" || status === "Awaiting" || status === "Overdue") && !scheduledRecurring && (
           <button
             onClick={onEdit}
             className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]"
           >
             <EditOutlinedIcon style={{ fontSize: 20, color: INK }} />
             <span className="text-[15px]" style={{ ...FONT, color: INK }}>Edit invoice</span>
-          </button>
-        )}
-
-        {(!terminal || status === "Paid") && (
-          <button
-            onClick={onDuplicate}
-            className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]"
-          >
-            <ContentCopyIcon style={{ fontSize: 20, color: INK }} />
-            <span className="text-[15px]" style={{ ...FONT, color: INK }}>Duplicate invoice</span>
           </button>
         )}
 
