@@ -3,6 +3,7 @@
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import AddIcon from "@mui/icons-material/Add";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import { BottomSheet } from "../BottomSheet";
 import { FONT, INK } from "../../lib/theme";
@@ -88,8 +89,8 @@ export function ActionsMenu({
             onClick={onCreateCn}
             className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]"
           >
-            <ReceiptLongOutlinedIcon style={{ fontSize: 20, color: "#b42318" }} />
-            <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Create Credit Note</span>
+            <AddIcon style={{ fontSize: 20, color: "#b42318" }} />
+            <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Add credit note</span>
           </button>
         )}
 

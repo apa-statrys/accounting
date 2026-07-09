@@ -18,6 +18,8 @@ interface ServiceItemCardProps {
   onDelete?: () => void;
   /** Play a one-time "swipe to delete" nudge (used on the first added item). */
   hint?: boolean;
+  /** Read-only (issued limited edit): no swipe-to-delete, no tap-to-edit, no chevron. */
+  readOnly?: boolean;
 }
 
 /**
@@ -25,7 +27,7 @@ interface ServiceItemCardProps {
  * Invoice-currency amount in front; item-currency FX line beneath when they differ.
  * See memory: multi-currency-exchange-rate.
  */
-export function ServiceItemCard({ line, invoiceCurrency, onClick, onDelete, hint }: ServiceItemCardProps) {
+export function ServiceItemCard({ line, invoiceCurrency, onClick, onDelete, hint, readOnly }: ServiceItemCardProps) {
   const controls = useAnimationControls();
   const [open, setOpen] = useState(false);
   // True while a drag is in progress — so the post-drag click doesn't also open the editor.
@@ -58,28 +60,30 @@ export function ServiceItemCard({ line, invoiceCurrency, onClick, onDelete, hint
 
   return (
     <div className="relative rounded-[12px] overflow-hidden">
-        {/* Delete action tile behind the card */}
-        <div className="absolute right-0 top-0 bottom-0 flex items-center justify-end py-1 pr-0.5">
-          <button
-            type="button"
-            onClick={() => onDelete?.()}
-            aria-label="Delete"
-            className="h-full w-[80px] rounded-2xl bg-[#fb4d4d] flex flex-col items-center justify-center gap-0.5 text-white active:bg-[#e23d3d]"
-          >
-            <DeleteOutlineIcon style={{ fontSize: 22, color: "#fff" }} />
-            <span className="text-[12px] font-medium" style={FONT}>Delete</span>
-          </button>
-        </div>
+        {/* Delete action tile behind the card — hidden when read-only (no swipe). */}
+        {!readOnly && (
+          <div className="absolute right-0 top-0 bottom-0 flex items-center justify-end py-1 pr-0.5">
+            <button
+              type="button"
+              onClick={() => onDelete?.()}
+              aria-label="Delete"
+              className="h-full w-[80px] rounded-2xl bg-[#fb4d4d] flex flex-col items-center justify-center gap-0.5 text-white active:bg-[#e23d3d]"
+            >
+              <DeleteOutlineIcon style={{ fontSize: 22, color: "#fff" }} />
+              <span className="text-[12px] font-medium" style={FONT}>Delete</span>
+            </button>
+          </div>
+        )}
 
-        {/* Swipeable card */}
+        {/* Card — swipeable + tappable to edit, unless read-only (issued limited edit). */}
         <motion.div
-          drag="x"
+          drag={readOnly ? false : "x"}
           dragConstraints={{ left: -REVEAL, right: 0 }}
           dragElastic={0.04}
           animate={controls}
           onDragStart={() => { draggedRef.current = true; }}
           onDragEnd={(_, info) => setOpen(info.offset.x < -REVEAL / 2)}
-          onClick={() => {
+          onClick={readOnly ? undefined : () => {
             // Swallow the click that follows a drag so it doesn't open the editor.
             if (draggedRef.current) { draggedRef.current = false; return; }
             if (open) setOpen(false);
@@ -103,8 +107,8 @@ export function ServiceItemCard({ line, invoiceCurrency, onClick, onDelete, hint
                     </span>
                   )}
                 </div>
-                {/* Tap-to-edit affordance — items stay editable in the draft editor. */}
-                <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
+                {/* Tap-to-edit affordance — hidden when the item is read-only (issued limited edit). */}
+                {!readOnly && <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />}
               </div>
             }
           />

@@ -215,6 +215,9 @@ export function InvoiceDetailPage({
   // Invoice details → Items → Summary. Only the header + hero line differ by source (uploaded shows
   // the UL number + "Uploaded on"; created shows "Invoice Detail" + "Created on").
   const draftDetail = status === "Draft" && !recurring;
+  // The same sectioned layout also drives the issued Awaiting + Overdue detail (real INV number,
+  // invoice-number row). Recurring occurrences keep their own layout.
+  const sectionedLayout = (status === "Draft" || status === "Awaiting" || status === "Overdue") && !recurring;
   // The account shown on the created-draft receiving card (default = the primary Statrys account).
   const receivingAcct = RECEIVING_ACCOUNTS.find((a) => a.primary) ?? RECEIVING_ACCOUNTS[0];
   // Read-only states for content. Paid still exposes a ⋯ menu (Refund with Credit Note); Cancelled/
@@ -222,7 +225,7 @@ export function InvoiceDetailPage({
   const terminal = status === "Paid" || status === "Cancelled" || status === "Refunded";
   const showMenu = !terminal || status === "Paid";
   const sendable = status === "Awaiting" || status === "Overdue" || status === "PartiallyPaid";
-  const overdueDays = 15; // demo: due 5 Jun, "today" 20 Jun 2026
+  const overdueDays = 17; // demo
 
   // Refund context (Paid/PendingRefund/Refunded, or a derived refund tag) vs cancellation context.
   const refundCtx = status === "Paid" || status === "PendingRefund" || status === "Refunded" || !!refundTag;
@@ -281,10 +284,10 @@ export function InvoiceDetailPage({
   // The one-line status explainer under the amount.
   const bannerText: Record<DetailStatus, string> = {
     Draft: "",
-    Awaiting: credited > 0 ? `${money(credited)} credited from ${money(TOTAL)}` : "",
+    Awaiting: credited > 0 ? `${money(credited)} credited from ${money(TOTAL)}` : "Due in 3 days",
     Overdue: credited > 0
       ? `${money(credited)} credited from ${money(TOTAL)}`
-      : `Overdue by ${overdueDays} days · was due ${dueDateLabel}`,
+      : `Overdue by ${overdueDays} days`,
     PartiallyPaid: `${money(paidAmount)} received · ${money(remaining)} still due`,
     Paid: overpayment > 0 ? `Paid · overpaid by ${money(overpayment)}, flagged for review` : "Paid in full",
     Cancelled: "Voided with a credit note · no longer collectable",
@@ -675,8 +678,8 @@ export function InvoiceDetailPage({
         )}
 
         {/* Customer — avatar removed for now (pending invoice-number confirmation).
-            Draft detail (DES-817) labels it "Bill To". */}
-        <InfoCard title={draftDetail ? "Bill To" : undefined}>
+            Sectioned layout (DES-817 draft + Awaiting) labels it "Bill To". */}
+        <InfoCard title={sectionedLayout ? "Bill To" : undefined}>
           <div className="py-3 flex items-center gap-3">
             <div className="min-w-0">
               <p className="text-[15px] font-medium leading-tight truncate" style={{ ...FONT, color: INK }}>{customerName}</p>
@@ -685,9 +688,9 @@ export function InvoiceDetailPage({
           </div>
         </InfoCard>
 
-        {/* Receiving account (DES-817, draft detail) — display-only card styled like the recurring
-            series card (no icon, no chevron: there's no separate account detail screen to open). */}
-        {draftDetail && (
+        {/* Receiving account (DES-817) — display-only card styled like the recurring series card
+            (no icon, no chevron: there's no separate account detail screen to open). */}
+        {sectionedLayout && (
           <div className="flex flex-col gap-1.5">
             <p className="px-1 text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>Receiving Account</p>
             <div className="w-full bg-[#faf9f4] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4 py-3">
@@ -702,12 +705,12 @@ export function InvoiceDetailPage({
           </div>
         )}
 
-        {/* Details — draft detail (DES-817) titles it "Invoice Details" and leads with Currency. */}
-        <InfoCard title={draftDetail ? "Invoice Details" : undefined}>
+        {/* Details — sectioned layout (DES-817) titles it "Invoice Details" and leads with Currency. */}
+        <InfoCard title={sectionedLayout ? "Invoice Details" : undefined}>
           {/* No invoice-number row on a draft: created drafts have no number until issue (DES-715),
               and the uploaded draft carries its UL- label in the header instead. Shown once issued. */}
           {issued && <MetaRow label="Invoice number" value={invoiceNo} />}
-          {draftDetail ? (
+          {sectionedLayout ? (
             <>
               <MetaRow label="Currency" value={currency} />
               <MetaRow label="Issue Date" value={issueDateLabel} />
@@ -726,7 +729,7 @@ export function InvoiceDetailPage({
         </InfoCard>
 
         {/* Line items — items only; totals live in their own Summary card below */}
-        <InfoCard title={draftDetail ? `Items ( ${ITEMS.length} )` : "Items"}>
+        <InfoCard title={sectionedLayout ? `Items ( ${ITEMS.length} )` : "Items"}>
           {ITEMS.map((it, i) => (
             <div key={it.name} className={`flex items-start justify-between py-2.5 ${i === ITEMS.length - 1 ? "" : "border-b border-[rgba(160,160,160,0.18)]"}`}>
               <div className="flex-1 min-w-0 pr-3">
@@ -751,12 +754,12 @@ export function InvoiceDetailPage({
               accent colour to echo the Figma. */}
           <div className="flex items-center justify-between py-2.5">
             <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Discount</span>
-            <span className="text-[13px] font-medium" style={{ ...FONT, color: draftDetail ? "#ff4a15" : INK }}>{DISCOUNT > 0 ? `−${money(DISCOUNT)}` : money(0)}</span>
+            <span className="text-[13px] font-medium" style={{ ...FONT, color: sectionedLayout ? "#ff4a15" : INK }}>{DISCOUNT > 0 ? `−${money(DISCOUNT)}` : money(0)}</span>
           </div>
           {/* When credit is APPLIED, Total is just a reference and Amount due is the prominent figure.
               An UNapplied (Open) credit note isn't shown here — it's surfaced in the Credits Applied card
               above, and doesn't touch the invoice amount until applied. */}
-          <div className={`flex items-center justify-between ${credited > 0 ? "pb-1.5" : "pb-3"} ${draftDetail ? "pt-3 mt-1 -mx-4 px-4 rounded-lg bg-[#f2efe4]" : "pt-3 border-t border-[rgba(160,160,160,0.25)]"}`}>
+          <div className={`flex items-center justify-between ${credited > 0 ? "pb-1.5" : "pb-3"} ${sectionedLayout && credited === 0 ? "pt-3 mt-1 -mx-4 px-4 rounded-lg bg-[#f2efe4]" : "pt-3 border-t border-[rgba(160,160,160,0.25)]"}`}>
             <span className={credited > 0 ? "text-[13px] font-medium" : "text-[15px] font-bold"} style={{ ...FONT, color: credited > 0 ? MUTED : INK }}>Total</span>
             <span className={credited > 0 ? "text-[13px] font-medium" : "text-[15px] font-bold"} style={{ ...FONT, color: credited > 0 ? MUTED : INK }}>{money(TOTAL)}</span>
           </div>
@@ -781,8 +784,8 @@ export function InvoiceDetailPage({
         </InfoCard>
 
         {/* Receiving payment details — only the critical fields; rest behind an accordion.
-            Draft detail shows the receiving account as a card up top (DES-817), so skip it here. */}
-        {status !== "Cancelled" && !draftDetail && (
+            The sectioned layout shows the receiving account as a card up top (DES-817), so skip it here. */}
+        {status !== "Cancelled" && !sectionedLayout && (
           <InfoCard title={status === "Paid" ? "Payment received to" : "Receiving account"}>
             <MetaRow label="Account holder" value={bank.holder} />
             <MetaRow label="Account number" value={bank.number} />

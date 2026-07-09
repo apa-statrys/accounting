@@ -17,7 +17,7 @@ import { CreditNoteDetailPage } from "../CreditNoteDetailPage";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { INVOICES } from "../../data/invoices";
 import { FONT } from "../../lib/theme";
-import type { CreditNote, Invoice, Status } from "../../types";
+import type { CreditNote, DetailStatus, Invoice, Status } from "../../types";
 import { InvoiceCard } from "./InvoiceCard";
 import {
   CLIENTS,
@@ -28,6 +28,7 @@ import {
   TODAY_ISO,
   amountValue,
   defaultSortFor,
+  effectiveStatus,
   matchStatus,
   matchesDue,
   matchesIssueRange,
@@ -51,7 +52,7 @@ interface SalesInvoiceListProps {
   recent?: { client: string; amount: string; status: Status; meta: string; recurring?: boolean } | null;
   onBack?: () => void;
   /** Open an invoice's detail page. */
-  onOpenInvoice?: (inv: { number: string; client: string; status: Status; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; recurring?: boolean }) => void;
+  onOpenInvoice?: (inv: { number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; recurring?: boolean }) => void;
   onManual?: () => void;
   onUpload?: () => void;
   /** Start a recurring invoice series (DES-782). */
@@ -249,7 +250,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
               key={inv.id}
               inv={inv}
               highlighted={highlightRecent && inv.id === "recent-new"}
-              onClick={() => onOpenInvoice?.({ number: inv.id.replace(/[a-z]$/, ""), client: inv.client, status: inv.status, origin: inv.origin ?? "created", cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent, recurring: inv.recurring })}
+              onClick={() => onOpenInvoice?.({ number: inv.id.replace(/[a-z]$/, ""), client: inv.client, status: effectiveStatus(inv), origin: inv.origin ?? "created", cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent, recurring: inv.recurring })}
               onDelete={() => setConfirmDeleteId(inv.id)}
               onOpenCN={openCnForInvoice}
               refundOverride={refundState?.[inv.id.replace(/[a-z]$/, "")]}
@@ -310,7 +311,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
               onBack={() => setCnPreview(null)}
               onViewInvoice={() => {
                 const inv = allInvoices.find((x) => x.id.replace(/[a-z]$/, "") === cnPreview.invoiceNo);
-                if (inv) onOpenInvoice?.({ number: cnPreview.invoiceNo, client: inv.client, status: inv.status, origin: inv.origin ?? "created", cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent });
+                if (inv) onOpenInvoice?.({ number: cnPreview.invoiceNo, client: inv.client, status: effectiveStatus(inv), origin: inv.origin ?? "created", cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent });
                 setCnPreview(null);
               }}
             />

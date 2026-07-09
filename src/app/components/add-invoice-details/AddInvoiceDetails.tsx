@@ -383,19 +383,25 @@ export function AddInvoiceDetails({
           : "After a number of invoices")
     : recEnd.date ? format(recEnd.date, "d MMM yyyy") : "On a specific date";
 
-  const details = [
-    ...(lockedEdit
-      ? [{ label: "Invoice Number", value: invoiceNo, onClick: () => {}, locked: true, readOnly: false }]
-      : []),
-    { label: "Currency", value: currencyLabel, onClick: lockedEdit ? () => {} : () => setCurrencySheetOpen(true), locked: false, readOnly: lockedEdit },
-    ...(isRecurring
-      ? []
-      : [
-          { label: "Issue Date", value: format(issueDate, "d MMM yyyy"), onClick: () => setIssueSheetOpen(true), locked: lockedEdit, readOnly: false },
-          { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false, readOnly: false },
-        ]),
-    { label: "Receiving Account", value: formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false, readOnly: false },
-  ];
+  const details = lockedEdit
+    ? [
+        // Issued limited edit (Awaiting/Overdue) — DES-817 + Figma 1130-6193: ONLY Due Date is
+        // editable; everything else is locked (dimmed, no chevron). Order matches the Figma.
+        { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false, readOnly: false },
+        { label: "Issue Date", value: format(issueDate, "d MMM yyyy"), onClick: () => {}, locked: true, readOnly: false },
+        { label: "Currency", value: currencyLabel, onClick: () => {}, locked: true, readOnly: false },
+        { label: "Receiving Account", value: formatAccount(accountId), onClick: () => {}, locked: true, readOnly: false },
+      ]
+    : [
+        { label: "Currency", value: currencyLabel, onClick: () => setCurrencySheetOpen(true), locked: false, readOnly: false },
+        ...(isRecurring
+          ? []
+          : [
+              { label: "Issue Date", value: format(issueDate, "d MMM yyyy"), onClick: () => setIssueSheetOpen(true), locked: false, readOnly: false },
+              { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false, readOnly: false },
+            ]),
+        { label: "Receiving Account", value: formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false, readOnly: false },
+      ];
 
   return (
     <div
@@ -696,27 +702,32 @@ export function AddInvoiceDetails({
                   key={s.id}
                   line={s}
                   invoiceCurrency={currency}
-                  hint={hintFirst && idx === 0}
-                  onClick={() => openEditService(s.id)}
-                  onDelete={() => setServices((prev) => prev.filter((x) => x.id !== s.id))}
+                  // Issued limited edit: line items are read-only (no tap-to-edit, swipe, or chevron).
+                  readOnly={lockedEdit}
+                  hint={!lockedEdit && hintFirst && idx === 0}
+                  onClick={lockedEdit ? undefined : () => openEditService(s.id)}
+                  onDelete={lockedEdit ? undefined : () => setServices((prev) => prev.filter((x) => x.id !== s.id))}
                 />
               ))}
-              <Button
-                variant="secondary"
-                size="md"
-                iconLeft={<AddIcon />}
-                className="w-full"
-                onClick={openAddService}
-              >
-                Add Item
-              </Button>
+              {!lockedEdit && (
+                <Button
+                  variant="secondary"
+                  size="md"
+                  iconLeft={<AddIcon />}
+                  className="w-full"
+                  onClick={openAddService}
+                >
+                  Add Item
+                </Button>
+              )}
             </div>
           )}
         </Section>
         </div>
 
-        {/* Discounts — appears once the first service is added */}
-        {services.length > 0 && (
+        {/* Discounts — appears once the first service is added. Hidden in the issued limited edit
+            (Awaiting/Overdue): discount is not editable after Send (DES-817). */}
+        {services.length > 0 && !lockedEdit && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
