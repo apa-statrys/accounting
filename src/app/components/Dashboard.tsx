@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Bell, ChevronLeft, ChevronRight, FilePlus, FileText, Rocket, Settings } from "lucide-react";
+import { ChevronLeft, ChevronRight, FilePlus, FileText, Rocket, Settings } from "lucide-react";
 import { ATTENTION_TASKS } from "../data/attentionTasks";
 import { HERO_SCENARIOS } from "../data/heroScenarios";
 import { NeedAttentionStack } from "./NeedAttentionStack";
@@ -227,10 +227,7 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
             <p className="flex-1 text-[20px] font-black leading-none tracking-[-1px]" style={{ ...FONT, color: INK }}>Sales Invoices</p>
           )}
           <div className="flex items-center">
-            <button className="relative size-10 rounded-full flex items-center justify-center">
-              <Bell size={20} style={{ color: INK }} />
-              <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#ff4a15]" />
-            </button>
+            {/* Notifications bell removed for now. */}
             <button onClick={onSettings} aria-label="Invoice settings" className="size-10 rounded-full flex items-center justify-center">
               <Settings size={20} style={{ color: INK }} />
             </button>
