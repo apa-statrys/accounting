@@ -1,7 +1,8 @@
 import { useState } from "react";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { ImageIcon, UploadCloud, Trash2, ChevronDown } from "lucide-react";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { UploadCloud, Trash2 } from "lucide-react";
 import StatusBar from "./StatusBar";
 import { SheetHeader, HeaderIconButton } from "./SheetHeader";
 import { ButtonDock } from "./ButtonDock";
@@ -22,6 +23,15 @@ import { EMAIL_RE } from "../lib/format";
 // Company-logo upload rules (DES-764).
 const LOGO_TYPES = ["image/jpeg", "image/png"];
 const LOGO_MAX_MB = 10;
+
+// Static country-code prefix inside the Phone field (visual only) — matches the Create Customer screen.
+const phonePrefix = (
+  <span className="flex items-center gap-1" style={{ ...FONT, color: "#1b1b1b" }}>
+    <span style={{ fontSize: 16, lineHeight: 1 }}>🇺🇸</span>
+    <span className="body-md">+1</span>
+    <ExpandMoreIcon style={{ fontSize: 16, color: "#808080" }} />
+  </span>
+);
 
 /** Reminder schedule (DES-764 AC5): two reminders, each timing chosen from presets via a bottom sheet.
  *  "Don't send" (first option) disables that reminder. The per-invoice toggle inherits `chaserEnabled`. */
@@ -109,17 +119,17 @@ interface FieldMeta { label: string; placeholder: string; hint?: string; type?: 
 const FIELD_META: Record<FieldKey, FieldMeta> = {
   companyName: { label: "Company name", placeholder: "Statrys Limited", hint: "The name shown on every invoice.", required: true },
   email: { label: "Email address", type: "email", placeholder: "billing@company.com", hint: "Where customers can reach you about invoices.", required: true },
-  registrationNumber: { label: "Registration number", placeholder: "12345678", hint: "Your official company registration number.", required: true },
-  phone: { label: "Phone number", placeholder: "+852 1234 5678", hint: "Shown on invoices for customer queries." },
+  registrationNumber: { label: "Company Registration Number", placeholder: "12345678", hint: "Your official company registration number.", required: true },
+  phone: { label: "Phone number", type: "tel", placeholder: "Enter contact phone number", hint: "Shown on invoices for customer queries." },
   website: { label: "Website", placeholder: "https://company.com", hint: "e.g. yourcompany.com" },
   address: { label: "Address", placeholder: "123 Queen's Road Central", hint: "Street address shown on your invoices.", required: true },
-  city: { label: "City", placeholder: "Select", hint: "The city of your registered address.", required: true },
+  city: { label: "City", placeholder: "Select", hint: "The city of your registered address." },
   state: { label: "State / province", placeholder: "Select", hint: "Leave blank if not applicable." },
-  zip: { label: "Zip / postal code", placeholder: "Enter zip or postal code", hint: "Postal or ZIP code of your address.", required: true },
-  country: { label: "Country", placeholder: "Select", hint: "Country where your business operates.", required: true },
+  zip: { label: "Zip / postal code", placeholder: "Enter zip or postal code", hint: "Postal or ZIP code of your address." },
+  country: { label: "Country", placeholder: "Select", hint: "Country where your business operates." },
 };
 
-type SheetKey = "identity" | "details" | "address" | "currency" | "payment" | null;
+type SheetKey = "company" | "address" | "currency" | "payment" | null;
 const DETAIL_FIELDS: FieldKey[] = ["registrationNumber", "phone", "website"];
 const ADDRESS_FIELDS: FieldKey[] = ["address", "city", "state", "zip", "country"];
 
@@ -148,26 +158,6 @@ const COUNTRY_FLAGS: Record<string, string> = {
   Malaysia: "🇲🇾", Mexico: "🇲🇽", Netherlands: "🇳🇱", "New Zealand": "🇳🇿", Singapore: "🇸🇬",
   Spain: "🇪🇸", "United Kingdom": "🇬🇧", "United States": "🇺🇸",
 };
-
-/** Labeled tappable dropdown field (opens an option sheet). */
-function PickerField({ label, value, placeholder, leading, onClick }: { label?: string; value: string; placeholder: string; leading?: React.ReactNode; onClick: () => void }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      {label && <span className="body-md text-[#1b1b1b]" style={FONT}>{label}</span>}
-      <button
-        type="button"
-        onClick={onClick}
-        className="flex items-center justify-between gap-2 rounded-xl border border-[rgba(160,160,160,0.4)] bg-white px-4 py-3 text-left"
-      >
-        <span className="flex items-center gap-2 min-w-0">
-          {leading}
-          <span className="text-[15px] truncate" style={{ ...FONT, color: value ? "#1b1b1b" : "#9ca3af" }}>{value || placeholder}</span>
-        </span>
-        <ChevronDown size={18} className="text-[#808080] shrink-0" />
-      </button>
-    </div>
-  );
-}
 
 interface InvoiceSettingsProps {
   initial?: CompanySettings;
@@ -205,6 +195,8 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   const set = <K extends keyof CompanySettings>(k: K, v: CompanySettings[K]) => setS((p) => ({ ...p, [k]: v }));
   const cur = CURRENCIES.find((c) => c.code === s.currency);
   const companyInitial = (s.companyName.trim()[0] || "?").toUpperCase();
+  // Up to two initials from the company name for the circular monogram avatar (e.g. "Lumen Studio" → "LS").
+  const companyInitials = s.companyName.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
 
   // Required-field gaps surface inline as red "Required" right away (no Save gate).
   const errs = {
@@ -226,13 +218,19 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   const zipShown = !NO_POSTAL_COUNTRIES.includes(s.country);
   const companyValid = fieldOk("companyName") && fieldOk("email");
   const detailsValid = DETAIL_FIELDS.every(fieldOk);
-  const addressValid = fieldOk("country") && fieldOk("city") && fieldOk("address") && (!zipShown || fieldOk("zip"));
+  // DES-764: only Address is required in the Business Address section (Country / City / Zip optional).
+  const addressValid = fieldOk("address");
 
   // Has the open section changed since it was opened? "Save changes" enables only when it has.
   const dirty = (() => {
     if (!baseline) return false;
-    if (sheet === "identity") return s.companyName !== baseline.companyName || s.email !== baseline.email || JSON.stringify(s.logo) !== JSON.stringify(baseline.logo);
-    if (sheet === "details") return DETAIL_FIELDS.some((k) => s[k] !== baseline[k]);
+    if (sheet === "company")
+      return (
+        s.companyName !== baseline.companyName ||
+        s.email !== baseline.email ||
+        JSON.stringify(s.logo) !== JSON.stringify(baseline.logo) ||
+        DETAIL_FIELDS.some((k) => s[k] !== baseline[k])
+      );
     if (sheet === "address") return ADDRESS_FIELDS.some((k) => s[k] !== baseline[k]);
     return false;
   })();
@@ -245,6 +243,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
       placeholder={FIELD_META[k].placeholder}
       required={FIELD_META[k].required}
       showHint={false}
+      iconLeft={k === "phone" ? phonePrefix : undefined}
       value={s[k]}
       onChange={(e) => set(k, e.target.value)}
     />
@@ -262,13 +261,15 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   const chevron = (
     <ChevronRightIcon className="transition-transform duration-200 group-hover:translate-x-1" style={{ fontSize: 16, color: "var(--icon-primary)" }} />
   );
+  // Down-chevron for readOnly dropdown TextInputs — matches the Create/Edit Customer fields.
+  const dropdownChevron = <ExpandMoreIcon style={{ fontSize: 20, color: "#808080" }} />;
 
   return (
     <div className="relative bg-[#F9F5EA] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
       <StatusBar />
 
       <SheetHeader
-        title="Invoice Settings"
+        title="Sales Invoice Settings"
         type="inside-page"
         state="fixed"
         leading={
@@ -281,24 +282,18 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
 
       <div className="flex-1 overflow-y-auto bg-white px-4 pt-5 pb-6 flex flex-col gap-4">
         <p className="text-[14px] leading-[1.4] text-[#808080]" style={FONT}>
-          These settings apply to all new sales invoices.
+          These settings apply to all new sales invoices!
         </p>
 
-        {/* Company — identity (logo + name + email) on top, then details + address */}
-        <Group title="Company">
+        {/* Company — identity (name + email) on top, then details + address */}
+        <Group>
           <button
             type="button"
-            onClick={() => openSheet("identity")}
+            onClick={() => openSheet("company")}
             className="group w-full flex items-center gap-3 px-[15px] py-3 text-left border-b border-[rgba(160,160,160,0.18)]"
           >
-            <span className="shrink-0">
-              {s.logo ? (
-                <LogoMark letter={companyInitial} size={40} />
-              ) : (
-                <span className="size-10 rounded-[11px] bg-white border border-dashed border-[rgba(160,160,160,0.45)] flex items-center justify-center">
-                  <ImageIcon size={18} className="text-[#808080]" />
-                </span>
-              )}
+            <span className="shrink-0 size-10 rounded-full bg-[#eae5d8] flex items-center justify-center">
+              <span className="text-[14px] font-semibold text-[#101828]" style={FONT}>{companyInitials}</span>
             </span>
             <span className="flex-1 min-w-0">
               <span className="block text-[15px] font-semibold leading-[1.25] text-[#101828] truncate" style={FONT}>
@@ -310,12 +305,11 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             </span>
             {chevron}
           </button>
-          <Row title="Company Details" subtitle="Registration, phone, website" onClick={() => openSheet("details")} />
           <Row title="Business Address" subtitle="Address, city, country and more" onClick={() => openSheet("address")} last />
         </Group>
 
         {/* Invoice defaults — currency + receiving account */}
-        <Group title="Invoice defaults">
+        <Group>
           <Row
             title="Currency"
             subtitle="Default currency for invoices"
@@ -324,7 +318,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
           />
           <Row
             title="Payment Method"
-            subtitle="Default Account"
+            subtitle="Default account"
             value={formatAccount(s.paymentMethod)}
             onClick={() => setSheet("payment")}
             last
@@ -332,27 +326,26 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         </Group>
 
         {/* Notifications — Automatic reminders is a simple on/off toggle (no schedule sub-page). */}
-        <Group title="Notifications">
+        <Group>
           <Row
             title="Automatic reminders"
-            subtitle="Until the invoice is paid"
+            subtitle="Email until invoice is paid"
             last
             trailing={
-              <span className="flex items-center gap-2 shrink-0">
-                <span className="text-[14px] font-medium text-[#1b1b1b]" style={FONT}>{s.chaserEnabled ? "On" : "Off"}</span>
-                <Toggle checked={s.chaserEnabled} onChange={(v) => set("chaserEnabled", v)} aria-label="Automatic reminders" />
-              </span>
+              <Toggle checked={s.chaserEnabled} onChange={(v) => set("chaserEnabled", v)} aria-label="Automatic reminders" />
             }
           />
         </Group>
       </div>
 
-      {/* Identity edit sheet — logo + company name + email */}
+      {/* Company Details — one sheet for all company identity fields: logo, name, email, then
+          registration / phone / website. */}
       <BottomSheet
-        open={sheet === "identity"}
-        title="Company Profile"
+        open={sheet === "company"}
+        title="Company Details"
         onClose={() => setSheet(null)}
-        footer={<ButtonDock type="single" overflow primaryLabel="Save changes" primaryDisabled={!(dirty && companyValid)} onPrimary={() => setSheet(null)} homeIndicator />}
+        heightClass="h-[72%]"
+        footer={<ButtonDock type="single" overflow primaryLabel="Save changes" primaryDisabled={!(dirty && companyValid && detailsValid)} onPrimary={() => setSheet(null)} homeIndicator />}
       >
         <div className="flex flex-col gap-4">
           {/* Logo */}
@@ -386,17 +379,6 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
 
           {field("companyName")}
           {field("email")}
-        </div>
-      </BottomSheet>
-
-      {/* Company Details — one sheet for the whole section */}
-      <BottomSheet
-        open={sheet === "details"}
-        title="Company Details"
-        onClose={() => setSheet(null)}
-        footer={<ButtonDock type="single" overflow primaryLabel="Save changes" primaryDisabled={!(dirty && detailsValid)} onPrimary={() => setSheet(null)} homeIndicator />}
-      >
-        <div className="flex flex-col gap-3">
           {DETAIL_FIELDS.map((k) => <div key={k}>{field(k)}</div>)}
         </div>
       </BottomSheet>
@@ -410,24 +392,50 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         footer={<ButtonDock type="single" overflow primaryLabel="Save changes" primaryDisabled={!(dirty && addressValid)} onPrimary={() => setSheet(null)} homeIndicator />}
       >
         <div className="flex flex-col gap-3">
-          {/* Country first — drives the city/state options below */}
-          <PickerField
+          {/* Country first — drives the city/state options below. readOnly dropdown TextInput to match
+              the Create/Edit Customer fields. */}
+          <TextInput
+            label={FIELD_META.country.label}
+            placeholder="Select country"
+            size="md"
+            required={FIELD_META.country.required}
+            showHint={false}
+            readOnly
+            iconLeft={s.country ? <span className="text-[16px] leading-none">{COUNTRY_FLAGS[s.country] ?? "🌐"}</span> : undefined}
+            iconRight={dropdownChevron}
             value={s.country}
-            placeholder="Choose country"
-            leading={s.country ? <span className="text-[16px] leading-none">{COUNTRY_FLAGS[s.country] ?? "🌐"}</span> : undefined}
             onClick={() => openPicker({ field: "country", title: "Country", options: COUNTRIES })}
           />
 
           {/* City — dropdown when the country has preset cities, otherwise free text */}
           {(COUNTRY_DATA[s.country]?.cities.length ?? 0) > 0 ? (
-            <PickerField value={s.city} placeholder="Choose city" onClick={() => openPicker({ field: "city", title: "City", options: COUNTRY_DATA[s.country].cities })} />
+            <TextInput
+              label={FIELD_META.city.label}
+              placeholder="Select city"
+              size="md"
+              required={FIELD_META.city.required}
+              showHint={false}
+              readOnly
+              iconRight={dropdownChevron}
+              value={s.city}
+              onClick={() => openPicker({ field: "city", title: "City", options: COUNTRY_DATA[s.country].cities })}
+            />
           ) : (
             field("city")
           )}
 
           {/* State — only shown when the country has states/provinces */}
           {(COUNTRY_DATA[s.country]?.states.length ?? 0) > 0 && (
-            <PickerField value={s.state} placeholder="Choose state / province" onClick={() => openPicker({ field: "state", title: "State / province", options: COUNTRY_DATA[s.country].states })} />
+            <TextInput
+              label={FIELD_META.state.label}
+              placeholder="Select state / province"
+              size="md"
+              showHint={false}
+              readOnly
+              iconRight={dropdownChevron}
+              value={s.state}
+              onClick={() => openPicker({ field: "state", title: "State / province", options: COUNTRY_DATA[s.country].states })}
+            />
           )}
 
           {/* Zip — hidden for countries without postal codes (e.g. Hong Kong) */}
