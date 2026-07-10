@@ -26,7 +26,7 @@ import type { CreditNotePayload, DraftLine, DetailStatus, InvoiceEditSeed, Invoi
 import { ITEMS, SUBTOTAL, DISCOUNT, TOTAL, PAID_PARTIAL, SENT_TODAY, REFUND_DATE_ISO, EDITED_TODAY } from "./demoInvoice";
 import type { CreditNote, RefundProof } from "./creditNoteTypes";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { Repeat } from "lucide-react";
+import { Repeat, Asterisk } from "lucide-react";
 import { MetaRow, InfoCard } from "./InfoBits";
 import { CreditsAppliedSection } from "./CreditsAppliedSection";
 import { ActionsMenu } from "./ActionsMenu";
@@ -310,13 +310,12 @@ export function InvoiceDetailPage({
     : refundedOut > 0.001 ? "Partially Refunded"
     : refundTag;
   const isRefundContext = status === "PendingRefund" || status === "Refunded" || !!effectiveRefundTag;
-  // The sectioned layout (Bill To → Receiving card → Invoice Details → Items → Summary) drives Draft,
-  // Awaiting, Overdue, Partially Paid, Void and plain Paid. Recurring occurrences and the
-  // refund-context detail keep their own layout.
+  // The sectioned layout (Bill To → Receiving card → Invoice Details → Items → Summary) drives every
+  // status except the refund-context detail (which keeps its own DES-720 layout). Recurring
+  // occurrences use it too — the recurring-series card renders above the Bill To card.
   const sectionedLayout =
-    (status === "Draft" || status === "Awaiting" || status === "Overdue" || status === "PartiallyPaid" ||
-      status === "Cancelled" || (status === "Paid" && !isRefundContext)) &&
-    !recurring;
+    status === "Draft" || status === "Awaiting" || status === "Overdue" || status === "PartiallyPaid" ||
+    status === "Cancelled" || (status === "Paid" && !isRefundContext);
   // Headline: while a payout is due, lead with the pending amount ("Amount to refund"); once settled,
   // show the cumulative amount refunded to date.
   const headlineAmount =
@@ -700,13 +699,17 @@ export function InvoiceDetailPage({
           <div className="flex flex-col gap-1.5">
             <p className="px-1 text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>Receiving Account</p>
             <div className="w-full bg-[#faf9f4] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4 py-3">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
+                {/* Statrys account mark — red circle + white asterisk. */}
+                <span className="shrink-0 w-[22px] h-[22px] rounded-full flex items-center justify-center" style={{ background: "#E4002B" }}>
+                  <Asterisk size={14} strokeWidth={3} color="#fff" />
+                </span>
                 <span className="text-[15px] font-medium truncate" style={{ ...FONT, color: INK }}>{receivingAcct.name}</span>
                 {receivingAcct.primary && (
-                  <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold leading-[14px]" style={{ ...FONT, background: "#101828", color: "#fff" }}>PRIMARY</span>
+                  <span className="ml-auto shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold leading-[14px]" style={{ ...FONT, background: "#101828", color: "#fff" }}>PRIMARY</span>
                 )}
               </div>
-              <p className="text-[13px] leading-[1.4] mt-0.5 truncate" style={{ ...FONT, color: MUTED }}>{receivingAcct.number}</p>
+              <p className="text-[13px] leading-[1.4] mt-1 truncate" style={{ ...FONT, color: MUTED }}>{receivingAcct.number}</p>
             </div>
           </div>
         )}
@@ -720,7 +723,8 @@ export function InvoiceDetailPage({
             <>
               <MetaRow label="Currency" value={currency} />
               <MetaRow label="Issue Date" value={issueDateLabel} />
-              <MetaRow label="Due Date" value={`Next 30 days · ${dueDateLabel}`} last />
+              {/* A recurring draft has no issue date yet, so its due date is the inherited term. */}
+              <MetaRow label="Due Date" value={recurring && status === "Draft" ? "Next 30 days after issue" : `Next 30 days · ${dueDateLabel}`} last />
             </>
           ) : (
             <>

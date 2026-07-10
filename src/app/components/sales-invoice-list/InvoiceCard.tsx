@@ -130,8 +130,9 @@ export function InvoiceCard({ inv, highlighted, onClick, onDelete, onOpenCN, ref
         animate={
           highlighted
             ? { backgroundColor: "#fffaf3", borderColor: "#ff4a15", boxShadow: "0 0 0 3px rgba(255,74,21,0.12)" }
-            : { backgroundColor: "#faf9f4", borderColor: "rgba(160,160,160,0.2)", boxShadow: "0 0 0 0px rgba(255,74,21,0)" }
+            : { backgroundColor: "#ffffff", borderColor: "rgba(160,160,160,0.2)", boxShadow: "0 0 0 0px rgba(255,74,21,0)" }
         }
+        whileHover={highlighted ? undefined : { boxShadow: "0 4px 12px rgba(16,24,40,0.08)" }}
         transition={{ duration: 0.5 }}
         className="shrink-0 w-full flex flex-col gap-2 border border-dashed rounded-2xl p-4 text-left"
       >
@@ -184,9 +185,9 @@ export function InvoiceCard({ inv, highlighted, onClick, onDelete, onOpenCN, ref
           if (tx !== 0) { setTx(0); return; }
           onClick?.();
         }}
-        className="relative w-full flex flex-col gap-2 border border-dashed rounded-2xl p-4 text-left"
+        className="relative w-full flex flex-col gap-2 border border-dashed rounded-2xl p-4 text-left transition-shadow hover:shadow-[0_4px_12px_rgba(16,24,40,0.08)]"
         style={{
-          background: highlighted ? "#fffaf3" : "#faf9f4",
+          background: highlighted ? "#fffaf3" : "#ffffff",
           borderColor: highlighted ? "#ff4a15" : "rgba(160,160,160,0.2)",
           boxShadow: highlighted ? "0 0 0 3px rgba(255,74,21,0.12)" : undefined,
           transform: `translateX(${tx}px)`,
