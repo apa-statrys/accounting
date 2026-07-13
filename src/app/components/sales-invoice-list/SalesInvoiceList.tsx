@@ -16,6 +16,7 @@ import { Search } from "../Search";
 import { CreditNoteDetailPage } from "../CreditNoteDetailPage";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { INVOICES } from "../../data/invoices";
+import { SHOW_RECURRING } from "../../lib/flags";
 import { FONT } from "../../lib/theme";
 import type { CreditNote, DetailStatus, Invoice, Status } from "../../types";
 import { InvoiceCard } from "./InvoiceCard";
@@ -120,7 +121,9 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
   const recentRow: Invoice | null = recent
     ? { id: "recent-new", client: recent.client, meta: recent.meta, amount: recent.amount, status: recent.status, date: TODAY_ISO, recurring: recent.recurring }
     : null;
-  const allRows = useMemo(() => (recentRow ? [recentRow, ...INVOICES] : INVOICES), [recentRow?.client, recentRow?.amount, recentRow?.status, recentRow?.recurring]);
+  // Recurring invoices (DES-782) are gated off for prod — drop them from the list when hidden.
+  const baseInvoices = useMemo(() => (SHOW_RECURRING ? INVOICES : INVOICES.filter((i) => !i.recurring)), []);
+  const allRows = useMemo(() => (recentRow ? [recentRow, ...baseInvoices] : baseInvoices), [recentRow?.client, recentRow?.amount, recentRow?.status, recentRow?.recurring, baseInvoices]);
   // Drafts removed via swipe-to-delete are hidden locally; deletion goes through a confirm sheet.
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);

@@ -4,6 +4,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { FileText, Repeat } from "lucide-react";
 import { CREDIT_NOTES } from "../../data/creditNotes";
+import { SHOW_CREDIT_NOTES } from "../../lib/flags";
 import { STATUS_PILL } from "../../lib/status";
 import { FONT } from "../../lib/theme";
 import type { Invoice } from "../../types";
@@ -18,8 +19,10 @@ export function InvoiceCard({ inv, highlighted, onClick, onDelete, onOpenCN, ref
   const isDraft = inv.status === "Draft";
   // Linked credit note (DES-763): refund-type CNs surface a derived refund state. A refund completed
   // in-session (refundOverride) wins → "Partially Refunded" / "Refunded".
-  const linkedCn = inv.cnNo ? CREDIT_NOTES.find((c) => c.no === inv.cnNo) : undefined;
-  const refundChip = refundOverride === "full" ? "Refunded"
+  // Credit notes (DES-719/763) are gated off for prod — no linked CN, refund chip, or CN summary row.
+  const linkedCn = SHOW_CREDIT_NOTES && inv.cnNo ? CREDIT_NOTES.find((c) => c.no === inv.cnNo) : undefined;
+  const refundChip = !SHOW_CREDIT_NOTES ? undefined
+    : refundOverride === "full" ? "Refunded"
     : refundOverride === "partial" ? "Partially Refunded"
     : linkedCn?.status === "Pending Refund" ? "Refund pending"
     : linkedCn?.status === "Refunded" ? "Refunded"
@@ -34,7 +37,7 @@ export function InvoiceCard({ inv, highlighted, onClick, onDelete, onOpenCN, ref
   // Any invoice with a linked credit note shows a credit-note summary row beneath (DES-763 AC6): count +
   // amount + "View". The top amount stays the invoice total, consistent with every other card. The amount
   // label reads "Refund amount" for refund credit notes, "Credited amount" for cancellation/partial credits.
-  const hasCn = Boolean(inv.cnNo);
+  const hasCn = SHOW_CREDIT_NOTES && Boolean(inv.cnNo);
   const cnAmountStr = linkedCn
     ? `$${linkedCn.original.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     : inv.amount;

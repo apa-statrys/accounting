@@ -7,6 +7,7 @@ import AddIcon from "@mui/icons-material/Add";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import { BottomSheet } from "../BottomSheet";
 import { FONT, INK } from "../../lib/theme";
+import { SHOW_CREDIT_NOTES } from "../../lib/flags";
 import type { DetailStatus } from "../../types";
 
 interface ActionsMenuProps {
@@ -49,7 +50,7 @@ export function ActionsMenu({
 
         {/* Plain Paid invoice (no refund yet) → start a refund with a credit note (DES-720). Once a refund
             is in progress, this drops out and the ⋯ shows Duplicate invoice instead. */}
-        {status === "Paid" && creditNotesCount === 0 && (
+        {SHOW_CREDIT_NOTES && status === "Paid" && creditNotesCount === 0 && (
           <button
             onClick={onRefundWithCn}
             className="w-full flex items-center gap-3 py-3.5 text-left"
@@ -84,7 +85,7 @@ export function ActionsMenu({
 
         {/* First credit note only — once one exists, adding more moves to the "+ Add credit note"
             button in the Credit notes card (relabelling avoids the misleading "Cancel" wording). */}
-        {cancellable && creditNotesCount === 0 && (
+        {SHOW_CREDIT_NOTES && cancellable && creditNotesCount === 0 && (
           <button
             onClick={onCreateCn}
             className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]"

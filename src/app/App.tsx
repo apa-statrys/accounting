@@ -812,6 +812,9 @@ export default function App() {
         />
       )}
 
+      {/* Dev-only screen jumper — never ships (any build sets import.meta.env.DEV to false), so it
+          can't expose gated screens (credit notes / recurring) on Vercel. */}
+      {import.meta.env.DEV && (
       <QuickNav
         current={screen}
         onChange={(s) => {
@@ -827,6 +830,7 @@ export default function App() {
         scenario={heroScenario}
         onScenario={setHeroScenario}
       />
+      )}
     </div>
   );
 }

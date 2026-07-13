@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 import { FinanceBottomNav } from "./FinanceBottomNav";
 
 import { FONT, INK, MUTED } from "../lib/theme";
+import { SHOW_CREDIT_NOTES } from "../lib/flags";
 
 interface AccountingHubProps {
   /** Back to the dashboard (the Hub is a reachable menu, not the landing). */
@@ -72,7 +73,8 @@ function EntryCard({ items }: { items: EntryDef[] }) {
 export function AccountingHub({ onOpenSalesInvoices, onOpenCreditNotes, onOpenCustomers, onOpenPurchaseInvoices }: AccountingHubProps) {
   const sales: EntryDef[] = [
     { id: "sales-invoices", label: "Sales Invoices", onClick: onOpenSalesInvoices },
-    { id: "credit-notes", label: "Credit Notes", onClick: onOpenCreditNotes },
+    // Credit Notes (DES-719/763) are gated off for prod — visible on localhost only.
+    ...(SHOW_CREDIT_NOTES ? [{ id: "credit-notes", label: "Credit Notes", onClick: onOpenCreditNotes }] : []),
     { id: "customers", label: "Customers", onClick: onOpenCustomers },
   ];
 

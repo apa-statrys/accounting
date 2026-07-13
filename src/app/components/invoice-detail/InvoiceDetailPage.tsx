@@ -18,6 +18,7 @@ import { ShareLinkSheet } from "../ShareLinkSheet";
 import { InvoicePreviewPage } from "../InvoicePreviewPage";
 import { SendSuccessToast } from "../SendSuccessToast";
 import { getAccount, RECEIVING_ACCOUNTS } from "../../data/receivingAccounts";
+import { SHOW_CREDIT_NOTES, SHOW_RECURRING } from "../../lib/flags";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { money } from "../../lib/format";
 import { DETAIL_STATUS_META } from "../../lib/status";
@@ -656,8 +657,9 @@ export function InvoiceDetailPage({
           </div>
         </InfoCard>
 
-        {/* Credits Applied — sits above the customer/details for any invoice with a credit note (DES-763). */}
-        {creditNotes.length > 0 && (
+        {/* Credits Applied — sits above the customer/details for any invoice with a credit note (DES-763).
+            Gated off for prod (SHOW_CREDIT_NOTES). */}
+        {SHOW_CREDIT_NOTES && creditNotes.length > 0 && (
           <CreditsAppliedSection
             creditNotes={creditNotes}
             isRefundContext={isRefundContext}
@@ -673,8 +675,8 @@ export function InvoiceDetailPage({
           />
         )}
 
-        {/* Recurring series (DES-782) — tap to open the series detail (Pause / Resume / Cancel live there). */}
-        {recurring && (
+        {/* Recurring series (DES-782) — tap to open the series detail. Gated off for prod (SHOW_RECURRING). */}
+        {SHOW_RECURRING && recurring && (
           <button
             type="button"
             onClick={onOpenSeries}

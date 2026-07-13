@@ -2,10 +2,8 @@ import { FilePlus2, Upload, Repeat } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 import { FONT, INK, MUTED } from "../lib/theme";
+import { SHOW_RECURRING } from "../lib/flags";
 const BRAND = "#ff4a15";
-
-/** Recurring invoices (DES-782) are built but hidden from the Create sheet for now — flip to re-enable. */
-const SHOW_RECURRING = false;
 
 /** Shared open/close motion — matches the app's standard bottom-sheet animation. */
 const backdrop = { closed: { opacity: 0 }, open: { opacity: 1 } };

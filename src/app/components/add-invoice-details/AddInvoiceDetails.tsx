@@ -39,6 +39,7 @@ import { EXISTING_INVOICES } from "../../data/extraction";
 import { formatAccount, getAccount } from "../../data/receivingAccounts";
 import { convert } from "../../lib/currency";
 import { EMAIL_RE } from "../../lib/format";
+import { SHOW_RECURRING } from "../../lib/flags";
 import type { Customer, ExistingInvoice, ExtractedInvoice, ServiceLine } from "../../types";
 import { CoverageBanner, DuplicateBanner, ExtractionFailedBanner } from "./Banners";
 import { ExistingInvoiceSheet } from "./ExistingInvoiceSheet";
@@ -178,7 +179,8 @@ export function AddInvoiceDetails({
   const [recurringOn, setRecurringOn] = useState(recurring && !isExtracted);
   const isRecurring = editingSeries || (recurringOn && !isExtracted);
   // The recurring card shows on a fresh create, or when editing a recurring draft (isEditing && recurring).
-  const canToggleRecurring = !isExtracted && !editingSeries && (!isEditing || recurring);
+  // Gated off for prod (SHOW_RECURRING).
+  const canToggleRecurring = SHOW_RECURRING && !isExtracted && !editingSeries && (!isEditing || recurring);
 
   // Step 5 (Qonto-style): try to match the OCR'd customer to an existing client.
   const autoMatch = useMemo(() => {

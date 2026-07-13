@@ -8,6 +8,7 @@ import { CreateInvoiceSheet } from "./CreateInvoiceSheet";
 import { Button } from "./Buttons";
 
 import { FONT, INK } from "../lib/theme";
+import { SHOW_CREDIT_NOTES } from "../lib/flags";
 const GREEN = "#006a1d";
 
 /** Peer-benchmark note shown under the hero card in every scenario. */
@@ -347,8 +348,9 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
         <SectionHead title="RECENT INVOICES" onViewAll={onOpenInvoices} />
         <div className="flex flex-col gap-2">
           <RecentInvoiceCard
-            client="Marlow & Finch Studio" number="INV-2026-000006" meta="Paid on 20 Jun 2026" amount="$6,345.00" status="Refund Pending"
-            creditNote={{ count: 1, label: "Refund amount", amount: "$2,450.00" }}
+            client="Marlow & Finch Studio" number="INV-2026-000006" meta="Paid on 20 Jun 2026" amount="$6,345.00"
+            status={SHOW_CREDIT_NOTES ? "Refund Pending" : "Paid"}
+            creditNote={SHOW_CREDIT_NOTES ? { count: 1, label: "Refund amount", amount: "$2,450.00" } : undefined}
             onClick={() => onOpenInvoice?.({ number: "INV-2026-000006", client: "Marlow & Finch Studio", status: "Paid", origin: "created" })}
             onOpenCN={() => onOpenInvoice?.({ number: "INV-2026-000006", client: "Marlow & Finch Studio", status: "Paid", origin: "created" })}
           />
