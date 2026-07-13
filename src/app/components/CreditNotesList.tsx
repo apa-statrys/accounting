@@ -10,6 +10,7 @@ import StatusBar from "./StatusBar";
 import { Search } from "./Search";
 import { SheetHeader, HeaderIconButton } from "./SheetHeader";
 import { BottomSheet } from "./BottomSheet";
+import { ButtonDock } from "./ButtonDock";
 import { CreditNoteDetailPage } from "./CreditNoteDetailPage";
 import { CreditNoteForm } from "./credit-note-form/CreditNoteForm";
 import type { CreditNotePayload, DraftLine } from "../types";
@@ -238,8 +239,25 @@ export function CreditNotesList({ onBack, onOpenInvoice }: CreditNotesListProps)
         </div>
       </BottomSheet>
 
-      {/* Filters sheet — by customer */}
-      <BottomSheet open={filterOpen} title="Filters" onClose={() => setFilterOpen(false)}>
+      {/* Filters sheet — same interaction as the Sales Invoice List: a Reset + "Show N credit notes"
+          dock appears once any filter is active. */}
+      <BottomSheet
+        open={filterOpen}
+        title="Filters"
+        onClose={() => setFilterOpen(false)}
+        footer={
+          activeFilterCount === 0 ? undefined : (
+            <ButtonDock
+              type="double"
+              secondaryLabel="Reset"
+              primaryLabel={`Show ${list.length} ${list.length === 1 ? "credit note" : "credit notes"}`}
+              onSecondary={() => { setSelectedCustomers([]); setIssueFrom(""); setIssueTo(""); setCustomerQuery(""); }}
+              onPrimary={() => setFilterOpen(false)}
+              homeIndicator
+            />
+          )
+        }
+      >
         <div className="flex flex-col gap-2">
           {/* CN issue date range (DES-818) — same native date inputs as the Sales Invoice List filter. */}
           <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0]" style={FONT}>Credit Issue Date</p>
@@ -271,9 +289,6 @@ export function CreditNotesList({ onBack, onOpenInvoice }: CreditNotesListProps)
               />
             </div>
           </div>
-          {(issueFrom || issueTo) && (
-            <button onClick={() => { setIssueFrom(""); setIssueTo(""); }} className="self-start text-[13px] font-medium text-[#ff4a15] pt-1" style={FONT}>Clear dates</button>
-          )}
 
           <div className="flex items-center justify-between mt-4">
             <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0]" style={FONT}>Customer</p>
@@ -315,9 +330,6 @@ export function CreditNotesList({ onBack, onOpenInvoice }: CreditNotesListProps)
               </button>
             );
           })}
-          {selectedCustomers.length > 0 && (
-            <button onClick={() => setSelectedCustomers([])} className="self-start text-[13px] font-medium text-[#ff4a15] pt-1" style={FONT}>Clear customers</button>
-          )}
         </div>
       </BottomSheet>
 
