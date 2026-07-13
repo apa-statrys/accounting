@@ -24,8 +24,7 @@ export function InvoiceCard({ inv, highlighted, onClick, onDelete, onOpenCN, ref
   const refundChip = !SHOW_CREDIT_NOTES ? undefined
     : refundOverride === "full" ? "Refunded"
     : refundOverride === "partial" ? "Partially Refunded"
-    : linkedCn?.status === "Pending Refund" ? "Refund pending"
-    : linkedCn?.status === "Refunded" ? "Refunded"
+    : linkedCn?.kind === "refund" ? "Refund pending"
     : undefined;
   // A refunded/pending invoice stays "Paid", but the right-side pill shows the refund state as the
   // primary status (mirrors the detail page) — the paid date moves into the meta line, so no duplication.

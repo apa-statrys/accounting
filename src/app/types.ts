@@ -143,7 +143,10 @@ export interface ServiceLine {
  *    create; no separate apply step). Legacy Open / Partially Applied / Fully Applied are retained for
  *    the register/list data until that's migrated.
  *  • Refund credit note (DES-720) — money lifecycle: Pending Refund → Refunded. */
-export type CNStatus = "Draft" | "Applied" | "Open" | "Partially Applied" | "Fully Applied" | "Pending Refund" | "Partially Refunded" | "Refunded" | "Cancelled";
+// Credit Notes List register statuses (DES-818, aligned with DES-719): a credit note is a Draft until
+// confirmed, Applied once created against its invoice, or Cancelled if voided. (Refund lifecycle states
+// live on the invoice-detail side per DES-720/721, not in this list.)
+export type CNStatus = "Draft" | "Applied" | "Cancelled";
 
 export interface CreditNote {
   no: string;

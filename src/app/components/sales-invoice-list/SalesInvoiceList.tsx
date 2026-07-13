@@ -138,7 +138,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
     const amt = inv.cnAmount ?? amountValue(inv.amount);
     setCnPreviewSent(!!inv.cnSent);
     setCnPreviewInvoiceTotal(amountValue(inv.amount));
-    setCnPreview(found ?? { no: inv.cnNo, customer: inv.client, email: "", invoiceNo: inv.id.replace(/[a-z]$/, ""), original: amt, invoiceTotal: amountValue(inv.amount), applied: 0, kind: "cancellation", status: "Open", date: "", reason: "" });
+    setCnPreview(found ?? { no: inv.cnNo, customer: inv.client, email: "", invoiceNo: inv.id.replace(/[a-z]$/, ""), original: amt, invoiceTotal: amountValue(inv.amount), applied: amt, kind: "cancellation", status: "Applied", date: "", reason: "" });
   };
   const allInvoices = useMemo(() => allRows.filter((inv) => !deletedIds.includes(inv.id)), [allRows, deletedIds]);
 
@@ -290,11 +290,10 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
         }}
       />
 
-      {/* CN badge → the linked credit note's detail (DES-763 AC6), with its real data. */}
+      {/* CN badge → the linked credit note's detail (DES-818 AC4). Always the normal credit-note detail
+          (Credit to / Credited items), consistent with the Credit Notes List — refund-specific framing
+          lives in the invoice-detail flow (DES-720/721), reachable via Related Invoice. */}
       {cnPreview && (() => {
-        const done = refundState?.[cnPreview.invoiceNo];
-        const eff = done === "full" ? "Refunded" : done === "partial" ? "Partially Refunded" : cnPreview.status;
-        const kind = cnPreview.kind;
         return (
           <div className="absolute inset-0 z-50">
             <CreditNoteDetailPage
@@ -306,10 +305,10 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
               currency="USD"
               total={cnPreview.original}
               invoiceTotal={cnPreviewInvoiceTotal}
-              lines={[{ name: kind === "refund" ? "Refund amount" : "Credited amount", amount: cnPreview.original, original: cnPreviewInvoiceTotal }]}
+              lines={[{ name: "Credited amount", amount: cnPreview.original, original: cnPreviewInvoiceTotal }]}
               reason={cnPreview.reason}
-              kind={kind}
-              status={eff}
+              kind="cancellation"
+              status={cnPreview.status}
               sent={cnPreviewSent}
               onBack={() => setCnPreview(null)}
               onViewInvoice={() => {

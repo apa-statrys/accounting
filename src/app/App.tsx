@@ -8,6 +8,7 @@ import { CustomerList } from "./components/CustomerList";
 import { CustomerDetailPage } from "./components/CustomerDetailPage";
 import { AddCustomerPage } from "./components/AddCustomerPage";
 import { CREDIT_NOTES } from "./data/creditNotes";
+import { INVOICES } from "./data/invoices";
 import { InvoiceDetailPage } from "./components/invoice-detail/InvoiceDetailPage";
 import { CreditNoteForm } from "./components/credit-note-form/CreditNoteForm";
 import { CreateSalesInvoice } from "./components/CreateSalesInvoice";
@@ -318,7 +319,26 @@ export default function App() {
       )}
 
       {screen === "creditNotes" && (
-        <CreditNotesList refundState={refundState} onBack={() => setScreen("hub")} />
+        <CreditNotesList
+          refundState={refundState}
+          onBack={() => setScreen("hub")}
+          onOpenInvoice={(no) => {
+            // Open the CN's related invoice; look it up in the register (ids may carry an a/b suffix).
+            const inv = INVOICES.find((i) => i.id === no || i.id.startsWith(no));
+            if (!inv) return;
+            setOpenInvoice({
+              number: no,
+              client: inv.client,
+              status: inv.status as DetailStatus,
+              origin: (inv.origin as "created" | "uploaded") ?? "created",
+              cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent, recurring: inv.recurring,
+            });
+            setDetailFlash(null);
+            setEditFromDuplicate(false);
+            setDetailReturn("creditNotes"); // back from the invoice returns to the Credit Notes List
+            setScreen("invoiceDetail");
+          }}
+        />
       )}
 
       {screen === "customers" && (
@@ -493,9 +513,10 @@ export default function App() {
             // A refund completed in-session this run wins (Partially Refunded / Refunded).
             const done = refundState[openInvoice.number];
             if (done) return done === "full" ? "Refunded" : "Partially Refunded";
-            // Otherwise the derived tag (763 model): a Paid invoice whose linked CN is a refund.
+            // Otherwise the derived tag: a Paid invoice whose linked CN is a refund reads as pending until
+            // an in-session refund settles it (the register no longer carries refund lifecycle states).
             const cn = CREDIT_NOTES.find((c) => c.no === openInvoice.cnNo);
-            return cn?.status === "Refunded" ? "Refunded" : cn?.status === "Pending Refund" ? "Refund pending" : undefined;
+            return cn?.kind === "refund" ? "Refund pending" : undefined;
           })()}
           onRefunded={(no, result) => setRefundState((s) => ({ ...s, [no]: result }))}
           flashToast={detailFlash ?? undefined}

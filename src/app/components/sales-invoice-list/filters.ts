@@ -185,8 +185,7 @@ export function refundStateOf(inv: Invoice, refundState?: Record<string, "partia
   if (ov === "full") return "full";
   if (ov === "partial") return "partial";
   const cn = inv.cnNo ? CREDIT_NOTES.find((c) => c.no === inv.cnNo) : undefined;
-  if (cn?.status === "Pending Refund") return "awaiting";
-  if (cn?.status === "Refunded") return "full";
+  if (cn?.kind === "refund") return "awaiting";
   return undefined;
 }
 /** Multi-select: an empty selection = no refund filter; otherwise the invoice must match ANY selected state. */

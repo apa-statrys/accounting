@@ -16,13 +16,11 @@ import type { CNStatus, CreditNote } from "../types";
 
 import { FONT } from "../lib/theme";
 
+// DES-818 status palette — Draft (grey) / Applied (green) / Cancelled (muted grey). Matches the chip
+// palette on CreditNoteDetailPage so the list and detail read the same.
 const STATUS_PILL: Record<CNStatus, { bg: string; border: string; text: string }> = {
-  Open: { bg: "#eef4ff", border: "#c7d8fe", text: "#2f5fd0" },
-  "Partially Applied": { bg: "#fff7e6", border: "#fde68a", text: "#b45309" },
-  "Fully Applied": { bg: "#ecfdf3", border: "#abefc6", text: "#067647" },
-  "Pending Refund": { bg: "#fff7e6", border: "#fde68a", text: "#b45309" },
-  "Partially Refunded": { bg: "#eef4ff", border: "#c7d8fe", text: "#2f5fd0" },
-  Refunded: { bg: "#eef2ff", border: "#c7d2fe", text: "#4338ca" },
+  Draft: { bg: "#f2f4f7", border: "#e4e7ec", text: "#475467" },
+  Applied: { bg: "#ecfdf3", border: "#abefc6", text: "#067647" },
   Cancelled: { bg: "#f3f3f3", border: "rgba(160,160,160,0.35)", text: "#9a9a9a" },
 };
 
@@ -31,12 +29,8 @@ const money = (n: number) => `USD ${n.toLocaleString("en-US", { minimumFractionD
 type StatusMatch = "all" | CNStatus;
 const FILTERS: { label: string; match: StatusMatch }[] = [
   { label: "All", match: "all" },
-  { label: "Open", match: "Open" },
-  { label: "Partially Applied", match: "Partially Applied" },
-  { label: "Fully Applied", match: "Fully Applied" },
-  { label: "Pending Refund", match: "Pending Refund" },
-  { label: "Partially Refunded", match: "Partially Refunded" },
-  { label: "Refunded", match: "Refunded" },
+  { label: "Draft", match: "Draft" },
+  { label: "Applied", match: "Applied" },
   { label: "Cancelled", match: "Cancelled" },
 ];
 
@@ -53,68 +47,54 @@ const CUSTOMERS = Array.from(new Set(CREDIT_NOTES.map((c) => c.customer)));
 
 interface CreditNotesListProps {
   onBack?: () => void;
-  /** Refunds completed in-session (DES-720), keyed by invoice number. A refunded invoice's credit note
-   *  reads as "Refunded" here (the CN's amount was paid out — "Partially Refunded" is an invoice concept). */
+  /** DES-818 AC1 — open the CN's related invoice (renders the arrow on the detail's Related Invoice row). */
+  onOpenInvoice?: (invoiceNo: string) => void;
+  /** Accepted for call-site compatibility; the list no longer surfaces refund lifecycle states (DES-818
+   *  is Draft/Applied/Cancelled only — refund tracking lives on the invoice-detail side, DES-720/721). */
   refundState?: Record<string, "partial" | "full">;
 }
 
 /**
- * Credit Notes List (DES-763) — the central register, a separate view from the Sales Invoice List but
+ * Credit Notes List (DES-818) — the central register, a separate view from the Sales Invoice List but
  * sharing its layout: status chips (with counts), Sort/Filters row, and the same dashed card rows.
- * Tap → the credit-note document (full View Credit Note = DES-721; Apply-to-invoice = reconciliation, OoS).
+ * Statuses are Draft / Applied / Cancelled. Tap a row → the shared CreditNoteDetailPage, wired with the
+ * same per-status actions as the invoice-detail flow (Draft: Edit/Delete · Applied: Send/Cancel · Cancelled: Preview).
  */
-export function CreditNotesList({ onBack, refundState }: CreditNotesListProps) {
-  // A REFUND credit note whose invoice was refunded in-session reads as "Refunded" (its amount was paid
-  // out). Cancellation credit notes keep their Not sent / Sent status.
-  const effStatus = (cn: CreditNote): CNStatus => {
-    const r = cn.kind === "refund" ? refundState?.[cn.invoiceNo] : undefined;
-    return r ? (r === "partial" ? "Partially Refunded" : "Refunded") : cn.status;
-  };
+export function CreditNotesList({ onBack, onOpenInvoice }: CreditNotesListProps) {
   const [active, setActive] = useState(0);
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [sortOpen, setSortOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
-  // Local register state so Apply/Edit/Send mutate in-session, keeping the LIST entry in sync with the
-  // invoice-detail entry (DES-763: the list can Apply an Open/Partially Applied note and Edit it).
+  // Local register state so Edit / Cancel / Delete / Send mutate in-session.
   const [notes, setNotes] = useState<CreditNote[]>(CREDIT_NOTES);
   const [previewNo, setPreviewNo] = useState<string | null>(null);
   const [editingNo, setEditingNo] = useState<string | null>(null);
   const preview = notes.find((n) => n.no === previewNo) ?? null;
   const setPreview = (cn: CreditNote | null) => setPreviewNo(cn?.no ?? null);
 
-  // Apply an Open/Partially Applied cancellation CN to its invoice (DES-763). The note absorbs as much as
-  // the invoice can take (capped at invoiceTotal); Fully Applied = whole CN offset, else Partially Applied.
-  const applyFromList = (no: string) =>
-    setNotes((prev) => prev.map((c) => {
-      if (c.no !== no) return c;
-      const applied = Math.min(c.original, c.invoiceTotal);
-      // Invoice-centric: Fully Applied only once the invoice is fully covered; else Partially Applied.
-      return { ...c, applied, status: applied >= c.invoiceTotal - 0.001 ? "Fully Applied" : "Partially Applied" };
-    }));
-
-  // Save edits to a register CN (DES-719 AC4) — updates the amount/reason and re-derives the status.
+  // Save edits to a Draft register CN (DES-719 AC4 — only Drafts are editable). Updates the amount/reason;
+  // the note stays a Draft (confirming/applying happens in the invoice-detail flow, not the list).
   const saveFromList = (no: string, p: CreditNotePayload) =>
-    setNotes((prev) => prev.map((c) => {
-      if (c.no !== no) return c;
-      const applied = Math.min(c.applied, p.amount);
-      const status: CNStatus = applied <= 0.001 ? "Open" : applied >= c.invoiceTotal - 0.001 ? "Fully Applied" : "Partially Applied";
-      return { ...c, original: p.amount, reason: p.reason === "Others" ? (p.reasonNote || "Other") : p.reason, applied, status };
-    }));
+    setNotes((prev) => prev.map((c) => (c.no === no ? { ...c, original: p.amount, reason: p.reason, applied: 0 } : c)));
+
+  // DES-818 actions: delete a Draft (row removed, number retired) · cancel an Applied note (full reversal → Cancelled).
+  const deleteFromList = (no: string) => { setNotes((prev) => prev.filter((c) => c.no !== no)); setPreview(null); };
+  const cancelFromList = (no: string) => setNotes((prev) => prev.map((c) => (c.no === no ? { ...c, status: "Cancelled", applied: 0 } : c)));
 
   const counts = useMemo(
-    () => FILTERS.map((f) => (f.match === "all" ? notes.length : notes.filter((c) => effStatus(c) === f.match).length)),
-    [refundState, notes]
+    () => FILTERS.map((f) => (f.match === "all" ? notes.length : notes.filter((c) => c.status === f.match).length)),
+    [notes]
   );
 
   const list = useMemo(() => {
     const match = FILTERS[active].match;
-    let rows = notes.filter((c) => (match === "all" ? true : effStatus(c) === match));
+    let rows = notes.filter((c) => (match === "all" ? true : c.status === match));
     if (selectedCustomers.length) rows = rows.filter((c) => selectedCustomers.includes(c.customer));
     const sorted = [...rows];
     switch (sortKey) {
       case "oldest": return sorted.reverse();
-      case "number": return sorted.sort((a, b) => a.no.localeCompare(b.no));
+      case "number": return sorted.sort((a, b) => b.no.localeCompare(a.no)); // CN number descending (DES-818)
       case "amount-desc": return sorted.sort((a, b) => b.original - a.original);
       case "amount-asc": return sorted.sort((a, b) => a.original - b.original);
       default: return sorted; // newest = authored order
@@ -186,8 +166,7 @@ export function CreditNotesList({ onBack, refundState }: CreditNotesListProps) {
           <p className="text-center text-[13px] text-[#a0a0a0] pt-16" style={FONT}>No credit notes found</p>
         ) : (
           list.map((cn) => {
-            const eff = effStatus(cn);
-            const s = STATUS_PILL[eff];
+            const s = STATUS_PILL[cn.status];
             return (
               <button
                 key={cn.no}
@@ -197,13 +176,14 @@ export function CreditNotesList({ onBack, refundState }: CreditNotesListProps) {
               >
                 <div className="flex-1 min-w-0 flex flex-col gap-1">
                   <p className="text-[16px] font-medium leading-[0.9] tracking-[-0.8px] truncate text-[#101828]" style={FONT}>{cn.customer}</p>
-                  <p className="text-[12px] font-normal leading-[1.3] whitespace-nowrap text-[#808080]" style={FONT}>
-                    <span style={{ fontWeight: 500 }}>{cn.no} · </span>{cn.invoiceNo}
+                  {/* CN number · related invoice · issue date (DES-818 columns) */}
+                  <p className="text-[12px] font-normal leading-[1.3] whitespace-nowrap truncate text-[#808080]" style={FONT}>
+                    <span style={{ fontWeight: 500 }}>{cn.no}</span> · {cn.invoiceNo} · {cn.date}
                   </p>
                 </div>
                 <div className="shrink-0 flex flex-col items-end gap-1">
                   <p className="text-[16px] font-bold leading-[1.3] text-[#101828]" style={FONT}>{money(cn.original)}</p>
-                  <span className="px-2 py-0.5 rounded-full border text-[10px] font-bold leading-[15px] whitespace-nowrap" style={{ ...FONT, background: s.bg, borderColor: s.border, color: s.text }}>{eff}</span>
+                  <span className="px-2 py-0.5 rounded-full border text-[10px] font-bold leading-[15px] whitespace-nowrap" style={{ ...FONT, background: s.bg, borderColor: s.border, color: s.text }}>{cn.status}</span>
                 </div>
               </button>
             );
@@ -252,11 +232,12 @@ export function CreditNotesList({ onBack, refundState }: CreditNotesListProps) {
         </div>
       </BottomSheet>
 
-      {/* CN detail (DES-721) — structured detail page with actions inside; PDF is a secondary preview.
-          Cancellation CNs get Apply/Edit wired (DES-763) so the LIST entry matches the invoice entry. */}
+      {/* Shared CN detail (same component + behaviour as the invoice-detail flow). Wired per DES-818
+          status: Draft → Edit (resume the form) + Delete (⋯) · Applied → Send + Cancel (⋯) · Cancelled →
+          Preview only. Sending persists to the register. */}
       {preview && (() => {
-        const eff = effStatus(preview);
-        const cancellation = preview.kind !== "refund";
+        const isDraft = preview.status === "Draft";
+        const isApplied = preview.status === "Applied";
         return (
           <div className="absolute inset-0 z-50">
             <CreditNoteDetailPage
@@ -269,16 +250,21 @@ export function CreditNotesList({ onBack, refundState }: CreditNotesListProps) {
               total={preview.original}
               invoiceTotal={preview.invoiceTotal}
               receivingAccount={(() => { const a = RECEIVING_ACCOUNTS.find((x) => x.primary) ?? RECEIVING_ACCOUNTS[0]; return { name: a.name, number: a.number, primary: !!a.primary }; })()}
-              // Register carries no line items — synthesize one so the Credited/Refund items card shows here too.
-              lines={[{ name: preview.kind === "refund" ? "Refund amount" : "Credited amount", amount: preview.original, original: preview.invoiceTotal }]}
+              // Register carries no line items — synthesize one so the Credited items card shows here too.
+              lines={[{ name: "Credited amount", amount: preview.original, original: preview.invoiceTotal }]}
               reason={preview.reason}
-              kind={preview.kind}
-              status={eff}
+              // The Credit Notes List always shows the normal credit-note detail (Credit to / Credited items).
+              // Refund-specific framing belongs to the invoice-detail flow (DES-720/721), not here.
+              kind="cancellation"
+              status={preview.status}
               sent={preview.sent}
               onBack={() => setPreview(null)}
-              // DES-763: Apply while Open, Edit while Open/Partially Applied. Sending persists to the register.
-              onApply={cancellation && eff === "Open" ? () => applyFromList(preview.no) : undefined}
-              onEdit={cancellation && (eff === "Open" || eff === "Partially Applied") ? () => setEditingNo(preview.no) : undefined}
+              // Related Invoice row → open that invoice's detail (shows the chevron arrow).
+              onViewInvoice={onOpenInvoice ? () => onOpenInvoice(preview.invoiceNo) : undefined}
+              // Draft → Edit reopens the form. Applied/Cancelled are locked (no edit).
+              onEdit={isDraft ? () => setEditingNo(preview.no) : undefined}
+              // Draft → Delete (row removed); Applied → Cancel (full reversal → Cancelled). Cancelled → none.
+              onCancel={isDraft ? () => deleteFromList(preview.no) : isApplied ? () => cancelFromList(preview.no) : undefined}
               onSent={() => setNotes((prev) => prev.map((c) => (c.no === preview.no ? { ...c, sent: true } : c)))}
             />
           </div>
