@@ -79,10 +79,10 @@ function navFor(screen: Screen): Screen {
 }
 
 /** Screens shown in QuickNav on prod (any build). Localhost (import.meta.env.DEV) shows all. */
-const QUICKNAV_PROD_SCREENS: Screen[] = ["hub", "dashboard", "list"];
+const QUICKNAV_PROD_SCREENS: Screen[] = ["hub", "dashboard", "list", "creditNotes"];
 
 /** Floating menu (bottom-left) that jumps between sections. Full list on localhost; a curated subset
- *  (Menu Hub / Dashboard / Invoice List) on prod. */
+ *  (Menu Hub / Dashboard / Invoice List / Credit Notes List) on prod. */
 function QuickNav({ current, onChange, scenario, onScenario }: { current: Screen; onChange: (s: Screen) => void; scenario: number; onScenario: (i: number) => void }) {
   const [open, setOpen] = useState(false);
   const active = navFor(current);
