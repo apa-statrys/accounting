@@ -23,26 +23,30 @@ interface EntryDef {
   onClick?: () => void;
   /** Flagged not-yet-built so stakeholders see scope at a glance. */
   soon?: boolean;
+  /** Built but not released — shown as "Design in progress" (visible but inert). */
+  wip?: boolean;
 }
 
 /** One tappable entry-point row inside the card (label + chevron, no leading icon). */
-function EntryRow({ label, onClick, soon, last }: EntryDef & { last: boolean }) {
+function EntryRow({ label, onClick, soon, wip, last }: EntryDef & { last: boolean }) {
+  const inert = !onClick;
   return (
     <button
       onClick={onClick}
+      disabled={inert}
       className="w-full flex items-center gap-3.5 px-4 py-4 text-left active:bg-black/[0.02] transition-colors"
       style={last ? undefined : { borderBottom: "1px solid rgba(160,160,160,0.16)" }}
     >
       <span className="flex-1 min-w-0 flex items-center gap-2">
-        <span className="text-[15px] font-medium leading-tight" style={{ ...FONT, color: INK }}>
+        <span className="text-[15px] font-medium leading-tight" style={{ ...FONT, color: wip ? MUTED : INK }}>
           {label}
         </span>
-        {soon && (
+        {(soon || wip) && (
           <span
             className="px-1.5 py-px rounded-full text-[10px] font-semibold leading-[14px]"
             style={{ ...FONT, background: "#f3f3f3", color: MUTED }}
           >
-            Soon
+            {wip ? "Design in progress" : "Soon"}
           </span>
         )}
       </span>
@@ -73,8 +77,9 @@ function EntryCard({ items }: { items: EntryDef[] }) {
 export function AccountingHub({ onOpenSalesInvoices, onOpenCreditNotes, onOpenCustomers, onOpenPurchaseInvoices }: AccountingHubProps) {
   const sales: EntryDef[] = [
     { id: "sales-invoices", label: "Sales Invoices", onClick: onOpenSalesInvoices },
-    // Credit Notes (DES-719/763) are gated off for prod — visible on localhost only.
-    ...(SHOW_CREDIT_NOTES ? [{ id: "credit-notes", label: "Credit Notes", onClick: onOpenCreditNotes }] : []),
+    // Credit Notes (DES-719/763): functional on localhost; on prod it's shown as "Design in progress"
+    // (visible but inert) so stakeholders see it's coming without reaching the unfinished flow.
+    { id: "credit-notes", label: "Credit Notes", onClick: SHOW_CREDIT_NOTES ? onOpenCreditNotes : undefined, wip: !SHOW_CREDIT_NOTES },
     { id: "customers", label: "Customers", onClick: onOpenCustomers },
   ];
 

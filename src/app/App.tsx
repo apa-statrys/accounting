@@ -77,10 +77,18 @@ function navFor(screen: Screen): Screen {
   return screen === "details" ? "customer" : screen;
 }
 
-/** Dev-only floating menu (bottom-left) that opens a list of sections to jump to. */
+/** Screens shown in QuickNav on prod (any build). Localhost (import.meta.env.DEV) shows all. */
+const QUICKNAV_PROD_SCREENS: Screen[] = ["hub", "dashboard", "list"];
+
+/** Floating menu (bottom-left) that jumps between sections. Full list on localhost; a curated subset
+ *  (Menu Hub / Dashboard / Invoice List) on prod. */
 function QuickNav({ current, onChange, scenario, onScenario }: { current: Screen; onChange: (s: Screen) => void; scenario: number; onScenario: (i: number) => void }) {
   const [open, setOpen] = useState(false);
   const active = navFor(current);
+  // On prod, filter each group to the allowed screens and drop groups left empty.
+  const groups = NAV_GROUPS
+    .map((g) => ({ ...g, items: g.items.filter((it) => import.meta.env.DEV || QUICKNAV_PROD_SCREENS.includes(it.id)) }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start gap-3">
@@ -102,7 +110,7 @@ function QuickNav({ current, onChange, scenario, onScenario }: { current: Screen
             </div>
 
             <div className="p-2 flex flex-col gap-3">
-              {NAV_GROUPS.map((group) => (
+              {groups.map((group) => (
                 <div key={group.heading} className="flex flex-col gap-1.5">
                   <p className="px-2 pt-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">{group.heading}</p>
                   {group.items.map((page) => {
@@ -127,8 +135,8 @@ function QuickNav({ current, onChange, scenario, onScenario }: { current: Screen
                           <ChevronRight size={18} className={isActive ? "text-white shrink-0" : "text-gray-400 shrink-0"} />
                         </button>
 
-                        {/* Dashboard hero demo states — nested under Dashboard */}
-                        {page.id === "dashboard" && (
+                        {/* Dashboard hero demo states — nested under Dashboard (dev/localhost only). */}
+                        {import.meta.env.DEV && page.id === "dashboard" && (
                           <div className="ml-4 flex flex-col gap-0.5 border-l border-gray-200 pl-2">
                             {HERO_SCENARIOS.map((s, i) => (
                               <button
@@ -812,9 +820,8 @@ export default function App() {
         />
       )}
 
-      {/* Dev-only screen jumper — never ships (any build sets import.meta.env.DEV to false), so it
-          can't expose gated screens (credit notes / recurring) on Vercel. */}
-      {import.meta.env.DEV && (
+      {/* Screen jumper. On prod (any build) it's limited to Menu Hub / Dashboard / Invoice List and
+          the dev scenario switchers are hidden; on localhost it shows every screen. */}
       <QuickNav
         current={screen}
         onChange={(s) => {
@@ -830,7 +837,6 @@ export default function App() {
         scenario={heroScenario}
         onScenario={setHeroScenario}
       />
-      )}
     </div>
   );
 }
