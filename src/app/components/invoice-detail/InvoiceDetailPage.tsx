@@ -386,13 +386,18 @@ export function InvoiceDetailPage({
     draftLines: p.draftLines, issueDate: p.issueDate, sent: false,
   });
 
-  // Void an OPEN (never-applied) credit note (DES-763) — it never touched the invoice, so just remove it.
+  // Cancel a credit note (DES-719) — keep it as a Cancelled RECORD and fully reverse its effect on the
+  // invoice. Stays on the CN detail, which re-renders as Cancelled (Preview-only, no ⋯).
   const voidCreditNote = (index: number) => {
-    // Keep the note as a Cancelled RECORD (don't delete). It was never applied (Open / Pending Refund), so
-    // the invoice is unaffected — we stay on the CN detail, now showing the Cancelled state.
     setCreditNotes((prev) => prev.map((c, i) => (i === index ? { ...c, cancelled: true, applied: 0 } : c)));
-    // Cancelling the last live pending-refund note reverts the invoice Pending Refund → Paid.
-    if (isRefundContext && !creditNotes.some((c, i) => i !== index && !c.cancelled)) setStatus("Paid");
+    if (isRefundContext) {
+      // Cancelling the last live pending-refund note reverts the invoice Pending Refund → Paid.
+      if (!creditNotes.some((c, i) => i !== index && !c.cancelled)) setStatus("Paid");
+    } else {
+      // A cancellation CN reversal restores the invoice it had voided (or settled from Partially Paid).
+      if (status === "Cancelled") setStatus("Awaiting");
+      else if (status === "Paid" && paidAmount > 0.001) setStatus("PartiallyPaid");
+    }
     setLocalToast(isRefundContext ? "Refund cancelled" : "Credit note cancelled");
   };
 
@@ -434,23 +439,25 @@ export function InvoiceDetailPage({
     setLocalToast("Credit note created");
   };
 
-  // Apply a credit note to its linked invoice (DES-763). Offsets the invoice outstanding by as much of the
-  // note as it can absorb; the note becomes Fully Applied (all consumed) or Partially Applied (leftover).
-  // When the applied credit fully covers the invoice, the invoice is Cancelled.
-  const applyCnToInvoice = (index: number) => {
+  // Apply a Draft credit note to the invoice from its detail page (DES-719): clears the draft flag,
+  // offsets the invoice, and lands back on the invoice detail showing it as Applied.
+  const applyDraft = (index: number) => {
     const cn = creditNotes[index];
     const otherApplied = creditNotes.reduce((s, c, i) => s + (i === index ? 0 : (c.applied ?? 0)), 0);
-    // Credit against the UNPAID remainder (creditBase = TOTAL − paidAmount), so a Partially-Paid invoice
-    // can be credited for what's still owed.
-    const invOutstanding = creditBase - otherApplied;
-    const remainingCn = cn.amount - (cn.applied ?? 0);
-    const delta = Math.min(remainingCn, invOutstanding);
-    const newCnApplied = (cn.applied ?? 0) + delta;
-    setCreditNotes((prev) => prev.map((c, i) => (i === index ? { ...c, applied: newCnApplied } : c)));
-    // Fully credited: an unpaid invoice → Cancelled; a Partially-Paid one → Paid (paid + credited = total).
-    if (otherApplied + newCnApplied >= creditBase - 0.001) setStatus(status === "PartiallyPaid" ? "Paid" : "Cancelled");
+    const applied = Math.min(cn.amount, creditBase - otherApplied);
+    setCreditNotes((prev) => prev.map((c, i) => (i === index ? { ...c, applied, draft: false } : c)));
+    if (otherApplied + applied >= creditBase - 0.001) setStatus(status === "PartiallyPaid" ? "Paid" : "Cancelled");
+    setViewingCnIndex(null);
     setLocalToast("Credit note applied");
   };
+
+  // Delete a Draft credit note (DES-719) — removes the record and returns to the invoice detail.
+  const deleteDraft = (index: number) => {
+    setCreditNotes((prev) => prev.filter((_, i) => i !== index));
+    setViewingCnIndex(null);
+    setLocalToast("Draft deleted");
+  };
+
 
   // Refund-method outcome (DES-720 AC3–AC5). Statrys BA hands off to the BA payment flow (out of scope →
   // stub: a toast; the invoice stays Pending Refund until the transfer auto-reconciles). "Mark as already
@@ -663,13 +670,12 @@ export function InvoiceDetailPage({
           <CreditsAppliedSection
             creditNotes={creditNotes}
             isRefundContext={isRefundContext}
-            cancellable={cancellable}
             fullyRefunded={fullyRefunded}
             outstanding={outstanding}
             expanded={cnExpanded}
             onExpand={() => setCnExpanded(true)}
-            onViewCn={(i) => (creditNotes[i]?.draft ? resumeDraft(i) : setViewingCnIndex(i))}
-            onAddCredit={() => { setResumeDraftIndex(null); setCreditFormOpen(true); }}
+            // Tapping any credit note (Draft or Applied) opens its detail page — never the editor.
+            onViewCn={setViewingCnIndex}
             onAddRefund={() => setRefundFormOpen(true)}
             onPreviewProof={setProofPreview}
           />
@@ -957,7 +963,9 @@ export function InvoiceDetailPage({
         scheduledRecurring={scheduledRecurring}
         terminal={terminal}
         cancellable={cancellable}
-        creditNotesCount={creditNotes.length}
+        // Count only ACTIVE notes — a cancelled note is a retired record, so a new CN can be raised
+        // again after cancelling (DES-719).
+        creditNotesCount={creditNotes.filter((c) => !c.cancelled).length}
         onRefundWithCn={() => { setActionsOpen(false); setRefundFormOpen(true); }}
         onSendInvoice={() => { setActionsOpen(false); setSendSheetOpen(true); }}
         onEdit={openEdit}
@@ -1049,7 +1057,9 @@ export function InvoiceDetailPage({
         // full invoice) or Partially Refunded (refund < invoice total). Cancellation CN (DES-719,
         // single-invoice) → simply "Applied" (applied on create; no Open/Partially/Fully split).
         const through = creditNotes.slice(0, viewingCnIndex + 1).reduce((s, c) => s + c.amount, 0);
-        const cnStatus = cn.cancelled
+        const cnStatus = cn.draft
+          ? "Draft"
+          : cn.cancelled
           ? "Cancelled"
           : isRefundContext
           ? (through > refundedOut + 0.001 ? "Pending Refund" : refundedOut >= TOTAL - 0.001 ? "Refunded" : "Partially Refunded")
@@ -1079,11 +1089,29 @@ export function InvoiceDetailPage({
               onViewInvoice={() => setViewingCnIndex(null)}
               // AC4: sending happens inside the detail page's own send flow; persist the sent state here.
               onSent={() => setCreditNotes((prev) => prev.map((c, i) => (i === viewingCnIndex ? { ...c, sent: true, sentDate: SENT_TODAY } : c)))}
-              // DES-763 (cancellation CNs): Apply + Void only while Open; Edit at any application status.
-              // DES-720 (refund CNs): Edit + Cancel while Pending Refund (until the refund is transferred).
-              onApply={!isRefundContext && cnStatus === "Open" ? () => applyCnToInvoice(viewingCnIndex) : undefined}
-              onEdit={!cn.cancelled && (!isRefundContext || cnStatus === "Pending Refund") ? () => { const i = viewingCnIndex; setViewingCnIndex(null); setEditingCnIndex(i); } : undefined}
-              onCancel={!cn.cancelled && ((!isRefundContext && cnStatus === "Open") || (isRefundContext && cnStatus === "Pending Refund")) ? () => voidCreditNote(viewingCnIndex) : undefined}
+              // DES-719 (cancellation CNs): a DRAFT can be Applied to the invoice, Edited (resume the
+              // form), or Deleted; an Applied note is view/send only. DES-720 refund CNs: Edit + Cancel
+              // while Pending Refund (until the refund is transferred).
+              onApply={cn.draft ? () => applyDraft(viewingCnIndex) : undefined}
+              onEdit={
+                cn.draft
+                  ? () => { const i = viewingCnIndex; setViewingCnIndex(null); resumeDraft(i); }
+                  : (isRefundContext && cnStatus === "Pending Refund" && !cn.cancelled)
+                  ? () => { const i = viewingCnIndex; setViewingCnIndex(null); setEditingCnIndex(i); }
+                  : undefined
+              }
+              onCancel={
+                cn.cancelled
+                  ? undefined
+                  : cn.draft
+                  ? () => deleteDraft(viewingCnIndex)
+                  : cnStatus === "Applied"
+                  ? () => voidCreditNote(viewingCnIndex)
+                  : (isRefundContext && cnStatus === "Pending Refund")
+                  ? () => voidCreditNote(viewingCnIndex)
+                  : undefined
+              }
+              receivingAccount={{ name: receivingAcct.name, number: receivingAcct.number, primary: !!receivingAcct.primary }}
             />
           </div>
         );

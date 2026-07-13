@@ -11,6 +11,7 @@ import { CreditNoteDetailPage } from "./CreditNoteDetailPage";
 import { CreditNoteForm } from "./credit-note-form/CreditNoteForm";
 import type { CreditNotePayload, DraftLine } from "../types";
 import { CREDIT_NOTES } from "../data/creditNotes";
+import { RECEIVING_ACCOUNTS } from "../data/receivingAccounts";
 import type { CNStatus, CreditNote } from "../types";
 
 import { FONT } from "../lib/theme";
@@ -267,6 +268,7 @@ export function CreditNotesList({ onBack, refundState }: CreditNotesListProps) {
               currency="USD"
               total={preview.original}
               invoiceTotal={preview.invoiceTotal}
+              receivingAccount={(() => { const a = RECEIVING_ACCOUNTS.find((x) => x.primary) ?? RECEIVING_ACCOUNTS[0]; return { name: a.name, number: a.number, primary: !!a.primary }; })()}
               // Register carries no line items — synthesize one so the Credited/Refund items card shows here too.
               lines={[{ name: preview.kind === "refund" ? "Refund amount" : "Credited amount", amount: preview.original, original: preview.invoiceTotal }]}
               reason={preview.reason}

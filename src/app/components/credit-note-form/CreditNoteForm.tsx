@@ -19,6 +19,7 @@ import { fmtAmount, formatDMY, lineAmount } from "./lineMath";
 import { ReasonSheet } from "./ReasonSheet";
 import { ClientEditSheet } from "./ClientEditSheet";
 import { DueDateSheet } from "../DueDateSheet";
+import { formatAccount, RECEIVING_ACCOUNTS } from "../../data/receivingAccounts";
 
 interface CreditNoteFormProps {
   /** Generated credit-note number (own sequence, e.g. CN-2026-000001). */
@@ -91,6 +92,8 @@ export function CreditNoteForm({
   // Due date — pre-fills from the credited invoice's term (DES-719), editable via the shared sheet.
   const [dueTerm, setDueTerm] = useState<string>("Next 30 days");
   const [dueOpen, setDueOpen] = useState(false);
+  // Receiving account shown (locked) on the credit note — the primary Statrys account, same as the invoice.
+  const receivingAcct = RECEIVING_ACCOUNTS.find((a) => a.primary) ?? RECEIVING_ACCOUNTS[0];
   // Resolve "Next N days" against the issue date → "Next N Days (15 Jul 2026)"; a custom date is shown as-is.
   const dueLabel = (() => {
     const m = dueTerm.match(/^Next (\d+) days$/);
@@ -297,10 +300,10 @@ export function CreditNoteForm({
           {/* CN number — page title */}
           <h1 className="text-[20px] font-bold leading-[1.1]" style={{ ...FONT, color: "#1b1b1b" }}>{creditNoteNo}</h1>
 
-          {/* Details — Issue Date / Due Date (editable) + Currency (locked). White card on the beige zone. */}
+          {/* Details — Credit Issue Date / Due Date (editable) + Receiving Account + Currency (locked). */}
           <div className="rounded-[12px] bg-white border border-dashed border-[rgba(160,160,160,0.2)] overflow-hidden" style={{ boxShadow: "0px 4px 14px 0px rgba(226,220,203,0.3)" }}>
             <button type="button" onClick={() => setIssueDateOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
-              <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Issue Date</span>
+              <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Credit Issue Date</span>
               <span className="flex items-center gap-1.5">
                 <span className="text-[14px] font-medium" style={{ ...FONT, color: "#101828" }}>{formatDMY(issueDate)}</span>
                 <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
@@ -313,6 +316,11 @@ export function CreditNoteForm({
                 <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
               </span>
             </button>
+            {/* Receiving account — locked (same as the invoice), between Due Date and Currency. */}
+            <div className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] border-b border-[rgba(160,160,160,0.2)]">
+              <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Receiving Account</span>
+              <span className="text-[14px] font-medium truncate" style={{ ...FONT, color: MUTED }}>{formatAccount(receivingAcct.id)}</span>
+            </div>
             <div className="w-full flex items-center justify-between px-4 pt-4 pb-[17px]">
               <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Currency</span>
               <span className="text-[14px] font-medium" style={{ ...FONT, color: MUTED }}>{currency}</span>
@@ -539,7 +547,7 @@ export function CreditNoteForm({
       <ButtonDock
         type="single"
         overflow
-        primaryLabel={isEdit ? (submitLabel ?? "Save changes") : "Create Credit Note"}
+        primaryLabel={isEdit ? (submitLabel ?? "Save changes") : refund ? "Create Credit Note" : "Apply to Invoice"}
         primaryDisabled={!canCreate}
         onPrimary={handleCreate}
         homeIndicator

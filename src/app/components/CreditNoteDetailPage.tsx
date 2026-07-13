@@ -5,6 +5,7 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import { Asterisk } from "lucide-react";
 import StatusBar from "./StatusBar";
 import { SheetHeader, HeaderIconButton } from "./SheetHeader";
 import { ButtonDock } from "./ButtonDock";
@@ -22,7 +23,8 @@ import { FONT, INK, MUTED } from "../lib/theme";
 
 // Status chip palette (DES-721). Refunded = indigo, Pending Refund = amber, Applied/other = green.
 const STATUS_CHIP: Record<string, { bg: string; border: string; text: string }> = {
-  // Cancellation credit note (DES-719, single-invoice): applied on create.
+  // Cancellation credit note (DES-719, single-invoice): Draft (not applied) → Applied.
+  "Draft": { bg: "#f2f4f7", border: "#e4e7ec", text: "#475467" },
   "Applied": { bg: "#ecfdf3", border: "#abefc6", text: "#067647" },
   // Legacy application lifecycle (DES-763) — retained for register/list data.
   "Open": { bg: "#eef4ff", border: "#c7d8fe", text: "#2f5fd0" },
@@ -80,6 +82,8 @@ export interface CreditNoteDetailPageProps {
   onEdit?: () => void;
   /** DES-763 — void the credit note (Open only, never applied). */
   onCancel?: () => void;
+  /** Receiving account shown on the note (Figma 1209) — omit to hide the card. */
+  receivingAccount?: { name: string; number: string; primary: boolean };
 }
 
 /** Small dashed cream card matching the invoice detail's InfoCard. */
@@ -118,10 +122,12 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const {
     creditNoteNo, invoiceNo, customerName, customerEmail, issueDateLabel, currency = "USD",
     total, invoiceTotal, lines, reason, reasonNote, kind = "cancellation", status, refundProof, sent, updatedDateLabel,
-    onBack, onViewInvoice, onSent, onApply, onEdit, onCancel,
+    onBack, onViewInvoice, onSent, onApply, onEdit, onCancel, receivingAccount,
   } = props;
 
   const [actionsOpen, setActionsOpen] = useState(false);
+  // Draft delete confirmation (DES-719 AC7).
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [sentLocal, setSentLocal] = useState(!!sent);
   // Send sub-flow (reused from the invoice send flow).
   const [sendSheetOpen, setSendSheetOpen] = useState(false);
@@ -136,7 +142,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // Status chip: application lifecycle (DES-763) for cancellation, money lifecycle for refund.
   const displayStatus = status ?? (kind === "refund" ? "Pending Refund" : "Open");
   const chip = STATUS_CHIP[displayStatus] ?? STATUS_CHIP["Open"];
-  const reasonText = reason ? (reason === "Others" ? (reasonNote || "Other") : reason) : null;
+  const reasonText = reason || null;
   const amountLabel = `${currency} ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   // Action layout by status (cancellation credit notes):
   //  • Open              → dock: Apply to invoice (primary) + Edit (secondary); ⋯: Cancel, Preview as PDF.
@@ -146,7 +152,8 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // Refund credit notes  → dock: Send/Resend; ⋯: Preview as PDF.
   const isCancellation = kind !== "refund";
   const isRefund = kind === "refund";
-  const isOpen = isCancellation && displayStatus === "Open";
+  // A Draft (DES-719) behaves like the old "Open": Apply to invoice + Edit dock, cancel/delete via ⋯.
+  const isOpen = isCancellation && (displayStatus === "Open" || displayStatus === "Draft");
   const isPartiallyApplied = isCancellation && displayStatus === "Partially Applied";
   // Single-invoice model: "Applied" behaves like the old Fully Applied (Send-only, non-editable).
   const isFullyApplied = isCancellation && (displayStatus === "Fully Applied" || displayStatus === "Applied");
@@ -162,10 +169,13 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // Actionable Open = the invoice-detail / CN-list entry (Apply wired). Where Apply ISN'T wired (e.g. the
   // Sales Invoice List CN preview), an Open note is Preview-only — NEVER sendable, since an unapplied credit
   // must be applied to the invoice before it's sent to the customer (#4).
-  const canApply = isOpen && !!onApply;
-  // ⋯ only exists for an actionable Open note (Cancel + Preview) or a Pending Refund (Cancel refund).
-  // Applied (Partially/Fully), Cancelled, and settled refunds have NO ⋯ (per the Figma designs).
-  const hasMenu = canApply || (isPendingRefund && !!onCancel);
+  // A Draft can only be applied once its required fields are filled (reason + description + a credit
+  // amount). An incomplete draft leads with Edit instead of Apply to Invoice.
+  const draftComplete = !!reason && !!(reasonNote && reasonNote.trim()) && total > 0.001;
+  const canApply = isOpen && !!onApply && draftComplete;
+  // ⋯ exists for a Draft (Delete only), an Applied note (Cancel + Preview), or a Pending Refund (Cancel).
+  // A Cancelled note has no ⋯.
+  const hasMenu = (isOpen && !!onCancel) || (isApplied && !!onCancel) || (isPendingRefund && !!onCancel);
   const openSend = () => setSendSheetOpen(true);
 
   const closeSend = () => { setSendSheetOpen(false); setEmailReviewOpen(false); setShareLinkOpen(false); setPdfOpen(false); };
@@ -204,32 +214,37 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           </div>
         </Card>
 
-        {/* Related invoice (AC3) — tappable when the caller can open the invoice, else a static reference. */}
-        {onViewInvoice ? (
-          <button
-            onClick={onViewInvoice}
-            className="group bg-white border border-dashed border-[rgba(160,160,160,0.2)] rounded-[12px] px-4 py-3.5 flex items-center justify-between gap-3 text-left"
-            style={{ boxShadow: "0px 4px 14px 0px rgba(226,220,203,0.3)" }}
-          >
-            <span className="min-w-0">
-              <span className="block text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>Related invoice</span>
-              <span className="block text-[14px] font-semibold mt-0.5 truncate" style={{ ...FONT, color: INK }}>{invoiceNo}</span>
-            </span>
-            <span className="flex items-center gap-0.5 shrink-0 text-[13px] font-medium" style={{ ...FONT, color: "#ff4a15" }}>
-              View
-              <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5" style={{ fontSize: 18 }} />
-            </span>
-          </button>
-        ) : (
-          <Card>
-            <Row label="Related invoice" value={invoiceNo} last />
-          </Card>
-        )}
+        {/* Credit Details — reason (+ description) and the related invoice (Figma 1209). The reason row is
+            hidden until the client fills it in. */}
+        <Card title="Credit Details">
+          {reasonText && (
+            <div className="flex items-start justify-between gap-4 py-3 border-b border-[rgba(160,160,160,0.18)]">
+              <span className="text-[13px] shrink-0" style={{ ...FONT, color: MUTED }}>Reason</span>
+              <span className="min-w-0 text-right">
+                <span className="block text-[13px] font-medium" style={{ ...FONT, color: INK }}>{reasonText}</span>
+                {reasonNote && <span className="block text-[12px] leading-[1.35] mt-0.5" style={{ ...FONT, color: MUTED }}>{reasonNote}</span>}
+              </span>
+            </div>
+          )}
+          {onViewInvoice ? (
+            <button onClick={onViewInvoice} className="group w-full flex items-center justify-between gap-4 py-3 text-left">
+              <span className="text-[13px] shrink-0" style={{ ...FONT, color: MUTED }}>Related Invoice</span>
+              <span className="flex items-center gap-1 min-w-0">
+                <span className="text-[13px] font-medium truncate" style={{ ...FONT, color: INK }}>{invoiceNo}</span>
+                <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5 shrink-0" style={{ fontSize: 16, color: "#808080" }} />
+              </span>
+            </button>
+          ) : (
+            <Row label="Related Invoice" value={invoiceNo} last />
+          )}
+        </Card>
 
-        {/* Credit to / Refund to + reason */}
-        <Card>
-          <Row label={isRefund ? (refundSettled ? "Refunded to" : "Refund to") : "Credit to"} value={<span>{customerName || "—"}{customerEmail ? <span className="block text-[12px] font-normal" style={{ color: MUTED }}>{customerEmail}</span> : null}</span>} last={!reasonText} />
-          {reasonText && <Row label="Reason" value={reasonText} last />}
+        {/* Credit to / Refund to */}
+        <Card title={isRefund ? (refundSettled ? "Refunded to" : "Refund to") : "Credit to"}>
+          <div className="py-3">
+            <span className="block text-[14px] font-medium leading-tight" style={{ ...FONT, color: INK }}>{customerName || "—"}</span>
+            {customerEmail && <span className="block text-[12px] leading-[1.4] mt-0.5" style={{ ...FONT, color: MUTED }}>{customerEmail}</span>}
+          </div>
         </Card>
 
         {/* Credited / refunded items — per-line amount "$X of $original" (both cancellation and refund). */}
@@ -249,8 +264,26 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           </Card>
         )}
 
-        {/* Summary. Cancellation CN with a known invoice total → Invoice Total / Credit Amount / Remaining
-            Balance (after applying). Otherwise (refund, or no invoice total) → the credited total. */}
+        {/* Receiving account (Figma 1209) — the account the credit is set against. */}
+        {receivingAccount && (
+          <Card title="Receiving Account">
+            <div className="py-3">
+              <div className="flex items-center gap-2">
+                <span className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0" style={{ background: "#E4002B" }}>
+                  <Asterisk size={14} strokeWidth={3} color="#fff" />
+                </span>
+                <span className="text-[15px] font-medium truncate" style={{ ...FONT, color: INK }}>{receivingAccount.name}</span>
+                {receivingAccount.primary && (
+                  <span className="ml-auto shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold leading-[14px]" style={{ ...FONT, background: "#101828", color: "#fff" }}>PRIMARY</span>
+                )}
+              </div>
+              <p className="text-[13px] leading-[1.4] mt-1 truncate" style={{ ...FONT, color: MUTED }}>{receivingAccount.number}</p>
+            </div>
+          </Card>
+        )}
+
+        {/* Summary — hidden until there's a credit amount (nothing to total on an empty draft). */}
+        {total > 0.001 && (
         <Card title="Summary">
           <div className="pt-1">
             {(isOpen || isCancelled) && invoiceTotal !== undefined ? (
@@ -268,9 +301,10 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
                     <span className="block text-[11px] mt-0.5" style={{ ...FONT, color: MUTED }}>(Not Applied Yet)</span>
                   </span>
                 </div>
+                {/* Amount due once this credit is applied (Figma 1209 shows the projected balance). */}
                 <div className="flex items-center justify-between gap-3 py-3 mt-1 -mx-4 px-4 rounded-b-[11px]" style={{ background: "#f4efe2" }}>
                   <span className="text-[15px] font-bold" style={{ ...FONT, color: INK }}>Amount Due</span>
-                  <span className="text-[15px] font-bold shrink-0" style={{ ...FONT, color: INK }}>{money(invoiceTotal)}</span>
+                  <span className="text-[15px] font-bold shrink-0" style={{ ...FONT, color: INK }}>{money(Math.max(0, invoiceTotal - total))}</span>
                 </div>
               </>
             ) : isRefund && invoiceTotal !== undefined ? (
@@ -329,6 +363,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             )}
           </div>
         </Card>
+        )}
 
         {/* Refund record + proof (DES-720) */}
         {refundProof && (
@@ -367,6 +402,9 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           onSecondary={() => onEdit?.()}
           homeIndicator
         />
+      ) : isOpen && onEdit ? (
+        // Draft missing required fields (no Apply) — lead with Edit to finish it.
+        <ButtonDock type="single" overflow primaryLabel="Edit" onPrimary={() => onEdit?.()} homeIndicator />
       ) : isApplied ? (
         isPartiallyApplied && onEdit ? (
           <ButtonDock
@@ -407,7 +445,15 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       {/* ⋯ actions — Open: Cancel + Preview · Applied: Edit · refund: Preview. */}
       <BottomSheet open={actionsOpen} title="Credit note actions" onClose={() => setActionsOpen(false)}>
         <div className="flex flex-col">
-          {canApply && (
+          {/* Draft → only Delete Credit Note (confirmed via a prompt). */}
+          {isOpen && onCancel && (
+            <button onClick={() => { setActionsOpen(false); setConfirmDelete(true); }} className="w-full flex items-center gap-3 py-3.5 text-left">
+              <DeleteOutlineIcon style={{ fontSize: 20, color: "#b42318" }} />
+              <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Delete Credit Note</span>
+            </button>
+          )}
+          {/* Applied → Cancel credit note (full reversal) + Preview as PDF. */}
+          {isApplied && (
             <>
               {onCancel && (
                 <button onClick={() => { setActionsOpen(false); onCancel(); }} className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]">
@@ -420,12 +466,6 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
                 <span className="text-[15px]" style={{ ...FONT, color: INK }}>Preview as PDF</span>
               </button>
             </>
-          )}
-          {isApplied && (
-            <button onClick={openPdfPreview} className="w-full flex items-center gap-3 py-3.5 text-left">
-              <PictureAsPdfOutlinedIcon style={{ fontSize: 20, color: INK }} />
-              <span className="text-[15px]" style={{ ...FONT, color: INK }}>Preview as PDF</span>
-            </button>
           )}
           {isRefund && (
             refundEditable ? (
@@ -445,6 +485,29 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             )
           )}
         </div>
+      </BottomSheet>
+
+      {/* Delete-draft confirmation (DES-719 AC7). Dock goes in the sheet footer so it aligns flush
+          like every other ButtonDock (body placement double-pads it). */}
+      <BottomSheet
+        open={confirmDelete}
+        title="Delete credit note?"
+        onClose={() => setConfirmDelete(false)}
+        footer={
+          <ButtonDock
+            type="double"
+            overflow
+            secondaryLabel="Cancel"
+            primaryLabel="Delete Credit note"
+            onSecondary={() => setConfirmDelete(false)}
+            onPrimary={() => { setConfirmDelete(false); onCancel?.(); }}
+            homeIndicator
+          />
+        }
+      >
+        <p className="text-[14px] leading-[1.45]" style={{ ...FONT, color: MUTED }}>
+          This draft credit note will be permanently deleted. The linked invoice won't be affected.
+        </p>
       </BottomSheet>
 
       {/* Send sub-flow */}

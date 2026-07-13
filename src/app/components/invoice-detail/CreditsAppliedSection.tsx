@@ -12,15 +12,12 @@ import { InfoCard } from "./InfoBits";
 interface CreditsAppliedSectionProps {
   creditNotes: CreditNote[];
   isRefundContext: boolean;
-  /** Whether more cancellation credit can still be raised ("+ Add credit note"). */
-  cancellable: boolean;
   fullyRefunded: boolean;
   outstanding: number;
   expanded: boolean;
   onExpand: () => void;
   /** Open a note's detail page (index into creditNotes). */
   onViewCn: (index: number) => void;
-  onAddCredit: () => void;
   onAddRefund: () => void;
   /** Open a refund-proof attachment in the file preview overlay. */
   onPreviewProof: (file: UploadedFileInfo) => void;
@@ -29,13 +26,11 @@ interface CreditsAppliedSectionProps {
 export function CreditsAppliedSection({
   creditNotes,
   isRefundContext,
-  cancellable,
   fullyRefunded,
   outstanding,
   expanded,
   onExpand,
   onViewCn,
-  onAddCredit,
   onAddRefund,
   onPreviewProof,
 }: CreditsAppliedSectionProps) {
@@ -124,12 +119,8 @@ export function CreditsAppliedSection({
             <span className="text-[13px] font-medium" style={{ ...FONT, color: INK }}>View all credit notes ({creditNotes.length})</span>
           </button>
         )}
-        {cancellable && (
-          <button onClick={onAddCredit} className="group w-full flex items-center gap-1.5 py-3 border-t border-[rgba(160,160,160,0.18)]">
-            <AddIcon style={{ fontSize: 18, color: "#ff4a15" }} />
-            <span className="text-[14px] font-medium" style={{ ...FONT, color: "#ff4a15" }}>Add credit note</span>
-          </button>
-        )}
+        {/* Only one credit note per invoice in this phase — no "Add credit note" here (the first is
+            raised from the invoice ⋯ menu when none exists yet). */}
         {/* DES-720 cumulative refunds: as long as the invoice isn't fully refunded, the client can
             raise ANOTHER refund credit note (capped at the remaining invoice value) — including after
             an earlier refund has already been paid out. Creating one re-opens a pending payout, so the
