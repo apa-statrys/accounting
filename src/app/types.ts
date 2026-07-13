@@ -138,11 +138,12 @@ export interface ServiceLine {
 // Credit notes
 // ---------------------------------------------------------------------------
 
-/** Credit-note statuses (DES-763 CN Status Rules):
- *  • Cancellation credit note (DES-719) — application lifecycle: Open → Partially Applied → Fully Applied
- *    (→ Cancelled if voided while Open).
+/** Credit-note statuses:
+ *  • Cancellation credit note (DES-719, single-invoice) — Draft → Applied → Cancelled (applied on
+ *    create; no separate apply step). Legacy Open / Partially Applied / Fully Applied are retained for
+ *    the register/list data until that's migrated.
  *  • Refund credit note (DES-720) — money lifecycle: Pending Refund → Refunded. */
-export type CNStatus = "Open" | "Partially Applied" | "Fully Applied" | "Pending Refund" | "Partially Refunded" | "Refunded" | "Cancelled";
+export type CNStatus = "Draft" | "Applied" | "Open" | "Partially Applied" | "Fully Applied" | "Pending Refund" | "Partially Refunded" | "Refunded" | "Cancelled";
 
 export interface CreditNote {
   no: string;

@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { addDays, format } from "date-fns";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import CalendarTodayIcon from "@mui/icons-material/CalendarTodayOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -10,14 +10,15 @@ import StatusBar from "../StatusBar";
 import { SheetHeader, HeaderIconButton } from "../SheetHeader";
 import { ButtonDock } from "../ButtonDock";
 import { IssueDateSheet } from "../IssueDateSheet";
-import { EditCard } from "../EditCard";
 import { NumericKeypad } from "../NumericKeypad";
+import { TextInput } from "../TextInput";
 import { FONT, INK, MUTED } from "../../lib/theme";
 import type { CreditNoteEditSeed, CreditNotePayload, DraftLine, InvoiceLine } from "../../types";
 import { EMAIL_RE } from "../../lib/format";
 import { fmtAmount, formatDMY, lineAmount } from "./lineMath";
 import { ReasonSheet } from "./ReasonSheet";
 import { ClientEditSheet } from "./ClientEditSheet";
+import { DueDateSheet } from "../DueDateSheet";
 
 interface CreditNoteFormProps {
   /** Generated credit-note number (own sequence, e.g. CN-2026-000001). */
@@ -47,6 +48,8 @@ interface CreditNoteFormProps {
   onBack: () => void;
   /** Create or save the credit note. The (possibly edited) client info applies to THIS note only. */
   onCreate: (payload: CreditNotePayload) => void;
+  /** When set, the back arrow saves the current form state as a Draft (DES-719) instead of discarding. */
+  onSaveDraft?: (payload: CreditNotePayload) => void;
 }
 
 /**
@@ -70,6 +73,7 @@ export function CreditNoteForm({
   submitLabel,
   onBack,
   onCreate,
+  onSaveDraft,
 }: CreditNoteFormProps) {
   const isEdit = mode === "edit";
   const money = (n: number) =>
@@ -84,10 +88,19 @@ export function CreditNoteForm({
   // Credit-note issue date — defaults to today (demo) or the edited note's date.
   const [issueDate, setIssueDate] = useState<Date>(initial?.issueDate ?? new Date(2026, 5, 26));
   const [issueDateOpen, setIssueDateOpen] = useState(false);
-  // Required reason (dropdown) + optional free-text note (DES-719); restored on edit. Refunds pre-fill a
-  // common cancellation reason as a starting point.
-  const [reason, setReason] = useState(initial?.reason ?? (refund ? "Others" : ""));
-  const [reasonNote, setReasonNote] = useState(initial?.reasonNote ?? (refund ? "Client cancelled the brand identity project" : ""));
+  // Due date — pre-fills from the credited invoice's term (DES-719), editable via the shared sheet.
+  const [dueTerm, setDueTerm] = useState<string>("Next 30 days");
+  const [dueOpen, setDueOpen] = useState(false);
+  // Resolve "Next N days" against the issue date → "Next N Days (15 Jul 2026)"; a custom date is shown as-is.
+  const dueLabel = (() => {
+    const m = dueTerm.match(/^Next (\d+) days$/);
+    if (m) return `Next ${m[1]} Days (${format(addDays(issueDate, +m[1]), "d MMM yyyy")})`;
+    return dueTerm;
+  })();
+  // Required reason (dropdown, fixed enum — DES-719) + a required free-text Description (stored in
+  // `reasonNote` for the payload / edit-seed). Restored on edit.
+  const [reason, setReason] = useState(initial?.reason ?? "");
+  const [reasonNote, setReasonNote] = useState(initial?.reasonNote ?? "");
   const [reasonSheetOpen, setReasonSheetOpen] = useState(false);
   // Collapse the items list to the first few; "Show more" reveals the rest.
   const [itemsExpanded, setItemsExpanded] = useState(false);
@@ -107,6 +120,16 @@ export function CreditNoteForm({
   };
   const [lines, setLines] = useState<DraftLine[]>(initial?.lines ?? initLines);
 
+  // Autosave indicator (DES-719 — the CN is a saved draft): "Saving" on any edit, "Saved" once it settles.
+  const [saveState, setSaveState] = useState<"saved" | "saving">("saved");
+  const firstChange = useRef(true);
+  useEffect(() => {
+    if (firstChange.current) { firstChange.current = false; return; }
+    setSaveState("saving");
+    const t = setTimeout(() => setSaveState("saved"), 700);
+    return () => clearTimeout(t);
+  }, [name, email, issueDate, dueTerm, reason, reasonNote, lines]);
+
   // Two editing models, one engine:
   //  • CREDIT (corrected invoice): each line stores the CORRECTED amount in `unitPrice`; the credit is
   //    DERIVED = original − corrected.
@@ -123,9 +146,8 @@ export function CreditNoteForm({
   const amountDue = Math.max(0, originalTotal - credited);
   const exceedsCap = credited > outstanding + 0.001;
   const isFull = Math.abs(credited - outstanding) < 0.001;
-  // A reason is required; "Others" additionally requires the free-text description (DES-719).
-  const isOtherReason = reason === "Others";
-  const canCreate = credited > 0 && !exceedsCap && reason !== "" && (!isOtherReason || reasonNote.trim() !== "");
+  // A reason and a description are both required (DES-719).
+  const canCreate = credited > 0 && !exceedsCap && reason !== "" && reasonNote.trim() !== "";
 
   const setUnitPrice = (id: string, raw: string) =>
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, unitPrice: raw.replace(/[^0-9.]/g, "") } : l)));
@@ -216,25 +238,27 @@ export function CreditNoteForm({
     </button>
   );
 
+  // The customer's credit-note document lists only the CREDITED amounts (original − corrected), i.e.
+  // only the lines that actually changed — not the corrected invoice values.
+  const buildPayload = (): CreditNotePayload => ({
+    amount: Number(credited.toFixed(2)),
+    name,
+    email,
+    lines: lines.map((l) => ({ name: l.name, amount: lineCredit(l) })).filter((l) => l.amount > 0.001),
+    issueDateLabel: formatDMY(issueDate),
+    issueDate,
+    reason,
+    reasonNote: reasonNote.trim(),
+    draftLines: lines,
+  });
+
   const handleCreate = () => {
     if (!canCreate) return;
-    // The customer's credit-note document lists only the CREDITED amounts (original − corrected),
-    // i.e. only the lines that actually changed — not the corrected invoice values.
-    const creditedLines = lines
-      .map((l) => ({ name: l.name, amount: lineCredit(l) }))
-      .filter((l) => l.amount > 0.001);
-    onCreate({
-      amount: Number(credited.toFixed(2)),
-      name,
-      email,
-      lines: creditedLines,
-      issueDateLabel: formatDMY(issueDate),
-      issueDate,
-      reason,
-      reasonNote: reasonNote.trim(),
-      draftLines: lines,
-    });
+    onCreate(buildPayload());
   };
+
+  // Back — save a Draft (DES-719) when the parent provides onSaveDraft (the create flow); else just leave.
+  const handleBack = () => (onSaveDraft ? onSaveDraft(buildPayload()) : onBack());
 
   return (
     <div className="absolute inset-0 z-50 bg-white rounded-[48px] overflow-hidden flex flex-col" style={{ width: 375, height: 812 }}>
@@ -245,80 +269,97 @@ export function CreditNoteForm({
         type="inside-page"
         state="fixed"
         leading={
-          <HeaderIconButton aria-label="Back" onClick={onBack}>
+          <HeaderIconButton aria-label="Back" onClick={handleBack}>
             <ChevronLeftIcon />
           </HeaderIconButton>
         }
-        trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
+        trailing={
+          !isEdit && !refund ? (
+            <span className="flex items-center gap-1.5 pr-1 text-[12px]" style={{ ...FONT, color: MUTED }}>
+              {saveState === "saving"
+                ? <span className="w-3.5 h-3.5 rounded-full border-2 border-[#e2e2e2] border-t-[#ff4a15] animate-spin" aria-hidden />
+                : <span style={{ color: "#0f9d58" }}>✓</span>}
+              {saveState === "saving" ? "Saving" : "Saved"}
+            </span>
+          ) : (
+            <span className="w-[30px] h-[30px] block" aria-hidden />
+          )
+        }
       />
 
       <div
-        className={`flex-1 thin-scrollbar bg-white px-4 pt-5 flex flex-col gap-5 ${scrollLocked ? "overflow-hidden" : "overflow-y-auto"} ${focusedLineId ? "pb-[340px]" : "pb-28"}`}
+        className={`flex-1 thin-scrollbar bg-white px-4 flex flex-col gap-5 ${scrollLocked ? "overflow-hidden" : "overflow-y-auto"} ${focusedLineId ? "pb-[340px]" : "pb-28"}`}
         onWheel={() => { if (focusedLineId) closeKeypad(); }}
         onTouchMove={() => { if (focusedLineId) closeKeypad(); }}
       >
-        {/* Credit note details — Qonto-style flat layout */}
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Credit Note No:</span>
-            <span className="text-[14px] font-medium" style={{ ...FONT, color: INK }}>{creditNoteNo}</span>
-          </div>
+        {/* Beige zone (DES-719 UI) — CN title + details card + customer card + related invoice on #f9f5ea. */}
+        <div className="-mx-4 px-4 pt-5 pb-5 bg-[#f9f5ea] flex flex-col gap-4">
+          {/* CN number — page title */}
+          <h1 className="text-[20px] font-bold leading-[1.1]" style={{ ...FONT, color: "#1b1b1b" }}>{creditNoteNo}</h1>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[14px] font-medium" style={{ ...FONT, color: INK }}>Issue date</label>
-            <button
-              type="button"
-              onClick={() => setIssueDateOpen(true)}
-              className="w-full flex items-center justify-between rounded-xl border px-4 h-[52px] bg-white text-left"
-              style={{ borderColor: "rgba(160,160,160,0.4)" }}
-            >
-              <span className="text-[15px]" style={{ ...FONT, color: INK }}>{formatDMY(issueDate)}</span>
-              <CalendarTodayIcon style={{ fontSize: 18, color: "#808080" }} />
+          {/* Details — Issue Date / Due Date (editable) + Currency (locked). White card on the beige zone. */}
+          <div className="rounded-[12px] bg-white border border-dashed border-[rgba(160,160,160,0.2)] overflow-hidden" style={{ boxShadow: "0px 4px 14px 0px rgba(226,220,203,0.3)" }}>
+            <button type="button" onClick={() => setIssueDateOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
+              <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Issue Date</span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-[14px] font-medium" style={{ ...FONT, color: "#101828" }}>{formatDMY(issueDate)}</span>
+                <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
+              </span>
             </button>
+            <button type="button" onClick={() => setDueOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
+              <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Due Date</span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-[14px] font-medium" style={{ ...FONT, color: "#101828" }}>{dueLabel}</span>
+                <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
+              </span>
+            </button>
+            <div className="w-full flex items-center justify-between px-4 pt-4 pb-[17px]">
+              <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Currency</span>
+              <span className="text-[14px] font-medium" style={{ ...FONT, color: MUTED }}>{currency}</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Related invoice :</span>
-            <span className="text-[14px] font-medium" style={{ ...FONT, color: INK }}>{invoiceNo}</span>
+          {/* Related invoice — the link this credit note is stored against. */}
+          <div className="flex items-center gap-2">
+            <span className="text-[14px] font-medium" style={{ ...FONT, color: MUTED }}>Related Invoice:</span>
+            <span className="text-[14px] font-bold" style={{ ...FONT, color: "#1b1b1b" }}>{invoiceNo}</span>
           </div>
+
         </div>
 
-        {/* Separator between the credit-note details and the reason/client (full-bleed, dashed) */}
-        <div className="-mx-4 border-t border-dashed border-[#e2e2e2] shrink-0" />
+        {/* Customer — carried over; tap to edit for this credit note only (no chevron, matches Figma).
+            White zone, directly above Reason For Credit. */}
+        <button type="button" onClick={openClientSheet} className="w-full text-left rounded-[12px] bg-white border border-dashed border-[rgba(160,160,160,0.2)] p-[17px]">
+          <p className="text-[16px] font-medium leading-[0.95] tracking-[-0.8px]" style={{ ...FONT, color: "#101828" }}>{name}</p>
+          <p className="text-[14px] font-medium leading-[1.3] mt-1.5" style={{ ...FONT, color: MUTED }}>{email}</p>
+        </button>
 
-        {/* Reason — required dropdown (DES-719). "Others" captures a free-text reason in the sheet. */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[14px] font-medium" style={{ ...FONT, color: INK }}>Reason for credit <span style={{ color: "#b42318" }}>*</span></label>
+        {/* Reason — white zone (DES-719). Required, chosen from the fixed enum in the sheet. */}
+        <div className="flex flex-col gap-[7px] pt-1">
+          <label className="text-[16px] font-medium leading-[1.3]" style={{ ...FONT, color: "#090a0a" }}>Reason For Credit <span style={{ color: "#dc2626" }}>*</span></label>
           <button
             type="button"
             onClick={() => setReasonSheetOpen(true)}
-            className="w-full flex items-center justify-between rounded-xl border px-4 h-[52px] bg-white text-left"
-            style={{ borderColor: "rgba(160,160,160,0.4)" }}
+            className="w-full flex items-center justify-between rounded-[8px] border px-4 h-[48px] bg-white text-left"
+            style={{ borderColor: "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
           >
-            <span className="text-[15px] truncate" style={{ ...FONT, color: reason ? INK : "#9ca3af" }}>
-              {isOtherReason ? (reasonNote || "Others") : (reason || "Select a reason")}
+            <span className="text-[16px] truncate" style={{ ...FONT, color: reason ? "#1b1b1b" : "#9ca3af" }}>
+              {reason || "Select a reason"}
             </span>
-            <KeyboardArrowDownIcon style={{ fontSize: 20, color: "#808080" }} />
+            <KeyboardArrowDownIcon style={{ fontSize: 24, color: "#808080" }} />
           </button>
         </div>
 
-        {/* Client info — carried over; tap to edit for this credit note only */}
-        <div className="flex flex-col gap-2">
-          <EditCard
-            title={name}
-            description={email}
-            hideAvatar
-            role="button"
-            onClick={openClientSheet}
-            className="group cursor-pointer"
-            trailing={
-              <ChevronRightIcon
-                className="transition-transform duration-200 group-hover:translate-x-1"
-                style={{ fontSize: 16, color: "var(--icon-primary)" }}
-              />
-            }
-          />
-        </div>
+        {/* Description — required free-text (DES-719, client-filled). */}
+        <TextInput
+          label="Description"
+          required
+          size="md"
+          showHint={false}
+          placeholder="Enter description of your credit reason"
+          value={reasonNote}
+          onChange={(e) => setReasonNote(e.target.value)}
+        />
 
         {/* Corrected invoice — edit each line to its CORRECT value; the credit is derived automatically. */}
         <div className="flex flex-col gap-2">
@@ -477,19 +518,22 @@ export function CreditNoteForm({
           </div>
         )}
 
-        <p className="px-1 text-[12px] leading-[1.4]" style={{ ...FONT, color: MUTED }}>
-          {refund
+        {(() => {
+          const helper = refund
             ? credited <= 0.001
               ? "Lower a line to its corrected value — the refund is calculated automatically."
               : isFull
               ? "This refunds the full amount paid."
               : "A partial refund — the invoice stays pending refund with the remaining reduced."
             : credited <= 0.001
-            ? "Lower a line to its corrected value — the credit is calculated automatically."
+            ? ""
             : isFull
             ? "This credits the full outstanding amount and cancels the invoice."
-            : "A partial credit keeps the invoice awaiting payment with the amount due reduced."}
-        </p>
+            : "A partial credit keeps the invoice awaiting payment with the amount due reduced.";
+          return helper ? (
+            <p className="px-1 text-[12px] leading-[1.4]" style={{ ...FONT, color: MUTED }}>{helper}</p>
+          ) : null;
+        })()}
       </div>
 
       <ButtonDock
@@ -509,14 +553,20 @@ export function CreditNoteForm({
         onSelect={(d) => { setIssueDate(d); setIssueDateOpen(false); }}
       />
 
+      {/* Due date picker (DES-719) — shared with the invoice editor (30 / 60 / 90 days / custom). */}
+      <DueDateSheet
+        open={dueOpen}
+        value={dueTerm}
+        onClose={() => setDueOpen(false)}
+        onSelect={(t) => { setDueTerm(t); setDueOpen(false); }}
+      />
+
       {/* Reason picker — required (DES-719). */}
       <ReasonSheet
         open={reasonSheetOpen}
         onClose={() => setReasonSheetOpen(false)}
         reason={reason}
-        reasonNote={reasonNote}
         setReason={setReason}
-        setReasonNote={setReasonNote}
       />
 
       {/* Edit client details — applies to this credit note only (not the invoice or client record) */}

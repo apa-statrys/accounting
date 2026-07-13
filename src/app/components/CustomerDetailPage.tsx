@@ -34,17 +34,17 @@ function Section({
   if (!present.length) return null;
   const solid = variant === "solid";
   return (
-    <div className="flex flex-col gap-2 w-full">
-      <p className="text-[14px] font-bold uppercase leading-[1.3]" style={{ ...FONT, color: MUTED }}>{title}</p>
-      <div
-        className="rounded-[12px] overflow-hidden w-full"
-        style={{
-          background: solid ? "#faf9f4" : "#ffffff",
-          border: "1px dashed rgba(160,160,160,0.2)",
-          boxShadow: CARD_SHADOW,
-        }}
-      >
-        {present.map((r, i) => (
+    <div
+      className="shrink-0 rounded-[12px] overflow-hidden w-full"
+      style={{
+        background: solid ? "#faf9f4" : "#ffffff",
+        border: "1px dashed rgba(160,160,160,0.2)",
+        boxShadow: CARD_SHADOW,
+      }}
+    >
+      {/* Title as the first row inside the card (Figma 1209): grey uppercase + full-width divider. */}
+      <p className="px-4 pt-3.5 pb-3 text-[12px] font-bold uppercase tracking-wide leading-[16.5px]" style={{ ...FONT, color: "#a0a0a0", borderBottom: "1px solid rgba(160,160,160,0.2)" }}>{title}</p>
+      {present.map((r, i) => (
           <div
             key={r.label}
             className="flex items-center justify-between gap-4 px-4 py-[15px]"
@@ -54,7 +54,6 @@ function Section({
             <span className="min-w-0 text-right text-[14px] font-medium leading-[1.3] truncate" style={{ ...FONT, color: "#101828" }}>{r.value}</span>
           </div>
         ))}
-      </div>
     </div>
   );
 }
@@ -105,8 +104,8 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
           </span>
         </div>
 
-        <Section title="Billing" variant="solid" rows={[
-          { label: "Default Currency", value: record.currency },
+        <Section title="Default Currency" variant="solid" rows={[
+          { label: "Currency", value: record.currency },
         ]} />
 
         <Section title="Company Details" rows={[

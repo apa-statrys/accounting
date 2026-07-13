@@ -10,16 +10,19 @@ export function MetaRow({ label, value, last }: { label: string; value: string; 
   );
 }
 
-/** Dashed-border info card (matches the dashboard list cards). */
-export function InfoCard({ title, children }: { title?: string; children: React.ReactNode }) {
+/** Dashed-border info card (Figma 1209). Section cards are WHITE with the title as the first row
+ *  inside (grey uppercase + full-width divider); the `hero` tone is the cream status card. */
+export function InfoCard({ title, tone = "section", children }: { title?: string; tone?: "section" | "hero"; children: React.ReactNode }) {
+  const hero = tone === "hero";
   return (
-    <div className="flex flex-col gap-1.5">
+    <div
+      className={`shrink-0 border border-dashed rounded-[12px] px-4 ${hero ? "bg-[#faf9f4] border-[rgba(160,160,160,0.5)]" : "bg-white border-[rgba(160,160,160,0.2)]"}`}
+      style={{ boxShadow: "0px 4px 14px 0px rgba(226,220,203,0.3)" }}
+    >
       {title && (
-        <p className="px-1 text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>{title}</p>
+        <p className="-mx-4 px-4 pt-3.5 pb-3 text-[12px] font-bold uppercase tracking-wide leading-[16.5px] border-b border-[rgba(160,160,160,0.2)]" style={{ ...FONT, color: "#a0a0a0" }}>{title}</p>
       )}
-      <div className="bg-[#faf9f4] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4">
-        {children}
-      </div>
+      {children}
     </div>
   );
 }

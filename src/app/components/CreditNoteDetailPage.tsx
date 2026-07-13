@@ -22,7 +22,9 @@ import { FONT, INK, MUTED } from "../lib/theme";
 
 // Status chip palette (DES-721). Refunded = indigo, Pending Refund = amber, Applied/other = green.
 const STATUS_CHIP: Record<string, { bg: string; border: string; text: string }> = {
-  // Application lifecycle (DES-763) — for cancellation credit notes.
+  // Cancellation credit note (DES-719, single-invoice): applied on create.
+  "Applied": { bg: "#ecfdf3", border: "#abefc6", text: "#067647" },
+  // Legacy application lifecycle (DES-763) — retained for register/list data.
   "Open": { bg: "#eef4ff", border: "#c7d8fe", text: "#2f5fd0" },
   "Partially Applied": { bg: "#fff7e6", border: "#fde68a", text: "#b45309" },
   "Fully Applied": { bg: "#ecfdf3", border: "#abefc6", text: "#067647" },
@@ -81,10 +83,18 @@ export interface CreditNoteDetailPageProps {
 }
 
 /** Small dashed cream card matching the invoice detail's InfoCard. */
-function Card({ title, children }: { title?: string; children: React.ReactNode }) {
+// Detail card (Figma 1209 style): white with a dashed border + soft shadow and the title as the first
+// row inside (grey uppercase + full-width divider). `tone="hero"` is the cream status card.
+function Card({ title, tone = "section", children }: { title?: string; tone?: "section" | "hero"; children: React.ReactNode }) {
+  const hero = tone === "hero";
   return (
-    <div className="bg-[#faf9f4] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4">
-      {title && <p className="pt-3 text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>{title}</p>}
+    <div
+      className={`border border-dashed rounded-[12px] px-4 ${hero ? "bg-[#faf9f4] border-[rgba(160,160,160,0.5)]" : "bg-white border-[rgba(160,160,160,0.2)]"}`}
+      style={{ boxShadow: "0px 4px 14px 0px rgba(226,220,203,0.3)" }}
+    >
+      {title && (
+        <p className="-mx-4 px-4 pt-3.5 pb-3 text-[12px] font-bold uppercase tracking-wide leading-[16.5px] border-b border-[rgba(160,160,160,0.2)]" style={{ ...FONT, color: "#a0a0a0" }}>{title}</p>
+      )}
       {children}
     </div>
   );
@@ -138,7 +148,8 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const isRefund = kind === "refund";
   const isOpen = isCancellation && displayStatus === "Open";
   const isPartiallyApplied = isCancellation && displayStatus === "Partially Applied";
-  const isFullyApplied = isCancellation && displayStatus === "Fully Applied";
+  // Single-invoice model: "Applied" behaves like the old Fully Applied (Send-only, non-editable).
+  const isFullyApplied = isCancellation && (displayStatus === "Fully Applied" || displayStatus === "Applied");
   const isApplied = isPartiallyApplied || isFullyApplied;
   // DES-720 — a refund CN is Pending Refund until transferred; editable (EDIT dock) + cancellable (⋯) until
   // then. `onEdit`/`onCancel` are wired by the invoice-detail entry only while the refund is still pending.
@@ -174,8 +185,8 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       />
 
       <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pt-5 pb-28 flex flex-col gap-4">
-        {/* Status + amount */}
-        <Card>
+        {/* Status + amount — cream hero card. */}
+        <Card tone="hero">
           <div className="py-3 flex flex-col gap-1.5">
             <span className="self-start flex items-center gap-1.5">
               <span className="px-2.5 py-0.5 rounded-full border text-[11px] font-bold" style={{ ...FONT, background: chip.bg, borderColor: chip.border, color: chip.text }}>{displayStatus}</span>
@@ -197,7 +208,8 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         {onViewInvoice ? (
           <button
             onClick={onViewInvoice}
-            className="group bg-[#faf9f4] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4 py-3.5 flex items-center justify-between gap-3 text-left"
+            className="group bg-white border border-dashed border-[rgba(160,160,160,0.2)] rounded-[12px] px-4 py-3.5 flex items-center justify-between gap-3 text-left"
+            style={{ boxShadow: "0px 4px 14px 0px rgba(226,220,203,0.3)" }}
           >
             <span className="min-w-0">
               <span className="block text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>Related invoice</span>

@@ -6,14 +6,12 @@ import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import { money, fmtDate } from "../../lib/format";
 import { FONT, INK, MUTED } from "../../lib/theme";
 import type { UploadedFileInfo } from "../UploadedFile";
-import { TOTAL } from "./demoInvoice";
 import type { CreditNote } from "./creditNoteTypes";
+import { InfoCard } from "./InfoBits";
 
 interface CreditsAppliedSectionProps {
   creditNotes: CreditNote[];
   isRefundContext: boolean;
-  /** Cumulative credit against the invoice (applied for cancellation CNs; committed for refunds). */
-  credited: number;
   /** Whether more cancellation credit can still be raised ("+ Add credit note"). */
   cancellable: boolean;
   fullyRefunded: boolean;
@@ -31,7 +29,6 @@ interface CreditsAppliedSectionProps {
 export function CreditsAppliedSection({
   creditNotes,
   isRefundContext,
-  credited,
   cancellable,
   fullyRefunded,
   outstanding,
@@ -44,22 +41,20 @@ export function CreditsAppliedSection({
 }: CreditsAppliedSectionProps) {
   // Cancellation application status for the row hint.
   const cnAppliedLabel = (cn: CreditNote) => {
+    if (cn.draft) return "Draft";
     if (cn.cancelled) return "Cancelled";
     if (isRefundContext) return null;
-    const a = cn.applied ?? 0;
-    // Invoice-centric status (decided 2026-07-01): a CN reads Fully Applied only once the INVOICE is
-    // fully covered by credit (cumulative `credited` = TOTAL); an applied note on a still-outstanding
-    // invoice is Partially Applied — matches DES-719's cumulative-tracking rule.
-    return a <= 0.001 ? "Open" : credited >= TOTAL - 0.001 ? "Fully Applied" : "Partially Applied";
+    // Single-invoice model (DES-719): a created cancellation note is simply "Applied" (no
+    // Open / Partially / Fully split — Create applies it in full to its one invoice).
+    return "Applied";
   };
   const reasonOf = (cn: CreditNote) => (cn.reason === "Others" ? (cn.reasonNote || "Other") : cn.reason);
   const ordered = creditNotes.map((cn, idx) => ({ cn, idx })).reverse();
   const collapsible = ordered.length > 2 && !expanded;
   const visible = collapsible ? ordered.slice(0, 2) : ordered;
   return (
-    <div className="flex flex-col gap-1.5">
-      <p className="px-1 text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>Credits Applied ({creditNotes.length})</p>
-      <div className="bg-[#faf9f4] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4">
+    <InfoCard title={`Credits ( ${creditNotes.length} )`}>
+      <>
         {visible.map(({ cn, idx }, i) => {
           const rowBorder = i === visible.length - 1 ? "" : "border-b border-[rgba(160,160,160,0.18)]";
           const proof = cn.refundProof;
@@ -79,9 +74,9 @@ export function CreditsAppliedSection({
                     <span
                       className="inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full border text-[10px] font-bold"
                       style={{ ...FONT,
-                        background: appliedLabel === "Open" ? "#eef4ff" : appliedLabel === "Partially Applied" ? "#fff7e6" : appliedLabel === "Fully Applied" ? "#ecfdf3" : "#f3f3f3",
-                        borderColor: appliedLabel === "Open" ? "#c7d8fe" : appliedLabel === "Partially Applied" ? "#fde68a" : appliedLabel === "Fully Applied" ? "#abefc6" : "rgba(160,160,160,0.35)",
-                        color: appliedLabel === "Open" ? "#2f5fd0" : appliedLabel === "Partially Applied" ? "#b45309" : appliedLabel === "Fully Applied" ? "#067647" : "#9a9a9a",
+                        background: appliedLabel === "Draft" ? "#f2f4f7" : appliedLabel === "Applied" ? "#ecfdf3" : "#f3f3f3",
+                        borderColor: appliedLabel === "Draft" ? "#e4e7ec" : appliedLabel === "Applied" ? "#abefc6" : "rgba(160,160,160,0.35)",
+                        color: appliedLabel === "Draft" ? "#475467" : appliedLabel === "Applied" ? "#067647" : "#9a9a9a",
                       }}
                     >
                       {appliedLabel}
@@ -93,7 +88,8 @@ export function CreditsAppliedSection({
                   )}
                 </span>
                 <span className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[14px] font-medium" style={{ ...FONT, color: "#b42318" }}>−{money(cn.amount)}</span>
+                  {/* A Draft hasn't been applied, so show its amount neutrally (no red −). */}
+                  <span className="text-[14px] font-medium" style={{ ...FONT, color: cn.draft ? MUTED : "#b42318" }}>{cn.draft ? money(cn.amount) : `−${money(cn.amount)}`}</span>
                   <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5" style={{ fontSize: 18, color: MUTED }} />
                 </span>
               </div>
@@ -144,7 +140,7 @@ export function CreditsAppliedSection({
             <span className="text-[14px] font-medium" style={{ ...FONT, color: "#ff4a15" }}>Add refund credit note</span>
           </button>
         )}
-      </div>
-    </div>
+      </>
+    </InfoCard>
   );
 }

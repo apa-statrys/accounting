@@ -13,6 +13,9 @@ export type CreditNote = {
   amount: number;
   applied?: number;
   cancelled?: boolean;
+  /** DES-719: a saved-but-not-yet-created credit note (form was backed out of). Not applied; shows a
+   *  "Draft" chip in the Credits section, reserves no credit, and reopens the form to resume. */
+  draft?: boolean;
   name: string;
   email: string;
   lines: { name: string; amount: number }[];

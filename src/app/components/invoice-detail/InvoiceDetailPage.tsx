@@ -139,6 +139,8 @@ export function InvoiceDetailPage({
     }];
   });
   const [creditFormOpen, setCreditFormOpen] = useState(false);
+  // When the create form was reopened to resume a Draft, this is that note's index (else null = new).
+  const [resumeDraftIndex, setResumeDraftIndex] = useState<number | null>(null);
   // Refund-with-credit-note form open (DES-720, from a Paid invoice).
   const [refundFormOpen, setRefundFormOpen] = useState(false);
   // Refund flow page (DES-720 AC3–AC5): method → (BA) pick source account → confirm transfer.
@@ -231,8 +233,9 @@ export function InvoiceDetailPage({
   // Credit-note derived values. Refund CNs use their full amount (refund lifecycle); cancellation CNs
   // (DES-763) reduce the invoice ONLY once applied, so cancellation `credited` counts applied amounts.
   const appliedTotal = creditNotes.reduce((s, c) => s + (c.applied ?? 0), 0);
-  // Cancelled notes are kept as records but reserve NO credit room (they were never applied).
-  const creditNoteTotal = creditNotes.reduce((s, c) => s + (c.cancelled ? 0 : c.amount), 0);
+  // Cancelled notes are kept as records but reserve NO credit room; Drafts (DES-719) aren't created
+  // yet, so they reserve nothing and don't count toward credited.
+  const creditNoteTotal = creditNotes.reduce((s, c) => s + (c.cancelled || c.draft ? 0 : c.amount), 0);
   const credited = refundCtx ? creditNoteTotal : appliedTotal;
   const outstanding = TOTAL - credited;
   // `paidAmount` is a demo constant (PAID_PARTIAL) present on every invoice — it only means "actually paid"
@@ -252,7 +255,7 @@ export function InvoiceDetailPage({
   // client can't re-credit a line and the cumulative math stays correct (DES-719 multi-CN).
   const correctedItems: InvoiceLine[] = ITEMS.map((it) => {
     const creditedForItem = creditNotes.reduce(
-      (s, cn) => s + cn.lines.filter((l) => l.name === it.name).reduce((a, l) => a + l.amount, 0),
+      (s, cn) => (cn.draft ? s : s + cn.lines.filter((l) => l.name === it.name).reduce((a, l) => a + l.amount, 0)),
       0
     );
     const amount = Math.max(0, it.amount - creditedForItem);
@@ -392,13 +395,41 @@ export function InvoiceDetailPage({
     setLocalToast(isRefundContext ? "Refund cancelled" : "Credit note cancelled");
   };
 
-  // Create a credit note (DES-719 + DES-763): it starts **Open** (applied = 0) and does NOT change the
-  // invoice yet. We land the user on the new note's detail so they can Apply / Edit / Send it.
-  const applyCreditNote = (p: CreditNotePayload) => {
-    const newIndex = creditNotes.length;
-    setCreditNotes((prev) => [...prev, { ...cnFromPayload(nextCreditNoteNo, p), applied: 0 }]);
+  // Back out of the create form (DES-719) → save what's entered as a DRAFT (applied = 0, draft = true).
+  // Resuming a draft updates it in place; a fresh form appends a new draft. Returns to the invoice detail,
+  // where the Credits section shows it with a Draft chip.
+  const saveDraft = (p: CreditNotePayload) => {
+    setCreditNotes((prev) =>
+      resumeDraftIndex != null
+        ? prev.map((c, i) => (i === resumeDraftIndex ? { ...cnFromPayload(c.no, p), applied: 0, draft: true, sent: c.sent } : c))
+        : [...prev, { ...cnFromPayload(nextCreditNoteNo, p), applied: 0, draft: true }]
+    );
     setCreditFormOpen(false);
-    setViewingCnIndex(newIndex);
+    setResumeDraftIndex(null);
+    setLocalToast("Saved as draft");
+  };
+
+  // Reopen a Draft credit note in the create form to resume it (DES-719).
+  const resumeDraft = (index: number) => {
+    setResumeDraftIndex(index);
+    setCreditFormOpen(true);
+  };
+
+  // Create the credit note (DES-719) — it APPLIES immediately (no separate apply step): the note reduces
+  // the invoice now. Resuming a draft converts that draft in place; otherwise a new note is appended.
+  // A full credit cancels the invoice (or settles a partially-paid one). Returns to the invoice detail.
+  const createCreditNote = (p: CreditNotePayload) => {
+    const idx = resumeDraftIndex != null ? resumeDraftIndex : creditNotes.length;
+    const otherApplied = creditNotes.reduce((s, c, i) => s + (i === idx ? 0 : (c.applied ?? 0)), 0);
+    const applied = Math.min(p.amount, creditBase - otherApplied);
+    setCreditNotes((prev) =>
+      resumeDraftIndex != null
+        ? prev.map((c, i) => (i === resumeDraftIndex ? { ...cnFromPayload(c.no, p), applied, draft: false, sent: c.sent } : c))
+        : [...prev, { ...cnFromPayload(nextCreditNoteNo, p), applied }]
+    );
+    if (otherApplied + applied >= creditBase - 0.001) setStatus(status === "PartiallyPaid" ? "Paid" : "Cancelled");
+    setCreditFormOpen(false);
+    setResumeDraftIndex(null);
     setLocalToast("Credit note created");
   };
 
@@ -559,8 +590,8 @@ export function InvoiceDetailPage({
       />
 
       <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pt-5 pb-28 flex flex-col gap-6">
-        {/* Status + amount */}
-        <InfoCard>
+        {/* Status + amount — cream hero card (Figma 1209). */}
+        <InfoCard tone="hero">
           <div className="py-3 flex flex-col gap-1.5">
             <span className="self-start flex items-center gap-1.5">
               {/* The "Paid" status badge is suppressed in refund context — the refund tag below is the
@@ -630,14 +661,13 @@ export function InvoiceDetailPage({
           <CreditsAppliedSection
             creditNotes={creditNotes}
             isRefundContext={isRefundContext}
-            credited={credited}
             cancellable={cancellable}
             fullyRefunded={fullyRefunded}
             outstanding={outstanding}
             expanded={cnExpanded}
             onExpand={() => setCnExpanded(true)}
-            onViewCn={setViewingCnIndex}
-            onAddCredit={() => setCreditFormOpen(true)}
+            onViewCn={(i) => (creditNotes[i]?.draft ? resumeDraft(i) : setViewingCnIndex(i))}
+            onAddCredit={() => { setResumeDraftIndex(null); setCreditFormOpen(true); }}
             onAddRefund={() => setRefundFormOpen(true)}
             onPreviewProof={setProofPreview}
           />
@@ -693,12 +723,10 @@ export function InvoiceDetailPage({
           </div>
         </InfoCard>
 
-        {/* Receiving account (DES-817) — display-only card styled like the recurring series card
-            (no icon, no chevron: there's no separate account detail screen to open). */}
+        {/* Receiving account (DES-817) — title inside the card (Figma 1209); display-only. */}
         {sectionedLayout && (
-          <div className="flex flex-col gap-1.5">
-            <p className="px-1 text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>Receiving Account</p>
-            <div className="w-full bg-[#faf9f4] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4 py-3">
+          <InfoCard title="Receiving Account">
+            <div className="py-3">
               <div className="flex items-center gap-2">
                 {/* Statrys account mark — red circle + white asterisk. */}
                 <span className="shrink-0 w-[22px] h-[22px] rounded-full flex items-center justify-center" style={{ background: "#E4002B" }}>
@@ -711,7 +739,7 @@ export function InvoiceDetailPage({
               </div>
               <p className="text-[13px] leading-[1.4] mt-1 truncate" style={{ ...FONT, color: MUTED }}>{receivingAcct.number}</p>
             </div>
-          </div>
+          </InfoCard>
         )}
 
         {/* Details — sectioned layout (DES-817) titles it "Invoice Details" and leads with Currency. */}
@@ -932,7 +960,7 @@ export function InvoiceDetailPage({
         onSendInvoice={() => { setActionsOpen(false); setSendSheetOpen(true); }}
         onEdit={openEdit}
         onDuplicate={duplicate}
-        onCreateCn={() => { setActionsOpen(false); setCreditFormOpen(true); }}
+        onCreateCn={() => { setActionsOpen(false); setResumeDraftIndex(null); setCreditFormOpen(true); }}
         onDeleteDraft={() => { setActionsOpen(false); setConfirmDelete(true); }}
       />
 
@@ -952,21 +980,30 @@ export function InvoiceDetailPage({
 
       {/* Create Credit Note (DES-719) — opens on the invoice's CURRENT corrected state, so a second
           note shows lines already credited by earlier notes (Brand = 3,000 after CN-001). */}
-      {creditFormOpen && (
-        <CreditNoteForm
-          creditNoteNo={nextCreditNoteNo}
-          invoiceNo={invoiceNo}
-          customerName={customerName}
-          customerEmail={customerEmail}
-          currency={currency}
-          items={correctedItems}
-          invoiceTotal={remaining}
-          alreadyCredited={credited}
-          outstanding={creditRoom}
-          onBack={() => setCreditFormOpen(false)}
-          onCreate={applyCreditNote}
-        />
-      )}
+      {creditFormOpen && (() => {
+        // Resuming a Draft (DES-719) seeds the form from the saved note; a fresh form seeds from the invoice.
+        const draft = resumeDraftIndex != null ? creditNotes[resumeDraftIndex] : null;
+        const seed = draft
+          ? { name: draft.name, email: draft.email, reason: draft.reason ?? "", reasonNote: draft.reasonNote ?? "", issueDate: draft.issueDate ?? new Date(2026, 5, 26), lines: draft.draftLines ?? [] }
+          : undefined;
+        return (
+          <CreditNoteForm
+            creditNoteNo={draft ? draft.no : nextCreditNoteNo}
+            invoiceNo={invoiceNo}
+            customerName={customerName}
+            customerEmail={customerEmail}
+            currency={currency}
+            items={correctedItems}
+            invoiceTotal={remaining}
+            alreadyCredited={credited}
+            outstanding={creditRoom}
+            initial={seed}
+            onSaveDraft={saveDraft}
+            onBack={() => { setCreditFormOpen(false); setResumeDraftIndex(null); }}
+            onCreate={createCreditNote}
+          />
+        );
+      })()}
 
       {/* Refund with Credit Note (DES-720) — from a Paid invoice; refund-mode labels, cap = amount paid.
           Creating it moves the invoice to Pending Refund. */}
@@ -1007,15 +1044,14 @@ export function InvoiceDetailPage({
       {viewingCnIndex !== null && creditNotes[viewingCnIndex] && (() => {
         const cn = creditNotes[viewingCnIndex];
         // The note's own status. Refund CN → Pending Refund until its payout settles, then Refunded (refund =
-        // full invoice) or Partially Refunded (refund < invoice total). Cancellation CN (DES-763) → Open /
-        // Partially Applied / Fully Applied by how much is applied.
+        // full invoice) or Partially Refunded (refund < invoice total). Cancellation CN (DES-719,
+        // single-invoice) → simply "Applied" (applied on create; no Open/Partially/Fully split).
         const through = creditNotes.slice(0, viewingCnIndex + 1).reduce((s, c) => s + c.amount, 0);
-        const applied = cn.applied ?? 0;
         const cnStatus = cn.cancelled
           ? "Cancelled"
           : isRefundContext
           ? (through > refundedOut + 0.001 ? "Pending Refund" : refundedOut >= TOTAL - 0.001 ? "Refunded" : "Partially Refunded")
-          : applied <= 0.001 ? "Open" : credited >= TOTAL - 0.001 ? "Fully Applied" : "Partially Applied";
+          : "Applied";
         return (
           <div className="absolute inset-0 z-50">
             <CreditNoteDetailPage
