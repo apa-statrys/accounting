@@ -398,6 +398,7 @@ export function InvoiceDetailPage({
       if (status === "Cancelled") setStatus("Awaiting");
       else if (status === "Paid" && paidAmount > 0.001) setStatus("PartiallyPaid");
     }
+    setViewingCnIndex(null); // cancelling returns straight to the invoice detail
     setLocalToast(isRefundContext ? "Refund cancelled" : "Credit note cancelled");
   };
 
@@ -439,8 +440,8 @@ export function InvoiceDetailPage({
     setLocalToast("Credit note created");
   };
 
-  // Apply a Draft credit note to the invoice from its detail page (DES-719): clears the draft flag,
-  // offsets the invoice, and lands back on the invoice detail showing it as Applied.
+  // Apply a Draft credit note from its detail page (DES-719): clears the draft flag, offsets the
+  // invoice, and returns to the invoice detail.
   const applyDraft = (index: number) => {
     const cn = creditNotes[index];
     const otherApplied = creditNotes.reduce((s, c, i) => s + (i === index ? 0 : (c.applied ?? 0)), 0);
