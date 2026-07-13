@@ -18,7 +18,7 @@ export type CreditNote = {
   draft?: boolean;
   name: string;
   email: string;
-  lines: { name: string; amount: number }[];
+  lines: { name: string; amount: number; qty?: number; unitPrice?: number }[];
   date: string;
   /** Resolved due date label ("26 Jul 2026") — shown on the CN detail. */
   dueDateLabel?: string;

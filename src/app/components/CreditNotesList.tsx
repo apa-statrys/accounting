@@ -352,8 +352,8 @@ export function CreditNotesList({ onBack, onOpenInvoice }: CreditNotesListProps)
               total={preview.original}
               invoiceTotal={preview.invoiceTotal}
               receivingAccount={(() => { const a = RECEIVING_ACCOUNTS.find((x) => x.primary) ?? RECEIVING_ACCOUNTS[0]; return { name: a.name, number: a.number, primary: !!a.primary }; })()}
-              // Register carries no line items — synthesize one so the Credited items card shows here too.
-              lines={[{ name: "Credited amount", amount: preview.original, original: preview.invoiceTotal }]}
+              // Real credited line items from the register; fall back to a single synthesized line.
+              lines={preview.lines ?? [{ name: "Credited amount", amount: preview.original }]}
               reason={preview.reason}
               // The Credit Notes List always shows the normal credit-note detail (Credit to / Credited items).
               // Refund-specific framing belongs to the invoice-detail flow (DES-720/721), not here.

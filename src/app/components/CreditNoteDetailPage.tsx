@@ -58,9 +58,10 @@ export interface CreditNoteDetailPageProps {
   total: number;
   /** The linked invoice's total — drives the Summary's Invoice Total / Remaining Balance rows. */
   invoiceTotal?: number;
-  /** Credited line items (optional — the shared register may not carry them). `original` = the line's
-   *  full invoice value, shown as context under the credited amount. */
-  lines?: { name: string; amount: number; original?: number }[];
+  /** Credited line items (optional — the shared register may not carry them). When a line is a clean
+   *  quantity credit it carries `qty` + `unitPrice` (rendered "qty × price"); otherwise it's a value
+   *  reduction shown as "Price adjustment". */
+  lines?: { name: string; amount: number; qty?: number; unitPrice?: number }[];
   reason?: string;
   reasonNote?: string;
   kind?: "cancellation" | "refund";
@@ -256,15 +257,22 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         {lines && lines.length > 0 && (
           <Card title={isRefund ? `${refundSettled ? "Refunded" : "Refund"} items (${lines.length})` : `Credited items (${lines.length})`}>
             <div className="pt-1">
-              {lines.map((l, i) => (
-                <div key={i} className={`flex items-start justify-between gap-3 py-2.5 ${i === lines.length - 1 ? "" : "border-b border-[rgba(160,160,160,0.18)]"}`}>
-                  <span className="text-[13px]" style={{ ...FONT, color: INK }}>{l.name}</span>
-                  <span className="text-right shrink-0">
-                    <span className="block text-[13px] font-medium" style={{ ...FONT, color: INK }}>{money(l.amount)}</span>
-                    {l.original !== undefined && <span className="block text-[11px] mt-0.5" style={{ ...FONT, color: MUTED }}>of {money(l.original)}</span>}
-                  </span>
-                </div>
-              ))}
+              {lines.map((l, i) => {
+                // Adaptive sub-line: a clean quantity credit shows "qty × unit price"; a value reduction
+                // shows "Price adjustment" (cancellation only — refund items show no sub-line).
+                const sub = l.qty != null && l.unitPrice != null
+                  ? `${l.qty} × ${money(l.unitPrice)}`
+                  : (!isRefund ? "Price adjustment" : null);
+                return (
+                  <div key={i} className={`flex items-start justify-between gap-3 py-2.5 ${i === lines.length - 1 ? "" : "border-b border-[rgba(160,160,160,0.18)]"}`}>
+                    <span className="min-w-0 pr-2">
+                      <span className="block text-[13px]" style={{ ...FONT, color: INK }}>{l.name}</span>
+                      {sub && <span className="block text-[12px] mt-0.5" style={{ ...FONT, color: MUTED }}>{sub}</span>}
+                    </span>
+                    <span className="text-[13px] font-medium shrink-0" style={{ ...FONT, color: INK }}>{money(l.amount)}</span>
+                  </div>
+                );
+              })}
             </div>
           </Card>
         )}

@@ -163,6 +163,10 @@ export interface CreditNote {
   status: CNStatus;
   date: string;
   reason: string;
+  /** Credited line items shown on the CN detail. A clean quantity credit carries qty + unitPrice
+   *  ("qty × price"); a value reduction omits them ("Price adjustment"). Omitted entirely → the detail
+   *  synthesizes a single "Credited amount" line. */
+  lines?: { name: string; amount: number; qty?: number; unitPrice?: number }[];
   /** Whether the credit note has been sent to the customer (secondary indicator + Send/Resend). */
   sent?: boolean;
 }
@@ -187,7 +191,9 @@ export interface CreditNotePayload {
   amount: number;
   name: string;
   email: string;
-  lines: { name: string; amount: number }[];
+  /** Credited lines. A clean quantity credit carries qty + unitPrice ("qty × price"); a value
+   *  reduction omits them and shows as "Price adjustment". */
+  lines: { name: string; amount: number; qty?: number; unitPrice?: number }[];
   issueDateLabel: string;
   issueDate: Date;
   /** Resolved due date label ("26 Jul 2026") — shown on the CN detail. */

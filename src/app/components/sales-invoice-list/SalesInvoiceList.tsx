@@ -312,7 +312,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
               currency="USD"
               total={cnPreview.original}
               invoiceTotal={cnPreviewInvoiceTotal}
-              lines={[{ name: "Credited amount", amount: cnPreview.original, original: cnPreviewInvoiceTotal }]}
+              lines={cnPreview.lines ?? [{ name: "Credited amount", amount: cnPreview.original }]}
               reason={cnPreview.reason}
               kind="cancellation"
               status={cnPreview.status}

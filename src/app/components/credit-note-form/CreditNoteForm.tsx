@@ -260,7 +260,23 @@ export function CreditNoteForm({
     amount: Number(credited.toFixed(2)),
     name,
     email,
-    lines: lines.map((l) => ({ name: l.name, amount: lineCredit(l) })).filter((l) => l.amount > 0.001),
+    // Per credited line: a clean quantity credit (same unit price, fewer units) carries qty + unitPrice
+    // so the detail can show "qty × price"; anything else (a price cut, or refund) is a value reduction.
+    lines: lines
+      .map((l) => {
+        const credit = lineCredit(l);
+        if (!refund) {
+          const maxQty = l.maxQty || 1;
+          const origUnit = (l.origAmount ?? lineAmount(l)) / maxQty;
+          const curUnit = Number(l.unitPrice) || 0;
+          const creditedQty = maxQty - l.qty;
+          if (Math.abs(curUnit - origUnit) < 0.001 && creditedQty > 0) {
+            return { name: l.name, amount: credit, qty: creditedQty, unitPrice: origUnit };
+          }
+        }
+        return { name: l.name, amount: credit };
+      })
+      .filter((l) => l.amount > 0.001),
     issueDateLabel: formatDMY(issueDate),
     issueDate,
     dueDateLabel,

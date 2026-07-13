@@ -1078,8 +1078,7 @@ export function InvoiceDetailPage({
               issueDateLabel={cn.date}
               currency={currency}
               dueDateLabel={cn.dueDateLabel}
-              // Enrich each credited line with its original invoice value (matched by name) for context.
-              lines={cn.lines.map((l) => ({ ...l, original: ITEMS.find((it) => it.name === l.name)?.amount }))}
+              lines={cn.lines}
               total={cn.amount}
               invoiceTotal={TOTAL}
               reason={cn.reason}
