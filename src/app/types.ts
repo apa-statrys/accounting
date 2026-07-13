@@ -190,6 +190,8 @@ export interface CreditNotePayload {
   lines: { name: string; amount: number }[];
   issueDateLabel: string;
   issueDate: Date;
+  /** Resolved due date label ("26 Jul 2026") — shown on the CN detail. */
+  dueDateLabel: string;
   reason: string;
   reasonNote: string;
   draftLines: DraftLine[];

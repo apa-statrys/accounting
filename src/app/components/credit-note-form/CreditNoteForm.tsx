@@ -103,6 +103,13 @@ export function CreditNoteForm({
     if (m) return `Next ${m[1]} Days (${format(addDays(issueDate, +m[1]), "d MMM yyyy")})`;
     return dueTerm;
   })();
+  // The resolved due date as a plain label ("26 Jul 2026") — persisted so the CN detail can show it.
+  const dueDateLabel = (() => {
+    const m = dueTerm.match(/^Next (\d+) days$/);
+    if (m) return format(addDays(issueDate, +m[1]), "d MMM yyyy");
+    const custom = new Date(dueTerm);
+    return isNaN(custom.getTime()) ? format(addDays(issueDate, 30), "d MMM yyyy") : format(custom, "d MMM yyyy");
+  })();
   // Required reason (dropdown, fixed enum — DES-719) + a required free-text Description (stored in
   // `reasonNote` for the payload / edit-seed). Restored on edit.
   const [reason, setReason] = useState(initial?.reason ?? "");
@@ -256,6 +263,7 @@ export function CreditNoteForm({
     lines: lines.map((l) => ({ name: l.name, amount: lineCredit(l) })).filter((l) => l.amount > 0.001),
     issueDateLabel: formatDMY(issueDate),
     issueDate,
+    dueDateLabel,
     reason,
     // Only a free-text reason ("Other") carries a note; presets store none.
     reasonNote: needsNote ? reasonNote.trim() : "",

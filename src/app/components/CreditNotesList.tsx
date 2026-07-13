@@ -1,10 +1,13 @@
 import { useMemo, useState } from "react";
+import { parse, format, addDays } from "date-fns";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ImportExportIcon from "@mui/icons-material/ImportExport";
 import TuneIcon from "@mui/icons-material/Tune";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import CheckIcon from "@mui/icons-material/Check";
+import SearchIcon from "@mui/icons-material/Search";
 import StatusBar from "./StatusBar";
+import { Search } from "./Search";
 import { SheetHeader, HeaderIconButton } from "./SheetHeader";
 import { BottomSheet } from "./BottomSheet";
 import { CreditNoteDetailPage } from "./CreditNoteDetailPage";
@@ -12,14 +15,31 @@ import { CreditNoteForm } from "./credit-note-form/CreditNoteForm";
 import type { CreditNotePayload, DraftLine } from "../types";
 import { CREDIT_NOTES } from "../data/creditNotes";
 import { RECEIVING_ACCOUNTS } from "../data/receivingAccounts";
+import { matchesIssueRange } from "./sales-invoice-list/filters";
 import type { CNStatus, CreditNote } from "../types";
 
 import { FONT } from "../lib/theme";
 
+// The register stores display dates ("22 Jun 2026"); convert to ISO so the shared invoice-list
+// date-range filter (matchesIssueRange, which expects YYYY-MM-DD) can be reused as-is.
+const toISO = (d: string): string => {
+  if (!d) return "";
+  const parsed = parse(d, "d MMM yyyy", new Date(2026, 0, 1));
+  return isNaN(parsed.getTime()) ? "" : format(parsed, "yyyy-MM-dd");
+};
+
+// The register carries only the issue date; approximate the CN due date (issue + 30 days) for the detail.
+const dueLabelFor = (d: string): string | undefined => {
+  if (!d) return undefined;
+  const parsed = parse(d, "d MMM yyyy", new Date(2026, 0, 1));
+  return isNaN(parsed.getTime()) ? undefined : format(addDays(parsed, 30), "d MMM yyyy");
+};
+
 // DES-818 status palette — Draft (grey) / Applied (green) / Cancelled (muted grey). Matches the chip
 // palette on CreditNoteDetailPage so the list and detail read the same.
 const STATUS_PILL: Record<CNStatus, { bg: string; border: string; text: string }> = {
-  Draft: { bg: "#f2f4f7", border: "#e4e7ec", text: "#475467" },
+  // Draft = the neutral beige pill from Figma (node 1312-7899).
+  Draft: { bg: "#faf9f4", border: "rgba(160,160,160,0.2)", text: "#808080" },
   Applied: { bg: "#ecfdf3", border: "#abefc6", text: "#067647" },
   Cancelled: { bg: "#f3f3f3", border: "rgba(160,160,160,0.35)", text: "#9a9a9a" },
 };
@@ -34,11 +54,10 @@ const FILTERS: { label: string; match: StatusMatch }[] = [
   { label: "Cancelled", match: "Cancelled" },
 ];
 
-type SortKey = "newest" | "oldest" | "number" | "amount-desc" | "amount-asc";
+type SortKey = "newest" | "oldest" | "amount-desc" | "amount-asc";
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: "newest", label: "Issue Date: Newest" },
-  { key: "oldest", label: "Issue Date: Oldest" },
-  { key: "number", label: "CN Number" },
+  { key: "newest", label: "Credit Issue Date: Newest" },
+  { key: "oldest", label: "Credit Issue Date: Oldest" },
   { key: "amount-desc", label: "Amount: High to Low" },
   { key: "amount-asc", label: "Amount: Low to High" },
 ];
@@ -66,6 +85,14 @@ export function CreditNotesList({ onBack, onOpenInvoice }: CreditNotesListProps)
   const [sortOpen, setSortOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
+  // Customer search within the Filters sheet (DES-818 — "search by customer name").
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const visibleCustomers = CUSTOMERS.filter((c) => c.toLowerCase().includes(customerQuery.toLowerCase()));
+  // Issue-date range filter (DES-818) — reuses the invoice list's matchesIssueRange helper.
+  const [issueFrom, setIssueFrom] = useState("");
+  const [issueTo, setIssueTo] = useState("");
+  const activeFilterCount = selectedCustomers.length + (issueFrom || issueTo ? 1 : 0);
   // Local register state so Edit / Cancel / Delete / Send mutate in-session.
   const [notes, setNotes] = useState<CreditNote[]>(CREDIT_NOTES);
   const [previewNo, setPreviewNo] = useState<string | null>(null);
@@ -91,15 +118,15 @@ export function CreditNotesList({ onBack, onOpenInvoice }: CreditNotesListProps)
     const match = FILTERS[active].match;
     let rows = notes.filter((c) => (match === "all" ? true : c.status === match));
     if (selectedCustomers.length) rows = rows.filter((c) => selectedCustomers.includes(c.customer));
+    if (issueFrom || issueTo) rows = rows.filter((c) => matchesIssueRange(toISO(c.date), issueFrom, issueTo));
     const sorted = [...rows];
     switch (sortKey) {
       case "oldest": return sorted.reverse();
-      case "number": return sorted.sort((a, b) => b.no.localeCompare(a.no)); // CN number descending (DES-818)
       case "amount-desc": return sorted.sort((a, b) => b.original - a.original);
       case "amount-asc": return sorted.sort((a, b) => a.original - b.original);
       default: return sorted; // newest = authored order
     }
-  }, [active, sortKey, selectedCustomers, notes]);
+  }, [active, sortKey, selectedCustomers, issueFrom, issueTo, notes]);
 
   const sortLabel = SORT_OPTIONS.find((s) => s.key === sortKey)?.label ?? "";
   const toggleCustomer = (c: string) => setSelectedCustomers((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
@@ -154,8 +181,8 @@ export function CreditNotesList({ onBack, onOpenInvoice }: CreditNotesListProps)
         <button onClick={() => setFilterOpen(true)} className="flex items-center gap-1.5" style={FONT}>
           <TuneIcon style={{ fontSize: 18, color: "#1b1b1b" }} />
           <span className="text-[13px] font-medium text-[#1b1b1b]">Filters</span>
-          {selectedCustomers.length > 0 && (
-            <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[#ff4a15] text-white text-[11px] font-bold flex items-center justify-center">{selectedCustomers.length}</span>
+          {activeFilterCount > 0 && (
+            <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[#ff4a15] text-white text-[11px] font-bold flex items-center justify-center">{activeFilterCount}</span>
           )}
         </button>
       </div>
@@ -171,19 +198,23 @@ export function CreditNotesList({ onBack, onOpenInvoice }: CreditNotesListProps)
               <button
                 key={cn.no}
                 onClick={() => setPreview(cn)}
-                className="shrink-0 w-full flex items-center gap-2.5 border border-dashed rounded-xl p-[17px] text-left bg-[#faf9f4]"
+                className="shrink-0 w-full flex flex-col gap-2 border border-dashed rounded-2xl p-4 text-left bg-white transition-shadow hover:shadow-[0_4px_12px_rgba(16,24,40,0.08)]"
                 style={{ borderColor: "rgba(160,160,160,0.2)" }}
               >
-                <div className="flex-1 min-w-0 flex flex-col gap-1">
-                  <p className="text-[16px] font-medium leading-[0.9] tracking-[-0.8px] truncate text-[#101828]" style={FONT}>{cn.customer}</p>
-                  {/* CN number · related invoice · issue date (DES-818 columns) */}
-                  <p className="text-[12px] font-normal leading-[1.3] whitespace-nowrap truncate text-[#808080]" style={FONT}>
-                    <span style={{ fontWeight: 500 }}>{cn.no}</span> · {cn.invoiceNo} · {cn.date}
-                  </p>
-                </div>
-                <div className="shrink-0 flex flex-col items-end gap-1">
-                  <p className="text-[16px] font-bold leading-[1.3] text-[#101828]" style={FONT}>{money(cn.original)}</p>
-                  <span className="px-2 py-0.5 rounded-full border text-[10px] font-bold leading-[15px] whitespace-nowrap" style={{ ...FONT, background: s.bg, borderColor: s.border, color: s.text }}>{cn.status}</span>
+                {/* Card layout per Figma 1312-7899 — customer + CN number + "Created on <date>" on the left,
+                    amount over the status pill on the right. Only the status pill differs by status. */}
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[16px] font-medium leading-[1.2] tracking-[-0.3px] truncate text-[#101828]" style={FONT}>{cn.customer}</p>
+                    <div className="flex flex-col gap-0.5 mt-1">
+                      <p className="text-[12px] font-medium leading-[1.2] truncate" style={{ ...FONT, color: "#1b1b1b" }}>{cn.no}</p>
+                      <p className="text-[12px] leading-[1.2] truncate" style={{ ...FONT, color: "#808080" }}>Created on {cn.date}</p>
+                    </div>
+                  </div>
+                  <div className="shrink-0 flex flex-col items-end gap-1.5">
+                    <p className="text-[16px] font-bold leading-[1.2] text-[#101828] whitespace-nowrap" style={FONT}>{money(cn.original)}</p>
+                    <span className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-full border text-[11px] font-bold leading-[15px] whitespace-nowrap" style={{ ...FONT, background: s.bg, borderColor: s.border, color: s.text }}>{cn.status}</span>
+                  </div>
                 </div>
               </button>
             );
@@ -210,8 +241,66 @@ export function CreditNotesList({ onBack, onOpenInvoice }: CreditNotesListProps)
       {/* Filters sheet — by customer */}
       <BottomSheet open={filterOpen} title="Filters" onClose={() => setFilterOpen(false)}>
         <div className="flex flex-col gap-2">
-          <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0]" style={FONT}>Customer</p>
-          {CUSTOMERS.map((c) => {
+          {/* CN issue date range (DES-818) — same native date inputs as the Sales Invoice List filter. */}
+          <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0]" style={FONT}>Credit Issue Date</p>
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              {!issueFrom && (
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#a0a0a0]" style={FONT}>Start date</span>
+              )}
+              <input
+                type="date"
+                value={issueFrom}
+                max={issueTo || undefined}
+                onChange={(e) => setIssueFrom(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-[rgba(160,160,160,0.4)] text-[14px] bg-white"
+                style={{ ...FONT, color: issueFrom ? "#1b1b1b" : "transparent" }}
+              />
+            </div>
+            <div className="relative flex-1">
+              {!issueTo && (
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#a0a0a0]" style={FONT}>End date</span>
+              )}
+              <input
+                type="date"
+                value={issueTo}
+                min={issueFrom || undefined}
+                onChange={(e) => setIssueTo(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-[rgba(160,160,160,0.4)] text-[14px] bg-white"
+                style={{ ...FONT, color: issueTo ? "#1b1b1b" : "transparent" }}
+              />
+            </div>
+          </div>
+          {(issueFrom || issueTo) && (
+            <button onClick={() => { setIssueFrom(""); setIssueTo(""); }} className="self-start text-[13px] font-medium text-[#ff4a15] pt-1" style={FONT}>Clear dates</button>
+          )}
+
+          <div className="flex items-center justify-between mt-4">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0]" style={FONT}>Customer</p>
+            {CUSTOMERS.length >= 5 && (
+              <button
+                type="button"
+                aria-label={customerSearchOpen ? "Hide customer search" : "Search customers"}
+                onClick={() => { if (customerSearchOpen) setCustomerQuery(""); setCustomerSearchOpen((v) => !v); }}
+                className="p-1 -m-1"
+              >
+                <SearchIcon style={{ fontSize: 18, color: customerSearchOpen ? "#ff4a15" : "#1b1b1b" }} />
+              </button>
+            )}
+          </div>
+          {customerSearchOpen && (
+            <Search
+              size="sm"
+              autoFocus
+              placeholder="Search by Customer name"
+              value={customerQuery}
+              onChange={(e) => setCustomerQuery(e.target.value)}
+            />
+          )}
+          {visibleCustomers.length === 0 && (
+            <p className="text-[13px] text-[#a0a0a0] py-3" style={FONT}>No customers found</p>
+          )}
+          {visibleCustomers.map((c) => {
             const on = selectedCustomers.includes(c);
             return (
               <button
@@ -246,6 +335,7 @@ export function CreditNotesList({ onBack, onOpenInvoice }: CreditNotesListProps)
               customerName={preview.customer}
               customerEmail={preview.email}
               issueDateLabel={preview.date}
+              dueDateLabel={dueLabelFor(preview.date)}
               currency="USD"
               total={preview.original}
               invoiceTotal={preview.invoiceTotal}

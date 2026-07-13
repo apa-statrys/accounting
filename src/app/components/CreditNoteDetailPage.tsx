@@ -51,6 +51,8 @@ export interface CreditNoteDetailPageProps {
   customerName: string;
   customerEmail?: string;
   issueDateLabel: string;
+  /** Resolved due date label ("26 Jul 2026") — shown in the Details card. */
+  dueDateLabel?: string;
   currency?: string;
   /** Credit-note total (positive; rendered as a negative). */
   total: number;
@@ -120,7 +122,7 @@ function Row({ label, value, last }: { label: string; value: React.ReactNode; la
  */
 export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const {
-    creditNoteNo, invoiceNo, customerName, customerEmail, issueDateLabel, currency = "USD",
+    creditNoteNo, invoiceNo, customerName, customerEmail, issueDateLabel, dueDateLabel, currency = "USD",
     total, invoiceTotal, lines, reason, reasonNote, kind = "cancellation", status, refundProof, sent, updatedDateLabel,
     onBack, onViewInvoice, onSent, onApply, onEdit, onCancel, receivingAccount,
   } = props;
@@ -214,9 +216,12 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           </div>
         </Card>
 
-        {/* Credit Details — reason (+ description) and the related invoice (Figma 1209). The reason row is
-            hidden until the client fills it in. */}
+        {/* Credit Details — Credit Issue Date / Due Date / Currency + reason (+ description) + the related
+            invoice, all in one card (Figma 1209). The reason row is hidden until the client fills it in. */}
         <Card title="Credit Details">
+          <Row label="Credit Issue Date" value={issueDateLabel} />
+          <Row label="Due Date" value={dueDateLabel ?? "—"} />
+          <Row label="Currency" value={currency} />
           {reasonText && (
             <div className="flex items-start justify-between gap-4 py-3 border-b border-[rgba(160,160,160,0.18)]">
               <span className="text-[13px] shrink-0" style={{ ...FONT, color: MUTED }}>Reason</span>

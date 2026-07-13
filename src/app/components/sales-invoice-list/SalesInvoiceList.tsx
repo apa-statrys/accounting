@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { parse, format, addDays } from "date-fns";
 import { FilePlus } from "lucide-react";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ImportExportIcon from "@mui/icons-material/ImportExport";
@@ -302,6 +303,12 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
               customerName={cnPreview.customer}
               customerEmail={cnPreview.email}
               issueDateLabel={cnPreview.date}
+              dueDateLabel={(() => {
+                // Register has only the issue date — approximate the due date (issue + 30 days).
+                if (!cnPreview.date) return undefined;
+                const p = parse(cnPreview.date, "d MMM yyyy", new Date(2026, 0, 1));
+                return isNaN(p.getTime()) ? undefined : format(addDays(p, 30), "d MMM yyyy");
+              })()}
               currency="USD"
               total={cnPreview.original}
               invoiceTotal={cnPreviewInvoiceTotal}

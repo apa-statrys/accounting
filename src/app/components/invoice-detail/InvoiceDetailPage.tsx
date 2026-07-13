@@ -383,7 +383,8 @@ export function InvoiceDetailPage({
   const cnFromPayload = (no: string, p: CreditNotePayload): CreditNote => ({
     no, amount: p.amount, name: p.name, email: p.email, lines: p.lines,
     date: p.issueDateLabel, reason: p.reason, reasonNote: p.reasonNote,
-    draftLines: p.draftLines, issueDate: p.issueDate, accountId: p.accountId, sent: false,
+    draftLines: p.draftLines, issueDate: p.issueDate, dueDateLabel: p.dueDateLabel,
+    accountId: p.accountId, sent: false,
   });
 
   // Cancel a credit note (DES-719) — keep it as a Cancelled RECORD and fully reverse its effect on the
@@ -1076,6 +1077,7 @@ export function InvoiceDetailPage({
               customerEmail={cn.email}
               issueDateLabel={cn.date}
               currency={currency}
+              dueDateLabel={cn.dueDateLabel}
               // Enrich each credited line with its original invoice value (matched by name) for context.
               lines={cn.lines.map((l) => ({ ...l, original: ITEMS.find((it) => it.name === l.name)?.amount }))}
               total={cn.amount}

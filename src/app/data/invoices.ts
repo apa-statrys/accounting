@@ -4,6 +4,10 @@ import { CUSTOMERS } from "./customers";
 export const INVOICES: Invoice[] = [
   { id: "INV-2026-000004", client: "Marlow & Finch Studio", meta: "INV-2026-000004 · Due 25 Jun 2026", amount: "$6,430.05", status: "Awaiting", date: "2026-06-11", due: "2026-06-25", recurring: true },
   { id: "INV-2026-000007", client: "Northwind Traders", meta: "INV-2026-000007 · Due 05 Jun 2026", amount: "$2,150.00", status: "Awaiting", date: "2026-05-20", due: "2026-06-05" },
+  // Linked to credit notes in the register so their "Related Invoice" opens a real invoice:
+  // INV-…012 has a Draft CN (CN-…005), INV-…016 had a Cancelled CN (CN-…009, effects reversed → still Awaiting).
+  { id: "INV-2026-000012", client: "Saffron Kitchen", meta: "INV-2026-000012 · Due 12 Jul 2026", amount: "$3,000.00", status: "Awaiting", date: "2026-06-28", due: "2026-07-12" },
+  { id: "INV-2026-000016", client: "Pinecrest Interiors", meta: "INV-2026-000016 · Due 10 Jul 2026", amount: "$4,200.00", status: "Awaiting", date: "2026-06-26", due: "2026-07-10" },
   // Partially Paid demo (#3 / list tab) — $4,000 of $6,450 received, $2,450 still due.
   { id: "INV-2026-000014", client: "Verde Coffee Roasters", meta: "INV-2026-000014 · $2,450.00 due", amount: "$6,450.00", status: "PartiallyPaid", date: "2026-06-20", due: "2026-07-05" },
   { id: "INV-2026-000010", client: "Harbor & Co.", meta: "INV-2026-000010 · Due 30 Jun 2026", amount: "$6,450.00", status: "Awaiting", date: "2026-06-15", due: "2026-06-30", cnNo: "CN-2026-000003", cnAmount: 2000, cnSent: true },
