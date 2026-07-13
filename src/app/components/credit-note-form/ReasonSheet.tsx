@@ -1,19 +1,27 @@
 import { BottomSheet } from "../BottomSheet";
 import { ButtonDock } from "../ButtonDock";
 import { Tile } from "../Tile";
+import { TextInput } from "../TextInput";
 
-/** Required reason for raising a credit note (DES-719) — a fixed enum, no free-text option. */
-export const CREDIT_REASONS = ["Return", "Defect", "Pricing error", "Goodwill", "Dispute"];
+/** Required reason for raising a credit note (DES-719) — fixed enum + "Other" (reveals a free-text
+ *  Description inside this sheet, matching the ticket's "dropdown + optional free text"). */
+export const CREDIT_REASONS = ["Return", "Defect", "Pricing error", "Goodwill", "Dispute", "Other"];
 
 interface ReasonSheetProps {
   open: boolean;
   onClose: () => void;
   reason: string;
   setReason: (r: string) => void;
+  /** Free-text note — required only when "Other" is chosen. */
+  reasonNote: string;
+  setReasonNote: (n: string) => void;
 }
 
-/** Reason picker — required (DES-719). Tap a preset to select it; confirm with Done. */
-export function ReasonSheet({ open, onClose, reason, setReason }: ReasonSheetProps) {
+/** Reason picker — required (DES-719). Tap a preset to select it; "Other" reveals a required free-text
+ *  Description right here in the sheet. Confirm with Done. */
+export function ReasonSheet({ open, onClose, reason, setReason, reasonNote, setReasonNote }: ReasonSheetProps) {
+  const needsNote = reason === "Other";
+  const canDone = reason !== "" && (!needsNote || reasonNote.trim() !== "");
   return (
     <BottomSheet
       open={open}
@@ -23,7 +31,7 @@ export function ReasonSheet({ open, onClose, reason, setReason }: ReasonSheetPro
         <ButtonDock
           type="single"
           primaryLabel="Done"
-          primaryDisabled={reason === ""}
+          primaryDisabled={!canDone}
           onPrimary={onClose}
           homeIndicator
         />
@@ -40,6 +48,21 @@ export function ReasonSheet({ open, onClose, reason, setReason }: ReasonSheetPro
             onClick={() => setReason(r)}
           />
         ))}
+
+        {/* Free-text description — shown only for "Other", required so the custom reason is explained. */}
+        {needsNote && (
+          <div className="pt-1">
+            <TextInput
+              label="Enter reason of credit note"
+              required
+              size="md"
+              showHint={false}
+              placeholder="Enter description of your credit reason"
+              value={reasonNote}
+              onChange={(e) => setReasonNote(e.target.value)}
+            />
+          </div>
+        )}
       </div>
     </BottomSheet>
   );

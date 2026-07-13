@@ -190,6 +190,8 @@ export interface CreditNotePayload {
   reason: string;
   reasonNote: string;
   draftLines: DraftLine[];
+  /** Chosen receiving account id (DES-719 — payment method, editable before Create). */
+  accountId: string;
 }
 
 /** Seed for editing an existing credit note (AC4) — restores the prior state exactly. */
@@ -200,6 +202,8 @@ export interface CreditNoteEditSeed {
   reasonNote: string;
   issueDate: Date;
   lines: DraftLine[];
+  /** Restores the chosen receiving account when a draft/note is reopened. */
+  accountId?: string;
 }
 
 // ---------------------------------------------------------------------------

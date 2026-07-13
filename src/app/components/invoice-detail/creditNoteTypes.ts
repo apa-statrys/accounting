@@ -25,6 +25,8 @@ export type CreditNote = {
   reasonNote?: string;
   draftLines?: DraftLine[];
   issueDate?: Date;
+  /** DES-719 — the receiving account / payment method chosen on the form (id into RECEIVING_ACCOUNTS). */
+  accountId?: string;
   sent: boolean;
   sentDate?: string;
   refundProof?: RefundProof;

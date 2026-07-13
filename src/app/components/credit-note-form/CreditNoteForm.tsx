@@ -11,7 +11,6 @@ import { SheetHeader, HeaderIconButton } from "../SheetHeader";
 import { ButtonDock } from "../ButtonDock";
 import { IssueDateSheet } from "../IssueDateSheet";
 import { NumericKeypad } from "../NumericKeypad";
-import { TextInput } from "../TextInput";
 import { FONT, INK, MUTED } from "../../lib/theme";
 import type { CreditNoteEditSeed, CreditNotePayload, DraftLine, InvoiceLine } from "../../types";
 import { EMAIL_RE } from "../../lib/format";
@@ -19,6 +18,7 @@ import { fmtAmount, formatDMY, lineAmount } from "./lineMath";
 import { ReasonSheet } from "./ReasonSheet";
 import { ClientEditSheet } from "./ClientEditSheet";
 import { DueDateSheet } from "../DueDateSheet";
+import { ReceivingAccountSheet } from "../ReceivingAccountSheet";
 import { formatAccount, RECEIVING_ACCOUNTS } from "../../data/receivingAccounts";
 
 interface CreditNoteFormProps {
@@ -92,8 +92,11 @@ export function CreditNoteForm({
   // Due date — pre-fills from the credited invoice's term (DES-719), editable via the shared sheet.
   const [dueTerm, setDueTerm] = useState<string>("Next 30 days");
   const [dueOpen, setDueOpen] = useState(false);
-  // Receiving account shown (locked) on the credit note — the primary Statrys account, same as the invoice.
-  const receivingAcct = RECEIVING_ACCOUNTS.find((a) => a.primary) ?? RECEIVING_ACCOUNTS[0];
+  // Receiving account / payment method (DES-719 — editable before Create). Defaults to the primary
+  // Statrys account; a chosen account survives a draft-resume via the payload/seed.
+  const defaultAcct = RECEIVING_ACCOUNTS.find((a) => a.primary) ?? RECEIVING_ACCOUNTS[0];
+  const [accountId, setAccountId] = useState<string>(initial?.accountId ?? defaultAcct.id);
+  const [acctSheetOpen, setAcctSheetOpen] = useState(false);
   // Resolve "Next N days" against the issue date → "Next N Days (15 Jul 2026)"; a custom date is shown as-is.
   const dueLabel = (() => {
     const m = dueTerm.match(/^Next (\d+) days$/);
@@ -131,7 +134,7 @@ export function CreditNoteForm({
     setSaveState("saving");
     const t = setTimeout(() => setSaveState("saved"), 700);
     return () => clearTimeout(t);
-  }, [name, email, issueDate, dueTerm, reason, reasonNote, lines]);
+  }, [name, email, issueDate, dueTerm, accountId, reason, reasonNote, lines]);
 
   // Two editing models, one engine:
   //  • CREDIT (corrected invoice): each line stores the CORRECTED amount in `unitPrice`; the credit is
@@ -149,8 +152,11 @@ export function CreditNoteForm({
   const amountDue = Math.max(0, originalTotal - credited);
   const exceedsCap = credited > outstanding + 0.001;
   const isFull = Math.abs(credited - outstanding) < 0.001;
-  // A reason and a description are both required (DES-719).
-  const canCreate = credited > 0 && !exceedsCap && reason !== "" && reasonNote.trim() !== "";
+  // A reason is always required; the free-text Description is required only when the reason is "Other"
+  // (DES-719 — dropdown + optional free text; "Other" needs a description to be meaningful).
+  const needsNote = reason === "Other";
+  const canCreate =
+    credited > 0 && !exceedsCap && reason !== "" && (!needsNote || reasonNote.trim() !== "");
 
   const setUnitPrice = (id: string, raw: string) =>
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, unitPrice: raw.replace(/[^0-9.]/g, "") } : l)));
@@ -251,8 +257,10 @@ export function CreditNoteForm({
     issueDateLabel: formatDMY(issueDate),
     issueDate,
     reason,
-    reasonNote: reasonNote.trim(),
+    // Only a free-text reason ("Other") carries a note; presets store none.
+    reasonNote: needsNote ? reasonNote.trim() : "",
     draftLines: lines,
+    accountId,
   });
 
   const handleCreate = () => {
@@ -316,11 +324,15 @@ export function CreditNoteForm({
                 <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
               </span>
             </button>
-            {/* Receiving account — locked (same as the invoice), between Due Date and Currency. */}
-            <div className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] border-b border-[rgba(160,160,160,0.2)]">
+            {/* Receiving account / payment method — editable before Create (DES-719), between Due Date
+                and Currency. Tap to choose a Statrys account (external is out of scope for a CN). */}
+            <button type="button" onClick={() => setAcctSheetOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
               <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Receiving Account</span>
-              <span className="text-[14px] font-medium truncate" style={{ ...FONT, color: MUTED }}>{formatAccount(receivingAcct.id)}</span>
-            </div>
+              <span className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[14px] font-medium truncate" style={{ ...FONT, color: "#101828" }}>{formatAccount(accountId)}</span>
+                <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
+              </span>
+            </button>
             <div className="w-full flex items-center justify-between px-4 pt-4 pb-[17px]">
               <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Currency</span>
               <span className="text-[14px] font-medium" style={{ ...FONT, color: MUTED }}>{currency}</span>
@@ -352,22 +364,12 @@ export function CreditNoteForm({
             style={{ borderColor: "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
           >
             <span className="text-[16px] truncate" style={{ ...FONT, color: reason ? "#1b1b1b" : "#9ca3af" }}>
-              {reason || "Select a reason"}
+              {/* "Other" shows the user's free-text description on the main page, not the word "Other". */}
+              {reason === "Other" ? (reasonNote.trim() || "Other") : (reason || "Select a reason")}
             </span>
             <KeyboardArrowDownIcon style={{ fontSize: 24, color: "#808080" }} />
           </button>
         </div>
-
-        {/* Description — required free-text (DES-719, client-filled). */}
-        <TextInput
-          label="Description"
-          required
-          size="md"
-          showHint={false}
-          placeholder="Enter description of your credit reason"
-          value={reasonNote}
-          onChange={(e) => setReasonNote(e.target.value)}
-        />
 
         {/* Corrected invoice — edit each line to its CORRECT value; the credit is derived automatically. */}
         <div className="flex flex-col gap-2">
@@ -569,12 +571,24 @@ export function CreditNoteForm({
         onSelect={(t) => { setDueTerm(t); setDueOpen(false); }}
       />
 
+      {/* Receiving account picker (DES-719 — payment method, editable before Create). External bank
+          account is out of scope for a credit note, so only Statrys accounts are offered. */}
+      <ReceivingAccountSheet
+        open={acctSheetOpen}
+        value={accountId}
+        hideExternal
+        onClose={() => setAcctSheetOpen(false)}
+        onSelect={(id) => { setAccountId(id); setAcctSheetOpen(false); }}
+      />
+
       {/* Reason picker — required (DES-719). */}
       <ReasonSheet
         open={reasonSheetOpen}
         onClose={() => setReasonSheetOpen(false)}
         reason={reason}
         setReason={setReason}
+        reasonNote={reasonNote}
+        setReasonNote={setReasonNote}
       />
 
       {/* Edit client details — applies to this credit note only (not the invoice or client record) */}

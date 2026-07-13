@@ -383,7 +383,7 @@ export function InvoiceDetailPage({
   const cnFromPayload = (no: string, p: CreditNotePayload): CreditNote => ({
     no, amount: p.amount, name: p.name, email: p.email, lines: p.lines,
     date: p.issueDateLabel, reason: p.reason, reasonNote: p.reasonNote,
-    draftLines: p.draftLines, issueDate: p.issueDate, sent: false,
+    draftLines: p.draftLines, issueDate: p.issueDate, accountId: p.accountId, sent: false,
   });
 
   // Cancel a credit note (DES-719) — keep it as a Cancelled RECORD and fully reverse its effect on the
@@ -995,7 +995,7 @@ export function InvoiceDetailPage({
         // Resuming a Draft (DES-719) seeds the form from the saved note; a fresh form seeds from the invoice.
         const draft = resumeDraftIndex != null ? creditNotes[resumeDraftIndex] : null;
         const seed = draft
-          ? { name: draft.name, email: draft.email, reason: draft.reason ?? "", reasonNote: draft.reasonNote ?? "", issueDate: draft.issueDate ?? new Date(2026, 5, 26), lines: draft.draftLines ?? [] }
+          ? { name: draft.name, email: draft.email, reason: draft.reason ?? "", reasonNote: draft.reasonNote ?? "", issueDate: draft.issueDate ?? new Date(2026, 5, 26), lines: draft.draftLines ?? [], accountId: draft.accountId }
           : undefined;
         return (
           <CreditNoteForm
@@ -1112,7 +1112,7 @@ export function InvoiceDetailPage({
                   ? () => voidCreditNote(viewingCnIndex)
                   : undefined
               }
-              receivingAccount={{ name: receivingAcct.name, number: receivingAcct.number, primary: !!receivingAcct.primary }}
+              receivingAccount={(() => { const a = getAccount(cn.accountId ?? "") ?? receivingAcct; return { name: a.name, number: a.number, primary: !!a.primary }; })()}
             />
           </div>
         );
@@ -1145,7 +1145,7 @@ export function InvoiceDetailPage({
             invoiceTotal={TOTAL}
             alreadyCredited={credited - cn.amount}
             outstanding={creditRoom + cn.amount}
-            initial={{ name: cn.name, email: cn.email, reason: cn.reason ?? "", reasonNote: cn.reasonNote ?? "", issueDate: cn.issueDate ?? new Date(2026, 5, 26), lines: seedLines }}
+            initial={{ name: cn.name, email: cn.email, reason: cn.reason ?? "", reasonNote: cn.reasonNote ?? "", issueDate: cn.issueDate ?? new Date(2026, 5, 26), lines: seedLines, accountId: cn.accountId }}
             onBack={() => { setEditingCnIndex(null); setViewingCnIndex(editingCnIndex); }}
             onCreate={(p) => saveCreditNote(editingCnIndex, p)}
           />
