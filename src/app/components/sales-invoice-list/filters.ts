@@ -175,7 +175,7 @@ export function metaLine(inv: Invoice, eff: EffectiveStatus): { number: string; 
 /** Refund-status filter — lives in the Filters sheet, not a top chip (a refund is still a Paid invoice). */
 export type RefundFilter = "all" | "awaiting" | "partial" | "full";
 export const REFUND_FILTERS: { key: Exclude<RefundFilter, "all">; label: string }[] = [
-  { key: "awaiting", label: "Refund Pending" },
+  { key: "awaiting", label: "Pending Refund" },
   { key: "partial", label: "Partially refunded" },
   { key: "full", label: "Refunded" },
 ];

@@ -341,22 +341,26 @@ export function CreditNoteForm({
                 <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
               </span>
             </button>
-            <button type="button" onClick={() => setDueOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
-              <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Due Date</span>
-              <span className="flex items-center gap-1.5">
-                <span className="text-[14px] font-medium" style={{ ...FONT, color: "#101828" }}>{dueLabel}</span>
-                <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
-              </span>
-            </button>
-            {/* Receiving account / payment method — editable before Create (DES-719), between Due Date
-                and Currency. Tap to choose a Statrys account (external is out of scope for a CN). */}
-            <button type="button" onClick={() => setAcctSheetOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
-              <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Receiving Account</span>
-              <span className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[14px] font-medium truncate" style={{ ...FONT, color: "#101828" }}>{formatAccount(accountId)}</span>
-                <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
-              </span>
-            </button>
+            {/* Due Date + Receiving Account apply to a cancellation CN (reducing an unpaid invoice). A
+                refund CN pays money out — no due date, and the source account is chosen in the refund flow. */}
+            {!refund && (
+              <button type="button" onClick={() => setDueOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
+                <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Due Date</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="text-[14px] font-medium" style={{ ...FONT, color: "#101828" }}>{dueLabel}</span>
+                  <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
+                </span>
+              </button>
+            )}
+            {!refund && (
+              <button type="button" onClick={() => setAcctSheetOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
+                <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Receiving Account</span>
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-[14px] font-medium truncate" style={{ ...FONT, color: "#101828" }}>{formatAccount(accountId)}</span>
+                  <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
+                </span>
+              </button>
+            )}
             <div className="w-full flex items-center justify-between px-4 pt-4 pb-[17px]">
               <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Currency</span>
               <span className="text-[14px] font-medium" style={{ ...FONT, color: MUTED }}>{currency}</span>

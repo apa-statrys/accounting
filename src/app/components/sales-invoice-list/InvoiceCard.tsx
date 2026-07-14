@@ -31,7 +31,7 @@ export function InvoiceCard({ inv, highlighted, onClick, onDelete, onOpenCN, ref
   const pill =
     refundChip === "Refunded" ? { label: "Refunded", bg: "#eef2ff", border: "#c7d2fe", text: "#4338ca" }
     : refundChip === "Partially Refunded" ? { label: "Partially Refunded", bg: "#fff7e6", border: "#fde68a", text: "#b45309" }
-    : refundChip === "Refund pending" ? { label: "Refund Pending", bg: "#fff7e6", border: "#fde68a", text: "#c2410c" }
+    : refundChip === "Refund pending" ? { label: "Pending Refund", bg: "#fff7e6", border: "#fde68a", text: "#c2410c" }
     : s;
   // Any invoice with a linked credit note shows a credit-note summary row beneath (DES-763 AC6): count +
   // amount + "View". The top amount stays the invoice total, consistent with every other card. The amount

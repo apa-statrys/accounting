@@ -32,6 +32,7 @@ const STATUS_CHIP: Record<string, { bg: string; border: string; text: string }> 
   "Fully Applied": { bg: "#ecfdf3", border: "#abefc6", text: "#067647" },
   // Refund lifecycle (money) — for refund credit notes.
   "Pending Refund": { bg: "#fff7e6", border: "#fde68a", text: "#b45309" },
+  "Awaiting refund by accountant": { bg: "#fff7e6", border: "#fde68a", text: "#b45309" },
   "Partially Refunded": { bg: "#eef4ff", border: "#c7d8fe", text: "#2f5fd0" },
   "Refunded": { bg: "#eef2ff", border: "#c7d2fe", text: "#4338ca" },
   "Cancelled": { bg: "#f3f3f3", border: "rgba(160,160,160,0.35)", text: "#9a9a9a" },
@@ -42,6 +43,9 @@ export interface CreditNoteRefundProof {
   method: string;
   amount: number;
   proofFile?: string;
+  referenceNo?: string;
+  /** External refund submitted, awaiting accountant confirmation (vs a settled/reconciled refund). */
+  awaiting?: boolean;
 }
 
 export interface CreditNoteDetailPageProps {
@@ -161,10 +165,9 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // Single-invoice model: "Applied" behaves like the old Fully Applied (Send-only, non-editable).
   const isFullyApplied = isCancellation && (displayStatus === "Fully Applied" || displayStatus === "Applied");
   const isApplied = isPartiallyApplied || isFullyApplied;
-  // DES-720 — a refund CN is Pending Refund until transferred; editable (EDIT dock) + cancellable (⋯) until
-  // then. `onEdit`/`onCancel` are wired by the invoice-detail entry only while the refund is still pending.
+  // DES-720 — a refund CN is Pending Refund until transferred. NOT editable after creation (AC2) — only
+  // cancellable (⋯) while still pending; `onCancel` is wired by the invoice-detail entry.
   const isPendingRefund = isRefund && displayStatus === "Pending Refund";
-  const refundEditable = isPendingRefund && !!onEdit;
   // Settled refund (Partially Refunded / Refunded) — past tense, Send dock, no ⋯ menu.
   const refundSettled = isRefund && (displayStatus === "Partially Refunded" || displayStatus === "Refunded");
   // Cancelled record (a voided Open/Pending note, kept for history) — Preview-only, no menu, never applied.
@@ -174,7 +177,9 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // must be applied to the invoice before it's sent to the customer (#4).
   // A Draft can only be applied once its required fields are filled (reason + description + a credit
   // amount). An incomplete draft leads with Edit instead of Apply to Invoice.
-  const draftComplete = !!reason && !!(reasonNote && reasonNote.trim()) && total > 0.001;
+  // Complete = a reason + a credit amount. The free-text description is only required when the reason is
+  // "Other" (mirrors the form's create validation) — preset reasons don't carry a note.
+  const draftComplete = !!reason && total > 0.001 && (reason !== "Other" || !!(reasonNote && reasonNote.trim()));
   const canApply = isOpen && !!onApply && draftComplete;
   // ⋯ exists for a Draft (Delete only), an Applied note (Cancel + Preview), or a Pending Refund (Cancel).
   // A Cancelled note has no ⋯.
@@ -378,27 +383,30 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         </Card>
         )}
 
-        {/* Refund record + proof (DES-720) */}
+        {/* Refund method (DES-720) — the bank account, date and proof, as a plain detail card (the
+            awaiting/refunded status is shown on the hero chip, not here). */}
         {refundProof && (
-          <div className="rounded-xl border border-[rgba(15,157,88,0.25)] bg-[rgba(15,157,88,0.06)] px-3 py-2.5 flex flex-col gap-2">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#0f9d58" }} />
-              <span className="text-[12px] font-semibold" style={{ ...FONT, color: "#0f9d58" }}>Refunded</span>
-              <span className="text-[12px] ml-auto text-right" style={{ ...FONT, color: MUTED }}>{refundProof.method} · {fmtDate(refundProof.date)}</span>
-            </span>
-            {refundProof.proofFile && (
-              <button
-                onClick={() => setProofPreview({ name: refundProof.proofFile!, size: 128000 })}
-                className="flex items-center gap-2.5 rounded-md bg-white border border-[rgba(160,160,160,0.3)] px-2 py-1.5 text-left"
-              >
-                <span className="w-7 h-7 rounded flex items-center justify-center shrink-0" style={{ background: "#f0eee6" }}>
-                  <ReceiptLongOutlinedIcon style={{ fontSize: 16, color: MUTED }} />
-                </span>
-                <span className="flex-1 min-w-0 text-[12px] font-medium truncate" style={{ ...FONT, color: INK }}>{refundProof.proofFile}</span>
-                <span className="text-[12px] font-medium shrink-0" style={{ ...FONT, color: "#0f9d58" }}>View ›</span>
-              </button>
+          <Card title="Refund Method">
+            <Row label="Bank account" value={refundProof.method} />
+            <Row label="Refund date" value={fmtDate(refundProof.date)} last={!refundProof.referenceNo && !refundProof.proofFile} />
+            {refundProof.referenceNo && (
+              <Row label="Reference" value={refundProof.referenceNo} last={!refundProof.proofFile} />
             )}
-          </div>
+            {refundProof.proofFile && (
+              <div className="py-3">
+                <button
+                  onClick={() => setProofPreview({ name: refundProof.proofFile!, size: 128000 })}
+                  className="w-full flex items-center gap-2.5 rounded-md bg-white border border-[rgba(160,160,160,0.3)] px-2 py-1.5 text-left"
+                >
+                  <span className="w-7 h-7 rounded flex items-center justify-center shrink-0" style={{ background: "#f0eee6" }}>
+                    <ReceiptLongOutlinedIcon style={{ fontSize: 16, color: MUTED }} />
+                  </span>
+                  <span className="flex-1 min-w-0 text-[12px] font-medium truncate" style={{ ...FONT, color: INK }}>{refundProof.proofFile}</span>
+                  <span className="text-[12px] font-medium shrink-0" style={{ ...FONT, color: "#0f9d58" }}>View ›</span>
+                </button>
+              </div>
+            )}
+          </Card>
         )}
       </div>
 
@@ -441,11 +449,8 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       ) : (isCancellation || isCancelled) ? (
         // Cancelled record, Cancelled cancellation, or an Open note where Apply isn't wired → Preview only.
         <ButtonDock type="single" overflow primaryLabel="Preview as PDF" onPrimary={openPdfPreview} homeIndicator />
-      ) : refundEditable ? (
-        // DES-720 — Pending Refund, not yet transferred → EDIT (edit the refund CN until it's paid out).
-        <ButtonDock type="single" overflow primaryLabel="Edit" onPrimary={() => onEdit?.()} homeIndicator />
       ) : (
-        // Refund settled/locked → Send/Resend the credit note.
+        // Refund CN (Pending Refund or settled) → Send/Resend the credit note. Not editable (AC2).
         <ButtonDock
           type="single"
           overflow
@@ -481,21 +486,19 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             </>
           )}
           {isRefund && (
-            refundEditable ? (
-              // Pending refund → only Cancel refund (no Send / Preview until it's transferred).
-              onCancel && (
-                <button onClick={() => { setActionsOpen(false); onCancel(); }} className="w-full flex items-center gap-3 py-3.5 text-left">
+            // Pending refund → Cancel refund (reverse it) + Preview. Settled/locked → Preview only.
+            <>
+              {isPendingRefund && onCancel && (
+                <button onClick={() => { setActionsOpen(false); onCancel(); }} className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]">
                   <DeleteOutlineIcon style={{ fontSize: 20, color: "#b42318" }} />
                   <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Cancel refund</span>
                 </button>
-              )
-            ) : (
-              // Settled/locked refund → Preview as PDF.
+              )}
               <button onClick={openPdfPreview} className="w-full flex items-center gap-3 py-3.5 text-left">
                 <PictureAsPdfOutlinedIcon style={{ fontSize: 20, color: INK }} />
                 <span className="text-[15px]" style={{ ...FONT, color: INK }}>Preview as PDF</span>
               </button>
-            )
+            </>
           )}
         </div>
       </BottomSheet>

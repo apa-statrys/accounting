@@ -146,6 +146,9 @@ export function InvoiceDetailPage({
   const [refundFormOpen, setRefundFormOpen] = useState(false);
   // Refund flow page (DES-720 AC3–AC5): method → (BA) pick source account → confirm transfer.
   const [refundFlowOpen, setRefundFlowOpen] = useState(false);
+  // DES-720 AC5 — an EXTERNAL refund was submitted (proof recorded) and is awaiting accountant
+  // confirmation. The invoice stays Pending Refund; this just stops the dock offering "Continue Refund".
+  const [refundSubmitted, setRefundSubmitted] = useState(false);
   // DES-720 cumulative refunds: money ACTUALLY paid out so far (vs `credited` = total committed to refund
   // credit notes). The gap `credited − refundedOut` is a committed-but-unpaid refund still awaiting payout.
   // Seeded to the credited total when the invoice opens already-refunded (list-sync tag), so a demo
@@ -314,6 +317,9 @@ export function InvoiceDetailPage({
     : refundedOut > 0.001 ? "Partially Refunded"
     : refundTag;
   const isRefundContext = status === "PendingRefund" || status === "Refunded" || !!effectiveRefundTag;
+  // MVP: one credit note per invoice. Count only ACTIVE (non-cancelled) notes — a cancelled note is
+  // retired, so a new CN can be raised again. Gates the "Refund with Credit Note" entry (⋯ + dock).
+  const activeCnCount = creditNotes.filter((c) => !c.cancelled).length;
   // The sectioned layout (Bill To → Receiving card → Invoice Details → Items → Summary) drives every
   // status except the refund-context detail (which keeps its own DES-720 layout). Recurring
   // occurrences use it too — the recurring-series card renders above the Bill To card.
@@ -467,46 +473,37 @@ export function InvoiceDetailPage({
   // BA refund confirmed (DES-720 AC4/AC5) — the pre-filled outgoing draft is handed off; the BA flow owns
   // execution (out of scope → stub). On confirm we simulate reconciliation: a full refund → Refunded;
   // a partial refund stays Pending Refund (cumulative refunds reduce what's left).
-  // Settle the currently-pending refund payout: refundedOut catches up to the committed `credited` total.
-  // Full (cumulative refunded = invoice total) → Refunded; otherwise Partially Refunded (still settled —
-  // a later note can re-open a payout). Shared by the BA and manual branches.
-  const settleRefund = (toast: string, proof?: RefundProof) => {
+  // Submit a refund (DES-720 AC4/AC5). Both methods leave the invoice at Pending Refund — the move to
+  // Refunded is the accountant's GL posting (backend), NOT a client action. We record the evidence as
+  // "awaiting" and flag the refund submitted so the dock stops offering "Refund Credit Note".
+  const submitRefund = (proof: RefundProof, toast: string) => {
     setRefundFlowOpen(false);
     const priorOut = refundedOut;
-    const newRefundedOut = credited; // this payout clears everything committed so far
-    setRefundedOut(newRefundedOut);
-    // Manual "mark as already refunded" carries proof (date/method/amount + optional file) — DES-720
-    // requires it as evidence. Attach it to the note(s) settled by THIS payout (cumulative position just
-    // crossed the paid-out line). The BA path passes no proof (execution handled by the transfer flow).
-    if (proof) {
-      setCreditNotes((prev) => {
-        let cum = 0;
-        return prev.map((c) => {
-          cum += c.amount;
-          return cum > priorOut + 0.001 ? { ...c, refundProof: proof } : c;
-        });
+    setCreditNotes((prev) => {
+      let cum = 0;
+      return prev.map((c) => {
+        cum += c.amount;
+        return cum > priorOut + 0.001 && !c.cancelled ? { ...c, refundProof: { ...proof, awaiting: true } } : c;
       });
-    }
-    const full = newRefundedOut >= TOTAL - 0.001;
-    if (full && status === "PendingRefund") setStatus("Refunded");
+    });
+    setRefundSubmitted(true);
     setLocalToast(toast);
-    onRefunded?.(invoiceNo, full ? "full" : "partial");
   };
 
-  // BA transfer confirmed (pre-filled draft handed off; execution out of scope → stub). Records the
-  // transfer as refund history (the source account + date) — no uploaded file (the BA flow owns that).
+  // BA transfer confirmed (AC4) — the pre-filled outgoing draft is handed to the BA flow (execution +
+  // auto-reconciliation out of scope). Invoice stays Pending Refund until the accountant validates → Refunded.
   const completeBaRefund = (fromAccountId: string) => {
     const acct = getAccount(fromAccountId);
-    const proof: RefundProof = {
-      date: REFUND_DATE_ISO,
-      method: `Statrys · ${acct?.name ?? "Business Account"}`,
-      amount: refundPending,
-    };
-    settleRefund(credited >= TOTAL - 0.001 ? "Invoice Fully refunded" : "Invoice partially refunded", proof);
+    submitRefund(
+      { date: REFUND_DATE_ISO, method: `Statrys · ${acct?.name ?? "Business Account"}`, amount: refundPending },
+      "Refund transfer submitted — awaiting confirmation"
+    );
   };
 
-  // "Mark as already refunded" (manual) — stores the captured proof on the settled note (DES-720).
-  const markAlreadyRefunded = (proof: RefundProof) => settleRefund("Marked as refunded", proof);
+  // "Mark as already refunded" (external, AC5) — the client refunded outside Statrys and records the
+  // evidence. Invoice stays Pending Refund until the accountant confirms and posts the GL entry.
+  const markAlreadyRefunded = (proof: RefundProof) =>
+    submitRefund(proof, "Refund submitted — awaiting accountant confirmation");
 
   // Apply a newly created REFUND credit note (DES-720). Creating it always moves a Paid invoice to
   // Pending Refund; the actual money-out (and the move to Refunded) happens in the refund-method step.
@@ -624,7 +621,7 @@ export function InvoiceDetailPage({
                       : { ...FONT, background: "#fff7e6", borderColor: "#fde68a", color: "#b45309" }
                   }
                 >
-                  {effectiveRefundTag === "Refund pending" ? "Refund Pending" : effectiveRefundTag}
+                  {effectiveRefundTag === "Refund pending" ? "Pending Refund" : effectiveRefundTag}
                 </span>
               )}
             </span>
@@ -678,7 +675,6 @@ export function InvoiceDetailPage({
             onExpand={() => setCnExpanded(true)}
             // Tapping any credit note (Draft or Applied) opens its detail page — never the editor.
             onViewCn={setViewingCnIndex}
-            onAddRefund={() => setRefundFormOpen(true)}
             onPreviewProof={setProofPreview}
           />
         )}
@@ -922,7 +918,7 @@ export function InvoiceDetailPage({
         // before or after the actual refund. So while the refund is still pending we show BOTH —
         // primary "Refund Credit Note" (the money-out) + secondary "Send/Resend Credit Note" (the
         // document). Once the refund is done the money-out action is gone, leaving only send/resend.
-        refundDone ? (
+        (refundDone || refundSubmitted) ? (
           <ButtonDock
             type="single"
             overflow
@@ -931,20 +927,21 @@ export function InvoiceDetailPage({
             homeIndicator
           />
         ) : (
-          // Refund pending (Figma 696:5495): Send Invoice (secondary) + Continue Refund (primary, money-out).
-          // The refund CREDIT NOTE is sent from its own detail page; here the secondary sends the invoice.
+          // Refund pending (Figma 696:5495): Send Invoice (secondary) + Refund Credit Note (primary,
+          // money-out — the DES-720 AC3 label). The refund CN is sent from its own detail page.
           <ButtonDock
             type="double"
             overflow
             secondaryLabel="Send invoice"
-            primaryLabel="Continue Refund"
+            primaryLabel="Refund Credit Note"
             onSecondary={() => setSendSheetOpen(true)}
             onPrimary={() => setRefundFlowOpen(true)}
             homeIndicator
           />
         )
-      ) : status === "Paid" ? (
+      ) : status === "Paid" && activeCnCount === 0 ? (
         // Paid (DES-817): Preview as PDF (primary) + Refund with a credit note (secondary). No ⋯ menu.
+        // Once a credit note exists (MVP: one CN per invoice), the Refund entry drops — Preview only.
         <ButtonDock
           type="double"
           overflow
@@ -967,9 +964,7 @@ export function InvoiceDetailPage({
         scheduledRecurring={scheduledRecurring}
         terminal={terminal}
         cancellable={cancellable}
-        // Count only ACTIVE notes — a cancelled note is a retired record, so a new CN can be raised
-        // again after cancelling (DES-719).
-        creditNotesCount={creditNotes.filter((c) => !c.cancelled).length}
+        creditNotesCount={activeCnCount}
         onRefundWithCn={() => { setActionsOpen(false); setRefundFormOpen(true); }}
         onSendInvoice={() => { setActionsOpen(false); setSendSheetOpen(true); }}
         onEdit={openEdit}
@@ -1066,7 +1061,8 @@ export function InvoiceDetailPage({
           : cn.cancelled
           ? "Cancelled"
           : isRefundContext
-          ? (through > refundedOut + 0.001 ? "Pending Refund" : refundedOut >= TOTAL - 0.001 ? "Refunded" : "Partially Refunded")
+          ? (cn.refundProof?.awaiting ? "Awaiting refund by accountant"
+             : through > refundedOut + 0.001 ? "Pending Refund" : refundedOut >= TOTAL - 0.001 ? "Refunded" : "Partially Refunded")
           : "Applied";
         return (
           <div className="absolute inset-0 z-50">
@@ -1094,14 +1090,12 @@ export function InvoiceDetailPage({
               // AC4: sending happens inside the detail page's own send flow; persist the sent state here.
               onSent={() => setCreditNotes((prev) => prev.map((c, i) => (i === viewingCnIndex ? { ...c, sent: true, sentDate: SENT_TODAY } : c)))}
               // DES-719 (cancellation CNs): a DRAFT can be Applied to the invoice, Edited (resume the
-              // form), or Deleted; an Applied note is view/send only. DES-720 refund CNs: Edit + Cancel
-              // while Pending Refund (until the refund is transferred).
+              // form), or Deleted; an Applied note is view/send only. DES-720 refund CNs are NOT editable
+              // after creation (AC2) — only Cancel (while Pending Refund) + Send.
               onApply={cn.draft ? () => applyDraft(viewingCnIndex) : undefined}
               onEdit={
                 cn.draft
                   ? () => { const i = viewingCnIndex; setViewingCnIndex(null); resumeDraft(i); }
-                  : (isRefundContext && cnStatus === "Pending Refund" && !cn.cancelled)
-                  ? () => { const i = viewingCnIndex; setViewingCnIndex(null); setEditingCnIndex(i); }
                   : undefined
               }
               onCancel={

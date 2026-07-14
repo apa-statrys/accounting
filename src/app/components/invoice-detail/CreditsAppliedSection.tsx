@@ -1,7 +1,6 @@
 // Credits Applied section (DES-719/763) — rendered just below the invoice status card. Recent-first;
 // collapse to 2 with "View all"; each row opens the credit-note detail page (actions live there).
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import AddIcon from "@mui/icons-material/Add";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import { money, fmtDate } from "../../lib/format";
 import { FONT, INK, MUTED } from "../../lib/theme";
@@ -18,7 +17,6 @@ interface CreditsAppliedSectionProps {
   onExpand: () => void;
   /** Open a note's detail page (index into creditNotes). */
   onViewCn: (index: number) => void;
-  onAddRefund: () => void;
   /** Open a refund-proof attachment in the file preview overlay. */
   onPreviewProof: (file: UploadedFileInfo) => void;
 }
@@ -31,7 +29,6 @@ export function CreditsAppliedSection({
   expanded,
   onExpand,
   onViewCn,
-  onAddRefund,
   onPreviewProof,
 }: CreditsAppliedSectionProps) {
   // Cancellation application status for the row hint.
@@ -88,15 +85,24 @@ export function CreditsAppliedSection({
                   <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5" style={{ fontSize: 18, color: MUTED }} />
                 </span>
               </div>
-              {/* DES-720 refund record — a green "Refunded" chip + method·date, and (manual path only)
-                  the tappable proof attachment. BA transfers record method·date with no file. */}
-              {proof && (
+              {/* DES-720 refund record. Awaiting (BA confirmed / marked refunded) → a compact "Awaiting
+                  refund by accountant" line (the method + evidence live on the CN detail). Settled → the
+                  green "Refunded" record with method·date + proof. */}
+              {proof && (proof.awaiting ? (
+                <div className="mt-2 rounded-lg border border-[#fde68a] bg-[#fff7e6] px-2.5 py-2 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#b45309" }} />
+                  <span className="text-[12px] font-semibold" style={{ ...FONT, color: "#b45309" }}>Awaiting refund by accountant</span>
+                </div>
+              ) : (
                 <div className="mt-2 rounded-lg border border-[rgba(15,157,88,0.25)] bg-[rgba(15,157,88,0.06)] px-2.5 py-2 flex flex-col gap-2">
                   <span className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#0f9d58" }} />
                     <span className="text-[12px] font-semibold" style={{ ...FONT, color: "#0f9d58" }}>Refunded</span>
                     <span className="text-[12px] ml-auto text-right" style={{ ...FONT, color: MUTED }}>{proof.method} · {fmtDate(proof.date)}</span>
                   </span>
+                  {proof.referenceNo && (
+                    <span className="text-[12px]" style={{ ...FONT, color: MUTED }}>Ref: {proof.referenceNo}</span>
+                  )}
                   {proof.proofFile && (
                     <button
                       onClick={(e) => { e.stopPropagation(); onPreviewProof({ name: proof.proofFile!, size: 128000 }); }}
@@ -110,7 +116,7 @@ export function CreditsAppliedSection({
                     </button>
                   )}
                 </div>
-              )}
+              ))}
             </div>
           );
         })}
@@ -119,18 +125,8 @@ export function CreditsAppliedSection({
             <span className="text-[13px] font-medium" style={{ ...FONT, color: INK }}>View all credit notes ({creditNotes.length})</span>
           </button>
         )}
-        {/* Only one credit note per invoice in this phase — no "Add credit note" here (the first is
-            raised from the invoice ⋯ menu when none exists yet). */}
-        {/* DES-720 cumulative refunds: as long as the invoice isn't fully refunded, the client can
-            raise ANOTHER refund credit note (capped at the remaining invoice value) — including after
-            an earlier refund has already been paid out. Creating one re-opens a pending payout, so the
-            dock's "Refund Credit Note" CTA reappears. Reuses the refund form (cap = outstanding). */}
-        {isRefundContext && !fullyRefunded && outstanding > 0.001 && (
-          <button onClick={onAddRefund} className="group w-full flex items-center gap-1.5 py-3 border-t border-[rgba(160,160,160,0.18)]">
-            <AddIcon style={{ fontSize: 18, color: "#ff4a15" }} />
-            <span className="text-[14px] font-medium" style={{ ...FONT, color: "#ff4a15" }}>Add refund credit note</span>
-          </button>
-        )}
+        {/* MVP: one credit note per invoice — no "Add (refund) credit note" here. The first (and only)
+            CN is raised from the invoice's Refund action when none exists yet. */}
       </>
     </InfoCard>
   );

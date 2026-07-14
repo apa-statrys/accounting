@@ -3,7 +3,10 @@
 import type { DraftLine } from "../../types";
 
 /** DES-720: evidence captured when a refund is "marked as already refunded" (done outside Statrys). */
-export type RefundProof = { date: string; method: string; amount: number; proofFile?: string };
+/** DES-720 refund evidence. `method` holds the bank account used (Statrys or external). At least one of
+ *  `proofFile` / `referenceNo` is captured. `awaiting` = external refund submitted, pending accountant
+ *  confirmation (invoice stays Pending Refund) vs a settled/reconciled refund. */
+export type RefundProof = { date: string; method: string; amount: number; proofFile?: string; referenceNo?: string; awaiting?: boolean };
 
 /** A credit note raised against THIS invoice (DES-719/720/763).
  *  DES-763: a cancellation credit note is created **Open** (applied = 0) and only reduces the invoice once
