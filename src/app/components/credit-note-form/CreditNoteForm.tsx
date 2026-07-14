@@ -558,7 +558,7 @@ export function CreditNoteForm({
               ? "Lower a line to its corrected value — the refund is calculated automatically."
               : isFull
               ? "This refunds the full amount paid."
-              : "A partial refund — the invoice stays pending refund with the remaining reduced."
+              : ""
             : credited <= 0.001
             ? ""
             : isFull
