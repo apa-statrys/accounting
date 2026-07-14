@@ -320,6 +320,8 @@ export function InvoiceDetailPage({
   // MVP: one credit note per invoice. Count only ACTIVE (non-cancelled) notes — a cancelled note is
   // retired, so a new CN can be raised again. Gates the "Refund with Credit Note" entry (⋯ + dock).
   const activeCnCount = creditNotes.filter((c) => !c.cancelled).length;
+  // Plain Paid (no refund in progress) — its actions (Refund + Preview as PDF) live in the ⋯ menu, no dock.
+  const paidActionsInMenu = status === "Paid" && !isRefundContext && activeCnCount === 0;
   // The sectioned layout (Bill To → Receiving card → Invoice Details → Items → Summary) drives every
   // status except the refund-context detail (which keeps its own DES-720 layout). Recurring
   // occurrences use it too — the recurring-series card renders above the Bill To card.
@@ -586,7 +588,7 @@ export function InvoiceDetailPage({
           </HeaderIconButton>
         }
         trailing={
-          showMenu ? (
+          (showMenu || paidActionsInMenu) ? (
             <HeaderIconButton aria-label="More actions" onClick={() => setActionsOpen(true)}>
               <MoreHorizIcon />
             </HeaderIconButton>
@@ -940,17 +942,8 @@ export function InvoiceDetailPage({
           />
         )
       ) : status === "Paid" && activeCnCount === 0 ? (
-        // Paid (DES-817): Preview as PDF (primary) + Refund with a credit note (secondary). No ⋯ menu.
-        // Once a credit note exists (MVP: one CN per invoice), the Refund entry drops — Preview only.
-        <ButtonDock
-          type="double"
-          overflow
-          secondaryLabel="Refund"
-          primaryLabel="Preview as PDF"
-          onSecondary={() => setRefundFormOpen(true)}
-          onPrimary={() => setPdfPreviewOpen(true)}
-          homeIndicator
-        />
+        // Paid (DES-817): Refund + Preview as PDF live in the ⋯ menu (no dock).
+        null
       ) : (
         <ButtonDock type="single" overflow primaryLabel="Preview as PDF" onPrimary={() => setPdfPreviewOpen(true)} homeIndicator />
       )}
@@ -966,6 +959,7 @@ export function InvoiceDetailPage({
         cancellable={cancellable}
         creditNotesCount={activeCnCount}
         onRefundWithCn={() => { setActionsOpen(false); setRefundFormOpen(true); }}
+        onPreviewPdf={() => { setActionsOpen(false); setPdfPreviewOpen(true); }}
         onSendInvoice={() => { setActionsOpen(false); setSendSheetOpen(true); }}
         onEdit={openEdit}
         onDuplicate={duplicate}

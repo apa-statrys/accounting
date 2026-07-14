@@ -5,6 +5,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import { BottomSheet } from "../BottomSheet";
 import { FONT, INK } from "../../lib/theme";
 import { SHOW_CREDIT_NOTES } from "../../lib/flags";
@@ -21,6 +22,7 @@ interface ActionsMenuProps {
   cancellable: boolean;
   creditNotesCount: number;
   onRefundWithCn: () => void;
+  onPreviewPdf: () => void;
   onSendInvoice: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
@@ -38,6 +40,7 @@ export function ActionsMenu({
   cancellable,
   creditNotesCount,
   onRefundWithCn,
+  onPreviewPdf,
   onSendInvoice,
   onEdit,
   onDuplicate,
@@ -53,10 +56,21 @@ export function ActionsMenu({
         {SHOW_CREDIT_NOTES && status === "Paid" && creditNotesCount === 0 && (
           <button
             onClick={onRefundWithCn}
-            className="w-full flex items-center gap-3 py-3.5 text-left"
+            className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]"
           >
             <ReceiptLongOutlinedIcon style={{ fontSize: 20, color: "#b42318" }} />
             <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Refund with Credit Note</span>
+          </button>
+        )}
+
+        {/* Paid invoice: Preview as PDF also lives here (no dock on a paid invoice). */}
+        {status === "Paid" && (
+          <button
+            onClick={onPreviewPdf}
+            className="w-full flex items-center gap-3 py-3.5 text-left"
+          >
+            <PictureAsPdfOutlinedIcon style={{ fontSize: 20, color: INK }} />
+            <span className="text-[15px]" style={{ ...FONT, color: INK }}>Preview as PDF</span>
           </button>
         )}
 
