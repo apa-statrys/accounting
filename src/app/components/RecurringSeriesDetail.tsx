@@ -10,7 +10,7 @@ import { BottomSheet } from "./BottomSheet";
 import { FONT } from "./../lib/theme";
 import type { DetailStatus } from "../types";
 
-type SeriesStatus = "Active" | "Paused" | "Cancelled";
+type SeriesStatus = "Active" | "Paused" | "Completed" | "Cancelled";
 
 interface RecurringSeriesDetailProps {
   status: SeriesStatus;
@@ -38,6 +38,7 @@ const CARD_SHADOW = "0px 4px 14px 0px rgba(226,220,203,0.3)";
 const STATUS_PILL: Record<SeriesStatus, { bg: string; text: string }> = {
   Active: { bg: "#ebfcef", text: "#006a1d" },
   Paused: { bg: "#fff7e6", text: "#b45309" },
+  Completed: { bg: "#eef4ff", text: "#2f5fd0" },
   Cancelled: { bg: "#f4f4f4", text: "#808080" },
 };
 
@@ -62,8 +63,12 @@ export function RecurringSeriesDetail({
 }: RecurringSeriesDetailProps) {
   const active = status === "Active";
   const cancelled = status === "Cancelled";
+  const completed = status === "Completed";
+  // Completed + Cancelled are terminal: view-only (no dock, no ⋯), and the log drops not-yet-generated rows.
+  const readOnly = cancelled || completed;
   const sp = STATUS_PILL[status];
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
   // Invoice log (AC5). `kind` drives the pill + label; a cancelled series drops the not-yet-generated
@@ -75,7 +80,7 @@ export function RecurringSeriesDetail({
     await: { label: "Awaiting Payment", bg: "#fef9c2", text: "#d08700" },
     scheduled: { label: "Scheduled", bg: "#f5f4f1", text: "#808080" },
   } as const;
-  const visible = cancelled ? invoices.filter((r) => r.kind !== "scheduled") : invoices;
+  const visible = readOnly ? invoices.filter((r) => r.kind !== "scheduled") : invoices;
   const shown = visible.length > 3 && !expanded ? visible.slice(0, 3) : visible;
 
   return (
@@ -88,7 +93,7 @@ export function RecurringSeriesDetail({
         state="fixed"
         leading={<HeaderIconButton aria-label="Back" onClick={onBack}><ChevronLeftIcon /></HeaderIconButton>}
         trailing={
-          cancelled
+          readOnly
             ? <span className="w-[30px] h-[30px] block" aria-hidden />
             : <HeaderIconButton aria-label="Actions" onClick={() => setMenuOpen(true)}><MenuIcon /></HeaderIconButton>
         }
@@ -176,8 +181,9 @@ export function RecurringSeriesDetail({
         )}
       </div>
 
-      {/* Dock — Pause/Resume Recurring (secondary) + Edit Recurring (primary). Cancel is in the ⋯ menu. */}
-      {!cancelled && (
+      {/* Dock — Pause/Resume Recurring (secondary) + Edit Recurring (primary). Cancel is in the ⋯ menu.
+          Hidden entirely for terminal (Completed / Cancelled) series. */}
+      {!readOnly && (
         <ButtonDock
           type="double"
           overflow
@@ -189,18 +195,42 @@ export function RecurringSeriesDetail({
         />
       )}
 
-      {/* ⋯ menu — Cancel recurring (destructive, irreversible; kept out of the dock). */}
+      {/* ⋯ menu — Cancel recurring (destructive, irreversible; kept out of the dock). Confirms first. */}
       <BottomSheet open={menuOpen} title="Recurring actions" onClose={() => setMenuOpen(false)}>
         <div className="flex flex-col">
           <button
             type="button"
-            onClick={() => { setMenuOpen(false); onCancel?.(); }}
+            onClick={() => { setMenuOpen(false); setConfirmCancel(true); }}
             className="w-full flex items-center gap-3 py-3.5 text-left"
           >
             <XCircle size={20} style={{ color: "#b42318" }} />
             <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Cancel recurring</span>
           </button>
         </div>
+      </BottomSheet>
+
+      {/* Cancel confirmation (DES-782 AC5). Dock in the sheet footer so it aligns like every other dock.
+          "Keep Schedule" is the primary (safe) action; "Cancel" performs the irreversible cancellation. */}
+      <BottomSheet
+        open={confirmCancel}
+        title="Cancel this schedule?"
+        onClose={() => setConfirmCancel(false)}
+        footer={
+          <ButtonDock
+            type="double"
+            overflow
+            secondaryLabel="Cancel"
+            primaryLabel="Keep Schedule"
+            onSecondary={() => { setConfirmCancel(false); onCancel?.(); }}
+            onPrimary={() => setConfirmCancel(false)}
+            homeIndicator
+          />
+        }
+      >
+        <p className="text-[14px] leading-[1.45]" style={{ ...FONT, color: "#808080" }}>
+          This will stop future invoices from being generated. Existing invoices will remain in your Sales
+          Invoice list and won't be affected. This action cannot be undone.
+        </p>
       </BottomSheet>
     </div>
   );

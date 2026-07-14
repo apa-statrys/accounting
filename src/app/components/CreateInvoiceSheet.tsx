@@ -1,8 +1,7 @@
-import { FilePlus2, Upload, Repeat } from "lucide-react";
+import { FilePlus2, Upload } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 import { FONT, INK, MUTED } from "../lib/theme";
-import { SHOW_RECURRING } from "../lib/flags";
 const BRAND = "#ff4a15";
 
 /** Shared open/close motion — matches the app's standard bottom-sheet animation. */
@@ -56,22 +55,17 @@ interface CreateInvoiceSheetProps {
   onClose?: () => void;
   onManual?: () => void;
   onUpload?: () => void;
-  /** Start a recurring invoice series (DES-782) — same create flow + a schedule. */
-  onRecurring?: () => void;
 }
 
 /**
  * "Create" bottom sheet (Figma 898:17090): slides up from the FAB with a list of choices — build
- * manually or upload/scan a file. Recurring (DES-782) is built but gated off for now (SHOW_RECURRING).
- * Auto-height, grabber handle.
+ * manually or upload/scan a file. Recurring (DES-782) is NOT a separate entry here — it's a toggle
+ * inside the normal Create Invoice flow. Auto-height, grabber handle.
  */
-export function CreateInvoiceSheet({ open, onClose, onManual, onUpload, onRecurring }: CreateInvoiceSheetProps) {
+export function CreateInvoiceSheet({ open, onClose, onManual, onUpload }: CreateInvoiceSheetProps) {
   const rows = [
     { title: "Create Invoice", sub: "Build a new invoice step by step", icon: <FilePlus2 size={24} strokeWidth={1.75} />, onClick: onManual },
     { title: "Upload Invoice", sub: "Scan or upload existing invoice", icon: <Upload size={24} strokeWidth={1.75} />, onClick: onUpload },
-    ...(SHOW_RECURRING
-      ? [{ title: "Recurring Invoice", sub: "Bill a customer on a set schedule", icon: <Repeat size={24} strokeWidth={1.75} />, onClick: onRecurring }]
-      : []),
   ];
 
   return (

@@ -285,10 +285,6 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
           setSheetOpen(false);
           onUpload?.();
         }}
-        onRecurring={() => {
-          setSheetOpen(false);
-          onRecurring?.();
-        }}
       />
 
       {/* CN badge → the linked credit note's detail (DES-818 AC4). Always the normal credit-note detail

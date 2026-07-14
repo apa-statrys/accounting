@@ -43,7 +43,7 @@ interface InvoiceDetailPageProps {
   recurringFrequency?: string;
   recurringNextDate?: string;
   /** Current series status (owned by App so the series-detail page stays in sync). */
-  seriesStatus?: "Active" | "Paused" | "Cancelled";
+  seriesStatus?: "Active" | "Paused" | "Completed" | "Cancelled";
   /** Open the recurring-series detail page (Edit recurring / Pause / Cancel live there). */
   onOpenSeries?: () => void;
   invoiceNo?: string;
@@ -705,6 +705,8 @@ export function InvoiceDetailPage({
                       ? { background: "#ebfcef", borderColor: "#a3e9b6", color: "#006a1d" }
                       : seriesStatus === "Paused"
                       ? { background: "#fff7e6", borderColor: "#fde68a", color: "#b45309" }
+                      : seriesStatus === "Completed"
+                      ? { background: "#eef4ff", borderColor: "#c7d8fe", color: "#2f5fd0" }
                       : { background: "#f4f4f4", borderColor: "#e0e0e0", color: "#808080" }),
                   }}
                 >
@@ -716,7 +718,7 @@ export function InvoiceDetailPage({
             <MetaRow label="Frequency" value={recurringFrequency} />
             <MetaRow
               label="Next invoice"
-              value={seriesStatus === "Active" ? recurringNextDate : seriesStatus === "Paused" ? "Paused" : "Series cancelled"}
+              value={seriesStatus === "Active" ? recurringNextDate : seriesStatus === "Paused" ? "Paused" : seriesStatus === "Completed" ? "Series completed" : "Series cancelled"}
               last
             />
           </button>

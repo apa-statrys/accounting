@@ -232,7 +232,7 @@ export default function App() {
   const [seriesStatus, setSeriesStatus] = useState<"Active" | "Paused" | "Cancelled">("Active");
   // Which demo log the series detail shows — set when the series is opened. "draft" = a fresh series,
   // nothing sent yet (>3 rows → accordion); "midrun" = one paid, one awaiting, one still scheduled.
-  const [seriesScenario, setSeriesScenario] = useState<"draft" | "midrun">("midrun");
+  const [seriesScenario, setSeriesScenario] = useState<"draft" | "midrun" | "completed">("midrun");
   const seriesInvoices = seriesScenario === "draft"
     ? [
         { number: "series-1", label: "Next Invoice", date: "01 Jul 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
@@ -240,6 +240,13 @@ export default function App() {
         { number: "series-3", label: "Invoice #3", date: "01 Sep 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
         { number: "series-4", label: "Invoice #4", date: "01 Oct 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
         { number: "series-5", label: "Invoice #5", date: "01 Nov 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+      ]
+    : seriesScenario === "completed"
+    ? [
+        // A finished series (end condition reached) — every scheduled date generated, nothing pending.
+        { number: "INV-2026-000021", label: "INV-2026-000021", date: "01 Mar 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
+        { number: "INV-2026-000022", label: "INV-2026-000022", date: "01 Apr 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
+        { number: "INV-2026-000023", label: "INV-2026-000023", date: "01 May 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
       ]
     : [
         { number: "INV-2026-000001", label: "INV-2026-000001", date: "01 Jul 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
@@ -503,8 +510,8 @@ export default function App() {
           initialStatus={openInvoice.status}
           origin={openInvoice.origin}
           recurring={openInvoice.recurring}
-          seriesStatus={seriesStatus}
-          onOpenSeries={() => { setSeriesScenario(openInvoice.status === "Draft" ? "draft" : "midrun"); setScreen("recurringSeries"); }}
+          seriesStatus={openInvoice.status === "Paid" ? "Completed" : seriesStatus}
+          onOpenSeries={() => { setSeriesScenario(openInvoice.status === "Draft" ? "draft" : openInvoice.status === "Paid" ? "completed" : "midrun"); setScreen("recurringSeries"); }}
           invoiceNo={openInvoice.number}
           customerName={openInvoice.client}
           customerEmail={CREDIT_NOTES.find((c) => c.no === openInvoice.cnNo)?.email}
@@ -674,7 +681,7 @@ export default function App() {
             const base = pendingExtraction ?? DEMO_EXTRACTION;
             setExtracted({ ...base, invoiceNumber: newNo });
             setEditInitial(null);
-            setUploadedFile(null); // already previewed on the decision page — don't show it again
+            // Keep the uploaded file so its "Preview invoice.pdf" card shows above the customer on the review screen.
             setNumberRecommended(true); // the generated number is system-recommended
             setEditFromDuplicate(false);
             setScreen("details");
@@ -733,15 +740,9 @@ export default function App() {
             setCustomer(cust);
             setOpenInvoice({ number: inv.number, client: inv.customer, status, origin: "uploaded" });
             setDetailReturn("list");
-            if (status === "Draft") {
-              // Continue the existing draft in its editor, prefilled.
-              setEditInitial({ customer: cust, invoiceNo: inv.number, currency: inv.currency, services: [], limited: false });
-              setScreen("details");
-            } else {
-              // Issued/closed → open its detail page instead (can't "continue" a non-draft).
-              setDetailFlash(null);
-              setScreen("invoiceDetail");
-            }
+            // "Open existing invoice" always opens the existing invoice's detail page.
+            setDetailFlash(null);
+            setScreen("invoiceDetail");
           }}
           initial={editInitial}
           onEditBack={() => { setDetailFlash(null); setScreen("invoiceDetail"); }}
@@ -805,7 +806,7 @@ export default function App() {
       {/* Recurring series detail (DES-782) — Pause / Resume / Cancel the series */}
       {screen === "recurringSeries" && (
         <RecurringSeriesDetail
-          status={seriesStatus}
+          status={seriesScenario === "completed" ? "Completed" : seriesStatus}
           customerName={openInvoice.client}
           amountLabel="$6,450.00"
           frequency="Monthly"

@@ -51,7 +51,7 @@ export function DuplicateBanner() {
       <div className="flex-1 min-w-0">
         <p className="text-[14px] font-bold leading-[1.3] text-[#7a4a12]" style={FONT}>Duplicate invoice found</p>
         <p className="text-[12px] leading-[1.35] text-[#7a4a12] mt-0.5" style={FONT}>
-          We found an existing invoice that looks the same as the one you just uploaded.
+          An invoice with this number already exists.
         </p>
       </div>
     </div>

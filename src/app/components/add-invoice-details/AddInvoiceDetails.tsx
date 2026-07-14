@@ -191,8 +191,9 @@ export function AddInvoiceDetails({
   }, [extracted]);
 
   const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(customer ?? initial?.customer ?? autoMatch ?? null);
-  const [editName, setEditName] = useState(extracted?.customerName ?? "");
-  const [editEmail, setEditEmail] = useState(extracted?.customerEmail ?? "");
+  // Pre-fill from OCR; fall back to the auto-matched client so matched uploads still show a name/email.
+  const [editName, setEditName] = useState(extracted?.customerName || autoMatch?.name || "");
+  const [editEmail, setEditEmail] = useState(extracted?.customerEmail || autoMatch?.email || "");
   // Uploaded invoices use a user-entered number (DES-716), not a system-generated one.
   const [editInvoiceNo, setEditInvoiceNo] = useState(extracted?.invoiceNumber ?? "");
   const [existingViewOpen, setExistingViewOpen] = useState(false);
@@ -204,12 +205,13 @@ export function AddInvoiceDetails({
   // the "no match" state and the customer name/email are editable inline.
   const linked = currentCustomer;
 
-  const name = isExtracted ? (linked ? linked.name : editName) : linked?.name ?? "Marlow & Finch Studio";
-  const email = isExtracted ? (linked ? linked.email : editEmail) : linked?.email ?? "apa@marlowfinch.co";
+  // Uploads: name/email always come from the editable (pre-filled) fields so edits take effect.
+  const name = isExtracted ? editName : linked?.name ?? "Marlow & Finch Studio";
+  const email = isExtracted ? editEmail : linked?.email ?? "apa@marlowfinch.co";
 
-  // Customer name / email couldn't be read off the file — flag until supplied (unmatched state).
-  const nameMissing = isExtracted && !linked && editName.trim() === "";
-  const emailMissing = isExtracted && !linked && editEmail.trim() === "";
+  // Customer name / email couldn't be read off the file — flag the empty field until supplied.
+  const nameMissing = isExtracted && editName.trim() === "";
+  const emailMissing = isExtracted && editEmail.trim() === "";
   const emailValid = EMAIL_RE.test(editEmail.trim());
 
   // Extraction coverage — drives the "N out of M extracted" review card (OCR-missing case only).
@@ -283,8 +285,8 @@ export function AddInvoiceDetails({
   const existingInvoice = isExtracted
     ? EXISTING_INVOICES.find((i) => i.number.toLowerCase() === editInvoiceNo.trim().toLowerCase())
     : undefined;
-  // Draft duplicate → continue in its editor; an issued/closed one opens its detail page.
-  const existingPrimaryLabel = existingInvoice?.status === "Draft" ? "Open existing draft" : "Open existing invoice";
+  // A duplicate always opens the existing invoice's detail page.
+  const existingPrimaryLabel = "Open existing invoice";
   const amountLabel = `${currency} ${total.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -449,6 +451,9 @@ export function AddInvoiceDetails({
       />
 
       <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pt-5 pb-6 flex flex-col gap-4">
+        {/* Duplicate found — shown at the very top, above the uploaded-file preview. */}
+        {isExtracted && existingInvoice && <DuplicateBanner />}
+
         {/* Extraction coverage — only when a field couldn't be read (OCR-missing case). */}
         {isExtracted && !extractionFailed && fieldsNeedAttention > 0 && (
           <CoverageBanner fieldsExtracted={fieldsExtracted} fieldsTotal={fieldsTotal} />
@@ -463,9 +468,6 @@ export function AddInvoiceDetails({
         {extractionFailed && failBannerOpen && (
           <ExtractionFailedBanner onReupload={onReupload} onDismiss={() => setFailBannerOpen(false)} />
         )}
-
-        {/* Duplicate found — informational; the action lives in the dock ("Continue existing draft"). */}
-        {isExtracted && existingInvoice && <DuplicateBanner />}
 
         {/* Customer — matched / unmatched (upload) or the selected card */}
         {!isExtracted ? (
@@ -489,27 +491,10 @@ export function AddInvoiceDetails({
               }
             />
           )
-        ) : linked ? (
-          /* Case A — auto-matched to an existing client (tap to change, chevron arrow) */
-          <button
-            type="button"
-            onClick={() => setCustomerSheetOpen(true)}
-            className="group w-full bg-white border border-dashed border-[rgba(160,160,160,0.2)] rounded-xl p-[17px] flex items-center gap-3 text-left cursor-pointer"
-            style={{ boxShadow: "var(--shadow-card-soft)" }}
-          >
-            {/* Avatar removed for now (pending invoice-number confirmation) */}
-            <div className="flex-1 min-w-0">
-              <p className="card-title-2xs text-[#101828] truncate">{linked.name}</p>
-              <p className="text-[12px] leading-[1.3] text-[#808080] truncate" style={FONT}>{linked.email}</p>
-            </div>
-            <ChevronRightIcon
-              className="transition-transform duration-200 group-hover:translate-x-1"
-              style={{ fontSize: 16, color: "var(--icon-primary)" }}
-            />
-          </button>
         ) : (
-          /* Case B — no matching customer: fill details inline; the new client is saved to the
-             customer list automatically on create (no opt-in checkbox). */
+          /* Upload review (DES-716) — OCR extracts the customer name + email, so show them as
+             pre-filled, editable fields (not a card). An unmatched client is saved to the customer
+             list automatically on create; a missing field is flagged until supplied. */
           <div ref={flaggedRef} className="scroll-mt-24 flex flex-col gap-3">
             {/* Customer name — warning highlight + caption when OCR couldn't read it */}
             <div className="flex flex-col gap-1">
@@ -862,7 +847,7 @@ export function AddInvoiceDetails({
             type="single"
             overflow
             primaryLabel="Create Invoice"
-            primaryDisabled={!(linked || emailValid)}
+            primaryDisabled={!(name.trim() && emailValid)}
             // Uploaded invoices are record-only by default (DES-716): issuing moves them
             // to Awaiting Payment (sending happened elsewhere). The toast confirms the record
             // action — the Awaiting Payment status is shown by the detail-page badge.

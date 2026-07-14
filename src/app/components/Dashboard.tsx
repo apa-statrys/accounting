@@ -401,10 +401,6 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
           setSheetOpen(false);
           onUpload?.();
         }}
-        onRecurring={() => {
-          setSheetOpen(false);
-          onRecurring?.();
-        }}
       />
     </div>
   );
