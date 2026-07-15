@@ -1,0 +1,31 @@
+/* HorizontalTabs — Figma "[APP] Design System" → "HorzontalTabs" [sic] (node 2725-16713).
+   A row of TabsBase items. Button style = 8px gaps; Underline style = no gaps on a
+   hairline track spanning the full row. Scrolls horizontally when tabs overflow. */
+
+.scroller {
+  overflow-x: auto;
+}
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 100%; /* at least container-wide so the track spans the full row */
+  width: max-content;
+}
+.buttonRow {
+  gap: 8px;
+}
+.underlineRow {
+  gap: 0;
+}
+
+.track {
+  pointer-events: none;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--ds-border-neutral-primary);
+}

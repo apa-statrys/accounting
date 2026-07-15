@@ -28,6 +28,33 @@ All Block-1 sales-invoice stories are **built and working** on the dev server:
 `src/app/types.ts`, demo data in `src/app/data/`, helpers in `src/app/lib/`, the four big screens
 in `src/app/components/{sales-invoice-list, add-invoice-details, credit-note-form, invoice-detail}/`.
 
+**2026-07-14: design-system rebuild phase started** (low-fi prototype done; re-skinning from the
+Figma "[APP] Design System", file `Lt9QLcfsxzo9gdTV8hbWgs`). Screens moved to `src/app/pages/`,
+shared widgets stay in `src/app/components/`, DS components in `src/app/ui/` (folder per component,
+tsx + module.css, tokens.css) with a review gallery at `/#showcase` (top bar + sidebar + per-component
+Overview/Variants pages). Built so far: Toggle, Button, FAB, TabsBase, HorizontalTabs, Badge — all
+screenshot-compared against Figma. Rolled out into the app: Toggle, Button (incl. inside
+ButtonDock/EditCard; old `components/Buttons/` deleted), FAB (both create-invoice FABs). Not rolled
+out yet: tabs (app has no tab UI), Badge (would replace the hand-rolled status-pill palettes —
+awaiting the designer's call).
+
+**2026-07-15: DS build continued** — added Tooltip, TextField (7 types + "Fields" wrapper),
+Search, Loading, PageHeader, Tile, BottomSheet (presentational container; scrim/motion stays in
+`components/BottomSheet.tsx` until flows migrate), OutstandingCard (dashboard hero, data-driven)
+and InvoiceRow (composes ui/Badge) — each with a Showcase page. `components/ButtonDock` restyled
+to the DS StickyButton (frosted gradient + blur, vertical stack: primary on top, full-width
+outlined secondary below; all flows now stack). Later same day the frost was made real (user
+decision): the old `overflow` prop became `sticky` — page docks now float absolutely over the
+page's scroll area so content blurs through the backdrop-filter as it scrolls underneath; every
+sticky page's scroll container gained bottom padding (pb-28 single / pb-44 double docks). Sheet
+footers (BottomSheet `footer=`) stay in-flow and never pass `sticky`. CustomerDetail + AddCustomer
+main docks became sticky in the same pass (they were page docks missing the old overflow flag). OutstandingCard rolled out into
+Dashboard (hand-rolled hero deleted; new optional `onCollectedClick` prop keeps the Collected box →
+Paid-list tap; peer note now hidden at 0% collected and no link when fully collected, per Figma;
+verified in-browser across all 5 hero scenarios). Not rolled out yet: InvoiceRow (sales-invoice-list/InvoiceCard still in place —
+entangled with the pending Badge/status-pill decision), Tooltip/TextField/Search/Loading/PageHeader
+(showcase-only). Full component→Figma-node map + rollout state: memory `ds-rebuild-status`.
+
 ## Reading tickets
 
 Preferred: the **Jira (Atlassian) connector** — fetch the issue directly ("fetch DES-XXX and save

@@ -1,4 +1,7 @@
-/* Bottom action dock */
+/* Bottom action dock — DS StickyButton from Figma "[APP] Design System"
+   (node 4141-2746): transparent→white-40 gradient with a backdrop blur and
+   rounded top corners, so page content frosts as it scrolls underneath
+   (Figma blur radius 16 ≈ CSS blur(8px)). */
 
 .root {
   display: flex;
@@ -7,9 +10,13 @@
   width: 100%;
   max-width: 375px;
   box-sizing: border-box;
-  background: var(--bg-neutral-primary);
-  padding-top: var(--space-8);
-  padding-bottom: var(--space-8);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, var(--ds-white-40) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: var(--ds-radius-3xl) var(--ds-radius-3xl) 0 0;
+  /* Figma: 16px top, 32px bottom when there's no home-indicator area */
+  padding-top: 16px;
+  padding-bottom: 32px;
 }
 
 /* When the home indicator is present it provides the bottom space. */
@@ -17,42 +24,58 @@
   padding-bottom: 0;
 }
 
-/* Upward shadow signalling scrollable content beneath the dock. */
-.overflow {
-  box-shadow: var(--shadow-dock-top);
+/* Sticky page dock — floats over the page's scroll area (anchored to the
+   phone frame) so scrolling content frosts through the backdrop blur. The
+   page's scroll container must reserve bottom padding for the dock height. */
+.sticky {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
 }
 
-/* ===== ACCESSORY (checkbox row) ===== */
+/* ===== ACCESSORY (checkbox row) — Figma: 8px checkbox gap, 12px below,
+   body-sm/medium label ===== */
 .accessory {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: 0 var(--space-8) var(--space-4);
+  gap: 8px;
+  padding: 0 16px 12px;
   cursor: pointer;
 }
 
 .accessoryLabel {
   color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
 }
 
-/* ===== ACTIONS ===== */
+/* ===== ACTIONS — Figma: 8px gap between buttons, all full width.
+   Vertical stack: primary on top, then outline, then ghost. ===== */
 .actions {
   display: flex;
-  gap: var(--space-6);
-  padding: 0 var(--space-8);
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px;
 }
 
-.equalButton {
-  flex: 1 1 0;
+/* Horizontal stack (Figma defines it for the Primary + Ghost pair):
+   ghost on the left, primary on the right, both sharing the row. */
+.horizontal {
+  flex-direction: row;
+}
+
+.horizontal .fullButton {
+  width: auto;
+  flex: 1 0 0;
   min-width: 0;
-  padding-left: var(--space-6);
-  padding-right: var(--space-6);
 }
 
-/* Keep dock labels on a single line and a touch smaller, so longer labels
-   (e.g. "Record Payment") don't wrap and inflate the dock height. */
+/* Dock labels stay on a single line (decided rule); full-width buttons give
+   them room at the DS 16px size. */
 .actions :global(.link-upper-md) {
-  font-size: var(--fs-body-sm);
   white-space: nowrap;
 }
 
@@ -60,20 +83,21 @@
   width: 100%;
 }
 
-/* ===== HOME INDICATOR (iOS) ===== */
+/* ===== HOME INDICATOR (iOS) — Figma AppStatusBarLower: 32px area,
+   134×5 black bar ending 6px above the bottom edge ===== */
 .homeIndicator {
   display: flex;
   align-items: flex-end;
   justify-content: center;
   height: 32px;
-  padding-bottom: var(--space-4);
+  padding-bottom: 6px;
 }
 
 .homeBar {
   width: 134px;
   height: 5px;
   border-radius: var(--radius-full);
-  background: var(--text-primary);
+  background: #000;
 }
 
 /* ===== RESPONSIVE ===== */

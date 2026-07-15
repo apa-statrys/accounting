@@ -1,0 +1,169 @@
+/* TextField — Figma "[APP] Design System" → Text Fields (node 4047-3480).
+   48px row, 16px side padding, radius xl. States: focus via :focus-within
+   (border black), error border red (wins over focus, matching Figma's separate
+   Error state), disabled greys the surface, text and icons. Selector types
+   (mobile/currency/unit) use a 16px gap between selector and input; plain
+   types use 8px. Colors from ui/tokens.css. */
+
+.field {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  width: 100%;
+  padding: 0 16px;
+  background: var(--ds-field-bg);
+  border: 1px solid var(--ds-field-border);
+  border-radius: var(--ds-radius-xl);
+  font-family: var(--ds-font-primary);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+.withSelector {
+  gap: 16px;
+}
+.field:focus-within,
+.forceFocus {
+  border-color: var(--ds-field-border-focus);
+}
+.error,
+.error:focus-within {
+  border-color: var(--ds-border-error-bold);
+}
+.disabled {
+  background: var(--ds-field-bg-disabled);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  color: var(--ds-text-primary);
+}
+.input::placeholder {
+  color: var(--ds-text-placeholder);
+  opacity: 1;
+}
+.disabled .input,
+.disabled .input::placeholder {
+  color: var(--ds-text-disabled);
+}
+
+/* Country-code / currency / unit selector (flag + label + 16px chevron) */
+.selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--ds-text-primary);
+  cursor: pointer;
+}
+.selector:disabled {
+  color: var(--ds-text-disabled);
+  cursor: default;
+}
+.flag {
+  display: flex;
+}
+.selector:disabled .flag {
+  opacity: 0.4; /* Figma's disabled variants use a faded flag asset */
+}
+.chevronSm {
+  display: flex;
+  color: var(--ds-text-secondary);
+}
+.selector:disabled .chevronSm {
+  color: var(--ds-text-disabled);
+}
+
+/* 20px leading icon (type="left-icon") */
+.leftIcon {
+  display: flex;
+  color: var(--ds-text-secondary);
+}
+.disabled .leftIcon {
+  color: var(--ds-text-disabled);
+}
+
+/* Dropdown / date-picker: the whole row is one tap target */
+.picker {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: var(--ds-text-primary);
+  cursor: pointer;
+}
+.picker:disabled {
+  color: var(--ds-text-disabled);
+  cursor: default;
+}
+.pickerText {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.placeholderText {
+  color: var(--ds-text-placeholder);
+}
+.picker:disabled .placeholderText {
+  color: inherit;
+}
+.chevronLg {
+  display: flex;
+  color: var(--ds-text-secondary);
+}
+.calendar {
+  display: flex;
+  color: var(--ds-text-primary);
+}
+.picker:disabled .chevronLg,
+.picker:disabled .calendar {
+  color: var(--ds-text-disabled);
+}
+
+/* Label + caption wrapper (Figma "Fields", node 4047-3379). Label stays
+   text-primary in every state (incl. disabled); caption turns red on error. */
+.labeled {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  font-family: var(--ds-font-primary);
+}
+.label {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ds-text-primary);
+}
+.caption {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--ds-text-secondary);
+}
+.captionError {
+  color: var(--ds-text-error-primary);
+}

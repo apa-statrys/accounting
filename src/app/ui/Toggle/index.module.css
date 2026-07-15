@@ -1,0 +1,51 @@
+/* Toggle — Figma "[APP] Design System" → Toggle (node 4065-2177).
+   35×20 track, 17.5px knob. Off/default uses the dark inverse track per the DS.
+   Disabled variants swap the filled track for a hairline inset border, so the
+   knob offsets differ slightly (Figma values kept exact). */
+
+.track {
+  position: relative;
+  display: inline-block;
+  width: 35px;
+  height: 20px;
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+  border-radius: 9999px;
+  background: var(--ds-bg-neutral-inverse-tertiary);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.track.checked {
+  background: var(--ds-bg-brand-primary);
+}
+.track:disabled {
+  background: transparent;
+  box-shadow: inset 0 0 0 0.625px var(--ds-border-neutral-primary);
+  cursor: default;
+}
+.track.checked:disabled {
+  background: var(--ds-bg-neutral-disabled);
+}
+
+.knob {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 17.5px;
+  height: 17.5px;
+  border-radius: 9999px;
+  background: var(--ds-bg-neutral-primary);
+  left: 1.25px;
+  transition: left 0.2s;
+}
+.checked .knob {
+  left: 16.25px;
+}
+.track:disabled .knob {
+  background: var(--ds-bg-neutral-disabled);
+  left: 0.63px;
+}
+.track.checked:disabled .knob {
+  left: 16.87px;
+}

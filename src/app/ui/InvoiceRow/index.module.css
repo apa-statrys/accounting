@@ -1,0 +1,142 @@
+/* InvoiceRow — Figma "[APP] Design System" → InvoiceRow (node 4250-544).
+   sm: 12px vertical padding, 14px title/amount. md: 16px padding, 16px
+   title/amount. Divider under every row except lastItem. Status/Recurring
+   chips are the DS Badge text variant (bold caption, no pill). Credited strip
+   sits on Bg/Neutral/secondary. Colors from ui/tokens.css. */
+
+.row {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ds-border-neutral-primary);
+  font-family: var(--ds-font-primary);
+}
+.md {
+  padding: 16px 0;
+}
+.lastItem {
+  border-bottom: none;
+}
+.clickable {
+  cursor: pointer;
+}
+
+.main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+.info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.title {
+  margin: 0;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.md .title {
+  font-size: 16px;
+}
+
+.metaLine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+.invoiceNo {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--ds-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dot {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--ds-text-secondary);
+}
+
+.statusLine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.statusCaption {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--ds-text-primary);
+  white-space: nowrap;
+}
+
+.amount {
+  margin: 0;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ds-text-primary);
+  white-space: nowrap;
+}
+.md .amount {
+  font-size: 16px;
+}
+
+/* Credited-amount strip */
+.credited {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: var(--ds-radius-xl);
+  background: var(--ds-bg-neutral-secondary);
+  font-family: inherit;
+  text-align: left;
+}
+button.credited {
+  cursor: pointer;
+}
+.fileIcon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--ds-text-secondary);
+}
+.creditedText {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chevron {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--ds-text-primary);
+}

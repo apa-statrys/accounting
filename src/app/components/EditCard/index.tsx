@@ -1,6 +1,6 @@
 import React from 'react';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
-import { Button } from '../Buttons';
+import { Button } from '../../ui/Button';
 import styles from './index.module.css';
 
 export interface EditCardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -33,9 +33,7 @@ export const EditCard = React.forwardRef<HTMLDivElement, EditCardProps>(
         </div>
 
         {trailing ?? (
-          <Button variant="secondary" size="sm" className={styles.change} onClick={onChange}>
-            {changeLabel}
-          </Button>
+          <Button hierarchy="secondary" size="sm" className={styles.change} onClick={onChange} label={changeLabel} />
         )}
       </div>
     );

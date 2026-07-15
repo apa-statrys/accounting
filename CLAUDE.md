@@ -24,7 +24,7 @@ behavior unless the task asks for it.
 - Always grep that new imports/symbols exist after using them. Verify UI changes by clicking through
   the affected flow in the browser.
 
-## Where things live (refactored 2026-07-02 — keep this structure)
+## Where things live (refactored 2026-07-02; pages/components split 2026-07-14 — keep this structure)
 
 ```
 src/app/
@@ -41,7 +41,21 @@ src/app/
                      #   format.ts → money / fmtDate / formatMoney / EMAIL_RE
                      #   currency.ts → RATES / SUPPORTED_CURRENCIES / convert
                      #   status.ts → STATUS_PILL (list) / DETAIL_STATUS_META (detail page)
-  components/        # small components flat; the 4 big screens each have a folder:
+  ui/                # design-system components rebuilt from the Figma "[APP] Design System"
+                     #   (file Lt9QLcfsxzo9gdTV8hbWgs). One folder per component with
+                     #   index.tsx + index.module.css (Toggle, Button, FAB, TabsBase,
+                     #   HorizontalTabs …); colors/radii come from tokens.css (:root CSS vars,
+                     #   Figma variable names in comments, loaded by main.tsx). FAB reuses
+                     #   Button's color classes — keep those color-only.
+                     #   Showcase.tsx = review gallery at /#showcase. RULE: every DS component
+                     #   build OR update changes both the component folder and its Showcase page
+                     #   (NAV entry + Overview demo + Variants grid) in the same pass.
+  components/        # shared widgets only — sheets, cards, nav, inputs (no screens).
+                     #   ButtonDock + EditCard render ui/Button inside (old Buttons/ was
+                     #   deleted 2026-07-14 when ui/Button + ui/FAB rolled out app-wide).
+                     #   NB components/ui/ = legacy checkbox + utils (used by ReviewEmail,
+                     #   ButtonDock); don't confuse with the DS ui/ above.
+  pages/             # every screen, flat; the 4 big screens each have a folder:
     sales-invoice-list/   # SalesInvoiceList (page) + filters.ts (pure) + InvoiceCard
     add-invoice-details/  # AddInvoiceDetails (page) + derive.ts + Banners + ExistingInvoiceSheet
     credit-note-form/     # CreditNoteForm (page) + lineMath.ts + ReasonSheet + ClientEditSheet
@@ -62,6 +76,8 @@ Rules for new code:
 - Keep export names stable when moving code; update every importer in the same change (no shims).
 
 ## Screens (`Screen` union in types.ts → rendered by App.tsx)
+
+All screen components live in `pages/`:
 
 | screen | component | | screen | component |
 |---|---|---|---|---|

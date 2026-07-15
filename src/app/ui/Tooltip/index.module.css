@@ -1,0 +1,90 @@
+/* Tooltip — Figma "[APP] Design System" → Tooltip (node 2432-14400).
+   Arrow(none|top|bottom|bottom-left|bottom-right|left|right) × inverse ×
+   supporting text. Colors/shadow from ui/tokens.css. The arrow SVG is 8.5px
+   deep and overlaps the bubble by 2.5px (negative margin) so only 6px
+   protrudes — matching Figma; same fill as the bubble hides the seam. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: max-content;
+  font-family: var(--ds-font-primary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  filter: var(--ds-shadow-tooltip);
+  --tooltip-bg: var(--ds-bg-beige-secondary);
+  --tooltip-title: var(--ds-text-primary);
+  --tooltip-text: var(--ds-text-secondary);
+}
+.inverse {
+  --tooltip-bg: var(--ds-bg-neutral-inverse-primary);
+  --tooltip-title: var(--ds-text-neutral-inverse-primary);
+  --tooltip-text: var(--ds-text-neutral-inverse-secondary);
+}
+
+.bubble {
+  background: var(--tooltip-bg);
+  border-radius: var(--ds-radius-xl);
+  padding: 8px 12px;
+  color: var(--tooltip-title);
+  white-space: nowrap;
+}
+
+/* Supporting-text layout: wider bubble, wrapping text, description line */
+.withDescription {
+  max-width: 320px;
+}
+.withDescription .bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  white-space: normal;
+  word-break: break-word;
+  min-width: 0;
+}
+.description {
+  margin: 0;
+  color: var(--tooltip-text);
+}
+
+.arrow {
+  flex-shrink: 0;
+}
+.arrow path {
+  fill: var(--tooltip-bg);
+}
+
+/* Arrow directions (arrow slot is 6px deep after the 2.5px overlap) */
+.top .arrow {
+  margin-bottom: -2.5px;
+}
+.bottom .arrow,
+.bottomLeft .arrow,
+.bottomRight .arrow {
+  margin-top: -2.5px;
+}
+.bottomLeft {
+  align-items: flex-start;
+}
+.bottomLeft .arrow {
+  margin-left: 12px;
+}
+.bottomRight {
+  align-items: flex-end;
+}
+.bottomRight .arrow {
+  margin-right: 12px;
+}
+.left,
+.right {
+  flex-direction: row;
+}
+.left .arrow {
+  margin-right: -2.5px;
+}
+.right .arrow {
+  margin-left: -2.5px;
+}

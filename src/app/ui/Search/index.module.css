@@ -1,0 +1,88 @@
+/* Search — Figma "[APP] Design System" → Search (node 4144-11313).
+   36px row (vs TextField's 48px), same border states as TextField: focus
+   black via :focus-within, error red (wins over focus), disabled greys
+   surface/text/icons. While focused the trailing mic is swapped for the
+   X clear button — pure CSS below. Colors from ui/tokens.css. */
+
+.field {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  width: 100%;
+  padding: 0 16px;
+  background: var(--ds-field-bg);
+  border: 1px solid var(--ds-field-border);
+  border-radius: var(--ds-radius-xl);
+  font-family: var(--ds-font-primary);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+.field:focus-within,
+.forceFocus {
+  border-color: var(--ds-field-border-focus);
+}
+.error,
+.error:focus-within {
+  border-color: var(--ds-border-error-bold);
+}
+.disabled {
+  background: var(--ds-field-bg-disabled);
+}
+
+.searchIcon {
+  display: flex;
+  color: var(--ds-text-primary);
+}
+.disabled .searchIcon {
+  color: var(--ds-text-disabled);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  color: var(--ds-text-primary);
+}
+.input::placeholder {
+  color: var(--ds-text-placeholder);
+  opacity: 1;
+}
+.disabled .input,
+.disabled .input::placeholder {
+  color: var(--ds-text-disabled);
+}
+
+/* Trailing actions — icon-only buttons, no extra hit-area chrome */
+.clear,
+.mic {
+  display: flex;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ds-text-primary);
+  cursor: pointer;
+}
+.mic:disabled {
+  color: var(--ds-text-disabled);
+  cursor: default;
+}
+
+/* Focus swap: mic out, X in */
+.clear {
+  display: none;
+}
+.field:focus-within .clear,
+.forceFocus .clear {
+  display: flex;
+}
+.field:focus-within .mic,
+.forceFocus .mic {
+  display: none;
+}

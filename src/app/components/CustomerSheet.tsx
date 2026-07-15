@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "./BottomSheet";
 import { Search } from "./Search";
 import { Tile } from "./Tile";
-import { Button } from "./Buttons";
+import { Button } from "../ui/Button";
 import { CUSTOMERS } from "../data/customers";
 import type { Customer } from "../types";
 
@@ -42,9 +42,7 @@ export function CustomerSheet({ open, value, customers = CUSTOMERS, onClose, onS
         </motion.div>
 
         <motion.div variants={sheetItem}>
-          <Button variant="secondary" size="md" iconLeft={<AddIcon />} className="w-full" onClick={onAddNew}>
-            Add new customer
-          </Button>
+          <Button hierarchy="secondary" iconLeft={<AddIcon />} fullWidth onClick={onAddNew} label="Add new customer" />
         </motion.div>
 
         <div className="flex flex-col gap-2">

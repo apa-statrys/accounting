@@ -2,31 +2,46 @@ import figma from '@figma/code-connect';
 import { ButtonDock } from './index';
 
 /**
- * Code Connect mapping for the design-system "ButtonDock" component.
+ * Code Connect mapping for the design-system "StickyButton" component.
  *
- * Figma node: 2545-7545  (-lib- Design System)
+ * Figma node: 4141-2746  ([APP] Design System)
  *
- * Figma axes: type (Single/Double) × accessory × homeIndicator × overflow × display.
- * `display` only ships the "Narrow" value, so it has no code prop.
+ * Figma axes: Button Type (Primary / Primary + Outline / Primary + Ghost /
+ * Primary + Secondary + Tertiary) × Stack (Vertical/Horizontal) ×
+ * IOS controls (None / App status bar / Keyboard) × showCheckbox × Type
+ * (Default/Slot). "Keyboard" and "Slot" are design-reference variants with
+ * no code counterpart; "App status bar" maps to the homeIndicator prop.
  */
 figma.connect(
   ButtonDock,
-  'https://www.figma.com/design/abElBYcwuc5skfPX1c7FlP/-lib--Design-System?node-id=2545-7545',
+  'https://www.figma.com/design/Lt9QLcfsxzo9gdTV8hbWgs/-APP--Design-System?node-id=4141-2746',
   {
     props: {
-      type: figma.enum('type', { Single: 'single', Double: 'double' }),
-      accessory: figma.boolean('accessory'),
-      homeIndicator: figma.boolean('homeIndicator'),
-      overflow: figma.boolean('overflow'),
+      type: figma.enum('Button Type', {
+        Primary: 'single',
+        'Primary + Outline': 'double',
+        'Primary + Ghost': 'ghost',
+        'Primary + Secondary + Tertiary': 'triple',
+      }),
+      stack: figma.enum('Stack', {
+        Vertical: 'vertical',
+        Horizontal: 'horizontal',
+      }),
+      accessory: figma.boolean('showCheckbox'),
+      homeIndicator: figma.enum('IOS controls', {
+        'App status bar': true,
+        None: false,
+      }),
     },
-    example: ({ type, accessory, homeIndicator, overflow }) => (
+    example: ({ type, stack, accessory, homeIndicator }) => (
       <ButtonDock
         type={type}
+        stack={stack}
         accessory={accessory}
         homeIndicator={homeIndicator}
-        overflow={overflow}
-        primaryLabel="Send Invoice"
-        secondaryLabel="Send Later"
+        primaryLabel="Confirm"
+        secondaryLabel="Cancel"
+        tertiaryLabel="Close"
       />
     ),
   },
