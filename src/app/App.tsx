@@ -978,27 +978,9 @@ export default function App() {
         />
       )}
 
-      {/* Screen jumper. Localhost: the collapsible QuickNav sidebar (stakeholder demos).
-          Prod (any build): the curated FAB QuickNav (Menu Hub / Dashboard / Invoice List / CN list). */}
-      {import.meta.env.DEV ? (
-        <QuickNavSidebar groups={sidebarGroups} />
-      ) : (
-        <QuickNav
-          current={screen}
-          onChange={(s) => {
-            // Jumping straight to the duplicate page needs a match seeded — use the Awaiting demo invoice.
-            if (s === "duplicateCheck") {
-              const awaiting = EXISTING_INVOICES.find((i) => i.status === "Awaiting") ?? EXISTING_INVOICES[0];
-              setDupExisting(awaiting);
-              setPendingExtraction(DEMO_EXTRACTION_MATCHED);
-              setUploadedFile({ name: "invoice-scan.png", size: 248_000 });
-            }
-            setScreen(s);
-          }}
-          scenario={heroScenario}
-          onScenario={setHeroScenario}
-        />
-      )}
+      {/* Screen jumper — the collapsible QuickNav sidebar (stakeholder demos), shown in
+          every build for now so the Vercel demo matches localhost. */}
+      <QuickNavSidebar groups={sidebarGroups} />
     </div>
   );
 }
