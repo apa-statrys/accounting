@@ -7,7 +7,7 @@ import { SHOW_CREDIT_NOTES } from "../lib/flags";
 interface AccountingHubProps {
   /** Back to the dashboard (the Hub is a reachable menu, not the landing). */
   onBack?: () => void;
-  /** Open the Sales Invoices list. */
+  /** Open the Sales Invoices dashboard (the section landing; the list hangs off it). */
   onOpenSalesInvoices?: () => void;
   /** Open the Credit Notes list (DES-763). */
   onOpenCreditNotes?: () => void;

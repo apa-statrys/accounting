@@ -89,12 +89,13 @@ export function matchesIssueRange(iso: string, from: string, to: string): boolea
  */
 export type StatusMatch = "all" | Status | "Overdue";
 
+// No standalone Overdue / Partially Paid tabs — they fold into a related tab (see matchStatus):
+// Overdue rows show under Awaiting (an overdue invoice is Awaiting past its due date), and
+// Partially Paid rows show under Paid (any payment received). Each card still shows its own chip.
 export const FILTERS: { label: string; match: StatusMatch }[] = [
   { label: "All Invoices", match: "all" },
   { label: "Draft", match: "Draft" },
   { label: "Awaiting", match: "Awaiting" },
-  { label: "Overdue", match: "Overdue" },
-  { label: "Partially Paid", match: "PartiallyPaid" },
   { label: "Paid", match: "Paid" },
   { label: "Void", match: "Cancelled" },
 ];
@@ -108,11 +109,16 @@ export function effectiveStatus(inv: Invoice): EffectiveStatus {
   return inv.status;
 }
 
-/** Whether an invoice matches a status chip. "Awaiting" = all unpaid (on-time + overdue). */
+/**
+ * Whether an invoice matches a status chip:
+ * - "Awaiting" = all outstanding (on-time + overdue) — no separate Overdue tab.
+ * - "Paid" = fully paid + partially paid — no separate Partially Paid tab.
+ */
 export function matchStatus(inv: Invoice, match: StatusMatch): boolean {
   if (match === "all") return true;
   const eff = effectiveStatus(inv);
   if (match === "Awaiting") return eff === "Awaiting" || eff === "Overdue"; // Outstanding = unpaid
+  if (match === "Paid") return eff === "Paid" || eff === "PartiallyPaid"; // any payment received
   return eff === match;
 }
 
@@ -174,9 +180,10 @@ export function metaLine(inv: Invoice, eff: EffectiveStatus): { number: string; 
 
 /** Refund-status filter — lives in the Filters sheet, not a top chip (a refund is still a Paid invoice). */
 export type RefundFilter = "all" | "awaiting" | "partial" | "full";
+// "partial" stays a valid RefundFilter/refundState value (used by refundStateOf + detail
+// rendering), but it is no longer offered as a Filters-sheet chip (user, 15/Jul).
 export const REFUND_FILTERS: { key: Exclude<RefundFilter, "all">; label: string }[] = [
   { key: "awaiting", label: "Pending Refund" },
-  { key: "partial", label: "Partially refunded" },
   { key: "full", label: "Refunded" },
 ];
 /** An invoice's refund state: in-session refunds (refundState) win, else derived from the linked CN. */

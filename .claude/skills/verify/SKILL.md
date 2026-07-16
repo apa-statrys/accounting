@@ -24,14 +24,19 @@ Viewport 900×950 fits the whole phone frame in one screenshot.
 
 ## Driving
 
-- **QuickNav** (jump to any screen): the FAB is
-  `div.fixed.bottom-6.left-6 > button`; the panel lists screens by label
-  ("Dashboard", "Invoice List", …) and, nested under Dashboard, the hero
-  scenario switchers ("Happy path", "Some overdue", "All overdue",
-  "Fully collected", "Nothing collected") — dev-server only.
+- **QuickNav** (jump to any screen): a dark `<aside>` sidebar on the left,
+  already expanded on load (collapse toggle: `[aria-label="Collapse quick
+  nav"]`) — dev-server only. Accordion group headers: "Dashboard" (contains
+  the hero scenario switchers "Happy path", "Some overdue", "All overdue",
+  "Fully collected", "Nothing collected"), "Customer", "Sales Invoice
+  Settings", "Sales Invoice", "Credit Note". Click a group header (match its
+  trimmed text EXACTLY — "Sales Invoice" also substring-matches the Settings
+  group) to reveal its items, e.g. `aside button:has-text("Sales Invoice
+  List")`.
 - Wait ~800ms after navigation clicks (spring animations).
 - Collect `page.on('pageerror')` + console errors; ignore the CORS font
-  errors from db.onlinewebfonts.com (pre-existing, cosmetic) and the
-  pre-existing validateDOMNesting button-in-button warning from
+  errors from db.onlinewebfonts.com and fonts.cdnfonts.com (pre-existing,
+  cosmetic — they surface as bare "Failed to load resource" console lines)
+  and the pre-existing validateDOMNesting button-in-button warning from
   sales-invoice-list/InvoiceCard.
 - Showcase gallery: `http://localhost:5173/#showcase` for DS components.

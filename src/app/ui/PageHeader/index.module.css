@@ -32,6 +32,16 @@
 }
 .slot {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Invisible stand-in when the right button is hidden — keeps center titles centered */
+.spacer {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
 }
 
 /* Frosted 36px round icon button (Figma MenuPageHeader) */

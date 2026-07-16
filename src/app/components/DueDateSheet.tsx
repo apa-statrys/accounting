@@ -3,7 +3,7 @@ import { addMonths, startOfDay, format } from "date-fns";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "./BottomSheet";
-import { Tile } from "./Tile";
+import { Tile } from "../ui/Tile";
 import { TextInput } from "./TextInput";
 import { Calendar } from "./Calendar";
 
@@ -34,15 +34,16 @@ export function DueDateSheet({ open, value, onClose, onSelect }: DueDateSheetPro
 
   return (
     <>
-      <BottomSheet open={open} title="Due Date" onClose={onClose}>
+      <BottomSheet open={open} title="Select Due Date" onClose={onClose} dsHeader>
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             {DUE_OPTIONS.map((o) => (
               <motion.div key={o.id} variants={sheetItem}>
                 <Tile
                   title={o.title}
-                  description={o.description}
+                  text={o.description}
                   selected={value === o.title}
+                  trailing={value === o.title ? "check" : "none"}
                   onClick={() => onSelect?.(o.title)}
                 />
               </motion.div>
@@ -63,7 +64,7 @@ export function DueDateSheet({ open, value, onClose, onSelect }: DueDateSheetPro
       </BottomSheet>
 
       {/* Custom due-date calendar — past dates and anything more than 6 months out are disabled. */}
-      <BottomSheet open={calendarOpen} title="Custom Due Date" onClose={() => setCalendarOpen(false)}>
+      <BottomSheet open={calendarOpen} title="Custom Due Date" onClose={() => setCalendarOpen(false)} dsHeader>
         <motion.div variants={sheetItem}>
           <Calendar
             disablePast

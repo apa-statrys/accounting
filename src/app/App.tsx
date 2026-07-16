@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Menu, X, ChevronRight } from "lucide-react";
+import { QuickNavSidebar, type SidebarGroup } from "./components/QuickNavSidebar";
 import { Dashboard } from "./pages/Dashboard";
 import { AccountingHub } from "./pages/AccountingHub";
 import { CreditNotesList } from "./pages/CreditNotesList";
@@ -182,6 +183,8 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [extracted, setExtracted] = useState<ExtractedInvoice | null>(null);
+  // Dev-only: QuickNav "Create Invoice" seeds demo items so the editor lands fully pre-filled.
+  const [devSeedItems, setDevSeedItems] = useState(false);
   // Extraction queued while the OCR screen plays (chosen from the upload source).
   // null = OCR found nothing usable (routes to the extract-failed screen).
   const [pendingExtraction, setPendingExtraction] = useState<ExtractedInvoice | null>(DEMO_EXTRACTION);
@@ -190,7 +193,7 @@ export default function App() {
   // Freshly created/saved invoice to surface + highlight at the top of the list.
   const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string; recurring?: boolean } | null>(null);
   // The invoice opened into the detail page (status drives the lifecycle UI).
-  const [openInvoice, setOpenInvoice] = useState<{ number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; recurring?: boolean }>({
+  const [openInvoice, setOpenInvoice] = useState<{ number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean; recurring?: boolean; viewCn?: boolean }>({
     number: "INV-2026-000042",
     client: "Marlow & Finch Studio",
     status: "Awaiting",
@@ -263,6 +266,121 @@ export default function App() {
   const [listPreset, setListPreset] = useState<{ status?: "Paid" | "Awaiting" } | null>(null);
   // Dev: which hero demo state the dashboard renders (switched from QuickNav).
   const [heroScenario, setHeroScenario] = useState(0);
+  // Dev sidebar deep link: CN detail to open when jumping to the Credit Notes list (null = plain list).
+  const [cnPreview, setCnPreview] = useState<string | null>(null);
+  // Bumped on every sidebar detail jump so the detail page remounts (fresh state) even when
+  // the invoice number/status don't change. In-page actions never bump it.
+  const [detailNavNonce, setDetailNavNonce] = useState(0);
+
+  // Sidebar deep link: open the invoice detail seeded with a register demo invoice.
+  const jumpDetail = (
+    inv: { number: string; client: string; status: DetailStatus; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean },
+    viewCn = false
+  ) => {
+    setOpenInvoice({ origin: "created", ...inv, viewCn });
+    setDetailFlash(null);
+    setEditFromDuplicate(false);
+    setDetailReturn("list");
+    setDetailNavNonce((n) => n + 1);
+    setScreen("invoiceDetail");
+  };
+
+  // Dev-only QuickNav sidebar groups (stakeholder demos) — labels + jump wiring per the 2026-07-15 spec.
+  const sidebarGroups: SidebarGroup[] = [
+    {
+      title: "Dashboard",
+      items: HERO_SCENARIOS.map((s, i) => ({
+        label: s.label,
+        active: screen === "dashboard" && heroScenario === i,
+        onSelect: () => { setHeroScenario(i); setScreen("dashboard"); },
+      })),
+    },
+    {
+      title: "Customer",
+      items: [
+        { label: "Customer List", active: screen === "customers", onSelect: () => setScreen("customers") },
+        { label: "Add New Customer", active: screen === "addCustomer", onSelect: () => { setAddCustomerReturn("customers"); setScreen("addCustomer"); } },
+        { label: "Customer Details", active: screen === "customerDetail", onSelect: () => { setSelectedCustomer(customers[0]); setCustomerFlash(null); setScreen("customerDetail"); } },
+      ],
+    },
+    {
+      title: "Sales Invoice Settings",
+      items: [
+        { label: "Manage Settings", active: screen === "settings", onSelect: () => setScreen("settings") },
+      ],
+    },
+    {
+      title: "Sales Invoice",
+      items: [
+        // Clear any pending toast so the dev jump never lands with a stale "Saved as draft" flash.
+        { label: "Sales Invoice List", active: screen === "list", onSelect: () => { setToast(null); setListPreset(null); setScreen("list"); } },
+        // Dev jump lands on the pre-filled editor (demo customer + demo items), not the picker (user, 15/Jul).
+        { label: "Create Invoice", active: screen === "customer" || screen === "details", onSelect: () => { setRecurring(false); setEditingSeries(false); setExtracted(null); setCustomer(DEMO_CUSTOMER); setDevSeedItems(true); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setScreen("details"); } },
+        { label: "Send Invoice", active: screen === "send", onSelect: () => setScreen("send") },
+        { label: "Upload Invoice", active: screen === "upload" || screen === "extracting", onSelect: () => { setUploadedFiles([]); setUploadedFile(null); setUploadReturn("list"); setScreen("upload"); } },
+      ],
+      sections: [
+        {
+          // One entry per detail-page status — each opens a matching register demo invoice.
+          heading: "Invoice Detail",
+          items: [
+            { label: "Draft", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003", onSelect: () => jumpDetail({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Draft" }) },
+            { label: "Awaiting Payment", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000004", onSelect: () => jumpDetail({ number: "INV-2026-000004", client: "Marlow & Finch Studio", status: "Awaiting" }) },
+            { label: "Overdue + 1 Applied CN", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000010", onSelect: () => jumpDetail({ number: "INV-2026-000010", client: "Harbor & Co.", status: "Overdue", cnNo: "CN-2026-000003", cnAmount: 2000, cnSent: true }) },
+            { label: "Partially Paid", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000014", onSelect: () => jumpDetail({ number: "INV-2026-000014", client: "Verde Coffee Roasters", status: "PartiallyPaid" }) },
+            { label: "Paid", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000005", onSelect: () => jumpDetail({ number: "INV-2026-000005", client: "Atlas Logistics", status: "Paid" }) },
+            { label: "Refund Pending + 1 Applied CN", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000011", onSelect: () => jumpDetail({ number: "INV-2026-000011", client: "Cobalt Systems", status: "Paid", cnNo: "CN-2026-000004", cnAmount: 1200, cnSent: false }) },
+          ],
+        },
+      ],
+    },
+    {
+      title: "Credit Note",
+      sections: [
+        {
+          heading: "Unpaid Invoice",
+          items: [
+            { label: "Create Credit Note", active: screen === "creditNote", onSelect: () => setScreen("creditNote") },
+            { label: "CN Detail — Draft", active: screen === "creditNotes" && cnPreview === "CN-2026-000005", onSelect: () => { setCnPreview("CN-2026-000005"); setScreen("creditNotes"); } },
+            { label: "CN Detail — Applied", active: screen === "creditNotes" && cnPreview === "CN-2026-000003", onSelect: () => { setCnPreview("CN-2026-000003"); setScreen("creditNotes"); } },
+            { label: "CN Detail — Cancelled", active: screen === "creditNotes" && cnPreview === "CN-2026-000009", onSelect: () => { setCnPreview("CN-2026-000009"); setScreen("creditNotes"); } },
+          ],
+        },
+        {
+          // The refund lifecycle lives on the invoice-detail side (DES-720/721) — these two open the
+          // full-refund demo invoice (INV-…015, CN = the $6,450 detail total) with its CN detail overlaid.
+          heading: "Paid Invoices",
+          items: [
+            { label: "Create Refund Credit Note", active: screen === "refundCreditNote", onSelect: () => setScreen("refundCreditNote") },
+            {
+              label: "Refund CN — Draft",
+              active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && !!openInvoice.cnDraft,
+              onSelect: () => {
+                setRefundState(({ ["INV-2026-000015"]: _drop, ...rest }) => rest);
+                jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false, cnDraft: true }, true);
+              },
+            },
+            {
+              label: "Refund CN — Pending Refund",
+              active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && !openInvoice.cnDraft && !refundState["INV-2026-000015"],
+              onSelect: () => {
+                setRefundState(({ ["INV-2026-000015"]: _drop, ...rest }) => rest);
+                jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false }, true);
+              },
+            },
+            {
+              label: "Refund CN — Refunded",
+              active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && !openInvoice.cnDraft && refundState["INV-2026-000015"] === "full",
+              onSelect: () => {
+                setRefundState((s) => ({ ...s, "INV-2026-000015": "full" }));
+                jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false }, true);
+              },
+            },
+          ],
+        },
+      ],
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-[#EDEDED] flex flex-col items-center justify-center gap-4 p-4">
@@ -319,14 +437,17 @@ export default function App() {
       {screen === "hub" && (
         <AccountingHub
           onBack={() => setScreen("dashboard")}
-          onOpenSalesInvoices={() => { setListPreset(null); setScreen("list"); }}
-          onOpenCreditNotes={() => setScreen("creditNotes")}
+          onOpenSalesInvoices={() => setScreen("dashboard")}
+          onOpenCreditNotes={() => { setCnPreview(null); setScreen("creditNotes"); }}
           onOpenCustomers={() => setScreen("customers")}
         />
       )}
 
       {screen === "creditNotes" && (
         <CreditNotesList
+          key={cnPreview ?? "cn-list"}
+          initialPreviewNo={cnPreview}
+          companyEmail={settings.email}
           refundState={refundState}
           onBack={() => setScreen("hub")}
           onOpenInvoice={(no) => {
@@ -359,8 +480,9 @@ export default function App() {
         />
       )}
 
-      {/* Add Client — full page (DES-713). Entry from the Customers list OR the invoice customer picker;
-          post-save it appends + returns to wherever it was opened (the picker pre-selects the new one). */}
+      {/* Add Client — full page (DES-713). Entry from the Customers list OR the invoice customer picker.
+          Post-save it appends, then: picker entry returns to the picker with the new customer selected;
+          list entry opens the new customer's DETAIL page (user, 15/Jul) — back from there lands on the list. */}
       {screen === "addCustomer" && (
         <AddCustomerPage
           existing={customers}
@@ -373,8 +495,9 @@ export default function App() {
               setCustomer(cust);
               setScreen("customer");
             } else {
+              setSelectedCustomer(cust);
               setCustomerFlash(`${cust.name} added`);
-              setScreen("customers");
+              setScreen("customerDetail");
             }
           }}
         />
@@ -449,19 +572,25 @@ export default function App() {
         </div>
       )}
 
-      {/* Sales Refund Credit Notes (DES-720) — not built yet; placeholder for the dev nav */}
+      {/* Standalone Refund Credit Note form (dev nav: Paid Invoices → Create Refund Credit Note) —
+          the same DES-720 refund-mode form the Paid invoice detail opens, seeded with the plain-Paid
+          demo invoice (INV-2026-000005 Atlas). */}
       {screen === "refundCreditNote" && (
-        <div className="relative rounded-[48px] overflow-hidden shadow-2xl bg-white flex flex-col items-center justify-center text-center px-8" style={{ width: 375, height: 812 }}>
-          <p className="text-[18px] font-bold text-[#1b1b1b]">Sales Refund Credit Notes</p>
-          <p className="text-[14px] text-gray-500 mt-2 leading-[1.5]">
-            Refund flow (DES-720) — for invoices already paid. Not built yet.
-          </p>
-          <button
-            onClick={() => setScreen("dashboard")}
-            className="mt-6 px-5 py-2.5 rounded-full bg-[#1b1b1b] text-white text-[14px] font-medium"
-          >
-            Back to Dashboard
-          </button>
+        <div className="relative rounded-[48px] overflow-hidden shadow-2xl" style={{ width: 375, height: 812 }}>
+          <CreditNoteForm
+            refund
+            creditNoteNo="CN-2026-000010"
+            invoiceNo="INV-2026-000005"
+            customerName="Atlas Logistics"
+            customerEmail="billing@atlaslogistics.com"
+            currency="USD"
+            items={CREDIT_NOTE_ITEMS}
+            invoiceTotal={CREDIT_NOTE_TOTAL}
+            alreadyCredited={0}
+            outstanding={CREDIT_NOTE_TOTAL}
+            onBack={() => setScreen("dashboard")}
+            onCreate={() => { setScreen("dashboard"); setToast({ title: "Credit note created" }); }}
+          />
         </div>
       )}
 
@@ -507,6 +636,8 @@ export default function App() {
 
       {screen === "invoiceDetail" && (
         <InvoiceDetailPage
+          key={`${openInvoice.number}:${openInvoice.status}:${detailNavNonce}`}
+          initialViewCn={!!openInvoice.viewCn}
           initialStatus={openInvoice.status}
           origin={openInvoice.origin}
           recurring={openInvoice.recurring}
@@ -515,7 +646,8 @@ export default function App() {
           invoiceNo={openInvoice.number}
           customerName={openInvoice.client}
           customerEmail={CREDIT_NOTES.find((c) => c.no === openInvoice.cnNo)?.email}
-          initialCreditNote={openInvoice.cnNo ? { no: openInvoice.cnNo, amount: openInvoice.cnAmount, sent: !!openInvoice.cnSent } : undefined}
+          companyEmail={settings.email}
+          initialCreditNote={openInvoice.cnNo ? { no: openInvoice.cnNo, amount: openInvoice.cnAmount, sent: !!openInvoice.cnSent, draft: openInvoice.cnDraft } : undefined}
           refundTag={(() => {
             // A refund completed in-session this run wins (Partially Refunded / Refunded).
             const done = refundState[openInvoice.number];
@@ -699,6 +831,7 @@ export default function App() {
           onClose={() => setScreen("list")}
           onSelectCustomer={(c) => {
             setCustomer(c);
+            setDevSeedItems(false); // real create flow starts with an empty item list
             setEditInitial(null);
             setNumberRecommended(false);
             setEditFromDuplicate(false);
@@ -713,8 +846,10 @@ export default function App() {
           customers={customers}
           recurring={recurring}
           editingSeries={editingSeries}
-          seedServices={editingSeries ? RECURRING_SERIES_ITEMS : undefined}
+          key={devSeedItems ? "dev-prefilled" : "editor"}
+          seedServices={editingSeries ? RECURRING_SERIES_ITEMS : devSeedItems ? DEMO_EXTRACTION.services : undefined}
           companyName={settings.companyName}
+          companyEmail={settings.email}
           extracted={extracted}
           // Invoice-currency seed precedence (DES-713): OCR (extracted) → edit-seed → CUSTOMER default →
           // account Settings default. AddInvoiceDetails applies OCR/edit above this; currency is read-only
@@ -782,6 +917,7 @@ export default function App() {
           customer={DEMO_CUSTOMER}
           customers={customers}
           companyName={settings.companyName}
+          companyEmail={settings.email}
           extracted={null}
           autoOpenSend
           defaultChaser={settings.chaserEnabled}
@@ -842,23 +978,27 @@ export default function App() {
         />
       )}
 
-      {/* Screen jumper. On prod (any build) it's limited to Menu Hub / Dashboard / Invoice List and
-          the dev scenario switchers are hidden; on localhost it shows every screen. */}
-      <QuickNav
-        current={screen}
-        onChange={(s) => {
-          // Jumping straight to the duplicate page needs a match seeded — use the Awaiting demo invoice.
-          if (s === "duplicateCheck") {
-            const awaiting = EXISTING_INVOICES.find((i) => i.status === "Awaiting") ?? EXISTING_INVOICES[0];
-            setDupExisting(awaiting);
-            setPendingExtraction(DEMO_EXTRACTION_MATCHED);
-            setUploadedFile({ name: "invoice-scan.png", size: 248_000 });
-          }
-          setScreen(s);
-        }}
-        scenario={heroScenario}
-        onScenario={setHeroScenario}
-      />
+      {/* Screen jumper. Localhost: the collapsible QuickNav sidebar (stakeholder demos).
+          Prod (any build): the curated FAB QuickNav (Menu Hub / Dashboard / Invoice List / CN list). */}
+      {import.meta.env.DEV ? (
+        <QuickNavSidebar groups={sidebarGroups} />
+      ) : (
+        <QuickNav
+          current={screen}
+          onChange={(s) => {
+            // Jumping straight to the duplicate page needs a match seeded — use the Awaiting demo invoice.
+            if (s === "duplicateCheck") {
+              const awaiting = EXISTING_INVOICES.find((i) => i.status === "Awaiting") ?? EXISTING_INVOICES[0];
+              setDupExisting(awaiting);
+              setPendingExtraction(DEMO_EXTRACTION_MATCHED);
+              setUploadedFile({ name: "invoice-scan.png", size: 248_000 });
+            }
+            setScreen(s);
+          }}
+          scenario={heroScenario}
+          onScenario={setHeroScenario}
+        />
+      )}
     </div>
   );
 }

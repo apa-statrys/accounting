@@ -7,6 +7,7 @@
 
 .tile {
   box-sizing: border-box;
+  position: relative; /* anchors .cornerBadge */
   display: flex;
   align-items: center;
   gap: 10px;
@@ -91,6 +92,29 @@ button.tile {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* Badge pinned to the tile's top-right corner (Figma primary-account tile).
+   The badge's radii are reshaped so it hugs the card corner. */
+.cornerBadge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex; /* kills the inline-baseline gap under the badge */
+}
+.cornerBadge > * {
+  border-radius: 0 var(--ds-radius-2xl) 0 var(--ds-radius-2xl);
+}
+
+/* Title + inline badge (e.g. "Primary" on a receiving account) */
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.titleRow .title {
+  flex-shrink: 1;
+  min-width: 0;
 }
 .text {
   font-size: 14px;

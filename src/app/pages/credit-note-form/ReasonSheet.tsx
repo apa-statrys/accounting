@@ -1,6 +1,7 @@
-import { BottomSheet } from "../../components/BottomSheet";
+import { motion } from "motion/react";
+import { BottomSheet, sheetItem } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
-import { Tile } from "../../components/Tile";
+import { Tile } from "../../ui/Tile";
 import { TextInput } from "../../components/TextInput";
 
 /** Required reason for raising a credit note (DES-719) — fixed enum + "Other" (reveals a free-text
@@ -17,8 +18,9 @@ interface ReasonSheetProps {
   setReasonNote: (n: string) => void;
 }
 
-/** Reason picker — required (DES-719). Tap a preset to select it; "Other" reveals a required free-text
- *  Description right here in the sheet. Confirm with Done. */
+/** Reason picker — required (DES-719). Tap a preset to select it; "Other" reveals a required
+ *  free-text Description right here in the sheet. Confirm with Done (disabled until a reason —
+ *  and a description for "Other" — is provided). */
 export function ReasonSheet({ open, onClose, reason, setReason, reasonNote, setReasonNote }: ReasonSheetProps) {
   const needsNote = reason === "Other";
   const canDone = reason !== "" && (!needsNote || reasonNote.trim() !== "");
@@ -27,6 +29,7 @@ export function ReasonSheet({ open, onClose, reason, setReason, reasonNote, setR
       open={open}
       title="Reason for credit"
       onClose={onClose}
+      dsHeader
       footer={
         <ButtonDock
           type="single"
@@ -39,14 +42,14 @@ export function ReasonSheet({ open, onClose, reason, setReason, reasonNote, setR
     >
       <div className="flex flex-col gap-2">
         {CREDIT_REASONS.map((r) => (
-          <Tile
-            key={r}
-            title={r}
-            showDescription={false}
-            showIcon={false}
-            selected={reason === r}
-            onClick={() => setReason(r)}
-          />
+          <motion.div key={r} variants={sheetItem}>
+            <Tile
+              title={r}
+              selected={reason === r}
+              trailing={reason === r ? "check" : "none"}
+              onClick={() => setReason(r)}
+            />
+          </motion.div>
         ))}
 
         {/* Free-text description — shown only for "Other", required so the custom reason is explained. */}

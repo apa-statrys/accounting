@@ -11,7 +11,7 @@ export interface UploadedFileInfo {
 /** The uploaded-file chip with a Preview button. Render the overlay separately (at page root). */
 export function UploadedFileCard({ file, onPreview }: { file: UploadedFileInfo; onPreview?: () => void }) {
   return (
-    <div className="flex items-center gap-3 bg-[#faf9f4] border border-[rgba(160,160,160,0.25)] rounded-xl px-4 py-3">
+    <div className="flex items-center gap-3 bg-white border border-[rgba(160,160,160,0.25)] rounded-xl px-4 py-3">
       <FileText size={20} strokeWidth={1.75} style={{ color: "#808080" }} />
       <div className="flex-1 min-w-0">
         <p className="text-[14px] leading-[1.3] text-[#1b1b1b] truncate" style={FONT}>{file.name}</p>

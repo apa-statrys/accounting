@@ -25,6 +25,8 @@ interface InvoiceRowProps {
   amount: string;
   /** Preformatted credited total — shows the credited strip when set. */
   creditedAmount?: string;
+  /** Leading label on the credited strip (Figma "Credited amount"); e.g. "Refund amount". */
+  creditedLabel?: string;
   onCreditedClick?: () => void;
   size?: "sm" | "md";
   /** Last row of the list — no bottom divider. */
@@ -77,6 +79,7 @@ export function InvoiceRow({
   statusCaption,
   amount,
   creditedAmount,
+  creditedLabel = "Credited amount",
   onCreditedClick,
   size = "sm",
   lastItem = false,
@@ -90,7 +93,7 @@ export function InvoiceRow({
       <span className={styles.fileIcon}>
         <FileTextIcon />
       </span>
-      <span className={styles.creditedText}>Credited amount: {creditedAmount}</span>
+      <span className={styles.creditedText}>{creditedLabel}: {creditedAmount}</span>
       <span className={styles.chevron}>
         <ChevronRightIcon />
       </span>

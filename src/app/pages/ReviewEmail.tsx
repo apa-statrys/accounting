@@ -12,8 +12,6 @@ import { TextInput } from "../components/TextInput";
 import { Checkbox } from "../components/ui/checkbox";
 
 import { FONT } from "../lib/theme";
-/** The signed-in user's own email — used for the "Put me in cc" option. */
-const MY_EMAIL = "apa@gmail.com";
 import { EMAIL_RE } from "../lib/format";
 
 function Label({ children }: { children: React.ReactNode }) {
@@ -49,6 +47,8 @@ interface ReviewEmailProps {
   customerEmail: string;
   /** Sender company for the email brand bar (from Invoice Settings; defaults to the demo company). */
   companyName?: string;
+  /** Sender company email (from Invoice Settings) — shown as the Cc when "Send me a copy" is on. */
+  companyEmail?: string;
   invoiceNo: string;
   /** Pre-formatted amount, e.g. "HKD 12,500.00". */
   amountLabel: string;
@@ -64,6 +64,7 @@ export function ReviewEmail({
   customerName,
   customerEmail,
   companyName = "Lumen Studio",
+  companyEmail = "hello@lumenstudio.co",
   invoiceNo,
   amountLabel,
   dueDateLabel,
@@ -283,7 +284,7 @@ export function ReviewEmail({
             </p>
             {cc && (
               <p className="text-[12px] leading-[1.35] text-[#6b6455]" style={FONT}>
-                Cc: <span className="text-[#1b1b1b]">{MY_EMAIL}</span>
+                Cc: <span className="text-[#1b1b1b]">{companyEmail}</span>
               </p>
             )}
             <p className="text-[12px] leading-[1.35] text-[#6b6455]" style={FONT}>

@@ -7,6 +7,7 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../components/BottomSheet";
 import { ButtonDock } from "../components/ButtonDock";
+import { Tile } from "../ui/Tile";
 import { ScanDocument } from "./ScanDocument";
 
 import { FONT } from "../lib/theme";
@@ -46,18 +47,12 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** One tappable source row in the picker (icon + label, whole row tappable). */
+/** One tappable source row in the picker — DS Tile icon row (icon + label, whole row tappable). */
 function SourceRow({ label, icon, onClick }: { label: string; icon: React.ReactNode; onClick?: () => void }) {
   return (
-    <motion.button
-      variants={sheetItem}
-      type="button"
-      onClick={onClick}
-      className="w-full flex items-center gap-3 rounded-xl bg-[#faf9f4] border border-[rgba(160,160,160,0.18)] px-4 py-3.5 text-left transition-colors hover:bg-[#f2f0e8]"
-    >
-      <span className="shrink-0 text-[#1b1b1b] flex" aria-hidden>{icon}</span>
-      <span className="text-[15px] text-[#1b1b1b]" style={FONT}>{label}</span>
-    </motion.button>
+    <motion.div variants={sheetItem}>
+      <Tile title={label} icon={icon} reserveTrailing={false} onClick={onClick} />
+    </motion.div>
   );
 }
 
@@ -115,6 +110,7 @@ export function UploadInvoice({ onBack, onContinue, initialFiles = [] }: UploadI
         open
         title="Add Existing Invoice"
         onClose={onBack}
+        dsHeader
         footer={
           // Continue appears only once a file is attached — the source picker has no CTA.
           hasFiles ? (

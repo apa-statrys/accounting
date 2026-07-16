@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import CloseIcon from "@mui/icons-material/Close";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import StatusBar from "../components/StatusBar";
 import { SheetHeader, HeaderIconButton } from "../components/SheetHeader";
 import { ButtonDock } from "../components/ButtonDock";
+import { BottomSheet } from "../components/BottomSheet";
 import { Tile } from "../components/Tile";
+import { Tile as DsTile } from "../ui/Tile";
 import { RECEIVING_ACCOUNTS, getAccount } from "../data/receivingAccounts";
 import { money } from "../lib/format";
 
@@ -70,7 +72,10 @@ export function RefundCreditNoteFlow({
   // "Mark as already refunded" capture (DES-720): date + bank account used (required) + at least one proof
   // (a file OR a reference number). Amount is fixed to the credit note (recorded, not re-typed).
   const [mDate, setMDate] = useState("2026-06-22");
-  const [mAccount, setMAccount] = useState("");
+  // Bank account used — a dropdown; defaults to the primary Statrys account (Personal Saving).
+  const DEFAULT_ACCOUNT = RECEIVING_ACCOUNTS.find((a) => a.primary) ?? RECEIVING_ACCOUNTS[0];
+  const [mAccount, setMAccount] = useState(`${DEFAULT_ACCOUNT.name} (${DEFAULT_ACCOUNT.number})`);
+  const [acctOpen, setAcctOpen] = useState(false);
   const [mProof, setMProof] = useState<string | null>(null);
   const [mRef, setMRef] = useState("");
   // Editable refund amount (DES-720) — defaults to the outstanding refund; can't exceed it.
@@ -78,16 +83,11 @@ export function RefundCreditNoteFlow({
   const enteredAmount = Number(mAmount) || 0;
   const exceedsOutstanding = enteredAmount > amount + 0.001;
   const manualValid = enteredAmount > 0 && !exceedsOutstanding && !!mDate && !!mAccount && (!!mProof || mRef.trim() !== "");
-  // "What is a reference number?" explainer toast — tap the info affordance; auto-dismisses.
+  // "What is a reference number?" inline accordion — expands to reveal the explainer.
   const [refInfo, setRefInfo] = useState(false);
-  useEffect(() => {
-    if (!refInfo) return;
-    const t = setTimeout(() => setRefInfo(false), 6000);
-    return () => clearTimeout(t);
-  }, [refInfo]);
 
   const title =
-    step === "method" ? "Refund credit note"
+    step === "method" ? "Choose Refund Method"
     : step === "account" ? "Choose Account"
     : step === "manual" ? "Record refund"
     : "Confirm refund transfer";
@@ -130,8 +130,8 @@ export function RefundCreditNoteFlow({
         {step === "method" && (
           <>
             <div className="flex flex-col gap-2">
-              <Tile title="Bank transfer" description="Refund via your Statrys Business Account" selected={method === "ba"} onClick={() => setMethod("ba")} />
-              <Tile title="Mark as Refunded" description="You refunded the customer another way" selected={method === "manual"} onClick={() => setMethod("manual")} />
+              <DsTile title="Bank transfer" text="Refund via your Statrys Business Account" selected={method === "ba"} trailing={method === "ba" ? "check" : "none"} onClick={() => setMethod("ba")} />
+              <DsTile title="Mark as Refunded" text="You refunded already" selected={method === "manual"} trailing={method === "manual" ? "check" : "none"} onClick={() => setMethod("manual")} />
             </div>
           </>
         )}
@@ -201,18 +201,15 @@ export function RefundCreditNoteFlow({
               <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>Refund date <span style={{ color: "#dc2626" }}>*</span></label>
               <input type="date" value={mDate} onChange={(e) => setMDate(e.target.value)} className="w-full h-12 px-3.5 rounded-xl border border-[rgba(160,160,160,0.4)] text-[15px] bg-white" style={{ ...FONT, color: INK }} />
             </div>
-            {/* Bank account used (DES-720) — "Mark as Refunded" is a refund done another way, so only
-                registered EXTERNAL accounts are offered here (the Statrys path is the "Bank transfer" method). */}
+            {/* Bank account used (DES-720) — a dropdown of the Statrys accounts + any registered external
+                accounts; defaults to the primary Statrys account. */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>Bank account used <span style={{ color: "#dc2626" }}>*</span></label>
-              <div className="flex flex-col gap-2">
-                {EXTERNAL_ACCOUNTS.map((a) => {
-                  const label = `${a.name} (${a.number})`;
-                  return (
-                    <Tile key={a.id} title={a.name} description={a.number} showIcon icon={<span className="text-[16px] leading-none">🏦</span>} selected={mAccount === label} onClick={() => setMAccount(label)} />
-                  );
-                })}
-              </div>
+              {/* Collapsed field shows the selected account; tap to open the picker sheet. */}
+              <button type="button" onClick={() => setAcctOpen(true)} className="w-full flex items-center justify-between rounded-xl border px-3.5 h-12 bg-white text-left" style={{ borderColor: acctOpen ? "#1b1b1b" : "rgba(160,160,160,0.4)" }}>
+                <span className="text-[15px] truncate" style={{ ...FONT, color: mAccount ? INK : "#9ca3af" }}>{mAccount || "Select account"}</span>
+                <KeyboardArrowDownIcon style={{ fontSize: 22, color: "#808080" }} />
+              </button>
             </div>
 
             {/* Proof of refund — a file AND/OR a reference number; at least one is required. */}
@@ -238,32 +235,21 @@ export function RefundCreditNoteFlow({
                 className="w-full h-12 px-3.5 rounded-xl border border-[rgba(160,160,160,0.4)] text-[15px] bg-white outline-none"
                 style={{ ...FONT, color: INK }}
               />
-              <button type="button" onClick={() => setRefInfo(true)} className="self-start flex items-center gap-1 text-[12px] font-medium" style={{ ...FONT, color: MUTED }}>
-                <InfoOutlinedIcon style={{ fontSize: 15 }} />
+              {/* Inline accordion — chevron rotates; expands the explainer below. */}
+              <button type="button" onClick={() => setRefInfo((v) => !v)} className="self-start flex items-center gap-1 text-[12px] font-medium" style={{ ...FONT, color: MUTED }}>
                 What is a reference number?
+                <KeyboardArrowDownIcon style={{ fontSize: 16, transform: refInfo ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
               </button>
+              {refInfo && (
+                <p className="text-[12.5px] leading-[1.45] rounded-xl bg-[#f6f5f0] px-3.5 py-3" style={{ ...FONT, color: MUTED }}>
+                  The transaction or transfer ID provided by your bank after a refund is sent. You can usually
+                  find it in your bank's transaction details.
+                </p>
+              )}
             </div>
           </>
         )}
       </div>
-
-      {/* "What is a reference number?" explainer — tap the info link to show; tap the toast, tap
-          anywhere outside, or wait to dismiss. */}
-      {refInfo && (
-        <>
-          <div className="absolute inset-0 z-[9]" onClick={() => setRefInfo(false)} aria-hidden />
-          <button
-            type="button"
-            onClick={() => setRefInfo(false)}
-            className="absolute left-4 right-4 bottom-[104px] z-10 rounded-xl bg-[#1b1b1b] px-3.5 py-3 text-left shadow-lg"
-          >
-            <p className="text-[12.5px] leading-[1.45] text-white" style={FONT}>
-              The transaction or transfer ID provided by your bank after a refund is sent. You can usually
-              find it in your bank's transaction details.
-            </p>
-          </button>
-        </>
-      )}
 
       <ButtonDock
         type="single"
@@ -273,6 +259,26 @@ export function RefundCreditNoteFlow({
         onPrimary={onContinue}
         homeIndicator
       />
+
+      {/* Bank account used picker (DES-720) — Statrys accounts + registered external accounts. */}
+      <BottomSheet open={acctOpen} title="Select Account" onClose={() => setAcctOpen(false)} dsHeader>
+        <div className="flex flex-col gap-2">
+          <span className="px-1 text-[11px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>Statrys accounts</span>
+          {RECEIVING_ACCOUNTS.map((a) => {
+            const label = `${a.name} (${a.number})`;
+            return (
+              <DsTile key={a.id} title={a.name} text={a.number} flag={<span className="text-[20px] leading-none">{a.flag}</span>} selected={mAccount === label} trailing={mAccount === label ? "check" : "none"} onClick={() => { setMAccount(label); setAcctOpen(false); }} />
+            );
+          })}
+          <span className="px-1 pt-1 text-[11px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>Other accounts</span>
+          {EXTERNAL_ACCOUNTS.map((a) => {
+            const label = `${a.name} (${a.number})`;
+            return (
+              <DsTile key={a.id} title={a.name} text={a.number} icon={<span className="text-[18px] leading-none">🏦</span>} selected={mAccount === label} trailing={mAccount === label ? "check" : "none"} onClick={() => { setMAccount(label); setAcctOpen(false); }} />
+            );
+          })}
+        </div>
+      </BottomSheet>
     </div>
   );
 }

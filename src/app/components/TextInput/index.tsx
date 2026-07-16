@@ -79,7 +79,9 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
           ]
             .filter(Boolean)
             .join(' ')}
-          style={highlight ? { backgroundColor: '#fffbeb', borderColor: '#fde68a' } : undefined}
+          // Warning fields keep the field's normal background (the old soft-yellow fill blended
+          // into the beige page) — only the border carries the warning color.
+          style={highlight ? { borderColor: '#f59e0b' } : undefined}
         >
           {iconLeft && <span className={styles.icon}>{iconLeft}</span>}
 

@@ -1,157 +1,118 @@
 import { useRef, useState } from "react";
-import { motion } from "motion/react";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { FileText, Repeat } from "lucide-react";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { SHOW_CREDIT_NOTES } from "../../lib/flags";
-import { STATUS_PILL } from "../../lib/status";
 import { FONT } from "../../lib/theme";
 import type { Invoice } from "../../types";
-import { effectiveStatus, metaLine } from "./filters";
+import { InvoiceRow } from "../../ui/InvoiceRow";
+import type { BadgeColor } from "../../ui/Badge";
+import { effectiveStatus, metaLine, type EffectiveStatus } from "./filters";
 
 const REVEAL = 88;
 
-export function InvoiceCard({ inv, highlighted, onClick, onDelete, onOpenCN, refundOverride }: { inv: Invoice; highlighted?: boolean; onClick?: () => void; onDelete?: () => void; onOpenCN?: (inv: Invoice) => void; refundOverride?: "partial" | "full" }) {
+/** Status chip label + DS Badge colour for a list row (refund state wins when present). */
+function rowStatus(eff: EffectiveStatus, refundChip?: string): { label: string; color: BadgeColor } {
+  if (refundChip === "Refunded") return { label: "Refunded", color: "info" };
+  if (refundChip === "Partially Refunded") return { label: "Partially Refunded", color: "warning" };
+  if (refundChip === "Refund pending") return { label: "Pending Refund", color: "warning" };
+  switch (eff) {
+    case "Paid": return { label: "Paid", color: "success" };
+    case "Awaiting": return { label: "Awaiting Payment", color: "warning" };
+    case "Overdue": return { label: "Overdue", color: "error" };
+    case "PartiallyPaid": return { label: "Partially Paid", color: "warning" };
+    case "Draft": return { label: "Draft", color: "neutral" };
+    case "Cancelled": return { label: "Void", color: "neutral" };
+    default: return { label: String(eff), color: "neutral" };
+  }
+}
+
+/**
+ * A single Sales Invoice List row, built on the DS InvoiceRow (client + number/recurring, a status
+ * Badge with its date caption, the amount, and an optional credit-note strip). Drafts add swipe-left
+ * to reveal Delete; a freshly created invoice gets the arrival highlight. `lastItem` drops the divider
+ * on the final row of the card.
+ */
+export function InvoiceCard({ inv, highlighted, lastItem, onClick, onDelete, onOpenCN, refundOverride }: { inv: Invoice; highlighted?: boolean; lastItem?: boolean; onClick?: () => void; onDelete?: () => void; onOpenCN?: (inv: Invoice) => void; refundOverride?: "partial" | "full" }) {
   const eff = effectiveStatus(inv);
-  const s = STATUS_PILL[eff];
   const meta = metaLine(inv, eff);
   const isDraft = inv.status === "Draft";
-  // Linked credit note (DES-763): refund-type CNs surface a derived refund state. A refund completed
-  // in-session (refundOverride) wins → "Partially Refunded" / "Refunded".
-  // Credit notes (DES-719/763) are gated off for prod — no linked CN, refund chip, or CN summary row.
+
+  // Linked credit note (DES-763): refund-type CNs surface a derived refund state; an in-session refund
+  // (refundOverride) wins. Credit notes are gated off for prod via SHOW_CREDIT_NOTES.
   const linkedCn = SHOW_CREDIT_NOTES && inv.cnNo ? CREDIT_NOTES.find((c) => c.no === inv.cnNo) : undefined;
   const refundChip = !SHOW_CREDIT_NOTES ? undefined
     : refundOverride === "full" ? "Refunded"
     : refundOverride === "partial" ? "Partially Refunded"
     : linkedCn?.kind === "refund" ? "Refund pending"
     : undefined;
-  // A refunded/pending invoice stays "Paid", but the right-side pill shows the refund state as the
-  // primary status (mirrors the detail page) — the paid date moves into the meta line, so no duplication.
-  const pill =
-    refundChip === "Refunded" ? { label: "Refunded", bg: "#eef2ff", border: "#c7d2fe", text: "#4338ca" }
-    : refundChip === "Partially Refunded" ? { label: "Partially Refunded", bg: "#fff7e6", border: "#fde68a", text: "#b45309" }
-    : refundChip === "Refund pending" ? { label: "Pending Refund", bg: "#fff7e6", border: "#fde68a", text: "#c2410c" }
-    : s;
-  // Any invoice with a linked credit note shows a credit-note summary row beneath (DES-763 AC6): count +
-  // amount + "View". The top amount stays the invoice total, consistent with every other card. The amount
-  // label reads "Refund amount" for refund credit notes, "Credited amount" for cancellation/partial credits.
+
+  const status = rowStatus(eff, refundChip);
+  // Drop a duplicate leading status word from the caption ("Paid on …" → "on …", "Void on …" → "on …").
+  let caption = meta.rest;
+  if (status.label === "Paid") caption = caption.replace(/^Paid /, "");
+  if (status.label === "Void") caption = caption.replace(/^Void /, "");
+
+  // Credit-note strip (DES-763 AC6): amount + label, opening the linked CN. Refund CNs read "Refund amount".
   const hasCn = SHOW_CREDIT_NOTES && Boolean(inv.cnNo);
   const cnAmountStr = linkedCn
     ? `$${linkedCn.original.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     : inv.amount;
-  const cnAmountLabel = refundChip ? "Refund amount" : "Credited amount";
-  const cnCount = inv.cnNo ? 1 : 0; // demo: one credit note per invoice
-  // Manual swipe-to-delete (pointer events + CSS transform — no framer drag, which renders blank
-  // inside an overflow-hidden wrapper). `tx` is the committed/live offset; press tracks the gesture.
-  const [tx, setTx] = useState(0);
-  const [dragging, setDragging] = useState(false);
-  const press = useRef<{ x: number; base: number } | null>(null);
-  const movedRef = useRef(false);
 
-  // Shared left block (client + meta) and the status pill — reused by both layouts.
-  const nameMeta = (
-    <div className="flex-1 min-w-0">
-      <p className="text-[16px] font-medium leading-[1.2] tracking-[-0.3px] truncate text-[#101828]" style={FONT}>
-        {inv.client}
-      </p>
-      {/* Invoice number on its own line; the date phrase ("Due in N days" / "Overdue by N days" /
-          "Paid on …") sits beneath it. */}
-      <div className="flex flex-col gap-0.5 mt-1">
-        {/* Number line — hidden when there's no number (manual / recurring drafts). The neutral ↻
-            recurring flag (provenance, not status) sits before the number, or before the description
-            when there's no number, so it never competes with the status pill's colour. */}
-        {meta.number && (
-          <div className="flex items-center gap-1.5 min-w-0">
-            {inv.recurring && (
-              <Repeat size={12} strokeWidth={2.4} className="shrink-0" style={{ color: "#808080" }} aria-label="Recurring" />
-            )}
-            <p className="text-[12px] font-medium leading-[1.2] text-[#808080] truncate" style={FONT}>{meta.number}</p>
-          </div>
-        )}
-        <p className="text-[12px] leading-[1.2] flex items-center gap-1.5 min-w-0" style={{ ...FONT, color: meta.danger ? "#d92d20" : "#a0a0a0", fontWeight: meta.danger ? 600 : 400 }}>
-          {inv.recurring && !meta.number && (
-            <Repeat size={12} strokeWidth={2.4} className="shrink-0" style={{ color: "#808080" }} aria-label="Recurring" />
-          )}
-          <span className="truncate">{meta.rest}</span>
-        </p>
-      </div>
-    </div>
-  );
-  const pillEl = (
-    <span
-      className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-full border text-[11px] font-bold leading-[15px] whitespace-nowrap"
-      style={{ ...FONT, background: pill.bg, borderColor: pill.border, color: pill.text }}
-    >
-      {pill.label}
-    </span>
+  const row = (
+    <InvoiceRow
+      size="md"
+      title={inv.client}
+      invoiceNo={meta.number || undefined}
+      recurring={inv.recurring}
+      status={status.label}
+      statusColor={status.color}
+      statusCaption={caption || undefined}
+      amount={inv.amount}
+      creditedAmount={hasCn ? cnAmountStr : undefined}
+      creditedLabel={refundChip ? "Refund amount" : "Credited amount"}
+      onCreditedClick={hasCn ? () => onOpenCN?.(inv) : undefined}
+      lastItem={lastItem}
+      onClick={onClick}
+    />
   );
 
-  // Credit-note summary row (icon + count + amount + View) — shown on every invoice with a credit note.
-  const cnSummary = (
-    <button
-      type="button"
-      onClick={(e) => { e.stopPropagation(); onOpenCN?.(inv); }}
-      className="group/cn w-full flex items-center justify-between gap-3 pt-3 mt-0.5 border-t border-[rgba(160,160,160,0.18)] text-left"
-    >
-      <span className="flex items-start gap-2 min-w-0">
-        <FileText size={18} className="mt-0.5 shrink-0" style={{ color: "#1b1b1b" }} />
-        <span className="flex flex-col min-w-0">
-          <span className="text-[13px] font-bold leading-[1.2]" style={{ ...FONT, color: "#1b1b1b" }}>{cnCount} Credit Note{cnCount > 1 ? "s" : ""}</span>
-          <span className="text-[12px] leading-[1.3] mt-0.5 truncate" style={{ ...FONT, color: "#808080" }}>{cnAmountLabel}: {cnAmountStr}</span>
-        </span>
-      </span>
-      <span className="shrink-0 inline-flex items-center gap-0.5">
-        <span className="text-[13px] font-medium" style={{ ...FONT, color: "#1b1b1b" }}>View</span>
-        <ChevronRightIcon className="transition-transform group-hover/cn:translate-x-0.5" style={{ fontSize: 16, color: "#808080" }} />
-      </span>
-    </button>
-  );
+  // The recent-arrival highlight wash — a soft warm background behind the row.
+  const highlightBg = highlighted ? "#fffaf3" : "transparent";
 
-  const content = (
-    <>
-      {/* Top row: client + meta on the left, invoice total over the status pill on the right. */}
-      <div className="flex items-start justify-between gap-2.5">
-        {nameMeta}
-        <div className="shrink-0 flex flex-col items-end gap-1.5">
-          <p className="text-[16px] font-bold leading-[1.2] text-[#101828] whitespace-nowrap" style={FONT}>{inv.amount}</p>
-          {pillEl}
-        </div>
-      </div>
-      {/* Any invoice with a credit note → the credit-note summary row. */}
-      {hasCn && cnSummary}
-    </>
-  );
-
-  // Non-drafts: plain tappable card (with the recent-card highlight animation).
+  // Non-drafts: plain row (with the arrival highlight).
   if (!isDraft) {
     return (
-      <motion.button
-        onClick={onClick}
-        initial={false}
-        animate={
-          highlighted
-            ? { backgroundColor: "#fffaf3", borderColor: "#ff4a15", boxShadow: "0 0 0 3px rgba(255,74,21,0.12)" }
-            : { backgroundColor: "#ffffff", borderColor: "rgba(160,160,160,0.2)", boxShadow: "0 0 0 0px rgba(255,74,21,0)" }
-        }
-        whileHover={highlighted ? undefined : { boxShadow: "0 4px 12px rgba(16,24,40,0.08)" }}
-        transition={{ duration: 0.5 }}
-        className="shrink-0 w-full flex flex-col gap-2 border border-dashed rounded-2xl p-4 text-left"
-      >
-        {content}
-      </motion.button>
+      <div className="shrink-0 transition-colors duration-500 rounded-lg" style={{ background: highlightBg }}>
+        {row}
+      </div>
     );
   }
 
   // Drafts: swipe left to reveal a delete action; tap to open.
   return (
-    <div className="shrink-0 relative rounded-2xl overflow-hidden">
-      <div className="absolute right-0 top-0 bottom-0 flex items-center justify-end py-1 pr-0.5">
+    <DraftSwipeRow highlightBg={highlightBg} onDelete={onDelete} onClick={onClick}>
+      {row}
+    </DraftSwipeRow>
+  );
+}
+
+/** Swipe-left-to-delete wrapper for draft rows (pointer events + CSS transform — framer `drag` renders
+ *  blank inside overflow-hidden). The foreground carries a solid background so it covers the Delete
+ *  action until swiped; tap while open just closes it. */
+function DraftSwipeRow({ children, highlightBg, onDelete, onClick }: { children: React.ReactNode; highlightBg: string; onDelete?: () => void; onClick?: () => void }) {
+  const [tx, setTx] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const press = useRef<{ x: number; base: number } | null>(null);
+  const movedRef = useRef(false);
+
+  return (
+    <div className="shrink-0 relative overflow-hidden rounded-lg">
+      <div className="absolute right-0 top-0 bottom-0 flex items-center justify-end py-1">
         <button
           type="button"
           onClick={onDelete}
           aria-label="Delete draft"
-          className="h-full w-[80px] rounded-2xl bg-[#fb4d4d] flex flex-col items-center justify-center gap-0.5 text-white active:bg-[#e23d3d]"
+          className="h-full w-[80px] rounded-xl bg-[#fb4d4d] flex flex-col items-center justify-center gap-0.5 text-white active:bg-[#e23d3d]"
         >
           <DeleteOutlineIcon style={{ fontSize: 22, color: "#fff" }} />
           <span className="text-[12px] font-medium" style={FONT}>Delete</span>
@@ -187,19 +148,16 @@ export function InvoiceCard({ inv, highlighted, onClick, onDelete, onOpenCN, ref
           if (tx !== 0) { setTx(0); return; }
           onClick?.();
         }}
-        className="relative w-full flex flex-col gap-2 border border-dashed rounded-2xl p-4 text-left transition-shadow hover:shadow-[0_4px_12px_rgba(16,24,40,0.08)]"
         style={{
-          background: highlighted ? "#fffaf3" : "#ffffff",
-          borderColor: highlighted ? "#ff4a15" : "rgba(160,160,160,0.2)",
-          boxShadow: highlighted ? "0 0 0 3px rgba(255,74,21,0.12)" : undefined,
+          background: highlightBg === "transparent" ? "#ffffff" : highlightBg,
           transform: `translateX(${tx}px)`,
-          transition: dragging ? "none" : "transform 0.25s ease",
+          transition: dragging ? "none" : "transform 0.25s ease, background-color 0.5s",
           touchAction: "pan-y",
           cursor: "pointer",
           userSelect: "none",
         }}
       >
-        {content}
+        {children}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "./BottomSheet";
-import { Tile } from "./Tile";
+import { Tile } from "../ui/Tile";
 import type { DiscountMode } from "./DiscountCard";
 
 interface DiscountModeSheetProps {
@@ -20,14 +20,15 @@ export function DiscountModeSheet({ open, value, currency, onClose, onSelect }: 
   ];
 
   return (
-    <BottomSheet open={open} title="Discount Type" onClose={onClose}>
+    <BottomSheet open={open} title="Discount Type" onClose={onClose} dsHeader>
       <div className="flex flex-col gap-2">
         {options.map((o) => (
           <motion.div key={o.mode} variants={sheetItem}>
             <Tile
               title={o.title}
-              description={o.description}
+              text={o.description}
               selected={value === o.mode}
+              trailing={value === o.mode ? "check" : "none"}
               onClick={() => onSelect?.(o.mode)}
             />
           </motion.div>

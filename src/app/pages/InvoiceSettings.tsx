@@ -1,10 +1,8 @@
 import { useState } from "react";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { UploadCloud, Trash2 } from "lucide-react";
+import { Camera } from "lucide-react";
 import StatusBar from "../components/StatusBar";
-import { SheetHeader, HeaderIconButton } from "../components/SheetHeader";
 import { ButtonDock } from "../components/ButtonDock";
 import { BottomSheet } from "../components/BottomSheet";
 import { TextInput } from "../components/TextInput";
@@ -12,9 +10,10 @@ import { Tile } from "../components/Tile";
 import { Search } from "../components/Search";
 import { CurrencySheet, CURRENCIES } from "../components/CurrencySheet";
 import { ReceivingAccountSheet } from "../components/ReceivingAccountSheet";
-import { formatAccount } from "../data/receivingAccounts";
+import { getAccount } from "../data/receivingAccounts";
 import { DEFAULT_SETTINGS } from "../data/settings";
 import type { CompanySettings } from "../types";
+import { PageHeader } from "../ui/PageHeader";
 import { Toggle } from "../ui/Toggle";
 
 import { FONT } from "../lib/theme";
@@ -47,17 +46,21 @@ export const REMINDER_DEFS: { title: string; options: string[] }[] = [
   },
 ];
 
-/** Inline brand mark — orange monogram tile from the company initial (no external asset; CSP-safe). */
-function LogoMark({ letter = "L", size = 40 }: { letter?: string; size?: number }) {
+/** Demo company logo — an inline SVG geometric mark on a gradient tile (no external asset;
+ *  CSP-safe). Stands in for a real uploaded logo in the prototype. */
+function DemoLogo({ size = 72 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden role="img">
-      <rect width="40" height="40" rx="11" fill="#FF4A15" />
-      <text
-        x="20" y="20" textAnchor="middle" dominantBaseline="central"
-        fontFamily="GT Walsheim LC, sans-serif" fontSize="24" fontWeight="700" fill="#ffffff"
-      >
-        {letter}
-      </text>
+    <svg width={size} height={size} viewBox="0 0 72 72" role="img" aria-label="Company logo">
+      <defs>
+        <linearGradient id="lumenBg" x1="0" y1="0" x2="72" y2="72" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#0f766e" />
+          <stop offset="1" stopColor="#14b8a6" />
+        </linearGradient>
+      </defs>
+      <rect width="72" height="72" rx="20" fill="url(#lumenBg)" />
+      {/* Two interlocking rounded chevrons — a clean, brand-neutral studio mark. */}
+      <path d="M23 25 L37 36 L23 47" fill="none" stroke="#ffffff" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M37 25 L51 36 L37 47" fill="none" stroke="#ffffff" strokeOpacity="0.55" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -69,7 +72,7 @@ function Group({ title, children }: { title?: string; children: React.ReactNode 
       {title && (
         <span className="px-1 text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0]" style={FONT}>{title}</span>
       )}
-      <div className="rounded-2xl bg-[#faf9f4] border border-dashed border-[rgba(160,160,160,0.3)] overflow-hidden">
+      <div className="rounded-2xl bg-white shadow-[0_1px_3px_rgba(27,27,27,0.05)] overflow-hidden">
         {children}
       </div>
     </div>
@@ -194,20 +197,8 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
 
   const set = <K extends keyof CompanySettings>(k: K, v: CompanySettings[K]) => setS((p) => ({ ...p, [k]: v }));
   const cur = CURRENCIES.find((c) => c.code === s.currency);
-  const companyInitial = (s.companyName.trim()[0] || "?").toUpperCase();
-  // Up to two initials from the company name for the circular monogram avatar (e.g. "Lumen Studio" → "LS").
-  const companyInitials = s.companyName.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
+  const payAccount = getAccount(s.paymentMethod);
 
-  // Required-field gaps surface inline as red "Required" right away (no Save gate).
-  const errs = {
-    companyName: !s.companyName.trim(),
-    registrationNumber: !s.registrationNumber.trim(),
-    email: !EMAIL_RE.test(s.email.trim()),
-    address: !s.address.trim(),
-    city: !s.city.trim(),
-    zip: !s.zip.trim(),
-    country: !s.country.trim(),
-  };
   // A field is OK when filled (email must also be valid); optional fields may be blank.
   // Each section's Done is disabled until all its required fields are OK.
   const fieldOk = (k: FieldKey) => {
@@ -268,43 +259,23 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
     <div className="relative bg-[#F9F5EA] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
       <StatusBar />
 
-      <SheetHeader
-        title="Sales Invoice Settings"
-        type="inside-page"
-        state="fixed"
-        leading={
-          <HeaderIconButton aria-label="Back" onClick={() => onExit?.(s)}>
-            <ChevronLeftIcon />
-          </HeaderIconButton>
-        }
-        trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
+      {/* DS PageHeader (left): big 32px title + subtitle, back chevron only. */}
+      <PageHeader
+        type="left"
+        title="Invoice Settings"
+        text="These settings apply to all new sales invoices"
+        onBack={() => onExit?.(s)}
+        showSearch={false}
       />
 
-      <div className="flex-1 overflow-y-auto bg-white px-4 pt-5 pb-6 flex flex-col gap-4">
-        <p className="text-[14px] leading-[1.4] text-[#808080]" style={FONT}>
-          These settings apply to all new sales invoices!
-        </p>
-
-        {/* Company — identity (name + email) on top, then details + address */}
+      <div className="flex-1 overflow-y-auto bg-[#f9f5ea] px-4 pt-2 pb-6 flex flex-col gap-4">
+        {/* Company — Company Details + Business Address */}
         <Group>
-          <button
-            type="button"
+          <Row
+            title="Company Details"
+            subtitle="Registration, phone, website and logo"
             onClick={() => openSheet("company")}
-            className="group w-full flex items-center gap-3 px-[15px] py-3 text-left border-b border-[rgba(160,160,160,0.18)]"
-          >
-            <span className="shrink-0 size-10 rounded-full bg-[#eae5d8] flex items-center justify-center">
-              <span className="text-[14px] font-semibold text-[#101828]" style={FONT}>{companyInitials}</span>
-            </span>
-            <span className="flex-1 min-w-0">
-              <span className="block text-[15px] font-semibold leading-[1.25] text-[#101828] truncate" style={FONT}>
-                {s.companyName || "Add company name"}
-              </span>
-              <span className="block text-[13px] leading-[1.3] truncate" style={{ ...FONT, color: errs.email ? "#d92d20" : "#808080" }}>
-                {s.email || "Add email address"}
-              </span>
-            </span>
-            {chevron}
-          </button>
+          />
           <Row title="Business Address" subtitle="Address, city, country and more" onClick={() => openSheet("address")} last />
         </Group>
 
@@ -319,7 +290,19 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
           <Row
             title="Payment Method"
             subtitle="Default account"
-            value={formatAccount(s.paymentMethod)}
+            trailing={
+              <span className="flex items-center gap-1.5 shrink-0">
+                <span className="text-right">
+                  <span className="block text-[14px] font-semibold leading-[1.2] text-[#1b1b1b]" style={FONT}>
+                    {payAccount?.name ?? "Select account"}
+                  </span>
+                  {payAccount && (
+                    <span className="block text-[12px] leading-[1.2] text-[#808080]" style={FONT}>{payAccount.number}</span>
+                  )}
+                </span>
+                {chevron}
+              </span>
+            }
             onClick={() => setSheet("payment")}
             last
           />
@@ -344,36 +327,20 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         open={sheet === "company"}
         title="Company Details"
         onClose={() => setSheet(null)}
+        dsHeader
         heightClass="h-[72%]"
         footer={<ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && companyValid && detailsValid)} onPrimary={() => setSheet(null)} homeIndicator />}
       >
         <div className="flex flex-col gap-4">
-          {/* Logo */}
+          {/* Logo — beige monogram preview + "Change Logo" (mock picker; sandbox has no real image). */}
           <div className="flex flex-col gap-1.5">
-            {s.logo ? (
-              <div className="flex items-center gap-3 rounded-xl bg-[#faf9f4] border border-[rgba(160,160,160,0.2)] px-4 py-3">
-                <span className="shrink-0"><LogoMark letter={companyInitial} size={40} /></span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[14px] text-[#1b1b1b] truncate" style={FONT}>{s.logo.name}</p>
-                  <p className="text-[12px] text-[#808080]" style={FONT}>{(s.logo.size / 1024).toFixed(0)} KB</p>
-                </div>
-                <button type="button" onClick={() => set("logo", null)} aria-label="Remove logo" className="shrink-0">
-                  <Trash2 size={18} className="text-[#808080]" />
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={pickLogo}
-                className="w-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[rgba(160,160,160,0.5)] bg-[#faf9f4] px-4 py-6 text-center"
-              >
-                <UploadCloud size={26} strokeWidth={1.75} className="text-[#808080]" />
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-[14px] leading-[1.3] text-[#1b1b1b]" style={FONT}>Upload company logo</span>
-                  <span className="text-[12px] leading-[1.3] text-[#808080]" style={FONT}>JPG or PNG • Up to 10 MB</span>
-                </span>
+            <div className="flex items-center gap-4">
+              <span className="shrink-0"><DemoLogo size={72} /></span>
+              <button type="button" onClick={pickLogo} className="flex items-center gap-2 text-[#1b1b1b]">
+                <Camera size={22} strokeWidth={1.75} />
+                <span className="text-[17px] font-medium" style={FONT}>Change Logo</span>
               </button>
-            )}
+            </div>
             {logoError && <p className="text-[12px] text-[#d92d20]" style={FONT}>{logoError}</p>}
           </div>
 

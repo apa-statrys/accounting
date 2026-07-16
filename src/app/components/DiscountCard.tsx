@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { TextInput } from "./TextInput";
+import { Toggle } from "../ui/Toggle";
 
 export type DiscountMode = "amount" | "percent";
 
@@ -19,26 +20,6 @@ interface DiscountCardProps {
   onOpenMode?: () => void;
 }
 
-/** iOS-style toggle switch. */
-function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      onClick={onClick}
-      className="relative w-[44px] h-[26px] rounded-full transition-colors shrink-0"
-      style={{ background: on ? "#2f80ed" : "#d9d9d9" }}
-    >
-      <motion.span
-        className="absolute top-[3px] left-[3px] w-5 h-5 rounded-full bg-white shadow"
-        animate={{ x: on ? 18 : 0 }}
-        transition={{ type: "spring", stiffness: 500, damping: 34 }}
-      />
-    </button>
-  );
-}
-
 /**
  * Discounts card — a toggle (off by default). When on, reveals a value field
  * (in the invoice currency) plus a %/amount mode dropdown.
@@ -52,7 +33,7 @@ export function DiscountCard({ currency, enabled, onToggle, value, onChange, mod
       {/* Header */}
       <div className="flex items-center justify-between">
         <p className="card-title-2xs text-[#1b1b1b]" style={FONT}>Discounts</p>
-        <Toggle on={enabled} onClick={() => onToggle(!enabled)} />
+        <Toggle checked={enabled} onChange={onToggle} aria-label="Discounts" />
       </div>
 
       {/* Body */}

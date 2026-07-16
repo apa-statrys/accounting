@@ -35,7 +35,9 @@ export function CreditsAppliedSection({
   const cnAppliedLabel = (cn: CreditNote) => {
     if (cn.draft) return "Draft";
     if (cn.cancelled) return "Cancelled";
-    if (isRefundContext) return null;
+    // Refund CN (DES-720): reads "Applied" once committed, until the payout record (proof) takes over
+    // the row below ("Awaiting refund by accountant" / green "Refunded").
+    if (isRefundContext) return cn.refundProof ? null : "Applied";
     // Single-invoice model (DES-719): a created cancellation note is simply "Applied" (no
     // Open / Partially / Fully split — Create applies it in full to its one invoice).
     return "Applied";

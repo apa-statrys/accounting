@@ -789,6 +789,7 @@ function InvoiceRowVariants() {
       {cell("sm (list density)", <InvoiceRow {...base} recurring />)}
       {cell("md", <InvoiceRow {...base} recurring size="md" />)}
       {cell("With credited amount", <InvoiceRow {...base} recurring creditedAmount="USD 2,000.00" />)}
+      {cell("Custom credited label (refund)", <InvoiceRow {...base} creditedAmount="USD 2,000.00" creditedLabel="Refund amount" />)}
       {cell("No recurring chip", <InvoiceRow {...base} />)}
       {cell("No invoice number", <InvoiceRow {...base} invoiceNo={undefined} />)}
       {cell(
@@ -904,11 +905,17 @@ function PageHeaderVariants() {
           <AutoCell label="With text line">
             <HeaderStrip><PageHeader type="left-on-scroll" title="Title" text="Text" /></HeaderStrip>
           </AutoCell>
+          <AutoCell label="Left align + text (32px title + subtitle)">
+            <HeaderStrip><PageHeader type="left" title="Title" text="Text" /></HeaderStrip>
+          </AutoCell>
           <AutoCell label="Center + text">
             <HeaderStrip><PageHeader type="center" title="Title" text="Text" /></HeaderStrip>
           </AutoCell>
           <AutoCell label="Without back button">
             <HeaderStrip><PageHeader type="left-on-scroll" title="Title" showBack={false} /></HeaderStrip>
+          </AutoCell>
+          <AutoCell label="Center, no search button (form pages)">
+            <HeaderStrip><PageHeader type="center" title="Title" showSearch={false} /></HeaderStrip>
           </AutoCell>
           <AutoCell label="Left align, custom slot">
             <HeaderStrip>
@@ -923,6 +930,19 @@ function PageHeaderVariants() {
           <AutoCell label="Custom right action (code slot — settings gear)">
             <HeaderStrip>
               <PageHeader type="left" title="Title" rightIcon={<SettingsGearIcon />} rightLabel="Settings" />
+            </HeaderStrip>
+          </AutoCell>
+          <AutoCell label="Custom right content (code slot — autosave chip)">
+            <HeaderStrip>
+              <PageHeader
+                type="center"
+                title="Title"
+                right={
+                  <span className="flex items-center gap-1 text-[12px]" style={{ ...FONT, color: MUTED }}>
+                    <span style={{ color: "#006a1d" }}>✓</span> Saved
+                  </span>
+                }
+              />
             </HeaderStrip>
           </AutoCell>
         </div>
@@ -1002,6 +1022,7 @@ function TileVariants() {
       <AutoCell label="Chevron"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" trailing="chevron" {...props} /></div></AutoCell>
       <AutoCell label="Selected + check"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" selected trailing="check" {...props} /></div></AutoCell>
       <AutoCell label="Disabled"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" disabled {...props} /></div></AutoCell>
+      <AutoCell label="No trailing slot (long title)"><div className="w-full max-w-[343px]"><Tile title="A long action title that needs the full row" reserveTrailing={false} {...props} /></div></AutoCell>
     </div>
   );
   return (
@@ -1021,6 +1042,23 @@ function TileVariants() {
       <div>
         <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Avatar (40px initials)</p>
         {states({ avatar: "OR" })}
+      </div>
+      <div>
+        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Inline badge (badge slot)</p>
+        <div className="grid grid-cols-2 gap-4">
+          <AutoCell label="Inline badge"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" flag={<USFlag size={30} />} badge={<Badge label="Primary" size="sm" variant="bold" />} /></div></AutoCell>
+          <AutoCell label="Corner badge (primary account)"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" flag={<USFlag size={30} />} cornerBadge={<Badge label="Primary" size="md" variant="bold" color="custom" />} /></div></AutoCell>
+          <AutoCell label="Corner badge + selected"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" flag={<USFlag size={30} />} cornerBadge={<Badge label="Primary" size="md" variant="bold" color="custom" />} selected trailing="check" /></div></AutoCell>
+        </div>
+      </div>
+      <div>
+        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Avatar tints (avatarColor)</p>
+        <div className="grid grid-cols-2 gap-4">
+          <AutoCell label="Grey"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" avatar="OR" avatarColor="#efeff0" /></div></AutoCell>
+          <AutoCell label="Blue"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" avatar="OR" avatarColor="#d8e8f2" /></div></AutoCell>
+          <AutoCell label="Beige (default)"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" avatar="OR" /></div></AutoCell>
+          <AutoCell label="Sand"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" avatar="OR" avatarColor="#e7dfc9" /></div></AutoCell>
+        </div>
       </div>
       <div>
         <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>

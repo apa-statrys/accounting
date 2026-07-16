@@ -17,13 +17,25 @@ interface TileProps {
   title: string;
   /** Second line under the title (Figma showText). */
   text?: string;
+  /** Inline badge rendered after the title (e.g. <Badge label="Primary" />). */
+  badge?: React.ReactNode;
+  /** Badge pinned to the tile's top-right corner (Figma primary-account tile) —
+   *  pass a <Badge>; the corner radii are reshaped to hug the card corner. */
+  cornerBadge?: React.ReactNode;
   /** 24px leading icon (Figma icon-swap slot; inherits the state color). */
   icon?: React.ReactNode;
   /** 30px leading country flag (e.g. <USFlag size={30} />). */
   flag?: React.ReactNode;
   /** Leading 40px initials avatar — pass the initials, e.g. "OR". */
   avatar?: string;
+  /** Avatar background tint (CSS color) — Figma shows avatars in varied pastel
+   *  tints; defaults to Bg/Beige/primary when omitted. */
+  avatarColor?: string;
   trailing?: TileTrailing;
+  /** Skip the reserved 30px trailing slot when trailing="none" — for action lists where no row
+   *  ever shows a trailing icon, freeing the width for long titles. Keep the default (reserved)
+   *  in lists that mix none with check/chevron so titles stay aligned, per Figma. */
+  reserveTrailing?: boolean;
   selected?: boolean;
   disabled?: boolean;
   /** "beige" = borderless, for tiles on the beige page background. */
@@ -50,10 +62,14 @@ function CheckIcon() {
 export function Tile({
   title,
   text,
+  badge,
+  cornerBadge,
   icon,
   flag,
   avatar,
+  avatarColor,
   trailing = "none",
+  reserveTrailing = true,
   selected = false,
   disabled = false,
   onLayer = "neutral",
@@ -70,24 +86,36 @@ export function Tile({
   const content = (
     <>
       {avatar ? (
-        <span className={styles.avatar}>{avatar}</span>
+        <span className={styles.avatar} style={avatarColor && !disabled ? { background: avatarColor } : undefined}>
+          {avatar}
+        </span>
       ) : flag ? (
         <span className={styles.flag}>{flag}</span>
       ) : icon ? (
         <span className={styles.icon}>{icon}</span>
       ) : null}
       <span className={styles.textBlock}>
-        <span className={styles.title}>{title}</span>
+        {badge ? (
+          <span className={styles.titleRow}>
+            <span className={styles.title}>{title}</span>
+            {badge}
+          </span>
+        ) : (
+          <span className={styles.title}>{title}</span>
+        )}
         {text && <span className={styles.text}>{text}</span>}
       </span>
-      <span className={styles.trailing}>
-        {trailing === "chevron" && <ChevronRightIcon />}
-        {trailing === "check" && (
-          <span className={styles.check}>
-            <CheckIcon />
-          </span>
-        )}
-      </span>
+      {(trailing !== "none" || reserveTrailing) && (
+        <span className={styles.trailing}>
+          {trailing === "chevron" && <ChevronRightIcon />}
+          {trailing === "check" && (
+            <span className={styles.check}>
+              <CheckIcon />
+            </span>
+          )}
+        </span>
+      )}
+      {cornerBadge && <span className={styles.cornerBadge}>{cornerBadge}</span>}
     </>
   );
   if (onClick) {

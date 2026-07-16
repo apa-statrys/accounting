@@ -54,6 +54,8 @@ export interface CreditNoteDetailPageProps {
   invoiceNo: string;
   customerName: string;
   customerEmail?: string;
+  /** Sender company email (from Invoice Settings) — the Cc when "Send me a copy" is on. */
+  companyEmail?: string;
   issueDateLabel: string;
   /** Resolved due date label ("26 Jul 2026") — shown in the Details card. */
   dueDateLabel?: string;
@@ -127,7 +129,7 @@ function Row({ label, value, last }: { label: string; value: React.ReactNode; la
  */
 export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const {
-    creditNoteNo, invoiceNo, customerName, customerEmail, issueDateLabel, dueDateLabel, currency = "USD",
+    creditNoteNo, invoiceNo, customerName, customerEmail, companyEmail = "hello@lumenstudio.co", issueDateLabel, dueDateLabel, currency = "USD",
     total, invoiceTotal, lines, reason, reasonNote, kind = "cancellation", status, refundProof, sent, updatedDateLabel,
     onBack, onViewInvoice, onSent, onApply, onEdit, onCancel, receivingAccount,
   } = props;
@@ -195,7 +197,8 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       <StatusBar />
 
       <SheetHeader
-        title={creditNoteNo}
+        // Drafts carry no CN number yet (decided 2026-07-15) — a generic title until the note is applied.
+        title={status === "Draft" ? (kind === "refund" ? "Refund Credit Note" : "Credit Note") : creditNoteNo}
         type="inside-page"
         state="fixed"
         leading={<HeaderIconButton aria-label="Back" onClick={onBack}><ChevronLeftIcon /></HeaderIconButton>}
@@ -504,23 +507,26 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       </BottomSheet>
 
       {/* Delete-draft confirmation (DES-719 AC7). Dock goes in the sheet footer so it aligns flush
-          like every other ButtonDock (body placement double-pads it). */}
+          like every other ButtonDock (body placement double-pads it). Safe action (Cancel) is the
+          filled primary; destructive Delete is the outline secondary (see memory: confirm-dialog-pattern). */}
       <BottomSheet
         open={confirmDelete}
         title="Delete credit note?"
         onClose={() => setConfirmDelete(false)}
+        dsHeader
+        compact
         footer={
           <ButtonDock
             type="double"
-            secondaryLabel="Cancel"
-            primaryLabel="Delete Credit note"
-            onSecondary={() => setConfirmDelete(false)}
-            onPrimary={() => { setConfirmDelete(false); onCancel?.(); }}
+            primaryLabel="Cancel"
+            secondaryLabel="Delete Credit note"
+            onPrimary={() => setConfirmDelete(false)}
+            onSecondary={() => { setConfirmDelete(false); onCancel?.(); }}
             homeIndicator
           />
         }
       >
-        <p className="text-[14px] leading-[1.45]" style={{ ...FONT, color: MUTED }}>
+        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: MUTED }}>
           This draft credit note will be permanently deleted. The linked invoice won't be affected.
         </p>
       </BottomSheet>
@@ -543,6 +549,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           <ReviewEmail
             customerName={customerName}
             customerEmail={customerEmail ?? ""}
+            companyEmail={companyEmail}
             invoiceNo={creditNoteNo}
             amountLabel={amountLabel}
             dueDateLabel={issueDateLabel}

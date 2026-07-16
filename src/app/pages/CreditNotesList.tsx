@@ -72,6 +72,10 @@ interface CreditNotesListProps {
   /** Accepted for call-site compatibility; the list no longer surfaces refund lifecycle states (DES-818
    *  is Draft/Applied/Cancelled only — refund tracking lives on the invoice-detail side, DES-720/721). */
   refundState?: Record<string, "partial" | "full">;
+  /** Dev QuickNav deep link: open this CN's detail page on mount (seed only — remount to change). */
+  initialPreviewNo?: string | null;
+  /** Sender company email (from Invoice Settings) — forwarded to the CN detail's send preview. */
+  companyEmail?: string;
 }
 
 /**
@@ -80,7 +84,7 @@ interface CreditNotesListProps {
  * Statuses are Draft / Applied / Cancelled. Tap a row → the shared CreditNoteDetailPage, wired with the
  * same per-status actions as the invoice-detail flow (Draft: Edit/Delete · Applied: Send/Cancel · Cancelled: Preview).
  */
-export function CreditNotesList({ onBack, onOpenInvoice }: CreditNotesListProps) {
+export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, companyEmail }: CreditNotesListProps) {
   const [active, setActive] = useState(0);
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [sortOpen, setSortOpen] = useState(false);
@@ -96,7 +100,7 @@ export function CreditNotesList({ onBack, onOpenInvoice }: CreditNotesListProps)
   const activeFilterCount = selectedCustomers.length + (issueFrom || issueTo ? 1 : 0);
   // Local register state so Edit / Cancel / Delete / Send mutate in-session.
   const [notes, setNotes] = useState<CreditNote[]>(CREDIT_NOTES);
-  const [previewNo, setPreviewNo] = useState<string | null>(null);
+  const [previewNo, setPreviewNo] = useState<string | null>(initialPreviewNo ?? null);
   const [editingNo, setEditingNo] = useState<string | null>(null);
   const preview = notes.find((n) => n.no === previewNo) ?? null;
   const setPreview = (cn: CreditNote | null) => setPreviewNo(cn?.no ?? null);
@@ -346,6 +350,7 @@ export function CreditNotesList({ onBack, onOpenInvoice }: CreditNotesListProps)
               invoiceNo={preview.invoiceNo}
               customerName={preview.customer}
               customerEmail={preview.email}
+              companyEmail={companyEmail}
               issueDateLabel={preview.date}
               dueDateLabel={dueLabelFor(preview.date)}
               currency="USD"

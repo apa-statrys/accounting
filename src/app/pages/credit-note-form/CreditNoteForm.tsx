@@ -120,8 +120,11 @@ export function CreditNoteForm({
   const COLLAPSED_ITEMS = 3;
   // Refund mode stores the REFUND amount in `unitPrice` (0 = nothing refunded yet); credit mode stores
   // the corrected line amount (= original on open).
+  // Both modes carry a real per-unit price + quantity, seeded at the full invoiced qty: credit starts
+  // with nothing credited (corrected = original), refund starts at the full line refundable (reduce qty
+  // or unit price for a partial refund).
   const initLines = (): DraftLine[] =>
-    items.map((it, i) => ({ id: `cn-${i}`, name: it.name, unit: it.unit, qty: refund ? 1 : it.qty, unitPrice: refund ? "" : String(it.unitPrice), maxQty: it.qty, origAmount: it.amount }));
+    items.map((it, i) => ({ id: `cn-${i}`, name: it.name, unit: it.unit, qty: it.qty, unitPrice: String(it.unitPrice), maxQty: it.qty, origAmount: it.amount }));
   // Which refund input is focused (raw while editing; comma/2dp formatted when blurred).
   const [focusedLineId, setFocusedLineId] = useState<string | null>(null);
   // While the keypad is up, the content scroll is locked; a scroll gesture closes the keypad.
@@ -151,7 +154,7 @@ export function CreditNoteForm({
   const lineOriginal = (l: DraftLine) => l.origAmount ?? lineAmount(l);
   const lineCredit = (l: DraftLine) =>
     refund
-      ? Math.min(Math.max(0, Number(l.unitPrice) || 0), lineOriginal(l))
+      ? Math.min(lineAmount(l), lineOriginal(l)) // refund = qty × unit price, capped at the line's original
       : Math.max(0, lineOriginal(l) - lineAmount(l));
   const originalTotal = useMemo(() => lines.reduce((sum, l) => sum + lineOriginal(l), 0), [lines]);
   // Credit/Refund amount = sum of per-line credits; remaining = what the customer is left charged for.
@@ -165,17 +168,19 @@ export function CreditNoteForm({
   const canCreate =
     credited > 0 && !exceedsCap && reason !== "" && (!needsNote || reasonNote.trim() !== "");
 
+  // form-cta-validation: the CTA is always enabled; a failed click scrolls to the first invalid field
+  // and reveals its inline error. `attempted` flips on the first failed submit (errors clear as fixed).
+  const [attempted, setAttempted] = useState(false);
+  const reasonRef = useRef<HTMLDivElement>(null);
+  const itemsRef = useRef<HTMLDivElement>(null);
+  const reasonInvalid = reason === "" || (needsNote && reasonNote.trim() === "");
+  const amountInvalid = credited <= 0.001; // nothing credited yet (exceedsCap has its own banner)
+  const reasonError = attempted && reasonInvalid;
+  const amountError = attempted && amountInvalid;
+
   const setUnitPrice = (id: string, raw: string) =>
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, unitPrice: raw.replace(/[^0-9.]/g, "") } : l)));
-  // Refund mode: edit the refund amount directly, capped at the line's original amount.
-  const setLineRefund = (id: string, raw: string) =>
-    setLines((prev) => prev.map((l) => {
-      if (l.id !== id) return l;
-      const clean = raw.replace(/[^0-9.]/g, "");
-      const orig = l.origAmount ?? lineAmount(l);
-      return { ...l, unitPrice: (Number(clean) || 0) > orig ? String(orig) : clean };
-    }));
-  // Custom keypad → mutate the focused refund line's raw value (max one dot, max 2 decimals, capped).
+  // Custom keypad → mutate the focused line's per-unit price (max one dot, max 2 decimals).
   const keypadPress = (key: string) => {
     if (!focusedLineId) return;
     setLines((prev) => prev.map((l) => {
@@ -188,9 +193,7 @@ export function CreditNoteForm({
         if (v.includes(".") && v.split(".")[1].length >= 2) return l; // cap at 2 decimals
         v = v + key;
       }
-      // Refund caps the line total at the original; credit mode (per-unit price) isn't capped here.
-      const orig = l.origAmount ?? lineAmount(l);
-      return { ...l, unitPrice: refund && (Number(v) || 0) > orig ? String(orig) : v };
+      return { ...l, unitPrice: v };
     }));
   };
   // Focus an amount field → open the keypad, scroll it into view, then lock scrolling once settled.
@@ -203,25 +206,6 @@ export function CreditNoteForm({
   const keypadBackspace = () => {
     if (!focusedLineId) return;
     setLines((prev) => prev.map((l) => (l.id === focusedLineId ? { ...l, unitPrice: l.unitPrice.slice(0, -1) } : l)));
-  };
-  // Quick shortcuts for the focused line (keypad accessory bar). "Full" credits/refunds the whole line,
-  // "Half" = 50%, "None" removes the credit. Works in both models: credit mode stores the CORRECTED
-  // per-unit price (0 = full credit), refund mode stores the refund amount directly.
-  const round2 = (n: number) => String(Math.round(n * 100) / 100);
-  const applyLineShortcut = (portion: "full" | "half") => {
-    if (!focusedLineId) return;
-    setLines((prev) => prev.map((l) => {
-      if (l.id !== focusedLineId) return l;
-      const orig = l.origAmount ?? lineAmount(l);
-      if (refund) {
-        // Refund amount = full / half of the line's original.
-        return { ...l, unitPrice: round2(portion === "full" ? orig : orig / 2) };
-      }
-      // Credit mode: reset to full quantity, then set the corrected per-unit price that yields the credit.
-      const q = l.maxQty || 1;
-      const correctedTotal = portion === "full" ? 0 : orig / 2;
-      return { ...l, qty: q, unitPrice: round2(correctedTotal / q) };
-    }));
   };
   // Step qty up to the invoiced max, or down to 0 (0 = excluded, but the line stays so it can be re-added).
   const incQty = (id: string) =>
@@ -288,8 +272,11 @@ export function CreditNoteForm({
   });
 
   const handleCreate = () => {
-    if (!canCreate) return;
-    onCreate(buildPayload());
+    if (canCreate) { onCreate(buildPayload()); return; }
+    // Failed submit → reveal inline errors + scroll to the first invalid field (reason sits above items).
+    setAttempted(true);
+    const target = reasonInvalid ? reasonRef.current : itemsRef.current;
+    target?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   // Back — save a Draft (DES-719) when the parent provides onSaveDraft (the create flow); else just leave.
@@ -309,7 +296,7 @@ export function CreditNoteForm({
           </HeaderIconButton>
         }
         trailing={
-          !isEdit && !refund ? (
+          !isEdit ? (
             <span className="flex items-center gap-1.5 pr-1 text-[12px]" style={{ ...FONT, color: MUTED }}>
               {saveState === "saving"
                 ? <span className="w-3.5 h-3.5 rounded-full border-2 border-[#e2e2e2] border-t-[#ff4a15] animate-spin" aria-hidden />
@@ -327,11 +314,9 @@ export function CreditNoteForm({
         onWheel={() => { if (focusedLineId) closeKeypad(); }}
         onTouchMove={() => { if (focusedLineId) closeKeypad(); }}
       >
-        {/* Beige zone (DES-719 UI) — CN title + details card + customer card + related invoice on #f9f5ea. */}
+        {/* Beige zone (DES-719 UI) — details card + customer card + related invoice on #f9f5ea.
+            No CN number while creating (decided 2026-07-15) — the real number is assigned on apply. */}
         <div className="-mx-4 px-4 pt-5 pb-5 bg-[#f9f5ea] flex flex-col gap-4">
-          {/* CN number — page title */}
-          <h1 className="text-[20px] font-bold leading-[1.1]" style={{ ...FONT, color: "#1b1b1b" }}>{creditNoteNo}</h1>
-
           {/* Details — Credit Issue Date / Due Date (editable) + Receiving Account + Currency (locked). */}
           <div className="rounded-[12px] bg-white border border-dashed border-[rgba(160,160,160,0.2)] overflow-hidden" style={{ boxShadow: "0px 4px 14px 0px rgba(226,220,203,0.3)" }}>
             <button type="button" onClick={() => setIssueDateOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
@@ -383,13 +368,13 @@ export function CreditNoteForm({
         </button>
 
         {/* Reason — white zone (DES-719). Required, chosen from the fixed enum in the sheet. */}
-        <div className="flex flex-col gap-[7px] pt-1">
+        <div ref={reasonRef} className="flex flex-col gap-[7px] pt-1">
           <label className="text-[16px] font-medium leading-[1.3]" style={{ ...FONT, color: "#090a0a" }}>Reason For Credit <span style={{ color: "#dc2626" }}>*</span></label>
           <button
             type="button"
             onClick={() => setReasonSheetOpen(true)}
             className="w-full flex items-center justify-between rounded-[8px] border px-4 h-[48px] bg-white text-left"
-            style={{ borderColor: "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
+            style={{ borderColor: reasonError ? "#dc2626" : "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
           >
             <span className="text-[16px] truncate" style={{ ...FONT, color: reason ? "#1b1b1b" : "#9ca3af" }}>
               {/* "Other" shows the user's free-text description on the main page, not the word "Other". */}
@@ -397,10 +382,15 @@ export function CreditNoteForm({
             </span>
             <KeyboardArrowDownIcon style={{ fontSize: 24, color: "#808080" }} />
           </button>
+          {reasonError && (
+            <p className="text-[12px] leading-[1.3]" style={{ ...FONT, color: "#dc2626" }}>
+              {reason === "" ? "Please select a reason for this credit note." : "Please add a description for the reason."}
+            </p>
+          )}
         </div>
 
         {/* Corrected invoice — edit each line to its CORRECT value; the credit is derived automatically. */}
-        <div className="flex flex-col gap-2">
+        <div ref={itemsRef} className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2 px-1">
             <p className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>{refund ? "Items to refund" : "Items"} <span style={{ color: "#b42318" }}>*</span></p>
             {credited > 0 && (
@@ -412,10 +402,17 @@ export function CreditNoteForm({
                     : { ...FONT, background: "#fff7e6", borderColor: "#fde68a", color: "#b45309" }
                 }
               >
-                {isFull ? "Full Credit" : "Partial Credit"}
+                {isFull ? (refund ? "Full Refund" : "Full Credit") : (refund ? "Partial Refund" : "Partial Credit")}
               </span>
             )}
           </div>
+          {amountError && (
+            <p className="px-1 text-[12px] leading-[1.3]" style={{ ...FONT, color: "#dc2626" }}>
+              {refund
+                ? "Set a quantity to refund on at least one item."
+                : "Lower at least one item's amount to credit — the credit can't be zero."}
+            </p>
+          )}
           {/* Per-line cards — edit each line to its CORRECTED value; Original / Corrected / Credited are
               shown explicitly so the derivation is legible (the credit is never typed directly). */}
           <div className="flex flex-col gap-3">
@@ -433,70 +430,45 @@ export function CreditNoteForm({
                   <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>{money(lineOriginal(l))}</span>
                 </div>
 
-                {refund ? (
-                  <>
-                    {/* Refund amount — entered directly (you already received the money) */}
-                    <div className="flex flex-col gap-1.5">
-                      <span className="text-[12px]" style={{ ...FONT, color: MUTED }}>Refund amount</span>
-                      <div className="flex items-center gap-1 rounded-lg border px-3 h-10 bg-white" style={{ borderColor: "rgba(160,160,160,0.4)" }}>
-                        <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>{currency}</span>
-                        <input
-                          inputMode="none"
-                          // Raw while focused; comma + 2-decimal formatted when blurred. Empty → "0.00" placeholder.
-                          // inputMode="none" suppresses the OS keyboard — input comes from the custom keypad below.
-                          value={focusedLineId === l.id ? l.unitPrice : l.unitPrice ? fmtAmount(lineCredit(l)) : ""}
-                          placeholder="0.00"
-                          onFocus={(e) => focusAmount(l.id, e.currentTarget)}
-                          onBlur={blurAmount}
-                          onChange={(e) => setLineRefund(l.id, e.target.value)}
-                          className="flex-1 min-w-0 text-right outline-none text-[15px] bg-transparent"
-                          style={{ ...FONT, color: INK }}
-                        />
-                      </div>
+                {/* Quantity + unit price — refund: how many units × price to give back; credit: the
+                    corrected values. The per-line credit/refund is derived below. */}
+                <div className="flex items-end gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[12px]" style={{ ...FONT, color: MUTED }}>Quantity</span>
+                    <div className="flex items-center rounded-lg border bg-white overflow-hidden" style={{ borderColor: "rgba(160,160,160,0.4)" }}>
+                      <button type="button" onClick={() => decQty(l.id)} disabled={l.qty === 0} aria-label="Decrease quantity" className="w-9 h-10 flex items-center justify-center disabled:opacity-30">
+                        <RemoveIcon style={{ fontSize: 16, color: INK }} />
+                      </button>
+                      <span className="w-8 text-center text-[14px] font-medium" style={{ ...FONT, color: INK }}>{l.qty}</span>
+                      <button type="button" onClick={() => incQty(l.id)} disabled={l.qty >= l.maxQty} aria-label="Increase quantity" className="w-9 h-10 flex items-center justify-center disabled:opacity-30">
+                        <AddIcon style={{ fontSize: 16, color: INK }} />
+                      </button>
                     </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Corrected values — quantity + unit price */}
-                    <div className="flex items-end gap-3">
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-[12px]" style={{ ...FONT, color: MUTED }}>Quantity</span>
-                        <div className="flex items-center rounded-lg border bg-white overflow-hidden" style={{ borderColor: "rgba(160,160,160,0.4)" }}>
-                          <button type="button" onClick={() => decQty(l.id)} disabled={l.qty === 0} aria-label="Decrease quantity" className="w-9 h-10 flex items-center justify-center disabled:opacity-30">
-                            <RemoveIcon style={{ fontSize: 16, color: INK }} />
-                          </button>
-                          <span className="w-8 text-center text-[14px] font-medium" style={{ ...FONT, color: INK }}>{l.qty}</span>
-                          <button type="button" onClick={() => incQty(l.id)} disabled={l.qty >= l.maxQty} aria-label="Increase quantity" className="w-9 h-10 flex items-center justify-center disabled:opacity-30">
-                            <AddIcon style={{ fontSize: 16, color: INK }} />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                        <span className="text-[12px]" style={{ ...FONT, color: MUTED }}>Unit price</span>
-                        <div className="flex items-center gap-1 rounded-lg border px-3 h-10 bg-white" style={{ borderColor: "rgba(160,160,160,0.4)" }}>
-                          <span className="text-[13px] shrink-0" style={{ ...FONT, color: MUTED }}>{currency}</span>
-                          <input
-                            inputMode="none"
-                            value={focusedLineId === l.id ? l.unitPrice : l.unitPrice ? fmtAmount(Number(l.unitPrice) || 0) : ""}
-                            placeholder="0.00"
-                            onFocus={(e) => focusAmount(l.id, e.currentTarget)}
-                            onBlur={blurAmount}
-                            onChange={(e) => setUnitPrice(l.id, e.target.value)}
-                            className="flex-1 min-w-0 text-right outline-none text-[15px] bg-transparent"
-                            style={{ ...FONT, color: INK }}
-                          />
-                        </div>
-                      </div>
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                    <span className="text-[12px]" style={{ ...FONT, color: MUTED }}>Unit price</span>
+                    <div className="flex items-center gap-1 rounded-lg border px-3 h-10 bg-white" style={{ borderColor: "rgba(160,160,160,0.4)" }}>
+                      <span className="text-[13px] shrink-0" style={{ ...FONT, color: MUTED }}>{currency}</span>
+                      <input
+                        inputMode="none"
+                        value={focusedLineId === l.id ? l.unitPrice : l.unitPrice ? fmtAmount(Number(l.unitPrice) || 0) : ""}
+                        placeholder="0.00"
+                        onFocus={(e) => focusAmount(l.id, e.currentTarget)}
+                        onBlur={blurAmount}
+                        onChange={(e) => setUnitPrice(l.id, e.target.value)}
+                        className="flex-1 min-w-0 text-right outline-none text-[15px] bg-transparent"
+                        style={{ ...FONT, color: INK }}
+                      />
                     </div>
+                  </div>
+                </div>
 
-                    {/* Credited — the derived per-line credit, only when this line was lowered */}
-                    {lineCredit(l) > 0.001 && (
-                      <div className="flex items-center justify-between border-t border-[rgba(160,160,160,0.18)] pt-2.5">
-                        <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Credited</span>
-                        <span className="text-[14px] font-medium" style={{ ...FONT, color: "#b42318" }}>−{money(lineCredit(l))}</span>
-                      </div>
-                    )}
-                  </>
+                {/* Derived per-line credit / refund — only when this line contributes an amount */}
+                {lineCredit(l) > 0.001 && (
+                  <div className="flex items-center justify-between border-t border-[rgba(160,160,160,0.18)] pt-2.5">
+                    <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>{refund ? "Refund amount" : "Credited"}</span>
+                    <span className="text-[14px] font-medium" style={{ ...FONT, color: "#b42318" }}>−{money(lineCredit(l))}</span>
+                  </div>
                 )}
               </div>
             ))}
@@ -577,8 +549,7 @@ export function CreditNoteForm({
       <ButtonDock
         type="single"
         sticky
-        primaryLabel={isEdit ? (submitLabel ?? "Save changes") : refund ? "Create Credit Note" : "Apply to Invoice"}
-        primaryDisabled={!canCreate}
+        primaryLabel={isEdit ? (submitLabel ?? "Save changes") : "Apply to Invoice"}
         onPrimary={handleCreate}
         homeIndicator
       />
@@ -639,25 +610,6 @@ export function CreditNoteForm({
           onPress={keypadPress}
           onBackspace={keypadBackspace}
           onDone={closeKeypad}
-          accessory={
-            <>
-              {([
-                { key: "full", label: refund ? "Full refund" : "Full credit" },
-                { key: "half", label: "50%" },
-              ] as const).map((c) => (
-                <button
-                  key={c.key}
-                  type="button"
-                  // onMouseDown + preventDefault keeps the amount input focused (keypad stays open).
-                  onMouseDown={(e) => { e.preventDefault(); applyLineShortcut(c.key); }}
-                  className="shrink-0 h-9 px-3.5 rounded-full bg-white border border-[rgba(160,160,160,0.4)] text-[13px] font-medium text-[#1b1b1b] active:bg-[#e9e9ee] whitespace-nowrap"
-                  style={FONT}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </>
-          }
         />
       )}
     </div>

@@ -2,17 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
 import { UploadedFileCard, FilePreviewOverlay } from "../../components/UploadedFile";
-import CloseIcon from "@mui/icons-material/Close";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AddIcon from "@mui/icons-material/Add";
 import CheckIcon from "@mui/icons-material/Check";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import StatusBar from "../../components/StatusBar";
-import { SheetHeader, HeaderIconButton } from "../../components/SheetHeader";
+import { PageHeader } from "../../ui/PageHeader";
+import { Tile as DsTile } from "../../ui/Tile";
 import { ButtonDock } from "../../components/ButtonDock";
 import { Button } from "../../ui/Button";
-import { EditCard } from "../../components/EditCard";
 import { TextInput } from "../../components/TextInput";
 import { Item } from "../../components/Item";
 import { ServiceItemCard } from "../../components/ServiceItemCard";
@@ -22,6 +20,7 @@ import { SummaryCard } from "../../components/SummaryCard";
 import { SendInvoiceSheet } from "../../components/SendInvoiceSheet";
 import { ShareLinkSheet } from "../../components/ShareLinkSheet";
 import { InvoicePreviewPage } from "../InvoicePreviewPage";
+import { BankInfoSheet } from "../../components/BankInfoSheet";
 import { ReviewEmail } from "../ReviewEmail";
 import { CustomerSheet } from "../../components/CustomerSheet";
 import { CURRENCIES, CurrencySheet } from "../../components/CurrencySheet";
@@ -99,6 +98,8 @@ interface AddInvoiceDetailsProps {
   defaultCurrency?: string;
   /** Sender company for the email brand bar (from Invoice Settings). */
   companyName?: string;
+  /** Sender company email (from Invoice Settings) — the Cc when "Send me a copy" is on. */
+  companyEmail?: string;
   /** Account default for the automated-chaser toggle (DES-764 AC5) — seeds the per-invoice toggle. */
   defaultChaser?: boolean;
   /** Default receiving account id (DES-764 Payment Method) — seeds the invoice's Receiving Account. */
@@ -160,6 +161,7 @@ export function AddInvoiceDetails({
   editExitToList,
   defaultCurrency = "USD",
   companyName = "Lumen Studio",
+  companyEmail = "hello@lumenstudio.co",
   defaultChaser = true,
   defaultAccountId = "personal",
   recurring = false,
@@ -236,6 +238,11 @@ export function AddInvoiceDetails({
   const [chaser, setChaser] = useState(defaultChaser);
   const [accountId, setAccountId] = useState(defaultAccountId);
   const [accountSheetOpen, setAccountSheetOpen] = useState(false);
+  // "Use Other Bank Accounts" card-details sheet (opened from the receiving-account sheet).
+  const [otherBankOpen, setOtherBankOpen] = useState(false);
+  // Confirmed external card's last 4 digits — the receiving account shows "Visa (..1234)".
+  // A Statrys account pick clears it. Prototype-only: resets with the editor.
+  const [externalCardLast4, setExternalCardLast4] = useState<string | null>(null);
 
   // Recurring-series setup (DES-782) — only surfaced when `recurring`.
   const [recFreq, setRecFreq] = useState<Frequency>("Monthly");
@@ -394,7 +401,7 @@ export function AddInvoiceDetails({
         { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false, readOnly: false },
         { label: "Issue Date", value: format(issueDate, "d MMM yyyy"), onClick: () => {}, locked: true, readOnly: false },
         { label: "Currency", value: currencyLabel, onClick: () => {}, locked: true, readOnly: false },
-        { label: "Receiving Account", value: formatAccount(accountId), onClick: () => {}, locked: true, readOnly: false },
+        { label: "Receiving Account", value: externalCardLast4 ? `Visa (..${externalCardLast4})` : formatAccount(accountId), onClick: () => {}, locked: true, readOnly: false },
       ]
     : [
         { label: "Currency", value: currencyLabel, onClick: () => setCurrencySheetOpen(true), locked: false, readOnly: false },
@@ -404,7 +411,7 @@ export function AddInvoiceDetails({
               { label: "Issue Date", value: format(issueDate, "d MMM yyyy"), onClick: () => setIssueSheetOpen(true), locked: false, readOnly: false },
               { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false, readOnly: false },
             ]),
-        { label: "Receiving Account", value: formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false, readOnly: false },
+        { label: "Receiving Account", value: externalCardLast4 ? `Visa (..${externalCardLast4})` : formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false, readOnly: false },
       ];
 
   return (
@@ -416,23 +423,13 @@ export function AddInvoiceDetails({
       <div className="absolute inset-0 flex flex-col bg-[#F9F5EA] overflow-hidden rounded-[48px]">
         <StatusBar />
 
-      <SheetHeader
+      {/* DS PageHeader (center) — the back chevron plays the old ✕/back role (create flows save a
+          draft on exit); the autosave chip lives in the header's custom right slot. */}
+      <PageHeader
+        type="center"
         title={editingSeries ? "Edit recurring series" : isRecurring ? (isEditing ? "Edit invoice" : "New Recurring Invoice") : isEditing ? "Edit invoice" : "New Invoice"}
-        type="inside-page"
-        state="fixed"
-        leading={
-          isEditing && !editExitToList ? (
-            <HeaderIconButton aria-label="Back" onClick={onEditBack}>
-              <ChevronLeftIcon />
-            </HeaderIconButton>
-          ) : (
-            // Edit-existing-from-duplicate (editExitToList) and create flows: ✕ saves a draft → list.
-            <HeaderIconButton aria-label="Close" onClick={onSaveDraft ? saveDraft : onClose}>
-              <CloseIcon />
-            </HeaderIconButton>
-          )
-        }
-        trailing={
+        onBack={isEditing && !editExitToList ? onEditBack : onSaveDraft ? saveDraft : onClose}
+        right={
           <div className="flex items-center gap-1 whitespace-nowrap" aria-live="polite">
             {saveState === "saving" ? (
               <motion.span
@@ -450,7 +447,7 @@ export function AddInvoiceDetails({
         }
       />
 
-      <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pt-5 pb-28 flex flex-col gap-4">
+      <div className="flex-1 overflow-y-auto thin-scrollbar px-4 pt-5 pb-28 flex flex-col gap-4">
         {/* Duplicate found — shown at the very top, above the uploaded-file preview. */}
         {isExtracted && existingInvoice && <DuplicateBanner />}
 
@@ -474,22 +471,10 @@ export function AddInvoiceDetails({
           isEditing ? (
             /* DES-817: Client (Customer) is not editable in Draft/after Send — locked once created.
                To change it the user must start a new invoice (or edit the client record). */
-            <EditCard title={name} description={email} hideAvatar trailing={<></>} />
+            <DsTile title={name} text={email} onLayer="beige" reserveTrailing={false} />
           ) : (
-            <EditCard
-              title={name}
-              description={email}
-              hideAvatar
-              role="button"
-              onClick={onChangeCustomer}
-              className="group cursor-pointer"
-              trailing={
-                <ChevronRightIcon
-                  className="transition-transform duration-200 group-hover:translate-x-1"
-                  style={{ fontSize: 16, color: "var(--icon-primary)" }}
-                />
-              }
-            />
+            /* DS Tile on the beige page — tap (chevron) reopens the customer picker. */
+            <DsTile title={name} text={email} onLayer="beige" trailing="chevron" onClick={onChangeCustomer} />
           )
         ) : (
           /* Upload review (DES-716) — OCR extracts the customer name + email, so show them as
@@ -667,20 +652,13 @@ export function AddInvoiceDetails({
         <div ref={servicesRef} className="scroll-mt-5">
         <Section title="Services / Products">
           {services.length === 0 ? (
-            <EditCard
+            /* DS Tile on the beige page — tap (chevron) opens the add-service sheet. */
+            <DsTile
               title="Add your services"
-              description="Name it, set a quantity"
-              hideAvatar
-              role="button"
-              aria-label="Add services"
+              text="Name it, set a quantity"
+              onLayer="beige"
+              trailing="chevron"
               onClick={openAddService}
-              className="group cursor-pointer"
-              trailing={
-                <ChevronRightIcon
-                  className="transition-transform duration-200 group-hover:translate-x-1"
-                  style={{ fontSize: 16, color: "var(--icon-primary)" }}
-                />
-              }
             />
           ) : (
             <div className="flex flex-col gap-2">
@@ -896,10 +874,20 @@ export function AddInvoiceDetails({
         onClose={() => setAccountSheetOpen(false)}
         onSelect={(id) => {
           setAccountId(id);
+          setExternalCardLast4(null); // a Statrys pick replaces the external card
           setAccountSheetOpen(false);
         }}
-        // External (non-Statrys) accounts are out of scope for DES-715 → Statrys accounts only.
-        hideExternal
+        // "Use Other Bank Accounts" (user, 15/Jul) → card-details sheet.
+        onUseExternal={() => { setAccountSheetOpen(false); setOtherBankOpen(true); }}
+      />
+
+      {/* Card-details sheet — back returns to the account sheet; Confirm lands on the editor
+          with the receiving account showing "Visa (..1234)". */}
+      <BankInfoSheet
+        open={otherBankOpen}
+        onBack={() => { setOtherBankOpen(false); setAccountSheetOpen(true); }}
+        onClose={() => setOtherBankOpen(false)}
+        onConfirm={(last4) => { setExternalCardLast4(last4); setOtherBankOpen(false); }}
       />
 
       {/* Recurring-series pickers (DES-782) */}
@@ -1030,9 +1018,9 @@ export function AddInvoiceDetails({
         open={sendSheetOpen}
         customerName={name}
         customerEmail={email}
-        // ✕ on the Delivery method page: the invoice isn't sent yet, so keep the user's
-        // work as a draft (→ "Saved as draft" toast + invoice list), not discarded.
-        onClose={() => { setSendSheetOpen(false); saveDraft(); }}
+        // ✕ on the Delivery method page returns to the (still pre-filled) editor (user, 15/Jul) —
+        // autosave already holds the work, so no draft toast / list redirect.
+        onClose={() => setSendSheetOpen(false)}
         onChangeCustomer={() => setCustomerSheetOpen(true)}
         onConfirm={(method) => {
           // All methods keep the Delivery method page mounted underneath and open instantly
@@ -1050,6 +1038,7 @@ export function AddInvoiceDetails({
             customerName={name}
             customerEmail={email}
             companyName={companyName}
+            companyEmail={companyEmail}
             invoiceNo={invoiceNo}
             amountLabel={amountLabel}
             dueDateLabel={dueDateLabel}

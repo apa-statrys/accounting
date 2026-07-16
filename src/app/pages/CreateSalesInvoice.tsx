@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
-import CloseIcon from "@mui/icons-material/Close";
-import AddIcon from "@mui/icons-material/Add";
+import { UserPlus } from "lucide-react";
 import StatusBar from "../components/StatusBar";
-import { SheetHeader, HeaderIconButton } from "../components/SheetHeader";
-import { Search } from "../components/Search";
-import { Tile } from "../components/Tile";
+import { PageHeader } from "../ui/PageHeader";
+import { Search } from "../ui/Search";
+import { Tile } from "../ui/Tile";
 import { Button } from "../ui/Button";
 import { ButtonDock } from "../components/ButtonDock";
 import { CUSTOMERS } from "../data/customers";
@@ -20,6 +19,17 @@ const FREQUENT_IDS = ["marlow", "bright", "otto", "northwind", "lumen"];
 function initials(name: string): string {
   const words = name.split(/\s+/).filter((w) => /[a-z0-9]/i.test(w[0] ?? ""));
   return ((words[0]?.[0] ?? "") + (words[1]?.[0] ?? "")).toUpperCase();
+}
+
+/** Pastel avatar tints (Figma Select Customer shows varied avatar colors);
+ *  picked deterministically from the customer id so a tint never changes
+ *  as the list filters/reorders. */
+const AVATAR_TINTS = ["#efeff0", "#d8e8f2", "#f3ecda", "#e7dfc9"];
+
+function avatarTint(id: string): string {
+  let hash = 0;
+  for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) % 997;
+  return AVATAR_TINTS[hash % AVATAR_TINTS.length];
 }
 
 interface CreateSalesInvoiceProps {
@@ -60,17 +70,23 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
   const frequent = filtered.filter((c) => FREQUENT_IDS.includes(c.id));
   const others = filtered.filter((c) => !FREQUENT_IDS.includes(c.id));
 
+  // DS Tile avatar row (Figma Select Customer): initials avatar + name/email, brand
+  // border + check when selected; borderless white card on the beige page.
   const renderTile = (c: Customer) => (
     <Tile
       key={c.id}
+      avatar={initials(c.name)}
+      avatarColor={avatarTint(c.id)}
       title={c.name}
-      description={c.email}
+      text={c.email}
+      onLayer="beige"
       selected={pendingId === c.id}
+      trailing={pendingId === c.id ? "check" : "none"}
       onClick={() => setPendingId(c.id)}
     />
   );
 
-  const GROUP_LABEL = "text-[12px] font-medium leading-[1.3] text-[#808080]";
+  const SECTION_HEADING = "text-[18px] font-medium leading-[1.1] text-[#1b1b1b]";
 
   // Add a new customer on a full page (App handles it, then returns here with the new one selected).
   const openAdd = () => onAddCustomer?.();
@@ -82,88 +98,59 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
     >
       <StatusBar />
 
-      <SheetHeader
-        title={recurring ? "New Recurring Invoice" : "New Invoice"}
-        type="inside-page"
-        state="fixed"
-        leading={
-          <HeaderIconButton aria-label="Close" onClick={onClose}>
-            <CloseIcon />
-          </HeaderIconButton>
-        }
-        trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
+      {/* DS PageHeader (center) — per Figma the Add action lives in the body's
+          "All customers" row, so the header is title-only. The recurring flow
+          keeps its context as the secondary line. */}
+      <PageHeader
+        type="center"
+        title="Select Customer"
+        text={recurring ? "New Recurring Invoice" : undefined}
+        onBack={onClose}
+        showSearch={false}
       />
 
-      {/* Body (white) */}
-      <div className="flex-1 overflow-y-auto bg-white px-4 pt-5 pb-28">
+      {/* Body sits on the beige page bg (Figma); tiles are borderless white cards. */}
+      <div className="flex-1 overflow-y-auto thin-scrollbar px-4 pt-5 pb-28">
         <div className="flex flex-col gap-4">
-          {/* Select customer + Add new */}
-          <div className="flex items-center justify-between">
-            <p
-              className="text-[18px] font-bold leading-[1.1] text-[#1b1b1b]"
-              style={{ fontFamily: "GT Walsheim LC, sans-serif" }}
-            >
-              Select Customer
-            </p>
-            <Button hierarchy="secondary" size="sm" iconLeft={<AddIcon />} onClick={openAdd} label="Add New" />
-          </div>
-
-          {/* Search appears only once the list is long enough to need it (5+). */}
-          {customers.length >= 5 && (
-            <Search
-              size="sm"
-              placeholder="Search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          )}
-
-          {/* Frequently used — quick-access avatar row (top 5 of the same list, not a separate
-              database). Hidden while searching so results read as one list. */}
+          {/* Frequently used — the most-billed customers as full tile rows (top 5 of the same
+              list, not a separate database). Hidden while searching so results read as one list. */}
           {!query && frequent.length > 0 && (
-            <div className="flex flex-col gap-2.5">
-              <p className={GROUP_LABEL} style={{ fontFamily: "GT Walsheim LC, sans-serif" }}>
-                FREQUENTLY USED ({Math.min(frequent.length, 5)})
+            <div className="flex flex-col gap-2">
+              <p className={SECTION_HEADING} style={{ fontFamily: "GT Walsheim LC, sans-serif" }}>
+                Frequently used
               </p>
-              <div className="flex gap-2 overflow-x-auto chip-scroll -mx-1 px-1 pb-1">
-                {frequent.slice(0, 5).map((c) => {
-                  const active = pendingId === c.id;
-                  return (
-                    <button
-                      key={c.id}
-                      onClick={() => setPendingId(c.id)}
-                      className="shrink-0 w-[58px] flex flex-col items-center gap-1.5"
-                      style={{ fontFamily: "GT Walsheim LC, sans-serif" }}
-                    >
-                      <span
-                        className="w-[50px] h-[50px] rounded-full flex items-center justify-center text-[16px] font-bold transition-colors"
-                        style={{
-                          background: active ? "#ff4a15" : "#ffffff",
-                          color: active ? "#ffffff" : "#1b1b1b",
-                          border: active ? "2px solid #ff4a15" : "1px solid rgba(160,160,160,0.3)",
-                        }}
-                      >
-                        {initials(c.name)}
-                      </span>
-                      <span className="w-full text-[12px] leading-[1.2] text-[#808080] text-center truncate">
-                        {c.name}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              {frequent.slice(0, 5).map(renderTile)}
             </div>
           )}
 
-          {/* Others — the rest of the customer list (or all matches while searching). */}
-          {(query ? filtered : others).length > 0 && (
-            <div className="flex flex-col gap-2">
-              <p className={GROUP_LABEL} style={{ fontFamily: "GT Walsheim LC, sans-serif" }}>
-                {query ? `RESULTS (${filtered.length})` : `OTHERS (${others.length})`}
+          {/* All customers — heading row with the Add action (Figma), search below it. */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <p className={SECTION_HEADING} style={{ fontFamily: "GT Walsheim LC, sans-serif" }}>
+                All customers
               </p>
-              {(query ? filtered : others).map(renderTile)}
+              <Button
+                hierarchy="secondary"
+                size="sm"
+                iconLeft={<UserPlus size={16} strokeWidth={2} />}
+                label="Add"
+                onClick={openAdd}
+              />
             </div>
-          )}
+
+            {/* Search appears only once the list is long enough to need it (5+). */}
+            {customers.length >= 5 && (
+              <Search
+                placeholder="Search"
+                value={query}
+                onChange={setQuery}
+                showAction={false}
+                aria-label="Search customers"
+              />
+            )}
+
+            {(query ? filtered : others).map(renderTile)}
+          </div>
 
           {filtered.length === 0 && (
             <p

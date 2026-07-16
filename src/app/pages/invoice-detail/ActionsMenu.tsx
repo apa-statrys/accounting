@@ -58,8 +58,8 @@ export function ActionsMenu({
             onClick={onRefundWithCn}
             className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]"
           >
-            <ReceiptLongOutlinedIcon style={{ fontSize: 20, color: "#b42318" }} />
-            <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Refund with Credit Note</span>
+            <ReceiptLongOutlinedIcon style={{ fontSize: 20, color: "var(--ds-text-info-primary)" }} />
+            <span className="text-[15px]" style={{ ...FONT, color: "var(--ds-text-info-primary)" }}>Refund with Credit Note</span>
           </button>
         )}
 
@@ -104,8 +104,8 @@ export function ActionsMenu({
             onClick={onCreateCn}
             className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]"
           >
-            <AddIcon style={{ fontSize: 20, color: "#b42318" }} />
-            <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Add credit note</span>
+            <AddIcon style={{ fontSize: 20, color: "var(--ds-text-info-primary)" }} />
+            <span className="text-[15px]" style={{ ...FONT, color: "var(--ds-text-info-primary)" }}>Add credit note</span>
           </button>
         )}
 

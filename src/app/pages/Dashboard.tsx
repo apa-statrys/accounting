@@ -109,10 +109,12 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
             : { type: "tween", duration: 0.4, ease: [0.4, 0, 0.6, 1] }
         }
       >
-      {/* Warm header wash */}
+      {/* Warm header wash — vertical cream→white gradient (reference: dashboard
+          mock 2026-07-15); deepest cream around the title, white by the hero's
+          bottom edge so it blends seamlessly into the page body. */}
       <div
-        className="flex flex-col items-center gap-3 pb-6 rounded-b-2xl"
-        style={{ background: "linear-gradient(to left, rgba(246,246,246,0.8), rgba(255,243,208,0.8))" }}
+        className="flex flex-col items-center gap-3 pb-6"
+        style={{ background: "linear-gradient(180deg, #F6F2E7 0%, #F3EDDB 40%, #F8F4E9 72%, #FCFBF7 88%, #FFFFFF 100%)" }}
       >
         {/* Status bar */}
         <div className="relative flex items-center justify-between w-full px-8 py-4">
@@ -238,7 +240,7 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
             transition={{ type: "tween", duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
             className="absolute top-0 inset-x-0 z-30"
             style={{
-              background: "linear-gradient(to left, rgba(246,246,246,0.85), rgba(255,243,208,0.85))",
+              background: "rgba(246, 242, 231, 0.88)",
               backdropFilter: "blur(12px)",
               WebkitBackdropFilter: "blur(12px)",
             }}

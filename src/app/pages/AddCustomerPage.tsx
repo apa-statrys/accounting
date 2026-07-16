@@ -1,8 +1,7 @@
 import { useState } from "react";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import StatusBar from "../components/StatusBar";
-import { SheetHeader, HeaderIconButton } from "../components/SheetHeader";
+import { PageHeader } from "../ui/PageHeader";
 import { TextInput } from "../components/TextInput";
 import { ButtonDock } from "../components/ButtonDock";
 import { BottomSheet } from "../components/BottomSheet";
@@ -73,6 +72,10 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
   // back to `defaultCurrency` on save so downstream invoice-currency seeding still has a value.
   const [currency, setCurrency] = useState(initial?.currency ?? "");
 
+  // Form rule (user, 15/Jul): the CTA is always enabled. Clicking it with missing/invalid required
+  // fields scrolls to the first offender and surfaces its inline error instead of saving.
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
   const [dupOpen, setDupOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [currencyOpen, setCurrencyOpen] = useState(false);
@@ -114,15 +117,19 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
   } as const;
 
   const isValid = !Object.values(errors).some(Boolean);
-  // The Save CTA is validity-gated (disabled until required fields + formats are valid), so required-empty
-  // fields don't need an inline error — the required marker + disabled CTA convey it. Only FORMAT errors
-  // (bad email/phone/website) surface live, once the field has content, so the user sees why it's blocked.
+  // Before the first save attempt only FORMAT errors (bad email/phone/website) surface live, once the
+  // field has content. After a failed save attempt every error — including required-empty — shows and
+  // clears live as the user fixes it.
   const err = (key: keyof typeof errors) => {
+    if (submitAttempted) return errors[key];
     if (key === "email") return email.trim() && !EMAIL_RE.test(email.trim()) ? "Enter a valid email" : false;
     if (key === "phone") return phone.trim() && !PHONE_RE.test(phone.trim()) ? "Enter a valid phone number" : false;
     if (key === "website") return website.trim() && !URL_RE.test(website.trim()) ? "Enter a valid website" : false;
     return false;
   };
+
+  // Visual top-to-bottom order of the validated fields — a failed save scrolls to the FIRST invalid one.
+  const FIELD_ORDER: (keyof typeof errors)[] = ["company", "email", "phone", "website", "country", "address", "city", "zip"];
 
   // Possible duplicate (713 AC4 / 714 AC3): the Company Name OR Email collides with another existing
   // record. In EDIT mode this only applies when the identity fields were actually CHANGED to collide
@@ -160,27 +167,41 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
   };
 
   const handleSave = () => {
-    if (!isValid) return;
+    if (!isValid) {
+      // Reveal all inline errors, then scroll the first invalid field into view (rAF so the
+      // error hint has rendered and the scroll target height is final).
+      setSubmitAttempted(true);
+      const firstInvalid = FIELD_ORDER.find((k) => errors[k]);
+      if (firstInvalid) {
+        requestAnimationFrame(() => {
+          const el = document.getElementById(`client-field-${firstInvalid}`);
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+      }
+      return;
+    }
     // AC4: a match opens the possible-duplicate warning instead of saving; the user resolves it there.
     if (duplicate) { setDupOpen(true); return; }
     commitSave();
   };
 
   return (
-    <div className="relative bg-white rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
+    <div
+      className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
+      style={{ width: 375, height: 812, background: "var(--ds-bg-beige-primary)" }}
+    >
       <StatusBar />
 
-      <SheetHeader
+      <PageHeader
+        type="center"
         title={isEdit ? "Edit Customer" : "New Customer"}
-        type="inside-page"
-        state="fixed"
-        leading={<HeaderIconButton aria-label="Back" onClick={requestBack}><ChevronLeftIcon /></HeaderIconButton>}
-        trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
+        showSearch={false}
+        onBack={requestBack}
       />
 
-      <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pt-5 pb-28">
+      <div className="flex-1 overflow-y-auto thin-scrollbar px-4 pt-5 pb-28">
         <div className="flex flex-col gap-4">
-          <TextInput label="Company Name" placeholder="e.g. Atlas Logistics" size="md" required showHint={!err("company")}
+          <TextInput id="client-field-company" label="Company Name" placeholder="e.g. Atlas Logistics" size="md" required
             error={err("company")} value={company} onChange={(e) => setCompany(e.target.value)} />
 
           <div className="flex gap-4">
@@ -193,26 +214,26 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
           <TextInput label="Company Registration Number" placeholder="Enter registration number" size="md" showHint={false}
             value={regNo} onChange={(e) => setRegNo(e.target.value)} />
 
-          <TextInput label="Email Address" type="email" placeholder="e.g. abc@gmail.com" size="md" required showHint={!err("email")}
+          <TextInput id="client-field-email" label="Email Address" type="email" placeholder="e.g. abc@gmail.com" size="md" required
             error={err("email")} value={email} onChange={(e) => setEmail(e.target.value)} />
 
-          <TextInput label="Phone Number" type="tel" placeholder="Enter contact phone number" size="md" showHint={!err("phone")}
+          <TextInput id="client-field-phone" label="Phone Number" type="tel" placeholder="Enter contact phone number" size="md"
             iconLeft={phonePrefix} error={err("phone")} value={phone} onChange={(e) => setPhone(e.target.value)} />
 
-          <TextInput label="Website" placeholder="Enter company website" size="md" showHint={!err("website")}
+          <TextInput id="client-field-website" label="Website" placeholder="Enter company website" size="md"
             error={err("website")} value={website} onChange={(e) => setWebsite(e.target.value)} />
 
-          <TextInput label="Country" placeholder="Select country" size="md" required showHint={!err("country")}
+          <TextInput id="client-field-country" label="Country" placeholder="Select country" size="md" required
             error={err("country")} readOnly iconRight={chevron} value={country} onClick={() => setCountryOpen(true)} />
 
-          <TextInput label="Address" placeholder="Enter company address" size="md" required showHint={!err("address")}
+          <TextInput id="client-field-address" label="Address" placeholder="Enter company address" size="md" required
             error={err("address")} value={address} onChange={(e) => setAddress(e.target.value)} />
 
           <div className="flex gap-4">
-            <TextInput label="City" placeholder="Enter city" size="md" required showHint={!err("city")}
+            <TextInput id="client-field-city" label="City" placeholder="Enter city" size="md" required
               error={err("city")} className="flex-1" value={city} onChange={(e) => setCity(e.target.value)} />
             {!noPostal && (
-              <TextInput label="Zip / Postal" placeholder="e.g. 11102" size="md" required showHint={!err("zip")}
+              <TextInput id="client-field-zip" label="Zip / Postal" placeholder="e.g. 11102" size="md" required
                 error={err("zip")} className="flex-1" value={zip} onChange={(e) => setZip(e.target.value)} />
             )}
           </div>
@@ -229,7 +250,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         type="single"
         sticky
         primaryLabel={isEdit ? "Save Changes" : "Add Customer"}
-        primaryDisabled={!isValid || (isEdit && !dirty)}
+        primaryDisabled={isEdit && !dirty}
         onPrimary={handleSave}
         homeIndicator
       />
@@ -248,23 +269,26 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         onSelect={(code) => { setCurrency(code); setCurrencyOpen(false); }}
       />
 
-      {/* Unsaved-changes discard warning (DES-714 AC1) */}
+      {/* Unsaved-changes discard warning (DES-714 AC1). Safe action (Keep Editing) is the
+          filled primary; the destructive Discard is the outline secondary. */}
       <BottomSheet
         open={discardOpen}
         title="Discard changes?"
         onClose={() => setDiscardOpen(false)}
+        dsHeader
+        compact
         footer={
           <ButtonDock
             type="double"
-            secondaryLabel="Keep Editing"
-            primaryLabel="Discard"
-            onSecondary={() => setDiscardOpen(false)}
-            onPrimary={() => { setDiscardOpen(false); onBack?.(); }}
+            primaryLabel="Keep Editing"
+            secondaryLabel="Discard"
+            onPrimary={() => setDiscardOpen(false)}
+            onSecondary={() => { setDiscardOpen(false); onBack?.(); }}
             homeIndicator
           />
         }
       >
-        <p className="text-[14px] leading-[1.45]" style={{ ...FONT, color: "#808080" }}>
+        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "#808080" }}>
           You have unsaved changes. If you go back now, they'll be lost.
         </p>
       </BottomSheet>
@@ -275,6 +299,8 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         open={dupOpen}
         title="Customer already exists"
         onClose={() => setDupOpen(false)}
+        dsHeader
+        compact
         footer={
           <ButtonDock
             type="double"
@@ -287,7 +313,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         }
       >
         <div className="flex flex-col gap-3">
-          <p className="text-[14px] leading-[1.45]" style={{ ...FONT, color: "#808080" }}>
+          <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "#808080" }}>
             {isEdit
               ? "We found another customer with the same email address. Do you want to save anyway?"
               : "We found an existing customer with the same email address. Do you want to create another customer?"}

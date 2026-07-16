@@ -65,7 +65,8 @@ export function SummaryCard({ currency, subtotal, discount, total }: SummaryCard
       <Row label="Subtotal" value={fmt(currency, subtotal)} />
       {/* Always shown — 0.00 when there's no discount. */}
       <Row label="Discount" value={discount > 0 ? `- ${fmt(currency, discount)}` : fmt(currency, 0)} brand={discount > 0} />
-      <Row label="Total" value={fmt(currency, total)} beige boldLabel boldValue />
+      {/* White like the other rows — the old beige fill blended into the beige page bg. */}
+      <Row label="Total" value={fmt(currency, total)} boldLabel boldValue />
     </div>
   );
 }

@@ -49,12 +49,15 @@ interface InvoiceDetailPageProps {
   invoiceNo?: string;
   customerName?: string;
   customerEmail?: string;
+  /** Sender company email (from Invoice Settings) — the Cc when "Send me a copy" is on. */
+  companyEmail?: string;
   issueDateLabel?: string;
   dueDateLabel?: string;
   currency?: string;
   /** Seed a credit note for an invoice opened from the list. `amount` omitted = full credit (Cancelled);
    *  a smaller `amount` = partial (invoice stays Awaiting, balance reduced). `sent` → Resend. */
-  initialCreditNote?: { no: string; amount?: number; sent: boolean };
+  /** `draft` seeds the note un-applied with a Draft chip (dev deep link for the draft-CN demo). */
+  initialCreditNote?: { no: string; amount?: number; sent: boolean; draft?: boolean };
   onBack?: () => void;
   /** Open the create/edit form prefilled with this invoice (Draft = full edit, issued = limited). */
   onEdit?: (seed: InvoiceEditSeed) => void;
@@ -71,6 +74,8 @@ interface InvoiceDetailPageProps {
   refundTag?: "Refund pending" | "Refunded" | "Partially Refunded";
   /** Report a completed refund up to App so the lists stay in sync (keyed by invoice number). */
   onRefunded?: (invoiceNo: string, result: "partial" | "full") => void;
+  /** Dev QuickNav deep link: open the seeded credit note's detail overlay on mount. */
+  initialViewCn?: boolean;
 }
 
 /** Status-aware sales-invoice detail (DES-715 / DES-716). */
@@ -85,6 +90,7 @@ export function InvoiceDetailPage({
   invoiceNo = "INV-2026-000042",
   customerName = "Marlow & Finch Studio",
   customerEmail = "apa@marlowfinch.co",
+  companyEmail = "hello@lumenstudio.co",
   issueDateLabel = "10 Jun 2026",
   dueDateLabel = "10 Jul 2026",
   currency = "USD",
@@ -97,6 +103,7 @@ export function InvoiceDetailPage({
   flashToast,
   refundTag,
   onRefunded,
+  initialViewCn = false,
 }: InvoiceDetailPageProps) {
   const [status, setStatus] = useState<DetailStatus>(initialStatus);
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -126,8 +133,9 @@ export function InvoiceDetailPage({
       no: initialCreditNote.no,
       amount: amt,
       // A seeded credit note represents one already applied to the invoice (DES-763) — so it reduces the
-      // outstanding on open. (Newly created notes start Open, applied = 0.)
-      applied: amt,
+      // outstanding on open. (Newly created notes start Open, applied = 0.) A seeded DRAFT stays un-applied.
+      applied: initialCreditNote.draft ? 0 : amt,
+      draft: !!initialCreditNote.draft,
       name: customerName,
       email: customerEmail,
       lines: docLines,
@@ -161,7 +169,7 @@ export function InvoiceDetailPage({
   // Which existing credit note is being edited (index into creditNotes), or null (DES-719 AC4).
   const [editingCnIndex, setEditingCnIndex] = useState<number | null>(null);
   // A locked (settled/sent) credit note opened READ-ONLY to review the document (index or null).
-  const [viewingCnIndex, setViewingCnIndex] = useState<number | null>(null);
+  const [viewingCnIndex, setViewingCnIndex] = useState<number | null>(initialViewCn && initialCreditNote ? 0 : null);
   // Refund-proof attachment open in the file preview overlay (DES-720 evidence).
   const [proofPreview, setProofPreview] = useState<UploadedFileInfo | null>(null);
   // "View all credit notes" expand — collapse to the 2 most recent when there are more.
@@ -425,10 +433,26 @@ export function InvoiceDetailPage({
     setLocalToast("Saved as draft");
   };
 
-  // Reopen a Draft credit note in the create form to resume it (DES-719).
+  // Back out of the refund create form (DES-720) → save what's entered as a DRAFT refund CN. Mirrors
+  // saveDraft but returns to the refund form on resume. A draft refund CN lives while the invoice is
+  // still Paid (isRefundContext only turns on once it's applied → Pending Refund).
+  const saveRefundDraft = (p: CreditNotePayload) => {
+    setCreditNotes((prev) =>
+      resumeDraftIndex != null
+        ? prev.map((c, i) => (i === resumeDraftIndex ? { ...cnFromPayload(c.no, p), applied: 0, draft: true, sent: c.sent } : c))
+        : [...prev, { ...cnFromPayload(nextCreditNoteNo, p), applied: 0, draft: true }]
+    );
+    setRefundFormOpen(false);
+    setResumeDraftIndex(null);
+    setLocalToast("Saved as draft");
+  };
+
+  // Reopen a Draft credit note to resume it. A draft on a Paid / refund-context invoice is a refund
+  // draft (DES-720) → reopen the refund form; otherwise the cancellation form (DES-719).
   const resumeDraft = (index: number) => {
     setResumeDraftIndex(index);
-    setCreditFormOpen(true);
+    if (status === "Paid" || isRefundContext) setRefundFormOpen(true);
+    else setCreditFormOpen(true);
   };
 
   // Create the credit note (DES-719) — it APPLIES immediately (no separate apply step): the note reduces
@@ -452,6 +476,14 @@ export function InvoiceDetailPage({
   // Apply a Draft credit note from its detail page (DES-719): clears the draft flag, offsets the
   // invoice, and returns to the invoice detail.
   const applyDraft = (index: number) => {
+    // Refund draft (invoice still Paid): applying commits it (draft → Applied) and moves the invoice to
+    // Pending Refund; the payout step stays separate. Stay on the CN detail so it now reads "Applied".
+    if (status === "Paid") {
+      setCreditNotes((prev) => prev.map((c, i) => (i === index ? { ...c, draft: false } : c)));
+      setStatus("PendingRefund");
+      setLocalToast("Refund credit note created");
+      return;
+    }
     const cn = creditNotes[index];
     const otherApplied = creditNotes.reduce((s, c, i) => s + (i === index ? 0 : (c.applied ?? 0)), 0);
     const applied = Math.min(cn.amount, creditBase - otherApplied);
@@ -510,12 +542,17 @@ export function InvoiceDetailPage({
   // Apply a newly created REFUND credit note (DES-720). Creating it always moves a Paid invoice to
   // Pending Refund; the actual money-out (and the move to Refunded) happens in the refund-method step.
   const applyRefundCreditNote = (p: CreditNotePayload) => {
-    const newIndex = creditNotes.length;
-    const cn = cnFromPayload(nextCreditNoteNo, p);
-    setCreditNotes((prev) => [...prev, cn]);
+    // Resuming a draft refund CN converts it in place (draft → applied); a fresh form appends a new note.
+    const idx = resumeDraftIndex != null ? resumeDraftIndex : creditNotes.length;
+    setCreditNotes((prev) =>
+      resumeDraftIndex != null
+        ? prev.map((c, i) => (i === resumeDraftIndex ? { ...cnFromPayload(c.no, p), draft: false, sent: c.sent } : c))
+        : [...prev, cnFromPayload(nextCreditNoteNo, p)]
+    );
     setRefundFormOpen(false);
+    setResumeDraftIndex(null);
     setStatus("PendingRefund");
-    setViewingCnIndex(newIndex); // land on the refund CN detail (Pending Refund) — editable until transferred
+    setViewingCnIndex(idx); // land on the refund CN detail (now Applied) — payout is a separate step
     setLocalToast("Refund credit note created");
   };
 
@@ -967,18 +1004,28 @@ export function InvoiceDetailPage({
         onDeleteDraft={() => { setActionsOpen(false); setConfirmDelete(true); }}
       />
 
-      {/* Delete confirm (Draft only) */}
-      <BottomSheet open={confirmDelete} title="Delete this draft?" onClose={() => setConfirmDelete(false)}>
-        <p className="text-[14px] leading-[1.45] pb-4" style={{ ...FONT, color: MUTED }}>
+      {/* Delete confirm (Draft only). Safe action (Keep draft) is the filled primary; destructive
+          Delete is the outline secondary (see memory: confirm-dialog-pattern). */}
+      <BottomSheet
+        open={confirmDelete}
+        title="Delete this draft?"
+        onClose={() => setConfirmDelete(false)}
+        dsHeader
+        compact
+        footer={
+          <ButtonDock
+            type="double"
+            primaryLabel="Keep draft"
+            secondaryLabel="Delete"
+            onPrimary={() => setConfirmDelete(false)}
+            onSecondary={() => { setConfirmDelete(false); onDeleted?.(); }}
+            homeIndicator
+          />
+        }
+      >
+        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: MUTED }}>
           This draft will be removed from the system. This can’t be undone.
         </p>
-        <ButtonDock
-          type="double"
-          secondaryLabel="Keep draft"
-          primaryLabel="Delete"
-          onSecondary={() => setConfirmDelete(false)}
-          onPrimary={() => { setConfirmDelete(false); onDeleted?.(); }}
-        />
       </BottomSheet>
 
       {/* Create Credit Note (DES-719) — opens on the invoice's CURRENT corrected state, so a second
@@ -1010,22 +1057,31 @@ export function InvoiceDetailPage({
 
       {/* Refund with Credit Note (DES-720) — from a Paid invoice; refund-mode labels, cap = amount paid.
           Creating it moves the invoice to Pending Refund. */}
-      {refundFormOpen && (
-        <CreditNoteForm
-          refund
-          creditNoteNo={nextCreditNoteNo}
-          invoiceNo={invoiceNo}
-          customerName={customerName}
-          customerEmail={customerEmail}
-          currency={currency}
-          items={correctedItems}
-          invoiceTotal={outstanding}
-          alreadyCredited={credited}
-          outstanding={outstanding}
-          onBack={() => setRefundFormOpen(false)}
-          onCreate={applyRefundCreditNote}
-        />
-      )}
+      {refundFormOpen && (() => {
+        // Resuming a Draft refund CN seeds the form from the saved note; a fresh form seeds from the invoice.
+        const draft = resumeDraftIndex != null ? creditNotes[resumeDraftIndex] : null;
+        const seed = draft
+          ? { name: draft.name, email: draft.email, reason: draft.reason ?? "", reasonNote: draft.reasonNote ?? "", issueDate: draft.issueDate ?? new Date(2026, 5, 26), lines: draft.draftLines ?? [], accountId: draft.accountId }
+          : undefined;
+        return (
+          <CreditNoteForm
+            refund
+            creditNoteNo={draft ? draft.no : nextCreditNoteNo}
+            invoiceNo={invoiceNo}
+            customerName={customerName}
+            customerEmail={customerEmail}
+            currency={currency}
+            items={correctedItems}
+            invoiceTotal={outstanding}
+            alreadyCredited={credited}
+            outstanding={outstanding}
+            initial={seed}
+            onSaveDraft={saveRefundDraft}
+            onBack={() => { setRefundFormOpen(false); setResumeDraftIndex(null); }}
+            onCreate={applyRefundCreditNote}
+          />
+        );
+      })()}
 
       {/* Refund flow (DES-720 AC3–AC5) — full-page: choose method → (BA) pick source account → confirm
           the pre-filled transfer draft. BA execution is out of scope; confirm simulates reconciliation. */}
@@ -1056,7 +1112,7 @@ export function InvoiceDetailPage({
           ? "Cancelled"
           : isRefundContext
           ? (cn.refundProof?.awaiting ? "Awaiting refund by accountant"
-             : through > refundedOut + 0.001 ? "Pending Refund" : refundedOut >= TOTAL - 0.001 ? "Refunded" : "Partially Refunded")
+             : through > refundedOut + 0.001 ? "Applied" : refundedOut >= TOTAL - 0.001 ? "Refunded" : "Partially Refunded")
           : "Applied";
         return (
           <div className="absolute inset-0 z-50">
@@ -1212,6 +1268,7 @@ export function InvoiceDetailPage({
           <ReviewEmail
             customerName={sendName}
             customerEmail={sendEmail}
+            companyEmail={companyEmail}
             invoiceNo={sendNo}
             amountLabel={`${currency} ${sendTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             dueDateLabel={dueDateLabel}

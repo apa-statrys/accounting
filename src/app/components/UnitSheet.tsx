@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "./BottomSheet";
-import { Tile } from "./Tile";
+import { Tile } from "../ui/Tile";
 
 const UNITS = ["Unit", "Hour", "Day", "Month", "Session", "Pair"];
 
@@ -11,17 +11,28 @@ interface UnitSheetProps {
   onSelect?: (unit: string) => void;
 }
 
-/** Unit picker for a service/product line. */
+/**
+ * Unit picker for a service/product line — DS header with centered "Select Unit" title and a
+ * back chevron returning to the Add Item sheet; DS text Tiles with a check on the selection.
+ */
 export function UnitSheet({ open, value, onClose, onSelect }: UnitSheetProps) {
   return (
-    <BottomSheet open={open} title="Unit" onClose={onClose}>
+    <BottomSheet
+      open={open}
+      title="Select Unit"
+      onClose={onClose}
+      dsHeader
+      centerTitle
+      onBack={onClose}
+      backLabel="Back to item"
+    >
       <div className="flex flex-col gap-2">
         {UNITS.map((u) => (
           <motion.div key={u} variants={sheetItem}>
             <Tile
               title={u}
-              showDescription={false}
               selected={value === u}
+              trailing={value === u ? "check" : "none"}
               onClick={() => onSelect?.(u)}
             />
           </motion.div>

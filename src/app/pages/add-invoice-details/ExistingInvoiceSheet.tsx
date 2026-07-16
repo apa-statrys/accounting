@@ -5,7 +5,7 @@ import type { ExistingInvoice } from "../../types";
 /** Read-only summary of the existing (duplicate) invoice. */
 export function ExistingInvoiceSheet({ open, invoice, onClose }: { open: boolean; invoice?: ExistingInvoice; onClose: () => void }) {
   return (
-    <BottomSheet open={open} title="Invoice details" onClose={onClose}>
+    <BottomSheet open={open} title="Invoice details" onClose={onClose} dsHeader>
       {invoice && (
         <div className="flex flex-col">
           {[

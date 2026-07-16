@@ -2,14 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { parse, format, addDays } from "date-fns";
 import { FilePlus } from "lucide-react";
 import { FAB } from "../../ui/FAB";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import { PageHeader } from "../../ui/PageHeader";
+import { HorizontalTabs } from "../../ui/HorizontalTabs";
 import ImportExportIcon from "@mui/icons-material/ImportExport";
 import TuneIcon from "@mui/icons-material/Tune";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import CheckIcon from "@mui/icons-material/Check";
 import SearchIcon from "@mui/icons-material/Search";
 import StatusBar from "../../components/StatusBar";
-import { SheetHeader, HeaderIconButton } from "../../components/SheetHeader";
 import { SendSuccessToast } from "../../components/SendSuccessToast";
 import { CreateInvoiceSheet } from "../../components/CreateInvoiceSheet";
 import { BottomSheet } from "../../components/BottomSheet";
@@ -71,10 +71,12 @@ interface SalesInvoiceListProps {
 export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, onSuccessDone, recent, onBack, onOpenInvoice, onManual, onUpload, onRecurring, initialStatus, initialDue, refundState }: SalesInvoiceListProps) {
   const initialActive = initialStatus ? Math.max(0, FILTERS.findIndex((f) => f.match === initialStatus)) : 0;
   const [active, setActive] = useState(initialActive);
-  // Keep the selected status chip scrolled into view (e.g. when opened pre-filtered from the hero).
-  const activeChipRef = useRef<HTMLButtonElement>(null);
+  // Keep the selected status tab scrolled into view (e.g. when opened pre-filtered from the hero).
+  const tabsWrapRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    activeChipRef.current?.scrollIntoView({ inline: "center", block: "nearest" });
+    tabsWrapRef.current
+      ?.querySelector('[role="tab"][aria-selected="true"]')
+      ?.scrollIntoView({ inline: "center", block: "nearest" });
   }, [active]);
   const [sortKey, setSortKey] = useState<SortKey>(defaultSortFor(FILTERS[initialActive].match));
 
@@ -183,46 +185,27 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
       className="relative bg-[#f9f5ea] rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
       style={{ width: 375, height: 812 }}
     >
-      {/* Thin horizontal scrollbar for the status chip row */}
+      {/* Thin horizontal scrollbar for the status tab row (the DS scroller is the wrapper's child) */}
       <style>{`
-        .chip-scroll{scrollbar-width:thin;scrollbar-color:rgba(160,160,160,0.45) transparent;}
-        .chip-scroll::-webkit-scrollbar{height:2px;}
-        .chip-scroll::-webkit-scrollbar-track{background:transparent;margin:0 16px;}
-        .chip-scroll::-webkit-scrollbar-thumb{background:rgba(160,160,160,0.45);border-radius:9999px;}
+        .tabs-wrap > div{scrollbar-width:thin;scrollbar-color:rgba(160,160,160,0.45) transparent;}
+        .tabs-wrap > div::-webkit-scrollbar{height:2px;}
+        .tabs-wrap > div::-webkit-scrollbar-track{background:transparent;margin:0 16px;}
+        .tabs-wrap > div::-webkit-scrollbar-thumb{background:rgba(160,160,160,0.45);border-radius:9999px;}
       `}</style>
 
       <StatusBar />
 
-      <SheetHeader
-        title="Sales Invoices"
-        type="inside-page"
-        state="fixed"
-        className="bg-[#f9f5ea]"
-        leading={
-          <HeaderIconButton aria-label="Back" onClick={onBack}>
-            <ChevronLeftIcon />
-          </HeaderIconButton>
-        }
-        trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
-      />
+      {/* DS PageHeader (center) — back chevron only, title optically centered by the spacer. */}
+      <PageHeader type="center" title="Sales Invoices" onBack={onBack} showSearch={false} />
 
-      {/* Status filter chips — horizontally scrollable */}
-      <div className="shrink-0 flex gap-2 overflow-x-auto chip-scroll bg-[#f9f5ea] px-4 pt-4 pb-3 rounded-b-lg shadow-[0_4px_14px_rgba(226,220,203,0.3)] relative z-10">
-        {FILTERS.map((f, i) => {
-          const isActive = i === active;
-          return (
-            <button
-              key={f.label}
-              ref={isActive ? activeChipRef : undefined}
-              onClick={() => selectChip(i)}
-              className={`shrink-0 h-[30px] px-3 rounded-full whitespace-nowrap link-upper-sm ${
-                isActive ? "bg-[#ff4a15] text-white" : "bg-white text-[#1b1b1b]"
-              }`}
-            >
-              {f.label} ( {counts[i]} )
-            </button>
-          );
-        })}
+      {/* Status filter tabs — DS HorizontalTabs (button style), horizontally scrollable */}
+      <div ref={tabsWrapRef} className="tabs-wrap shrink-0 bg-[#f9f5ea] px-4 pt-4 pb-3 rounded-b-lg shadow-[0_4px_14px_rgba(226,220,203,0.3)] relative z-10">
+        <HorizontalTabs
+          variant="button"
+          tabs={FILTERS.map((f, i) => `${f.label} (${counts[i]})`)}
+          activeIndex={active}
+          onChange={selectChip}
+        />
       </div>
 
       {/* Sort / Filter row (Variation A) */}
@@ -245,16 +228,17 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
         </button>
       </div>
 
-      {/* Invoice list */}
-      <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pt-4 pb-28 flex flex-col gap-2.5">
+      {/* Invoice list — DS InvoiceRows as a flat list on the white page (divider between rows). */}
+      <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pb-28 flex flex-col">
         {list.length === 0 ? (
           <p className="text-center text-[13px] text-[#a0a0a0] pt-16" style={FONT}>No invoices found</p>
         ) : (
-          list.map((inv) => (
+          list.map((inv, i) => (
             <InvoiceCard
               key={inv.id}
               inv={inv}
               highlighted={highlightRecent && inv.id === "recent-new"}
+              lastItem={i === list.length - 1}
               onClick={() => onOpenInvoice?.({ number: inv.id.replace(/[a-z]$/, ""), client: inv.client, status: effectiveStatus(inv), origin: inv.origin ?? "created", cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent, recurring: inv.recurring })}
               onDelete={() => setConfirmDeleteId(inv.id)}
               onOpenCN={openCnForInvoice}
@@ -504,19 +488,21 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
         </div>
       </BottomSheet>
 
-      {/* Delete-draft confirmation (no ✕ — dismissed via the buttons/scrim) */}
+      {/* Delete-draft confirmation. Safe action (Cancel) is the filled primary; destructive Delete
+          is the outline secondary (see memory: confirm-dialog-pattern). */}
       <BottomSheet
         open={!!confirmDeleteId}
         title="Delete Draft Invoice?"
-        hideClose
         onClose={() => setConfirmDeleteId(null)}
+        dsHeader
+        compact
         footer={
           <ButtonDock
             type="double"
-            secondaryLabel="Cancel"
-            primaryLabel="Delete"
-            onSecondary={() => setConfirmDeleteId(null)}
-            onPrimary={() => {
+            primaryLabel="Cancel"
+            secondaryLabel="Delete"
+            onPrimary={() => setConfirmDeleteId(null)}
+            onSecondary={() => {
               if (confirmDeleteId) setDeletedIds((prev) => [...prev, confirmDeleteId]);
               setConfirmDeleteId(null);
             }}
@@ -524,7 +510,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
           />
         }
       >
-        <p className="text-[14px] leading-[1.45] text-[#808080]" style={FONT}>
+        <p className="text-[16px] leading-[1.45] text-[#808080]" style={FONT}>
           This draft invoice will be permanently deleted and cannot be recovered.
         </p>
       </BottomSheet>

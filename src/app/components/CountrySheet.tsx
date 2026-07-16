@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "./BottomSheet";
-import { Tile } from "./Tile";
-import { Search } from "./Search";
+import { Tile } from "../ui/Tile";
+import { Search } from "../ui/Search";
 
 interface Country {
   name: string;
@@ -28,6 +28,20 @@ const COUNTRIES: Country[] = [
   { name: "United Arab Emirates", flag: "🇦🇪" },
 ];
 
+function SearchGlyph() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M17.4999 17.5001L13.8833 13.8835M15.8333 9.16667C15.8333 12.8486 12.8486 15.8333 9.16667 15.8333C5.48477 15.8333 2.5 12.8486 2.5 9.16667C2.5 5.48477 5.48477 2.5 9.16667 2.5C12.8486 2.5 15.8333 5.48477 15.8333 9.16667Z"
+        stroke="currentColor"
+        strokeWidth="1.66667"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 interface CountrySheetProps {
   open: boolean;
   value?: string;
@@ -35,31 +49,54 @@ interface CountrySheetProps {
   onSelect?: (country: string) => void;
 }
 
-/** Country picker for a client record. */
+/**
+ * Country picker for a client record — DS Bottomsheets header (grabber, no ✕) with the search
+ * icon next to the "Select Country" title; tapping it reveals/hides the DS Search field.
+ * Rows are the DS Tile country variant (flag + title, check when selected).
+ */
 export function CountrySheet({ open, value, onClose, onSelect }: CountrySheetProps) {
   const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const filtered = COUNTRIES.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()));
 
+  const toggleSearch = () => {
+    setSearchOpen((prev) => {
+      if (prev) setQuery(""); // closing the search resets the filter
+      return !prev;
+    });
+  };
+
   return (
-    <BottomSheet open={open} title="Country" onClose={onClose} tall>
+    <BottomSheet
+      open={open}
+      title="Select Country"
+      onClose={onClose}
+      tall
+      dsHeader
+      action={<SearchGlyph />}
+      onAction={toggleSearch}
+      actionLabel="Search country"
+    >
       <div className="flex flex-col gap-4">
-        <motion.div variants={sheetItem}>
-          <Search
-            size="md"
-            placeholder="Search Country"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </motion.div>
+        {searchOpen && (
+          <motion.div variants={sheetItem} initial="closed" animate="open">
+            <Search
+              placeholder="Search Country"
+              value={query}
+              onChange={setQuery}
+              showAction={false}
+              aria-label="Search country"
+            />
+          </motion.div>
+        )}
 
         <div className="flex flex-col gap-2">
           {filtered.map((c) => (
             <motion.div key={c.name} variants={sheetItem}>
               <Tile
                 title={c.name}
-                showIcon
-                icon={<span className="text-[16px] leading-none">{c.flag}</span>}
-                showDescription={false}
+                flag={<span className="text-[26px] leading-none">{c.flag}</span>}
+                trailing={value === c.name ? "check" : "none"}
                 selected={value === c.name}
                 onClick={() => onSelect?.(c.name)}
               />

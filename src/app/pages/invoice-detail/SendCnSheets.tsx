@@ -14,6 +14,8 @@ export function ResendPromptSheet({ open, onClose, onNotNow, onSendUpdate }: { o
       open={open}
       title="Send updated credit note?"
       onClose={onClose}
+      dsHeader
+      compact
       footer={
         <ButtonDock
           type="double"
@@ -25,7 +27,7 @@ export function ResendPromptSheet({ open, onClose, onNotNow, onSendUpdate }: { o
         />
       }
     >
-      <p className="text-[14px] leading-[1.45]" style={{ ...FONT, color: MUTED }}>
+      <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: MUTED }}>
         This credit note has already been sent to the customer. Would you like to send the updated version now?
       </p>
     </BottomSheet>

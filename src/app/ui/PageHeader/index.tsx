@@ -24,6 +24,9 @@ interface PageHeaderProps {
   /** Hide the back button (Figma showLeftButton). */
   showBack?: boolean;
   onBack?: () => void;
+  /** Hide the right-side button (Figma showRightButton) — an invisible 36px
+   *  spacer keeps the "center" title optically centered. */
+  showSearch?: boolean;
   /** Tap on the right-side search button (all types except "search"). */
   onSearchClick?: () => void;
   /** Code slot: swap the right-side search icon for another action (e.g. a
@@ -31,6 +34,9 @@ interface PageHeaderProps {
   rightIcon?: React.ReactNode;
   rightLabel?: string;
   onRightClick?: () => void;
+  /** Code slot: replace the right-side button entirely with custom content
+   *  (e.g. an autosave "✓ Saved" chip) — no glass-button styling applied. */
+  right?: React.ReactNode;
   /** type="search" only — the pill's controlled input + mic action. */
   searchValue?: string;
   onSearchChange?: (value: string) => void;
@@ -91,10 +97,12 @@ export function PageHeader({
   text,
   showBack = true,
   onBack,
+  showSearch = true,
   onSearchClick,
   rightIcon,
   rightLabel,
   onRightClick,
+  right,
   searchValue = "",
   onSearchChange,
   searchPlaceholder,
@@ -106,7 +114,11 @@ export function PageHeader({
       <ChevronLeftIcon />
     </GlassButton>
   );
-  const searchButton = rightIcon ? (
+  const searchButton = right ? (
+    right
+  ) : !showSearch ? (
+    <span className={styles.spacer} aria-hidden />
+  ) : rightIcon ? (
     <GlassButton aria-label={rightLabel ?? "Action"} onClick={onRightClick}>
       {rightIcon}
     </GlassButton>
@@ -123,7 +135,14 @@ export function PageHeader({
           {back || <span />}
           {searchButton}
         </div>
-        <div className={styles.slot}>{children ?? <p className={styles.title2xl}>{title}</p>}</div>
+        <div className={styles.slot}>
+          {children ?? (
+            <>
+              <p className={styles.title2xl}>{title}</p>
+              {text && <p className={styles.text}>{text}</p>}
+            </>
+          )}
+        </div>
       </header>
     );
   }

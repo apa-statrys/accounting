@@ -215,6 +215,8 @@ export function RecurringSeriesDetail({
         open={confirmCancel}
         title="Cancel this schedule?"
         onClose={() => setConfirmCancel(false)}
+        dsHeader
+        compact
         footer={
           <ButtonDock
             type="double"
@@ -226,7 +228,7 @@ export function RecurringSeriesDetail({
           />
         }
       >
-        <p className="text-[14px] leading-[1.45]" style={{ ...FONT, color: "#808080" }}>
+        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "#808080" }}>
           This will stop future invoices from being generated. Existing invoices will remain in your Sales
           Invoice list and won't be affected. This action cannot be undone.
         </p>
