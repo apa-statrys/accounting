@@ -5,14 +5,16 @@ import type { CreditNote } from "../types";
  * invoice-list CN badge (AC4), so the badge resolves to the SAME credit note by number. Numbers line up
  * with the invoice demo data (INV-…008→CN-…001, 009→002, 010→003, 011→004).
  *
- * Statuses follow DES-818's 3-state model: Draft (not yet confirmed) / Applied (created against the
- * invoice) / Cancelled (voided). Refund credit notes appear here as Applied — their refund lifecycle
- * (Pending Refund / Refunded) is tracked on the invoice-detail side (DES-720/721), not in this list.
+ * Statuses follow DES-818's model: Draft (not yet confirmed) / Applied (created against the invoice) /
+ * Awaiting refund (refund CN raised on a paid invoice, waiting for the accountant to pay it out) /
+ * Cancelled (voided). The richer refund lifecycle (Pending Refund / Refunded, plus the "Awaiting refund
+ * by accountant" wording) is tracked on the invoice-detail side (DES-720/721).
  */
 export const CREDIT_NOTES: CreditNote[] = [
-  // Refund credit notes (raised on Paid invoices) — created & applied, so they read as Applied here.
-  { no: "CN-2026-000007", customer: "Solstice Media", email: "ap@solsticemedia.com", invoiceNo: "INV-2026-000015", original: 6450, invoiceTotal: 6450, applied: 6450, kind: "refund", status: "Applied", date: "22 Jun 2026", reason: "Return", lines: [{ name: "Brand identity design", qty: 1, unitPrice: 4650, amount: 4650 }, { name: "Landing page build", qty: 1, unitPrice: 1800, amount: 1800 }], sent: false },
-  { no: "CN-2026-000006", customer: "Meridian Design", email: "billing@meridian.design", invoiceNo: "INV-2026-000013", original: 3200, invoiceTotal: 3200, applied: 3200, kind: "refund", status: "Applied", date: "24 Jun 2026", reason: "Return", lines: [{ name: "Website redesign", qty: 1, unitPrice: 3200, amount: 3200 }], sent: false },
+  // Refund credit notes (raised on Paid invoices). Two are still Awaiting refund (accountant hasn't paid
+  // out yet); CN-…004 is a partial that has been paid out, so it reads as Applied.
+  { no: "CN-2026-000007", customer: "Solstice Media", email: "ap@solsticemedia.com", invoiceNo: "INV-2026-000015", original: 6450, invoiceTotal: 6450, applied: 6450, kind: "refund", status: "Awaiting refund", date: "22 Jun 2026", reason: "Return", lines: [{ name: "Brand identity design", qty: 1, unitPrice: 4650, amount: 4650 }, { name: "Landing page build", qty: 1, unitPrice: 1800, amount: 1800 }], sent: false },
+  { no: "CN-2026-000006", customer: "Meridian Design", email: "billing@meridian.design", invoiceNo: "INV-2026-000013", original: 3200, invoiceTotal: 3200, applied: 3200, kind: "refund", status: "Awaiting refund", date: "24 Jun 2026", reason: "Return", lines: [{ name: "Website redesign", qty: 1, unitPrice: 3200, amount: 3200 }], sent: false },
   { no: "CN-2026-000004", customer: "Cobalt Systems", email: "billing@cobaltsystems.com", invoiceNo: "INV-2026-000011", original: 1200, invoiceTotal: 6450, applied: 1200, kind: "refund", status: "Applied", date: "26 Jun 2026", reason: "Pricing error", lines: [{ name: "Consulting hours", qty: 16, unitPrice: 75, amount: 1200 }], sent: false },
   // A Draft credit note — saved from the form but not yet confirmed (shows Edit / Delete actions).
   { no: "CN-2026-000005", customer: "Saffron Kitchen", email: "hello@saffronkitchen.com", invoiceNo: "INV-2026-000012", original: 800, invoiceTotal: 3000, applied: 0, kind: "cancellation", status: "Draft", date: "28 Jun 2026", reason: "Goodwill", lines: [{ name: "Menu photography", qty: 1, unitPrice: 800, amount: 800 }], sent: false },

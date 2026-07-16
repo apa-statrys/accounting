@@ -36,12 +36,15 @@ const dueLabelFor = (d: string): string | undefined => {
   return isNaN(parsed.getTime()) ? undefined : format(addDays(parsed, 30), "d MMM yyyy");
 };
 
-// DES-818 status palette — Draft (grey) / Applied (green) / Cancelled (muted grey). Matches the chip
-// palette on CreditNoteDetailPage so the list and detail read the same.
+// DES-818 status palette — Draft (grey) / Applied (green) / Awaiting refund (amber) / Cancelled (muted
+// grey). Matches the chip palette on CreditNoteDetailPage so the list and detail read the same.
 const STATUS_PILL: Record<CNStatus, { bg: string; border: string; text: string }> = {
   // Draft = the neutral beige pill from Figma (node 1312-7899).
   Draft: { bg: "#faf9f4", border: "rgba(160,160,160,0.2)", text: "#808080" },
   Applied: { bg: "#ecfdf3", border: "#abefc6", text: "#067647" },
+  // Refund CN awaiting the accountant's payout — amber, same tone as the invoice-detail "Awaiting
+  // refund by accountant" chip.
+  "Awaiting refund": { bg: "#fff7e6", border: "#fde68a", text: "#b45309" },
   Cancelled: { bg: "#f3f3f3", border: "rgba(160,160,160,0.35)", text: "#9a9a9a" },
 };
 
@@ -52,6 +55,7 @@ const FILTERS: { label: string; match: StatusMatch }[] = [
   { label: "All", match: "all" },
   { label: "Draft", match: "Draft" },
   { label: "Applied", match: "Applied" },
+  { label: "Awaiting refund", match: "Awaiting refund" },
   { label: "Cancelled", match: "Cancelled" },
 ];
 
@@ -363,7 +367,9 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               // The Credit Notes List always shows the normal credit-note detail (Credit to / Credited items).
               // Refund-specific framing belongs to the invoice-detail flow (DES-720/721), not here.
               kind="cancellation"
-              status={preview.status}
+              // List register uses the short "Awaiting refund" pill; the CN detail spells it out
+              // ("Awaiting refund by accountant") to match the invoice-detail flow.
+              status={preview.status === "Awaiting refund" ? "Awaiting refund by accountant" : preview.status}
               sent={preview.sent}
               onBack={() => setPreview(null)}
               // Related Invoice row → open that invoice's detail (shows the chevron arrow).

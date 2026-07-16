@@ -146,7 +146,10 @@ export interface ServiceLine {
 // Credit Notes List register statuses (DES-818, aligned with DES-719): a credit note is a Draft until
 // confirmed, Applied once created against its invoice, or Cancelled if voided. (Refund lifecycle states
 // live on the invoice-detail side per DES-720/721, not in this list.)
-export type CNStatus = "Draft" | "Applied" | "Cancelled";
+// "Awaiting refund" = a refund credit note raised on a paid invoice, waiting for the accountant to
+// pay it out (the invoice-detail flow spells this "Awaiting refund by accountant"; the list uses the
+// short label). See doc/sales-invoice-flows/invoice-detail-behavior.md (DES-720/721).
+export type CNStatus = "Draft" | "Applied" | "Cancelled" | "Awaiting refund";
 
 export interface CreditNote {
   no: string;
