@@ -140,13 +140,15 @@ export function InvoiceDetailPage({
       email: customerEmail,
       lines: docLines,
       date: issueDateLabel,
+      // Carry the invoice's due date so the CN detail (incl. refund CNs) shows a Due Date, not "—".
+      dueDateLabel,
       reason: isFull ? "Return" : "Pricing error",
       issueDate: new Date(2026, 5, 15),
       draftLines,
       sent: !!initialCreditNote.sent,
       sentDate: initialCreditNote.sent ? "20 Jun 2026" : undefined,
       // Awaiting-refund demo: an external refund was submitted with proof and is waiting on the
-      // accountant (drives the "Awaiting refund by accountant" chip). Applied notes carry no proof.
+      // accountant (drives the "Awaiting refund" chip). Applied notes carry no proof.
       refundProof: initialCreditNote.awaiting
         ? { date: REFUND_DATE_ISO, method: `Statrys · ${RECEIVING_ACCOUNTS.find((a) => a.primary)?.name ?? "Business Account"}`, amount: amt, referenceNo: "TRF-4472190", awaiting: true }
         : undefined,
@@ -327,11 +329,11 @@ export function InvoiceDetailPage({
 
   // Refund context (DES-720): the headline leads with the refund amount, not the amount due (paid
   // invoices owe nothing). Context = status "Pending Refund"/"Refunded" or a derived refund tag.
-  // The tag reflects money ACTUALLY refunded: full → Refunded, some → Partially Refunded; before any
-  // payout it falls back to the list-sync tag (and the "Pending Refund" status badge shows on its own).
+  // There is no "Partially Refunded" state — ANY money actually refunded reads as "Refunded"; before
+  // any payout it falls back to the list-sync tag (and the "Pending Refund" status badge shows on its own).
   const effectiveRefundTag =
-    fullyRefunded ? "Refunded"
-    : refundedOut > 0.001 ? "Partially Refunded"
+    refundedOut > 0.001 ? "Refunded"
+    : refundTag === "Partially Refunded" ? "Refunded"
     : refundTag;
   const isRefundContext = status === "PendingRefund" || status === "Refunded" || !!effectiveRefundTag;
   // MVP: one credit note per invoice. Count only ACTIVE (non-cancelled) notes — a cancelled note is
@@ -724,7 +726,7 @@ export function InvoiceDetailPage({
           <CreditsAppliedSection
             creditNotes={creditNotes}
             isRefundContext={isRefundContext}
-            fullyRefunded={fullyRefunded}
+            refundSettled={refundedOut > 0.001}
             outstanding={outstanding}
             expanded={cnExpanded}
             onExpand={() => setCnExpanded(true)}
@@ -1133,17 +1135,17 @@ export function InvoiceDetailPage({
           Shows status + type chips, a Related-invoice action (back to this invoice), and Send. */}
       {viewingCnIndex !== null && creditNotes[viewingCnIndex] && (() => {
         const cn = creditNotes[viewingCnIndex];
-        // The note's own status. Refund CN → Pending Refund until its payout settles, then Refunded (refund =
-        // full invoice) or Partially Refunded (refund < invoice total). Cancellation CN (DES-719,
-        // single-invoice) → simply "Applied" (applied on create; no Open/Partially/Fully split).
+        // The note's own status. Refund CN → Pending Refund until its payout settles, then Refunded once
+        // paid out (there is no "Partially Refunded" state). Cancellation CN (DES-719, single-invoice) →
+        // simply "Applied" (applied on create; no Open/Partially/Fully split).
         const through = creditNotes.slice(0, viewingCnIndex + 1).reduce((s, c) => s + c.amount, 0);
         const cnStatus = cn.draft
           ? "Draft"
           : cn.cancelled
           ? "Cancelled"
           : isRefundContext
-          ? (cn.refundProof?.awaiting ? "Awaiting refund by accountant"
-             : through > refundedOut + 0.001 ? "Applied" : refundedOut >= TOTAL - 0.001 ? "Refunded" : "Partially Refunded")
+          ? (cn.refundProof?.awaiting ? "Awaiting refund"
+             : through > refundedOut + 0.001 ? "Applied" : "Refunded")
           : "Applied";
         return (
           <div className="absolute inset-0 z-50">

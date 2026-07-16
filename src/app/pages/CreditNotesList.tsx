@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { parse, format, addDays } from "date-fns";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ImportExportIcon from "@mui/icons-material/ImportExport";
 import TuneIcon from "@mui/icons-material/Tune";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -8,7 +7,10 @@ import CheckIcon from "@mui/icons-material/Check";
 import SearchIcon from "@mui/icons-material/Search";
 import StatusBar from "../components/StatusBar";
 import { Search } from "../components/Search";
-import { SheetHeader, HeaderIconButton } from "../components/SheetHeader";
+import { PageHeader } from "../ui/PageHeader";
+import { HorizontalTabs } from "../ui/HorizontalTabs";
+import { InvoiceRow } from "../ui/InvoiceRow";
+import type { BadgeColor } from "../ui/Badge";
 import { BottomSheet } from "../components/BottomSheet";
 import { ButtonDock } from "../components/ButtonDock";
 import { CreditNoteDetailPage } from "./CreditNoteDetailPage";
@@ -36,16 +38,15 @@ const dueLabelFor = (d: string): string | undefined => {
   return isNaN(parsed.getTime()) ? undefined : format(addDays(parsed, 30), "d MMM yyyy");
 };
 
-// DES-818 status palette — Draft (grey) / Applied (green) / Awaiting refund (amber) / Cancelled (muted
-// grey). Matches the chip palette on CreditNoteDetailPage so the list and detail read the same.
-const STATUS_PILL: Record<CNStatus, { bg: string; border: string; text: string }> = {
-  // Draft = the neutral beige pill from Figma (node 1312-7899).
-  Draft: { bg: "#faf9f4", border: "rgba(160,160,160,0.2)", text: "#808080" },
-  Applied: { bg: "#ecfdf3", border: "#abefc6", text: "#067647" },
-  // Refund CN awaiting the accountant's payout — amber, same tone as the invoice-detail "Awaiting
-  // refund by accountant" chip.
-  "Awaiting refund": { bg: "#fff7e6", border: "#fde68a", text: "#b45309" },
-  Cancelled: { bg: "#f3f3f3", border: "rgba(160,160,160,0.35)", text: "#9a9a9a" },
+// DES-818 status → DS Badge colour, so the CN rows read with the same status palette as the Sales
+// Invoice List rows: Draft (neutral) / Applied (green) / Awaiting refund (amber) / Refunded (indigo →
+// info) / Cancelled (neutral).
+const STATUS_COLOR: Record<CNStatus, BadgeColor> = {
+  Draft: "neutral",
+  Applied: "success",
+  "Awaiting refund": "warning",
+  Refunded: "info",
+  Cancelled: "neutral",
 };
 
 const money = (n: number) => `USD ${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -56,6 +57,7 @@ const FILTERS: { label: string; match: StatusMatch }[] = [
   { label: "Draft", match: "Draft" },
   { label: "Applied", match: "Applied" },
   { label: "Awaiting refund", match: "Awaiting refund" },
+  { label: "Refunded", match: "Refunded" },
   { label: "Cancelled", match: "Cancelled" },
 ];
 
@@ -142,42 +144,27 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
 
   return (
     <div className="relative bg-[#f9f5ea] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
+      {/* Thin horizontal scrollbar for the status tab row (the DS scroller is the wrapper's child) */}
       <style>{`
-        .chip-scroll{scrollbar-width:thin;scrollbar-color:rgba(160,160,160,0.45) transparent;}
-        .chip-scroll::-webkit-scrollbar{height:2px;}
-        .chip-scroll::-webkit-scrollbar-track{background:transparent;margin:0 16px;}
-        .chip-scroll::-webkit-scrollbar-thumb{background:rgba(160,160,160,0.45);border-radius:9999px;}
+        .tabs-wrap > div{scrollbar-width:thin;scrollbar-color:rgba(160,160,160,0.45) transparent;}
+        .tabs-wrap > div::-webkit-scrollbar{height:2px;}
+        .tabs-wrap > div::-webkit-scrollbar-track{background:transparent;margin:0 16px;}
+        .tabs-wrap > div::-webkit-scrollbar-thumb{background:rgba(160,160,160,0.45);border-radius:9999px;}
       `}</style>
 
       <StatusBar />
 
-      <SheetHeader
-        title="Credit Notes"
-        type="inside-page"
-        state="fixed"
-        className="bg-[#f9f5ea]"
-        leading={
-          <HeaderIconButton aria-label="Back" onClick={onBack}>
-            <ChevronLeftIcon />
-          </HeaderIconButton>
-        }
-        trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
-      />
+      {/* DS PageHeader (center) — back chevron only, title optically centered. */}
+      <PageHeader type="center" title="Credit Notes" onBack={onBack} showSearch={false} />
 
-      {/* Status filter chips — horizontally scrollable */}
-      <div className="shrink-0 flex gap-2 overflow-x-auto chip-scroll bg-[#f9f5ea] px-4 pt-4 pb-3 rounded-b-lg shadow-[0_4px_14px_rgba(226,220,203,0.3)] relative z-10">
-        {FILTERS.map((f, i) => {
-          const isActive = i === active;
-          return (
-            <button
-              key={f.label}
-              onClick={() => setActive(i)}
-              className={`shrink-0 h-[30px] px-3 rounded-full whitespace-nowrap link-upper-sm ${isActive ? "bg-[#ff4a15] text-white" : "bg-white text-[#1b1b1b]"}`}
-            >
-              {f.label} ( {counts[i]} )
-            </button>
-          );
-        })}
+      {/* Status filter tabs — DS HorizontalTabs (button style), horizontally scrollable */}
+      <div className="tabs-wrap shrink-0 bg-[#f9f5ea] px-4 pt-4 pb-3 rounded-b-lg shadow-[0_4px_14px_rgba(226,220,203,0.3)] relative z-10">
+        <HorizontalTabs
+          variant="button"
+          tabs={FILTERS.map((f, i) => `${f.label} (${counts[i]})`)}
+          activeIndex={active}
+          onChange={setActive}
+        />
       </div>
 
       {/* Sort / Filter row */}
@@ -196,38 +183,26 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
         </button>
       </div>
 
-      {/* Credit notes list */}
-      <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pt-4 pb-28 flex flex-col gap-2">
+      {/* Credit notes list — DS InvoiceRows as a flat list on the white page (divider between rows). */}
+      <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pb-28 flex flex-col">
         {list.length === 0 ? (
           <p className="text-center text-[13px] text-[#a0a0a0] pt-16" style={FONT}>No credit notes found</p>
         ) : (
-          list.map((cn) => {
-            const s = STATUS_PILL[cn.status];
-            return (
-              <button
-                key={cn.no}
-                onClick={() => setPreview(cn)}
-                className="shrink-0 w-full flex flex-col gap-2 border border-dashed rounded-2xl p-4 text-left bg-white transition-shadow hover:shadow-[0_4px_12px_rgba(16,24,40,0.08)]"
-                style={{ borderColor: "rgba(160,160,160,0.2)" }}
-              >
-                {/* Card layout per Figma 1312-7899 — customer + CN number + "Created on <date>" on the left,
-                    amount over the status pill on the right. Only the status pill differs by status. */}
-                <div className="flex items-start justify-between gap-2.5">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[16px] font-medium leading-[1.2] tracking-[-0.3px] truncate text-[#101828]" style={FONT}>{cn.customer}</p>
-                    <div className="flex flex-col gap-0.5 mt-1">
-                      <p className="text-[12px] font-medium leading-[1.2] truncate" style={{ ...FONT, color: "#1b1b1b" }}>{cn.no}</p>
-                      <p className="text-[12px] leading-[1.2] truncate" style={{ ...FONT, color: "#808080" }}>Created on {cn.date}</p>
-                    </div>
-                  </div>
-                  <div className="shrink-0 flex flex-col items-end gap-1.5">
-                    <p className="text-[16px] font-bold leading-[1.2] text-[#101828] whitespace-nowrap" style={FONT}>{money(cn.original)}</p>
-                    <span className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-full border text-[11px] font-bold leading-[15px] whitespace-nowrap" style={{ ...FONT, background: s.bg, borderColor: s.border, color: s.text }}>{cn.status}</span>
-                  </div>
-                </div>
-              </button>
-            );
-          })
+          list.map((cn, i) => (
+            <InvoiceRow
+              key={cn.no}
+              size="md"
+              title={cn.customer}
+              // Drafts have no CN number yet (assigned on issue) — hide it until then.
+              invoiceNo={cn.status === "Draft" ? undefined : cn.no}
+              status={cn.status}
+              statusColor={STATUS_COLOR[cn.status]}
+              statusCaption={`Created on ${cn.date}`}
+              amount={money(cn.original)}
+              lastItem={i === list.length - 1}
+              onClick={() => setPreview(cn)}
+            />
+          ))
         )}
       </div>
 
@@ -367,9 +342,7 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               // The Credit Notes List always shows the normal credit-note detail (Credit to / Credited items).
               // Refund-specific framing belongs to the invoice-detail flow (DES-720/721), not here.
               kind="cancellation"
-              // List register uses the short "Awaiting refund" pill; the CN detail spells it out
-              // ("Awaiting refund by accountant") to match the invoice-detail flow.
-              status={preview.status === "Awaiting refund" ? "Awaiting refund by accountant" : preview.status}
+              status={preview.status}
               sent={preview.sent}
               onBack={() => setPreview(null)}
               // Related Invoice row → open that invoice's detail (shows the chevron arrow).

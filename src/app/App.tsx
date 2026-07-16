@@ -202,7 +202,9 @@ export default function App() {
   });
   // Refund outcomes recorded in-session (DES-720), keyed by invoice number → "partial" | "full". Lets the
   // detail page's refund sync to the invoice list (Partially Refunded / Refunded) and the credit-note list.
-  const [refundState, setRefundState] = useState<Record<string, "partial" | "full">>({});
+  // Seeded so a fully-Refunded invoice card shows under Paid on load (INV-…013 Meridian, full refund CN
+  // CN-…006). refundState is in-session; a reload resets it to just this seed (expected prototype limit).
+  const [refundState, setRefundState] = useState<Record<string, "partial" | "full">>({ "INV-2026-000013": "full" });
   // The client register (DES-713) — owned here so the full-page Add Client form can append to it.
   const [customers, setCustomers] = useState<Customer[]>(CUSTOMERS);
   // One-off success confirmation shown on the Customers list after a client is added (AC5).
@@ -575,8 +577,18 @@ export default function App() {
             invoiceTotal={CREDIT_NOTE_TOTAL}
             alreadyCredited={0}
             outstanding={CREDIT_NOTE_TOTAL}
-            onBack={() => setScreen("dashboard")}
-            onCreate={() => { setScreen("dashboard"); setToast({ title: "Credit note created" }); }}
+            // Back while creating → save progress as a Draft (DES-719) and open the invoice's detail.
+            onBack={() => jumpDetail({ number: "INV-2026-000007", client: "Northwind Traders", status: "Awaiting" })}
+            onSaveDraft={(p) => {
+              jumpDetail({ number: "INV-2026-000007", client: "Northwind Traders", status: "Awaiting", cnNo: "CN-2026-000001", cnAmount: p.amount, cnSent: false, cnDraft: true });
+              setDetailFlash("Saved as draft");
+            }}
+            // Apply → open the related invoice's detail with the new credit note applied (full → Void).
+            onCreate={(p) => {
+              const full = p.amount >= CREDIT_NOTE_TOTAL - 0.001;
+              jumpDetail({ number: "INV-2026-000007", client: "Northwind Traders", status: full ? "Cancelled" : "Awaiting", cnNo: "CN-2026-000001", cnAmount: p.amount, cnSent: false });
+              setDetailFlash(full ? "Invoice voided with a credit note" : "Credit note applied");
+            }}
           />
         </div>
       )}
@@ -597,8 +609,17 @@ export default function App() {
             invoiceTotal={CREDIT_NOTE_TOTAL}
             alreadyCredited={0}
             outstanding={CREDIT_NOTE_TOTAL}
-            onBack={() => setScreen("dashboard")}
-            onCreate={() => { setScreen("dashboard"); setToast({ title: "Credit note created" }); }}
+            // Back while creating → save progress as a Draft refund CN and open the invoice's detail.
+            onBack={() => jumpDetail({ number: "INV-2026-000005", client: "Atlas Logistics", status: "Paid" })}
+            onSaveDraft={(p) => {
+              jumpDetail({ number: "INV-2026-000005", client: "Atlas Logistics", status: "Paid", cnNo: "CN-2026-000010", cnAmount: p.amount, cnSent: false, cnDraft: true });
+              setDetailFlash("Saved as draft");
+            }}
+            // Apply → open the related invoice's detail with the refund credit note applied (Pending Refund).
+            onCreate={(p) => {
+              jumpDetail({ number: "INV-2026-000005", client: "Atlas Logistics", status: "PendingRefund", cnNo: "CN-2026-000010", cnAmount: p.amount, cnSent: false });
+              setDetailFlash("Refund credit note applied");
+            }}
           />
         </div>
       )}

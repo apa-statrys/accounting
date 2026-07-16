@@ -32,8 +32,6 @@ const STATUS_CHIP: Record<string, { bg: string; border: string; text: string }> 
   "Fully Applied": { bg: "#ecfdf3", border: "#abefc6", text: "#067647" },
   // Refund lifecycle (money) — for refund credit notes.
   "Pending Refund": { bg: "#fff7e6", border: "#fde68a", text: "#b45309" },
-  "Awaiting refund by accountant": { bg: "#fff7e6", border: "#fde68a", text: "#b45309" },
-  // Short label used by the Credit Notes List register (the invoice-detail flow uses the longer copy above).
   "Awaiting refund": { bg: "#fff7e6", border: "#fde68a", text: "#b45309" },
   "Partially Refunded": { bg: "#eef4ff", border: "#c7d8fe", text: "#2f5fd0" },
   "Refunded": { bg: "#eef2ff", border: "#c7d2fe", text: "#4338ca" },

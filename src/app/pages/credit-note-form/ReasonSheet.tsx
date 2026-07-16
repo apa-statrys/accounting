@@ -2,10 +2,9 @@ import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
 import { Tile } from "../../ui/Tile";
-import { TextInput } from "../../components/TextInput";
 
-/** Required reason for raising a credit note (DES-719) — fixed enum + "Other" (reveals a free-text
- *  Description inside this sheet, matching the ticket's "dropdown + optional free text"). */
+/** Required reason for raising a credit note (DES-719) — fixed enum. A free-text Description lives on
+ *  the form itself (optional), so this sheet is purely the enum picker. */
 export const CREDIT_REASONS = ["Return", "Defect", "Pricing error", "Goodwill", "Dispute", "Other"];
 
 interface ReasonSheetProps {
@@ -13,17 +12,11 @@ interface ReasonSheetProps {
   onClose: () => void;
   reason: string;
   setReason: (r: string) => void;
-  /** Free-text note — required only when "Other" is chosen. */
-  reasonNote: string;
-  setReasonNote: (n: string) => void;
 }
 
-/** Reason picker — required (DES-719). Tap a preset to select it; "Other" reveals a required
- *  free-text Description right here in the sheet. Confirm with Done (disabled until a reason —
- *  and a description for "Other" — is provided). */
-export function ReasonSheet({ open, onClose, reason, setReason, reasonNote, setReasonNote }: ReasonSheetProps) {
-  const needsNote = reason === "Other";
-  const canDone = reason !== "" && (!needsNote || reasonNote.trim() !== "");
+/** Reason picker — required (DES-719). Tap a preset to select it; confirm with Done (disabled until a
+ *  reason is chosen). The optional Description is captured on the main form, not here. */
+export function ReasonSheet({ open, onClose, reason, setReason }: ReasonSheetProps) {
   return (
     <BottomSheet
       open={open}
@@ -34,7 +27,7 @@ export function ReasonSheet({ open, onClose, reason, setReason, reasonNote, setR
         <ButtonDock
           type="single"
           primaryLabel="Done"
-          primaryDisabled={!canDone}
+          primaryDisabled={reason === ""}
           onPrimary={onClose}
           homeIndicator
         />
@@ -51,21 +44,6 @@ export function ReasonSheet({ open, onClose, reason, setReason, reasonNote, setR
             />
           </motion.div>
         ))}
-
-        {/* Free-text description — shown only for "Other", required so the custom reason is explained. */}
-        {needsNote && (
-          <div className="pt-1">
-            <TextInput
-              label="Enter reason of credit note"
-              required
-              size="md"
-              showHint={false}
-              placeholder="Enter description of your credit reason"
-              value={reasonNote}
-              onChange={(e) => setReasonNote(e.target.value)}
-            />
-          </div>
-        )}
       </div>
     </BottomSheet>
   );

@@ -11,7 +11,8 @@ import { InfoCard } from "./InfoBits";
 interface CreditsAppliedSectionProps {
   creditNotes: CreditNote[];
   isRefundContext: boolean;
-  fullyRefunded: boolean;
+  /** A refund has actually been paid out (any amount) — mirrors the invoice's "Refunded" tag. */
+  refundSettled: boolean;
   outstanding: number;
   expanded: boolean;
   onExpand: () => void;
@@ -24,7 +25,7 @@ interface CreditsAppliedSectionProps {
 export function CreditsAppliedSection({
   creditNotes,
   isRefundContext,
-  fullyRefunded,
+  refundSettled,
   outstanding,
   expanded,
   onExpand,
@@ -35,12 +36,19 @@ export function CreditsAppliedSection({
   const cnAppliedLabel = (cn: CreditNote) => {
     if (cn.draft) return "Draft";
     if (cn.cancelled) return "Cancelled";
-    // Refund CN (DES-720): reads "Applied" once committed, until the payout record (proof) takes over
-    // the row below ("Awaiting refund by accountant" / green "Refunded").
-    if (isRefundContext) return cn.refundProof ? null : "Applied";
+    // Refund CN (DES-720): when a payout record (proof) exists, the row below shows it. Otherwise the
+    // chip mirrors the invoice — "Refunded" once the refund has settled, else "Applied" (committed).
+    if (isRefundContext) return cn.refundProof ? null : refundSettled ? "Refunded" : "Applied";
     // Single-invoice model (DES-719): a created cancellation note is simply "Applied" (no
     // Open / Partially / Fully split — Create applies it in full to its one invoice).
     return "Applied";
+  };
+  // Chip palette per application status (matches the CN register + invoice-detail chips).
+  const CHIP: Record<string, { bg: string; border: string; text: string }> = {
+    Draft: { bg: "#f2f4f7", border: "#e4e7ec", text: "#475467" },
+    Applied: { bg: "#ecfdf3", border: "#abefc6", text: "#067647" },
+    Refunded: { bg: "#eef2ff", border: "#c7d2fe", text: "#4338ca" },
+    Cancelled: { bg: "#f3f3f3", border: "rgba(160,160,160,0.35)", text: "#9a9a9a" },
   };
   const reasonOf = (cn: CreditNote) => (cn.reason === "Others" ? (cn.reasonNote || "Other") : cn.reason);
   const ordered = creditNotes.map((cn, idx) => ({ cn, idx })).reverse();
@@ -64,18 +72,17 @@ export function CreditsAppliedSection({
                     <span className="block text-[12px] leading-[1.3] mt-0.5 truncate" style={{ ...FONT, color: MUTED }}>Reason: {reasonOf(cn)}</span>
                   )}
                   {/* Cancellation CN → application status as a coloured chip (Figma 696:4595). */}
-                  {appliedLabel ? (
-                    <span
-                      className="inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full border text-[10px] font-bold"
-                      style={{ ...FONT,
-                        background: appliedLabel === "Draft" ? "#f2f4f7" : appliedLabel === "Applied" ? "#ecfdf3" : "#f3f3f3",
-                        borderColor: appliedLabel === "Draft" ? "#e4e7ec" : appliedLabel === "Applied" ? "#abefc6" : "rgba(160,160,160,0.35)",
-                        color: appliedLabel === "Draft" ? "#475467" : appliedLabel === "Applied" ? "#067647" : "#9a9a9a",
-                      }}
-                    >
-                      {appliedLabel}
-                    </span>
-                  ) : isRefundContext ? null : (
+                  {appliedLabel ? (() => {
+                    const c = CHIP[appliedLabel] ?? CHIP.Cancelled;
+                    return (
+                      <span
+                        className="inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full border text-[10px] font-bold"
+                        style={{ ...FONT, background: c.bg, borderColor: c.border, color: c.text }}
+                      >
+                        {appliedLabel}
+                      </span>
+                    );
+                  })() : isRefundContext ? null : (
                     <span className="block text-[12px] leading-[1.3] mt-0.5" style={{ ...FONT, color: cn.sent ? MUTED : "#b45309" }}>
                       {cn.sent ? `Sent on ${cn.sentDate}` : "Not sent yet"}
                     </span>
@@ -93,7 +100,7 @@ export function CreditsAppliedSection({
               {proof && (proof.awaiting ? (
                 <div className="mt-2 rounded-lg border border-[#fde68a] bg-[#fff7e6] px-2.5 py-2 flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#b45309" }} />
-                  <span className="text-[12px] font-semibold" style={{ ...FONT, color: "#b45309" }}>Awaiting refund by accountant</span>
+                  <span className="text-[12px] font-semibold" style={{ ...FONT, color: "#b45309" }}>Awaiting refund</span>
                 </div>
               ) : (
                 <div className="mt-2 rounded-lg border border-[rgba(15,157,88,0.25)] bg-[rgba(15,157,88,0.06)] px-2.5 py-2 flex flex-col gap-2">

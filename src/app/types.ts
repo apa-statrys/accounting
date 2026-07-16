@@ -148,8 +148,9 @@ export interface ServiceLine {
 // live on the invoice-detail side per DES-720/721, not in this list.)
 // "Awaiting refund" = a refund credit note raised on a paid invoice, waiting for the accountant to
 // pay it out (the invoice-detail flow spells this "Awaiting refund by accountant"; the list uses the
-// short label). See doc/sales-invoice-flows/invoice-detail-behavior.md (DES-720/721).
-export type CNStatus = "Draft" | "Applied" | "Cancelled" | "Awaiting refund";
+// short label). Once the accountant approves the payout, both the invoice AND the credit note become
+// "Refunded". See doc/sales-invoice-flows/invoice-detail-behavior.md (DES-720/721).
+export type CNStatus = "Draft" | "Applied" | "Cancelled" | "Awaiting refund" | "Refunded";
 
 export interface CreditNote {
   no: string;

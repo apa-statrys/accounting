@@ -106,13 +106,15 @@ function Row({ leading, title, subtitle, value, onClick, trailing, last }: {
       )}
     </>
   );
-  // A toggle row carries its own control, so it's a plain div; navigable rows are buttons.
-  return trailing ? (
-    <div className={`w-full flex items-center gap-3 px-[15px] py-3 ${border}`}>{body}</div>
-  ) : (
+  // Navigable rows (with an onClick) are buttons — including ones with a custom `trailing` display
+  // like Payment Method. Rows that carry their own control and don't navigate (e.g. the toggle row,
+  // no onClick) stay plain divs.
+  return onClick ? (
     <button type="button" onClick={onClick} className={`group w-full flex items-center gap-3 px-[15px] py-3 text-left ${border}`}>
       {body}
     </button>
+  ) : (
+    <div className={`w-full flex items-center gap-3 px-[15px] py-3 ${border}`}>{body}</div>
   );
 }
 
@@ -355,6 +357,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         open={sheet === "address"}
         title="Business Address"
         onClose={() => setSheet(null)}
+        dsHeader
         heightClass="h-[72%]"
         footer={<ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && addressValid)} onPrimary={() => setSheet(null)} homeIndicator />}
       >
@@ -414,7 +417,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
       </BottomSheet>
 
       {/* Dropdown option picker (country / city / state) — stacks over the Address sheet */}
-      <BottomSheet open={!!picker} title={picker?.title ?? ""} onClose={() => setPicker(null)} heightClass="h-[72%]">
+      <BottomSheet open={!!picker} title={picker?.title ?? ""} onClose={() => setPicker(null)} dsHeader heightClass="h-[72%]">
         {picker && picker.options.length > 8 && (
           <div className="mb-3">
             <Search size="md" placeholder={`Search ${picker.title.toLowerCase()}`} value={pickerQuery} onChange={(e) => setPickerQuery(e.target.value)} />

@@ -162,18 +162,15 @@ export function CreditNoteForm({
   const amountDue = Math.max(0, originalTotal - credited);
   const exceedsCap = credited > outstanding + 0.001;
   const isFull = Math.abs(credited - outstanding) < 0.001;
-  // A reason is always required; the free-text Description is required only when the reason is "Other"
-  // (DES-719 — dropdown + optional free text; "Other" needs a description to be meaningful).
-  const needsNote = reason === "Other";
-  const canCreate =
-    credited > 0 && !exceedsCap && reason !== "" && (!needsNote || reasonNote.trim() !== "");
+  // A reason is always required; the free-text Description below it is always OPTIONAL.
+  const canCreate = credited > 0 && !exceedsCap && reason !== "";
 
   // form-cta-validation: the CTA is always enabled; a failed click scrolls to the first invalid field
   // and reveals its inline error. `attempted` flips on the first failed submit (errors clear as fixed).
   const [attempted, setAttempted] = useState(false);
   const reasonRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<HTMLDivElement>(null);
-  const reasonInvalid = reason === "" || (needsNote && reasonNote.trim() === "");
+  const reasonInvalid = reason === "";
   const amountInvalid = credited <= 0.001; // nothing credited yet (exceedsCap has its own banner)
   const reasonError = attempted && reasonInvalid;
   const amountError = attempted && amountInvalid;
@@ -273,8 +270,8 @@ export function CreditNoteForm({
     issueDate,
     dueDateLabel,
     reason,
-    // Only a free-text reason ("Other") carries a note; presets store none.
-    reasonNote: needsNote ? reasonNote.trim() : "",
+    // Optional free-text description (any reason).
+    reasonNote: reasonNote.trim(),
     draftLines: lines,
     accountId,
   });
@@ -334,17 +331,15 @@ export function CreditNoteForm({
                 <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
               </span>
             </button>
-            {/* Due Date + Receiving Account apply to a cancellation CN (reducing an unpaid invoice). A
-                refund CN pays money out — no due date, and the source account is chosen in the refund flow. */}
-            {!refund && (
-              <button type="button" onClick={() => setDueOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
-                <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Due Date</span>
-                <span className="flex items-center gap-1.5">
-                  <span className="text-[14px] font-medium" style={{ ...FONT, color: "#101828" }}>{dueLabel}</span>
-                  <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
-                </span>
-              </button>
-            )}
+            {/* Due Date shows for both credit + refund (defaults to Next 30 days). The Receiving Account
+                row is cancellation-only — a refund CN's source account is chosen in the refund flow. */}
+            <button type="button" onClick={() => setDueOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
+              <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Due Date</span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-[14px] font-medium" style={{ ...FONT, color: "#101828" }}>{dueLabel}</span>
+                <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
+              </span>
+            </button>
             {!refund && (
               <button type="button" onClick={() => setAcctSheetOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
                 <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Receiving Account</span>
@@ -385,16 +380,30 @@ export function CreditNoteForm({
             style={{ borderColor: reasonError ? "#dc2626" : "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
           >
             <span className="text-[16px] truncate" style={{ ...FONT, color: reason ? "#1b1b1b" : "#9ca3af" }}>
-              {/* "Other" shows the user's free-text description on the main page, not the word "Other". */}
-              {reason === "Other" ? (reasonNote.trim() || "Other") : (reason || "Select a reason")}
+              {reason || "Select a reason"}
             </span>
             <KeyboardArrowDownIcon style={{ fontSize: 24, color: "#808080" }} />
           </button>
           {reasonError && (
             <p className="text-[12px] leading-[1.3]" style={{ ...FONT, color: "#dc2626" }}>
-              {reason === "" ? "Please select a reason for this credit note." : "Please add a description for the reason."}
+              Please select a reason for this {refund ? "refund" : "credit note"}.
             </p>
           )}
+        </div>
+
+        {/* Optional free-text description — applies to any reason (both credit + refund flows). */}
+        <div className="flex flex-col gap-[7px]">
+          <label className="text-[16px] font-medium leading-[1.3]" style={{ ...FONT, color: "#090a0a" }}>
+            Description
+          </label>
+          <textarea
+            value={reasonNote}
+            onChange={(e) => setReasonNote(e.target.value)}
+            placeholder={`Add a note about this ${refund ? "refund" : "credit note"}`}
+            rows={3}
+            className="w-full rounded-[8px] border px-4 py-3 bg-white text-[16px] outline-none resize-none"
+            style={{ ...FONT, color: "#1b1b1b", borderColor: "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
+          />
         </div>
 
         {/* Corrected invoice — edit each line to its CORRECT value; the credit is derived automatically. */}
@@ -497,15 +506,11 @@ export function CreditNoteForm({
             </div>
             {refund ? (
               <>
-                {/* Total refund is the highlighted figure; remaining after refund follows. */}
+                {/* Total refund is the highlighted figure. */}
                 <div className="h-px bg-[rgba(160,160,160,0.3)] my-1" />
                 <div className="flex items-center justify-between py-3">
                   <span className="text-[15px] font-black tracking-[-0.3px]" style={{ ...FONT, color: INK }}>Total refund</span>
                   <span className="text-[18px] font-black tracking-[-0.5px]" style={{ ...FONT, color: "#b42318" }}>− {money(credited)}</span>
-                </div>
-                <div className="flex items-center justify-between py-2.5 border-t border-[rgba(160,160,160,0.18)]">
-                  <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Remaining after refund</span>
-                  <span className="text-[13px] font-medium" style={{ ...FONT, color: INK }}>{money(amountDue)}</span>
                 </div>
               </>
             ) : (
@@ -594,8 +599,6 @@ export function CreditNoteForm({
         onClose={() => setReasonSheetOpen(false)}
         reason={reason}
         setReason={setReason}
-        reasonNote={reasonNote}
-        setReasonNote={setReasonNote}
       />
 
       {/* Edit client details — applies to this credit note only (not the invoice or client record) */}
