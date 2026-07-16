@@ -148,7 +148,7 @@ export function InvoiceDetailPage({
       // Awaiting-refund demo: an external refund was submitted with proof and is waiting on the
       // accountant (drives the "Awaiting refund by accountant" chip). Applied notes carry no proof.
       refundProof: initialCreditNote.awaiting
-        ? { date: REFUND_DATE_ISO, method: "External bank transfer", amount: amt, referenceNo: "TRF-4472190", awaiting: true }
+        ? { date: REFUND_DATE_ISO, method: `Statrys · ${RECEIVING_ACCOUNTS.find((a) => a.primary)?.name ?? "Business Account"}`, amount: amt, referenceNo: "TRF-4472190", awaiting: true }
         : undefined,
     }];
   });

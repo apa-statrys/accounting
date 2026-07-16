@@ -871,14 +871,14 @@ export function AddInvoiceDetails({
       <ReceivingAccountSheet
         open={accountSheetOpen}
         value={accountId}
+        // Only Statrys accounts can receive an invoice payment — hide "Use Other Bank Accounts".
+        hideExternal
         onClose={() => setAccountSheetOpen(false)}
         onSelect={(id) => {
           setAccountId(id);
           setExternalCardLast4(null); // a Statrys pick replaces the external card
           setAccountSheetOpen(false);
         }}
-        // "Use Other Bank Accounts" (user, 15/Jul) → card-details sheet.
-        onUseExternal={() => { setAccountSheetOpen(false); setOtherBankOpen(true); }}
       />
 
       {/* Card-details sheet — back returns to the account sheet; Confirm lands on the editor

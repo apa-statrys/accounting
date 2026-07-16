@@ -35,13 +35,6 @@ export interface RefundCreditNoteFlowProps {
   onMarkRefunded: (proof: { date: string; method: string; amount: number; proofFile?: string; referenceNo?: string }) => void;
 }
 
-/** Demo external bank accounts (registered outside Statrys) — offered alongside the Statrys accounts in
- *  the "bank account used" picker (DES-720). Real external-account registration is out of scope. */
-const EXTERNAL_ACCOUNTS = [
-  { id: "hsbc", name: "HSBC Business", number: "••••4021" },
-  { id: "wise", name: "Wise (USD)", number: "••••8830" },
-];
-
 function Row({ label, value, last }: { label: string; value: string; last?: boolean }) {
   return (
     <div className={`flex items-center justify-between py-3 ${last ? "" : "border-b border-[rgba(160,160,160,0.18)]"}`}>
@@ -270,13 +263,7 @@ export function RefundCreditNoteFlow({
               <DsTile key={a.id} title={a.name} text={a.number} flag={<span className="text-[20px] leading-none">{a.flag}</span>} selected={mAccount === label} trailing={mAccount === label ? "check" : "none"} onClick={() => { setMAccount(label); setAcctOpen(false); }} />
             );
           })}
-          <span className="px-1 pt-1 text-[11px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>Other accounts</span>
-          {EXTERNAL_ACCOUNTS.map((a) => {
-            const label = `${a.name} (${a.number})`;
-            return (
-              <DsTile key={a.id} title={a.name} text={a.number} icon={<span className="text-[18px] leading-none">🏦</span>} selected={mAccount === label} trailing={mAccount === label ? "check" : "none"} onClick={() => { setMAccount(label); setAcctOpen(false); }} />
-            );
-          })}
+          {/* Refunds pay out from a Statrys account only — external "Other accounts" are hidden. */}
         </div>
       </BottomSheet>
     </div>
