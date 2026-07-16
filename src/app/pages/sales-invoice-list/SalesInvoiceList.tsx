@@ -212,9 +212,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
       <div className="shrink-0 flex items-center justify-between bg-white px-4 py-2.5 border-b border-[#f1f1f1]">
         <button onClick={() => setSortOpen(true)} className="flex items-center gap-1" style={FONT}>
           <ImportExportIcon style={{ fontSize: 18, color: "#1b1b1b" }} />
-          <span className="text-[13px] text-[#1b1b1b]">
-            Sort: <span className="font-medium">{sortLabel}</span>
-          </span>
+          <span className="text-[13px] font-medium text-[#1b1b1b]">{sortLabel}</span>
           <KeyboardArrowDownIcon style={{ fontSize: 16, color: "#808080" }} />
         </button>
         <button onClick={() => setFilterOpen(true)} className="flex items-center gap-1.5" style={FONT}>

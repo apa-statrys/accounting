@@ -193,7 +193,7 @@ export default function App() {
   // Freshly created/saved invoice to surface + highlight at the top of the list.
   const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string; recurring?: boolean } | null>(null);
   // The invoice opened into the detail page (status drives the lifecycle UI).
-  const [openInvoice, setOpenInvoice] = useState<{ number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean; recurring?: boolean; viewCn?: boolean }>({
+  const [openInvoice, setOpenInvoice] = useState<{ number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean; cnAwaiting?: boolean; recurring?: boolean; viewCn?: boolean }>({
     number: "INV-2026-000042",
     client: "Marlow & Finch Studio",
     status: "Awaiting",
@@ -274,7 +274,7 @@ export default function App() {
 
   // Sidebar deep link: open the invoice detail seeded with a register demo invoice.
   const jumpDetail = (
-    inv: { number: string; client: string; status: DetailStatus; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean },
+    inv: { number: string; client: string; status: DetailStatus; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean; cnAwaiting?: boolean },
     viewCn = false
   ) => {
     setOpenInvoice({ origin: "created", ...inv, viewCn });
@@ -336,6 +336,10 @@ export default function App() {
     },
     {
       title: "Credit Note",
+      items: [
+        // Opens the Credit Notes register with no preview overlaid (null clears any prior deep link).
+        { label: "Credit Note List", active: screen === "creditNotes" && cnPreview === null, onSelect: () => { setCnPreview(null); setScreen("creditNotes"); } },
+      ],
       sections: [
         {
           heading: "Unpaid Invoice",
@@ -361,19 +365,19 @@ export default function App() {
               },
             },
             {
-              label: "Refund CN — Pending Refund",
-              active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && !openInvoice.cnDraft && !refundState["INV-2026-000015"],
+              label: "Refund CN — Applied",
+              active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && !openInvoice.cnDraft && !openInvoice.cnAwaiting && !refundState["INV-2026-000015"],
               onSelect: () => {
                 setRefundState(({ ["INV-2026-000015"]: _drop, ...rest }) => rest);
                 jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false }, true);
               },
             },
             {
-              label: "Refund CN — Refunded",
-              active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && !openInvoice.cnDraft && refundState["INV-2026-000015"] === "full",
+              label: "Refund CN — Awaiting refund",
+              active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && !!openInvoice.cnAwaiting,
               onSelect: () => {
-                setRefundState((s) => ({ ...s, "INV-2026-000015": "full" }));
-                jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false }, true);
+                setRefundState(({ ["INV-2026-000015"]: _drop, ...rest }) => rest);
+                jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false, cnAwaiting: true }, true);
               },
             },
           ],
@@ -647,7 +651,7 @@ export default function App() {
           customerName={openInvoice.client}
           customerEmail={CREDIT_NOTES.find((c) => c.no === openInvoice.cnNo)?.email}
           companyEmail={settings.email}
-          initialCreditNote={openInvoice.cnNo ? { no: openInvoice.cnNo, amount: openInvoice.cnAmount, sent: !!openInvoice.cnSent, draft: openInvoice.cnDraft } : undefined}
+          initialCreditNote={openInvoice.cnNo ? { no: openInvoice.cnNo, amount: openInvoice.cnAmount, sent: !!openInvoice.cnSent, draft: openInvoice.cnDraft, awaiting: openInvoice.cnAwaiting } : undefined}
           refundTag={(() => {
             // A refund completed in-session this run wins (Partially Refunded / Refunded).
             const done = refundState[openInvoice.number];

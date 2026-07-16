@@ -57,7 +57,7 @@ interface InvoiceDetailPageProps {
   /** Seed a credit note for an invoice opened from the list. `amount` omitted = full credit (Cancelled);
    *  a smaller `amount` = partial (invoice stays Awaiting, balance reduced). `sent` → Resend. */
   /** `draft` seeds the note un-applied with a Draft chip (dev deep link for the draft-CN demo). */
-  initialCreditNote?: { no: string; amount?: number; sent: boolean; draft?: boolean };
+  initialCreditNote?: { no: string; amount?: number; sent: boolean; draft?: boolean; awaiting?: boolean };
   onBack?: () => void;
   /** Open the create/edit form prefilled with this invoice (Draft = full edit, issued = limited). */
   onEdit?: (seed: InvoiceEditSeed) => void;
@@ -145,6 +145,11 @@ export function InvoiceDetailPage({
       draftLines,
       sent: !!initialCreditNote.sent,
       sentDate: initialCreditNote.sent ? "20 Jun 2026" : undefined,
+      // Awaiting-refund demo: an external refund was submitted with proof and is waiting on the
+      // accountant (drives the "Awaiting refund by accountant" chip). Applied notes carry no proof.
+      refundProof: initialCreditNote.awaiting
+        ? { date: REFUND_DATE_ISO, method: "External bank transfer", amount: amt, referenceNo: "TRF-4472190", awaiting: true }
+        : undefined,
     }];
   });
   const [creditFormOpen, setCreditFormOpen] = useState(false);
@@ -156,7 +161,7 @@ export function InvoiceDetailPage({
   const [refundFlowOpen, setRefundFlowOpen] = useState(false);
   // DES-720 AC5 — an EXTERNAL refund was submitted (proof recorded) and is awaiting accountant
   // confirmation. The invoice stays Pending Refund; this just stops the dock offering "Continue Refund".
-  const [refundSubmitted, setRefundSubmitted] = useState(false);
+  const [refundSubmitted, setRefundSubmitted] = useState(!!initialCreditNote?.awaiting);
   // DES-720 cumulative refunds: money ACTUALLY paid out so far (vs `credited` = total committed to refund
   // credit notes). The gap `credited − refundedOut` is a committed-but-unpaid refund still awaiting payout.
   // Seeded to the credited total when the invoice opens already-refunded (list-sync tag), so a demo
