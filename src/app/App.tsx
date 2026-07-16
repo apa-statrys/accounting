@@ -387,6 +387,15 @@ export default function App() {
                 jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false, cnAwaiting: true }, true);
               },
             },
+            {
+              // Payout settled (refundState=full) — the CN detail reads "Refunded".
+              label: "Refund CN — Refunded",
+              active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && refundState["INV-2026-000015"] === "full",
+              onSelect: () => {
+                setRefundState((s) => ({ ...s, "INV-2026-000015": "full" }));
+                jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false }, true);
+              },
+            },
           ],
         },
       ],

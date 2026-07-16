@@ -31,11 +31,15 @@ export function ReceivingAccountSheet({
   return (
     <BottomSheet open={open} title={title} onClose={onClose} dsHeader>
       <div className="flex flex-col gap-4">
-        <motion.div variants={sheetItem}>
-          <p className="text-[16px] font-medium leading-[1.3] text-[#1b1b1b]" style={FONT}>
-            Statrys Accounts
-          </p>
-        </motion.div>
+        {/* The "Statrys Accounts" group header only makes sense when the external "Use Other Bank
+            Accounts" option is also shown; with external hidden there's a single group, so drop it. */}
+        {!hideExternal && (
+          <motion.div variants={sheetItem}>
+            <p className="text-[16px] font-medium leading-[1.3] text-[#1b1b1b]" style={FONT}>
+              Statrys Accounts
+            </p>
+          </motion.div>
+        )}
 
         {/* DS Tile country variant — 30px flag slot; the primary account wears the Figma
             corner "Primary" badge (brand gradient, pinned top-right). */}

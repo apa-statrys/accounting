@@ -307,8 +307,9 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           </Card>
         )}
 
-        {/* Receiving account (Figma 1209) — the account the credit is set against. */}
-        {receivingAccount && (
+        {/* Receiving account (Figma 1209) — the account the credit is set against. Not shown for a refund
+            CN: the money goes OUT, and the account used is on the "Refund Method" card below. */}
+        {receivingAccount && !isRefund && (
           <Card title="Receiving Account">
             <div className="py-3">
               <div className="flex items-center gap-2">
@@ -351,19 +352,15 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
                 </div>
               </>
             ) : isRefund && invoiceTotal !== undefined ? (
-              // Refund summary (DES-720): Invoice Total / Refund Amount (−) / Net Paid (= total − refund).
+              // Refund summary (DES-720): Invoice Total + the Refund Amount (the amount refunded).
               <>
                 <div className="flex items-center justify-between py-2.5 border-b border-[rgba(160,160,160,0.18)]">
                   <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Invoice Total</span>
                   <span className="text-[13px]" style={{ ...FONT, color: INK }}>{money(invoiceTotal)}</span>
                 </div>
-                <div className="flex items-center justify-between py-2.5 border-b border-[rgba(160,160,160,0.18)]">
-                  <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Refund Amount</span>
-                  <span className="text-[13px] font-medium" style={{ ...FONT, color: "#b42318" }}>−{money(total)}</span>
-                </div>
                 <div className="flex items-center justify-between py-3">
-                  <span className="text-[15px] font-bold" style={{ ...FONT, color: INK }}>Net Paid</span>
-                  <span className="text-[15px] font-bold shrink-0" style={{ ...FONT, color: INK }}>{money(Math.max(0, invoiceTotal - total))}</span>
+                  <span className="text-[15px] font-bold" style={{ ...FONT, color: INK }}>Refund Amount</span>
+                  <span className="text-[15px] font-bold shrink-0" style={{ ...FONT, color: "#b42318" }}>−{money(total)}</span>
                 </div>
               </>
             ) : isCancellation && invoiceTotal !== undefined ? (

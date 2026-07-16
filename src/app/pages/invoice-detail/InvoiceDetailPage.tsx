@@ -341,12 +341,10 @@ export function InvoiceDetailPage({
   const activeCnCount = creditNotes.filter((c) => !c.cancelled).length;
   // Plain Paid (no refund in progress) — its actions (Refund + Preview as PDF) live in the ⋯ menu, no dock.
   const paidActionsInMenu = status === "Paid" && !isRefundContext && activeCnCount === 0;
-  // The sectioned layout (Bill To → Receiving card → Invoice Details → Items → Summary) drives every
-  // status except the refund-context detail (which keeps its own DES-720 layout). Recurring
-  // occurrences use it too — the recurring-series card renders above the Bill To card.
-  const sectionedLayout =
-    status === "Draft" || status === "Awaiting" || status === "Overdue" || status === "PartiallyPaid" ||
-    status === "Cancelled" || (status === "Paid" && !isRefundContext);
+  // The sectioned layout (Bill To → Receiving card → Invoice Details → Items → Summary) drives EVERY
+  // status, including the refund-context detail (Pending Refund / Refunded), so they read the same as
+  // the rest. Recurring occurrences use it too — the recurring-series card renders above the Bill To card.
+  const sectionedLayout = true;
   // Headline: while a payout is due, lead with the pending amount ("Amount to refund"); once settled,
   // show the cumulative amount refunded to date.
   const headlineAmount =
