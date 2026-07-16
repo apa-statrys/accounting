@@ -10,6 +10,7 @@ import { CustomerDetailPage } from "./pages/CustomerDetailPage";
 import { AddCustomerPage } from "./pages/AddCustomerPage";
 import { CREDIT_NOTES } from "./data/creditNotes";
 import { INVOICES } from "./data/invoices";
+import { FONT } from "./lib/theme";
 import { InvoiceDetailPage } from "./pages/invoice-detail/InvoiceDetailPage";
 import { CreditNoteForm } from "./pages/credit-note-form/CreditNoteForm";
 import { CreateSalesInvoice } from "./pages/CreateSalesInvoice";
@@ -330,6 +331,10 @@ export default function App() {
             { label: "Partially Paid", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000014", onSelect: () => jumpDetail({ number: "INV-2026-000014", client: "Verde Coffee Roasters", status: "PartiallyPaid" }) },
             { label: "Paid", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000005", onSelect: () => jumpDetail({ number: "INV-2026-000005", client: "Atlas Logistics", status: "Paid" }) },
             { label: "Refund Pending + 1 Applied CN", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000011", onSelect: () => jumpDetail({ number: "INV-2026-000011", client: "Cobalt Systems", status: "Paid", cnNo: "CN-2026-000004", cnAmount: 1200, cnSent: false }) },
+            // Fully-refunded invoice — its refund CN is paid out (refundState=full), so the detail reads "Refunded".
+            { label: "Refunded", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && refundState["INV-2026-000015"] === "full", onSelect: () => { setRefundState((s) => ({ ...s, "INV-2026-000015": "full" })); jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false }); } },
+            // Voided invoice (terminal) — voided with a credit note (CN-…001).
+            { label: "Void", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000008", onSelect: () => jumpDetail({ number: "INV-2026-000008", client: "Bright Harbor Co.", status: "Cancelled", cnNo: "CN-2026-000001", cnSent: true }) },
           ],
         },
       ],
@@ -980,6 +985,29 @@ export default function App() {
             setScreen("invoiceDetail");
           }}
         />
+      )}
+
+      {/* Scenario annotation — shown in the white space to the right of the phone frame, only on the
+          voided demo invoice (INV-…008), explaining how it reached the Void state. */}
+      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000008" && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Scenario</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              A user sent an invoice for a website design project.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              Before payment is made, their customer decides to cancel the entire project.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              The user creates a full credit note, and the invoice status changes to{" "}
+              <span className="font-semibold">Voided</span>.
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Screen jumper — the collapsible QuickNav sidebar (stakeholder demos), shown in

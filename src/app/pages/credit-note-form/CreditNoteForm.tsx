@@ -178,9 +178,17 @@ export function CreditNoteForm({
   const reasonError = attempted && reasonInvalid;
   const amountError = attempted && amountInvalid;
 
+  // Per-line cap: the amount credited/refunded can never exceed what was invoiced, so the unit price
+  // is capped at the ORIGINAL unit price (original ÷ invoiced qty). With the qty stepper already capped
+  // at maxQty, this guarantees each line total (qty × unit price) stays ≤ the line's original amount.
+  const unitCap = (l: DraftLine) => lineOriginal(l) / (l.maxQty || 1);
+  const capStr = (cap: number) => (Number.isInteger(cap) ? String(cap) : cap.toFixed(2));
+  const clampUnit = (l: DraftLine, v: string) => ((Number(v) || 0) > unitCap(l) + 0.001 ? capStr(unitCap(l)) : v);
+
   const setUnitPrice = (id: string, raw: string) =>
-    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, unitPrice: raw.replace(/[^0-9.]/g, "") } : l)));
-  // Custom keypad → mutate the focused line's per-unit price (max one dot, max 2 decimals).
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, unitPrice: clampUnit(l, raw.replace(/[^0-9.]/g, "")) } : l)));
+  // Custom keypad → mutate the focused line's per-unit price (max one dot, max 2 decimals). A press that
+  // would push the value over the original unit price clamps it back to that maximum (hard cap).
   const keypadPress = (key: string) => {
     if (!focusedLineId) return;
     setLines((prev) => prev.map((l) => {
@@ -193,7 +201,7 @@ export function CreditNoteForm({
         if (v.includes(".") && v.split(".")[1].length >= 2) return l; // cap at 2 decimals
         v = v + key;
       }
-      return { ...l, unitPrice: v };
+      return { ...l, unitPrice: clampUnit(l, v) };
     }));
   };
   // Focus an amount field → open the keypad, scroll it into view, then lock scrolling once settled.
@@ -287,7 +295,7 @@ export function CreditNoteForm({
       <StatusBar />
 
       <SheetHeader
-        title={isEdit ? "Edit Credit Note" : refund ? "Refund with Credit Note" : "New Credit Note"}
+        title={isEdit ? "Edit Credit Note" : refund ? "New Refund" : "New Credit Note"}
         type="inside-page"
         state="fixed"
         leading={

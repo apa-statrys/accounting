@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import AddIcon from "@mui/icons-material/Add";
+import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
 import StatusBar from "../components/StatusBar";
 import { SheetHeader, HeaderIconButton } from "../components/SheetHeader";
 import { Search } from "../components/Search";
@@ -82,7 +82,7 @@ export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer,
               {query ? filtered.length : customers.length}
             </span>
           </div>
-          <Button hierarchy="secondary" size="sm" iconLeft={<AddIcon />} onClick={onAddCustomer} label="Add New" />
+          <Button hierarchy="secondary" size="sm" iconLeft={<PersonAddAltIcon />} onClick={onAddCustomer} label="Add" />
         </div>
 
         <Search size="sm" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />

@@ -185,9 +185,9 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // "Other" (mirrors the form's create validation) — preset reasons don't carry a note.
   const draftComplete = !!reason && total > 0.001 && (reason !== "Other" || !!(reasonNote && reasonNote.trim()));
   const canApply = isOpen && !!onApply && draftComplete;
-  // ⋯ exists for a Draft (Delete only), an Applied note (Cancel + Preview), or a Pending Refund (Cancel).
-  // A Cancelled note has no ⋯.
-  const hasMenu = (isOpen && !!onCancel) || (isApplied && !!onCancel) || (isPendingRefund && !!onCancel);
+  // ⋯ exists for a Draft (Delete only), an Applied note (Cancel + Preview), a Pending Refund (Cancel),
+  // or a Cancelled note (Preview as PDF lives in the menu — no dock).
+  const hasMenu = (isOpen && !!onCancel) || (isApplied && !!onCancel) || (isPendingRefund && !!onCancel) || isCancelled;
   const openSend = () => setSendSheetOpen(true);
 
   const closeSend = () => { setSendSheetOpen(false); setEmailReviewOpen(false); setShareLinkOpen(false); setPdfOpen(false); };
@@ -196,6 +196,28 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
 
   return (
     <div className="absolute inset-0 z-40 bg-white rounded-[48px] overflow-hidden flex flex-col" style={{ width: 375, height: 812 }}>
+      {/* Scenario annotation — shown in the white space to the right of the phone frame, only on a
+          cancelled credit note, explaining how it reversed the void back to the original invoice. */}
+      {isCancelled && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Scenario</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              A customer cancels a project, so the user creates a full credit note.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              Before the customer pays, they change their mind and want to continue with the project.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              The user cancels the credit note, so the invoice returns to its original amount.
+            </p>
+          </div>
+        </div>
+      )}
+
       <StatusBar />
 
       <SheetHeader
@@ -443,16 +465,20 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             homeIndicator
           />
         ) : (
+          // Applied (fully) — a single "Send Credit Note" CTA (kept as "Send" even after sending).
           <ButtonDock
             type="single"
             sticky
-            primaryLabel={sentLocal ? "Resend Credit Note" : "Send Credit Note"}
+            primaryLabel="Send Credit Note"
             onPrimary={openSend}
             homeIndicator
           />
         )
-      ) : (isCancellation || isCancelled) ? (
-        // Cancelled record, Cancelled cancellation, or an Open note where Apply isn't wired → Preview only.
+      ) : isCancelled ? (
+        // Cancelled record → no dock; Preview as PDF lives in the ⋯ menu instead.
+        null
+      ) : isCancellation ? (
+        // An Open cancellation note where Apply isn't wired → Preview only.
         <ButtonDock type="single" sticky primaryLabel="Preview as PDF" onPrimary={openPdfPreview} homeIndicator />
       ) : (
         // Refund CN (Pending Refund or settled) → Send/Resend the credit note. Not editable (AC2).
@@ -465,8 +491,9 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         />
       )}
 
-      {/* ⋯ actions — Open: Cancel + Preview · Applied: Edit · refund: Preview. */}
-      <BottomSheet open={actionsOpen} title="Credit note actions" onClose={() => setActionsOpen(false)}>
+      {/* ⋯ actions — Open: Cancel + Preview · Applied: Edit · refund: Preview. DS header, titleless
+          (grabber + actions), matching the invoice-detail ⋯ menu. */}
+      <BottomSheet open={actionsOpen} title="" onClose={() => setActionsOpen(false)} dsHeader>
         <div className="flex flex-col">
           {/* Draft → only Delete Credit Note (confirmed via a prompt). */}
           {isOpen && onCancel && (
@@ -489,6 +516,13 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
                 <span className="text-[15px]" style={{ ...FONT, color: INK }}>Preview as PDF</span>
               </button>
             </>
+          )}
+          {/* Cancelled record → Preview as PDF only (moved here from the dock). */}
+          {isCancelled && (
+            <button onClick={openPdfPreview} className="w-full flex items-center gap-3 py-3.5 text-left">
+              <PictureAsPdfOutlinedIcon style={{ fontSize: 20, color: INK }} />
+              <span className="text-[15px]" style={{ ...FONT, color: INK }}>Preview as PDF</span>
+            </button>
           )}
           {isRefund && (
             // Pending refund → Cancel refund (reverse it) + Preview. Settled/locked → Preview only.

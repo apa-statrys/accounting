@@ -1,4 +1,5 @@
 // Pure filter/sort logic for the Sales Invoice List — no React, no state.
+import { format } from "date-fns";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { INVOICES } from "../../data/invoices";
 import type { Invoice, Status } from "../../types";
@@ -169,8 +170,9 @@ export function metaLine(inv: Invoice, eff: EffectiveStatus): { number: string; 
   if (inv.due && (eff === "Overdue" || eff === "Awaiting")) {
     const diff = Math.round((parseISO(inv.due).getTime() - TODAY.getTime()) / DAY_MS);
     if (eff === "Overdue") {
-      const n = Math.max(1, -diff);
-      return { number, rest: `Overdue by ${n} ${n === 1 ? "day" : "days"}`, danger: true };
+      // Caption reads "since <due date>" (the DS InvoiceRow overdue format from the Showcase) —
+      // the "Overdue" Badge already carries the status word, so the caption just dates it.
+      return { number, rest: `since ${format(parseISO(inv.due), "d MMM yyyy")}`, danger: true };
     }
     return { number, rest: diff <= 0 ? "Due today" : diff === 1 ? "Due tomorrow" : `Due in ${diff} days`, danger: false };
   }

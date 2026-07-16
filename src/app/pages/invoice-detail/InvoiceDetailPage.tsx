@@ -187,6 +187,10 @@ export function InvoiceDetailPage({
   // comment — indicator for reconciliation; no GL impact). Seeded to the primary receiving account.
   const [recordAccountId, setRecordAccountId] = useState("personal");
   const [recordDate, setRecordDate] = useState<Date | null>(null);
+  // A logged-but-unapproved payment (new flow): the user records the amount + method, but the invoice
+  // STAYS Awaiting Payment until the accountant approves it (which then flips it to Paid / Partially
+  // Paid). Approval happens on the accountant side (backend, out of scope) — here we hold the pending log.
+  const [pendingPayment, setPendingPayment] = useState<{ amount: number; accountId: string; date: Date | null } | null>(null);
   const [paidAmount, setPaidAmount] = useState(PAID_PARTIAL);
   // Amount received beyond the total (DES-715/716 AC6 — flagged for review).
   const [overpayment, setOverpayment] = useState(0);
@@ -688,6 +692,13 @@ export function InvoiceDetailPage({
                 {headlineBanner}
               </p>
             ) : null}
+            {/* A payment has been logged and is waiting on the accountant's approval — the invoice stays
+                Awaiting Payment until then (shown right in the hero card). */}
+            {pendingPayment && (
+              <p className="text-[13px] font-medium leading-[1.3]" style={{ ...FONT, color: "#b45309" }}>
+                Awaiting approval by accountant
+              </p>
+            )}
             {/* Draft hero carries a source line under the amount (DES-817 UI): created drafts show
                 "Created on", uploaded drafts show "Uploaded on". */}
             {draftDetail && (
@@ -922,40 +933,55 @@ export function InvoiceDetailPage({
           />
         ) : uploaded ? (
           // Uploaded draft: it was already sent elsewhere, so the likely next step is recording
-          // payment → "Mark as paid" primary, "Mark as sent" (→ Awaiting) secondary.
-          <ButtonDock
-            type="double"
-            sticky
-            secondaryLabel="Mark as sent"
-            primaryLabel="Mark as paid"
-            onSecondary={onIssued}
-            onPrimary={() => { setRecordAmount(String(TOTAL)); setRecordPayOpen(true); }}
-            homeIndicator
-          />
+          // payment → "Mark as paid" primary, "Mark as sent" (→ Awaiting) secondary. Once a payment is
+          // logged (awaiting approval) the Mark-as-paid CTA drops, leaving just "Mark as sent".
+          pendingPayment ? (
+            <ButtonDock type="single" sticky primaryLabel="Mark as sent" onPrimary={onIssued} homeIndicator />
+          ) : (
+            <ButtonDock
+              type="double"
+              sticky
+              secondaryLabel="Mark as sent"
+              primaryLabel="Mark as paid"
+              onSecondary={onIssued}
+              onPrimary={() => { setRecordAmount(String(TOTAL)); setRecordPayOpen(true); }}
+              homeIndicator
+            />
+          )
+        ) : (
+          // Once a payment is logged, drop the "Mark as paid" secondary → just "Send invoice".
+          pendingPayment ? (
+            <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryDisabled={!requiredComplete} onPrimary={() => setSendSheetOpen(true)} homeIndicator />
+          ) : (
+            <ButtonDock
+              type="double"
+              sticky
+              secondaryLabel="Mark as paid"
+              primaryLabel="Send invoice"
+              primaryDisabled={!requiredComplete}
+              onSecondary={() => { setRecordAmount(String(TOTAL)); setRecordPayOpen(true); }}
+              onPrimary={() => setSendSheetOpen(true)}
+              homeIndicator
+            />
+          )
+        )
+      ) : sendable ? (
+        // Once a payment is logged (awaiting approval) the "Mark as paid" CTA drops, leaving just "Send invoice".
+        pendingPayment ? (
+          <ButtonDock type="single" sticky primaryLabel="Send invoice" onPrimary={() => setSendSheetOpen(true)} homeIndicator />
         ) : (
           <ButtonDock
             type="double"
             sticky
-            secondaryLabel="Mark as paid"
-            primaryLabel="Send invoice"
-            primaryDisabled={!requiredComplete}
-            onSecondary={() => { setRecordAmount(String(TOTAL)); setRecordPayOpen(true); }}
-            onPrimary={() => setSendSheetOpen(true)}
+            // On the INVOICE detail the secondary always sends the INVOICE (credit notes are sent from their
+            // own detail page). Label is "Send invoice" to match the Figma (696:4595).
+            secondaryLabel="Send invoice"
+            primaryLabel="Mark as paid"
+            onSecondary={() => setSendSheetOpen(true)}
+            onPrimary={() => { setRecordAmount(String(TOTAL)); setRecordPayOpen(true); }}
             homeIndicator
           />
         )
-      ) : sendable ? (
-        <ButtonDock
-          type="double"
-          sticky
-          // On the INVOICE detail the secondary always sends the INVOICE (credit notes are sent from their
-          // own detail page). Label is "Send invoice" to match the Figma (696:4595).
-          secondaryLabel="Send invoice"
-          primaryLabel="Mark as paid"
-          onSecondary={() => setSendSheetOpen(true)}
-          onPrimary={() => { setRecordAmount(String(TOTAL)); setRecordPayOpen(true); }}
-          homeIndicator
-        />
       ) : isRefundContext ? (
         // Refund credit note (DES-720). Sending the credit-note document and moving the money are
         // INDEPENDENT actions off a created refund CN (AC6): the client may send the note any time —
@@ -1229,6 +1255,7 @@ export function InvoiceDetailPage({
         value={recordAmount}
         onChange={setRecordAmount}
         total={TOTAL}
+        currency={currency}
         accountId={recordAccountId}
         onAccountChange={setRecordAccountId}
         date={recordDate}
@@ -1236,18 +1263,11 @@ export function InvoiceDetailPage({
         onSubmit={() => {
           const amt = Math.max(0, Number(recordAmount) || 0);
           setRecordPayOpen(false);
-          if (amt > TOTAL) {
-            setOverpayment(amt - TOTAL);
-            setStatus("Paid");
-            setLocalToast("Payment recorded · overpayment flagged");
-          } else if (amt === TOTAL) {
-            setOverpayment(0);
-            setStatus("Paid");
-            setLocalToast("Payment recorded");
-          } else if (amt > 0) {
-            setPaidAmount(amt);
-            setStatus("PartiallyPaid");
-            setLocalToast("Partial payment recorded");
+          // New flow: logging a payment does NOT change the status. It records the amount + method and
+          // the invoice stays Awaiting Payment until the accountant approves it (→ Paid / Partially Paid).
+          if (amt > 0) {
+            setPendingPayment({ amount: amt, accountId: recordAccountId, date: recordDate });
+            setLocalToast("Payment logged · awaiting approval");
           }
         }}
       />

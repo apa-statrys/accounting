@@ -97,6 +97,11 @@ export function BottomSheet({ open, title, onClose, children, footer, tall, heig
                 <div className="flex justify-center items-start h-6 pt-2">
                   <span className="w-12 h-[5px] rounded-full bg-[#1b1b1b]/30" />
                 </div>
+                {/* Titleless menu sheets (e.g. the ⋯ actions menu) show just the grabber — the 60px
+                    title row is collapsed to a small gap when there's no title / back / action. */}
+                {!title && !onBack && !action ? (
+                  <div className="h-2" />
+                ) : (
                 <div className="flex items-center gap-3 h-[60px] px-4">
                   {onBack && (
                     <button
@@ -145,6 +150,7 @@ export function BottomSheet({ open, title, onClose, children, footer, tall, heig
                     </button>
                   )}
                 </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center justify-between bg-white rounded-t-2xl border-b border-[#f0f0f0] px-6 pt-3 pb-3">
