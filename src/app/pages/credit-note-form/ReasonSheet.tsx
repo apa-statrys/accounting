@@ -29,7 +29,6 @@ export function ReasonSheet({ open, onClose, reason, setReason, reasonNote, setR
       open={open}
       title="Reason for credit"
       onClose={onClose}
-      dsHeader
       footer={
         <ButtonDock
           type="single"

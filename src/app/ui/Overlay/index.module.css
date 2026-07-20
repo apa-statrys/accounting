@@ -1,0 +1,8 @@
+/* Overlay — Figma "[APP] Design System" → Overlay (node 1345-40950). Full-bleed
+   scrim behind a modal/bottom sheet. Color from styles/theme.css (--overlay). */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--overlay);
+}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import StatusBar from "../components/StatusBar";
+import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { TextInput } from "../components/TextInput";
 import { ButtonDock } from "../components/ButtonDock";
@@ -10,7 +10,7 @@ import { CountrySheet } from "../components/CountrySheet";
 import type { Customer } from "../types";
 
 import { FONT } from "../lib/theme";
-const chevron = <ExpandMoreIcon style={{ fontSize: 20, color: "#808080" }} />;
+const chevron = <ExpandMoreIcon style={{ fontSize: 20, color: "var(--text-secondary)" }} />;
 
 /** Two-letter initials from a name (skips symbols like "&") — for the duplicate-warning avatar. */
 function initials(name: string): string {
@@ -20,10 +20,10 @@ function initials(name: string): string {
 
 // Static country-code prefix shown inside the Phone field (visual only, matching the Figma).
 const phonePrefix = (
-  <span className="flex items-center gap-1" style={{ ...FONT, color: "#1b1b1b" }}>
+  <span className="flex items-center gap-1" style={{ ...FONT, color: "var(--text-primary)" }}>
     <span style={{ fontSize: 16, lineHeight: 1 }}>🇺🇸</span>
     <span className="body-md">+1</span>
-    <ExpandMoreIcon style={{ fontSize: 16, color: "#808080" }} />
+    <ExpandMoreIcon style={{ fontSize: 16, color: "var(--text-secondary)" }} />
   </span>
 );
 
@@ -80,6 +80,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
   const [discardOpen, setDiscardOpen] = useState(false);
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   // Dirty = any field differs from the seeded state (edit) / from empty (add). Drives the discard warning
   // (714 AC1) and dirty-gates the Save Changes CTA in edit mode.
@@ -190,16 +191,20 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
       className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
       style={{ width: 375, height: 812, background: "var(--ds-bg-beige-primary)" }}
     >
-      <StatusBar />
+      <div
+        className="flex-1 overflow-y-auto thin-scrollbar"
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+      >
+        <PageAppHeader scrolled={scrolled}>
+          <PageHeader
+            type="center"
+            title={isEdit ? "Edit Customer" : "New Customer"}
+            showSearch={false}
+            onBack={requestBack}
+          />
+        </PageAppHeader>
 
-      <PageHeader
-        type="center"
-        title={isEdit ? "Edit Customer" : "New Customer"}
-        showSearch={false}
-        onBack={requestBack}
-      />
-
-      <div className="flex-1 overflow-y-auto thin-scrollbar px-4 pt-5 pb-28">
+        <div className="px-4 pt-5 pb-28">
         <div className="flex flex-col gap-4">
           <TextInput id="client-field-company" label="Company Name" placeholder="e.g. Atlas Logistics" size="md" required
             error={err("company")} value={company} onChange={(e) => setCompany(e.target.value)} />
@@ -244,6 +249,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
           <TextInput label="Currency" placeholder="Select default invoice currency" size="md" showHint={false} readOnly
             iconRight={chevron} value={currency} onClick={() => setCurrencyOpen(true)} />
         </div>
+        </div>
       </div>
 
       <ButtonDock
@@ -275,7 +281,6 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         open={discardOpen}
         title="Discard changes?"
         onClose={() => setDiscardOpen(false)}
-        dsHeader
         compact
         footer={
           <ButtonDock
@@ -288,7 +293,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
           />
         }
       >
-        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "#808080" }}>
+        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "var(--text-secondary)" }}>
           You have unsaved changes. If you go back now, they'll be lost.
         </p>
       </BottomSheet>
@@ -299,7 +304,6 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         open={dupOpen}
         title="Customer already exists"
         onClose={() => setDupOpen(false)}
-        dsHeader
         compact
         footer={
           <ButtonDock
@@ -313,7 +317,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         }
       >
         <div className="flex flex-col gap-3">
-          <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "#808080" }}>
+          <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "var(--text-secondary)" }}>
             {isEdit
               ? "We found another customer with the same email address. Do you want to save anyway?"
               : "We found an existing customer with the same email address. Do you want to create another customer?"}
@@ -322,7 +326,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
             <div className="flex items-center gap-3 rounded-[12px] border border-[#e3e5e5] px-3 py-2.5">
               <span
                 className="shrink-0 rounded-full flex items-center justify-center text-[15px] font-medium"
-                style={{ width: 40, height: 40, background: "#f3ecda", color: "#1b1b1b", ...FONT }}
+                style={{ width: 40, height: 40, background: "var(--bg-beige-secondary)", color: "var(--text-primary)", ...FONT }}
               >
                 {initials(duplicate.name)}
               </span>
@@ -330,7 +334,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
                 <span className="text-[15px] font-medium truncate" style={{ ...FONT, color: "#101828" }}>
                   {duplicate.name}
                 </span>
-                <span className="text-[13px] truncate" style={{ ...FONT, color: "#808080" }}>
+                <span className="text-[13px] truncate" style={{ ...FONT, color: "var(--text-secondary)" }}>
                   {duplicate.email}
                 </span>
               </span>

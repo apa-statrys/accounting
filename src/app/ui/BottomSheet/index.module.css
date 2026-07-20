@@ -1,18 +1,20 @@
 /* BottomSheet — Figma "[APP] Design System" → Bottomsheets (node 4038-3018).
    White panel, 32px top radius, Shadow/Bottomsheets. Header sticks to the top
    with a white→transparent fade for when the sheet's content scrolls under
-   it; grabber is 48×5 ink at 30%. Title is the sheet-size card-lg ramp:
-   28px / lh 0.9 / -5% tracking. Colors from ui/tokens.css. */
+   it; grabber is 48×5 ink at 30%. Title composes .card-title-lg so its size
+   tracks --fs-card-lg through .mobile-mode (22px on the app's real
+   phone-frame screens, 28px desktop-default — see CLAUDE.md "Mobile-mode
+   typography"). Colors from styles/theme.css. */
 
 .sheet {
   display: flex;
   flex-direction: column;
   width: 100%;
-  background: var(--ds-bg-neutral-primary);
-  border-radius: var(--ds-radius-5xl) var(--ds-radius-5xl) 0 0;
-  box-shadow: var(--ds-shadow-bottomsheets);
+  background: var(--bg-neutral-primary);
+  border-radius: var(--radius-5xl) var(--radius-5xl) 0 0;
+  box-shadow: var(--shadow-bottomsheets);
   overflow: hidden;
-  font-family: var(--ds-font-primary);
+  font-family: var(--font-primary);
 }
 
 .header {
@@ -34,7 +36,7 @@
 .grabber {
   width: 48px;
   height: 5px;
-  border-radius: var(--ds-radius-full);
+  border-radius: var(--radius-full);
   background: rgba(27, 27, 27, 0.3);
 }
 
@@ -46,14 +48,11 @@
   padding: 0 16px;
 }
 .title {
+  composes: card-title-lg from global;
   flex: 1;
   min-width: 0;
   margin: 0;
-  font-size: 28px;
-  font-weight: 500;
-  line-height: 0.9;
-  letter-spacing: -1.4px;
-  color: var(--ds-text-primary);
+  color: var(--text-primary);
 }
 
 /* Frosted 36px action button — same recipe as PageHeader's glass button */
@@ -66,12 +65,12 @@
   flex-shrink: 0;
   padding: 0;
   border: none;
-  border-radius: var(--ds-radius-full);
-  background: var(--ds-white-40);
+  border-radius: var(--radius-full);
+  background: var(--alpha-white-40);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  box-shadow: var(--ds-shadow-menu-page-header);
-  color: var(--ds-text-primary);
+  box-shadow: var(--shadow-md);
+  color: var(--text-primary);
   cursor: pointer;
 }
 
@@ -81,5 +80,13 @@
 
 .bottomPad {
   height: 32px;
+  flex-shrink: 0;
+}
+
+/* BottomsheetsEnd (node 4127-7752) — the gradient/blur/padding treatment
+   lives on ButtonDock itself; this just keeps the slot from being squashed
+   by the sheet's flex column. */
+.footer {
+  width: 100%;
   flex-shrink: 0;
 }

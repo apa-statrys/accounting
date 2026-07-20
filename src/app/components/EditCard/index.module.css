@@ -32,7 +32,7 @@
 }
 
 .defaultIcon {
-  font-size: 18px;
+  font-size: var(--text-lg);
   color: var(--icon-brand);
 }
 
@@ -44,7 +44,7 @@
   flex-direction: column;
 }
 
-/* Typography via .card-title-2xs utility; color/layout only here. */
+/* Typography via .card-title-sm utility; color/layout only here. */
 .title {
   color: var(--text-primary);
   margin: 0;

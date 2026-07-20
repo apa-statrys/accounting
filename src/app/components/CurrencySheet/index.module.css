@@ -1,0 +1,19 @@
+/* CurrencySheet — currency picker sheet content (rendered inside BottomSheet). */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Flag glyph — 26px doesn't match any fs-* token, kept literal on purpose. */
+.flag {
+  font-size: var(--text-2xl);
+  line-height: 1;
+}

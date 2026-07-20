@@ -1,0 +1,20 @@
+/* CountrySheet — country picker list inside the DS BottomSheet shell. */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Flag glyph — 26px isn't on the type scale (not a text style, just an emoji
+   size) so it stays a literal value; leading-none → line-height: 1. */
+.flag {
+  font-size: var(--text-2xl);
+  line-height: 1;
+}

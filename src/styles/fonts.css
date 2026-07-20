@@ -116,13 +116,16 @@
   --fs-body-md: var(--text-base);
   --fs-body-sm: var(--text-sm);
   --fs-caption: var(--text-xs);
-  --fs-caption-sm: 10px;
+  --fs-caption-sm: var(--text-2xs);
 
-  /* CARD TITLES */
-  --fs-card-lg: 48px;
-  --fs-card-md: 32px;
-  --fs-card-sm: 28px;
-  --fs-card-xs: 20px;
+  /* CARD TITLES — 5-tier scale from the Figma design-tokens lib (2xl/xl/lg/md/sm).
+     Values below are DESKTOP defaults; tablet/mobile overrides are set below
+     (mirrors the h0-h6 pattern). */
+  --fs-card-2xl: 48px;
+  --fs-card-xl: 32px;
+  --fs-card-lg: 28px;
+  --fs-card-md: 22px;
+  --fs-card-sm: 20px;
 
 }
 /* ============================================================
@@ -144,34 +147,62 @@
     --fs-h1-hl: var(--text-6xl); /* 64 → 56 → 40 */
     --fs-h2-hl: var(--text-3xl); /* 40 → 32 → 32 */
 
-    /* Card titles */
-    --fs-card-lg: 40px; /* 48 → 40 → 32 */
-    --fs-card-md: 28px; /* 32 → 28 → 24 */
-    --fs-card-sm: 24px; /* 28 → 24 → 20 */
-    --fs-card-xs: 18px; /* 20 → 18 → 18 */
+    /* Card titles — Figma Tablet column */
+    --fs-card-2xl: 40px;
+    --fs-card-xl: 28px;
+    --fs-card-lg: 24px;
+    --fs-card-md: 20px;
+    --fs-card-sm: 18px;
   }
 }
 
 @media (max-width:768px){
 
   :root{
-    
+
     --fs-h0: var(--text-6xl);
     --fs-h1: var(--text-4xl);
     --fs-h2: var(--text-3xl);
     --fs-h3: var(--text-2xl);
-    
+
     --fs-h0-hl: var(--text-7xl);
     --fs-h1-hl: var(--text-4xl);
     --fs-h2-hl: var(--text-3xl);
 
-    --fs-card-lg: 32px;
-    --fs-card-md: 24px;
-    --fs-card-sm: 20px;
-    --fs-card-xs: 18px;
+    --fs-card-2xl: 32px;
+    --fs-card-xl: 24px;
+    --fs-card-lg: 22px;
+    --fs-card-md: 18px;
+    --fs-card-sm: 16px;
 
   }
 
+}
+
+/* ============================================================
+   MOBILE MODE — force the mobile type scale regardless of the
+   real browser viewport. The app is a 375px phone frame rendered
+   inside a desktop-width window, so the max-width:768px media
+   query above never fires; this class (put on the app's frame
+   wrapper) makes the mobile sizes win via the cascade so EVERY
+   screen renders mobile typography. Mirrors the ≤768px block —
+   keep the two in sync.
+   ============================================================ */
+.mobile-mode{
+  --fs-h0: var(--text-6xl);
+  --fs-h1: var(--text-4xl);
+  --fs-h2: var(--text-3xl);
+  --fs-h3: var(--text-2xl);
+
+  --fs-h0-hl: var(--text-7xl);
+  --fs-h1-hl: var(--text-4xl);
+  --fs-h2-hl: var(--text-3xl);
+
+  --fs-card-2xl: 32px;
+  --fs-card-xl: 24px;
+  --fs-card-lg: 22px;
+  --fs-card-md: 18px;
+  --fs-card-sm: 16px;
 }
 
 /* ============================================================
@@ -336,11 +367,27 @@
    CARD TITLES
    ============================================================ */
 
+.card-title-2xl{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-medium);
+  font-size:var(--fs-card-2xl);
+  line-height:0.9;
+  letter-spacing:-0.05em;
+}
+
+.card-title-xl{
+  font-family:var(--font-primary);
+  font-weight:var(--fw-medium);
+  font-size:var(--fs-card-xl);
+  line-height:0.9;
+  letter-spacing:-0.05em;
+}
+
 .card-title-lg{
   font-family:var(--font-primary);
   font-weight:var(--fw-medium);
   font-size:var(--fs-card-lg);
-  line-height:1;
+  line-height:0.9;
   letter-spacing:-0.05em;
 }
 
@@ -356,23 +403,6 @@
   font-family:var(--font-primary);
   font-weight:var(--fw-medium);
   font-size:var(--fs-card-sm);
-  line-height:0.9;
-  letter-spacing:-0.05em;
-}
-
-.card-title-xs{
-  font-family:var(--font-primary);
-  font-weight:var(--fw-medium);
-  font-size:var(--fs-card-xs);
-  line-height:0.9;
-  letter-spacing:-0.05em;
-}
-
-/* Small card name/title — 16px (Figma "Card title/sm") */
-.card-title-2xs{
-  font-family:var(--font-primary);
-  font-weight:var(--fw-medium);
-  font-size:var(--fs-body-md);
   line-height:0.9;
   letter-spacing:-0.05em;
 }

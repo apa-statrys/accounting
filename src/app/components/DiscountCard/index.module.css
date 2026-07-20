@@ -1,0 +1,75 @@
+/* DiscountCard — dashed card with a toggle that reveals a value field + %/amount mode picker */
+
+.root {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  /* Exact Figma spec: 17px padding (see Tile for the same convention). */
+  padding: 17px;
+  background: var(--bg-neutral-primary);
+  border: var(--border-width-sm) dashed var(--border-beige-primary);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-card-soft);
+}
+
+/* ===== HEADER ===== */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Typography via .card-title-sm utility; color only here. */
+.title {
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* ===== BODY (revealed when enabled) ===== */
+.body {
+  overflow: visible;
+}
+
+.row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+}
+
+.fieldWrap {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Currency/percent suffix inside the value field — typography via .card-title-sm utility. */
+.suffix {
+  color: var(--text-primary);
+}
+
+/* ===== MODE PICKER BUTTON ===== */
+.modeButton {
+  flex-shrink: 0;
+  height: 44px;
+  width: 72px;
+  padding: 0 var(--space-6);
+  box-sizing: border-box;
+  border: var(--border-width-sm) solid var(--border-beige-primary-active);
+  border-radius: var(--radius-xl);
+  background: var(--bg-neutral-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Typography via .body-md utility; color only here. */
+.modeLabel {
+  color: var(--text-primary);
+}
+
+.chevron {
+  font-size: var(--text-lg);
+  color: #808080;
+}

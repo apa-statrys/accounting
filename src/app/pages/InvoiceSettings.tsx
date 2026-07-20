@@ -2,12 +2,12 @@ import { useState } from "react";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Camera } from "lucide-react";
-import StatusBar from "../components/StatusBar";
+import { PageAppHeader } from "../components/PageAppHeader";
 import { ButtonDock } from "../components/ButtonDock";
 import { BottomSheet } from "../components/BottomSheet";
 import { TextInput } from "../components/TextInput";
-import { Tile } from "../components/Tile";
-import { Search } from "../components/Search";
+import { SelectionCard } from "../components/SelectionCard";
+import { SearchField } from "../components/SearchField";
 import { CurrencySheet, CURRENCIES } from "../components/CurrencySheet";
 import { ReceivingAccountSheet } from "../components/ReceivingAccountSheet";
 import { getAccount } from "../data/receivingAccounts";
@@ -25,10 +25,10 @@ const LOGO_MAX_MB = 10;
 
 // Static country-code prefix inside the Phone field (visual only) — matches the Create Customer screen.
 const phonePrefix = (
-  <span className="flex items-center gap-1" style={{ ...FONT, color: "#1b1b1b" }}>
+  <span className="flex items-center gap-1" style={{ ...FONT, color: "var(--text-primary)" }}>
     <span style={{ fontSize: 16, lineHeight: 1 }}>🇺🇸</span>
     <span className="body-md">+1</span>
-    <ExpandMoreIcon style={{ fontSize: 16, color: "#808080" }} />
+    <ExpandMoreIcon style={{ fontSize: 16, color: "var(--text-secondary)" }} />
   </span>
 );
 
@@ -59,8 +59,8 @@ function DemoLogo({ size = 72 }: { size?: number }) {
       </defs>
       <rect width="72" height="72" rx="20" fill="url(#lumenBg)" />
       {/* Two interlocking rounded chevrons — a clean, brand-neutral studio mark. */}
-      <path d="M23 25 L37 36 L23 47" fill="none" stroke="#ffffff" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M37 25 L51 36 L37 47" fill="none" stroke="#ffffff" strokeOpacity="0.55" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M23 25 L37 36 L23 47" fill="none" stroke="var(--icon-on-color)" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M37 25 L51 36 L37 47" fill="none" stroke="var(--icon-on-color)" strokeOpacity="0.55" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -70,7 +70,7 @@ function Group({ title, children }: { title?: string; children: React.ReactNode 
   return (
     <div className="flex flex-col gap-2">
       {title && (
-        <span className="px-1 text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0]" style={FONT}>{title}</span>
+        <span className="px-1 text-[12px] font-bold uppercase tracking-wide text-[var(--text-placeholder)]" style={FONT}>{title}</span>
       )}
       <div className="rounded-2xl bg-white shadow-[0_1px_3px_rgba(27,27,27,0.05)] overflow-hidden">
         {children}
@@ -96,11 +96,11 @@ function Row({ leading, title, subtitle, value, onClick, trailing, last }: {
       {leading && <span className="shrink-0">{leading}</span>}
       <span className="flex-1 min-w-0 text-left">
         <span className="block text-[15px] font-semibold leading-[1.25] text-[#101828]" style={FONT}>{title}</span>
-        {subtitle && <span className="block text-[13px] leading-[1.3] text-[#808080] truncate" style={FONT}>{subtitle}</span>}
+        {subtitle && <span className="block text-[13px] leading-[1.3] text-[var(--text-secondary)] truncate" style={FONT}>{subtitle}</span>}
       </span>
       {trailing ?? (
         <span className="flex items-center gap-1.5 shrink-0">
-          {value && <span className="text-[14px] font-medium text-[#1b1b1b]" style={FONT}>{value}</span>}
+          {value && <span className="text-[14px] font-medium text-[var(--text-primary)]" style={FONT}>{value}</span>}
           <ChevronRightIcon className="transition-transform duration-200 group-hover:translate-x-1" style={{ fontSize: 18, color: "var(--icon-primary)" }} />
         </span>
       )}
@@ -183,6 +183,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   // Active dropdown (country / city / state) inside the Business Address sheet.
   const [picker, setPicker] = useState<{ field: "country" | "city" | "state"; title: string; options: string[] } | null>(null);
   const [pickerQuery, setPickerQuery] = useState("");
+  const [scrolled, setScrolled] = useState(false);
 
   const openSheet = (k: SheetKey) => { setBaseline(s); setLogoError(null); setSheet(k); };
   const openPicker = (p: { field: "country" | "city" | "state"; title: string; options: string[] }) => { setPickerQuery(""); setPicker(p); };
@@ -253,22 +254,27 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
     <ChevronRightIcon className="transition-transform duration-200 group-hover:translate-x-1" style={{ fontSize: 16, color: "var(--icon-primary)" }} />
   );
   // Down-chevron for readOnly dropdown TextInputs — matches the Create/Edit Customer fields.
-  const dropdownChevron = <ExpandMoreIcon style={{ fontSize: 20, color: "#808080" }} />;
+  const dropdownChevron = <ExpandMoreIcon style={{ fontSize: 20, color: "var(--text-secondary)" }} />;
 
   return (
-    <div className="relative bg-[#F9F5EA] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
-      <StatusBar />
+    <div className="relative bg-[var(--bg-beige-primary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
+      <div
+        className="flex-1 overflow-y-auto bg-[var(--bg-beige-primary)]"
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+      >
+        <PageAppHeader scrolled={scrolled}>
+          {/* DS PageHeader (left): big 32px title + subtitle, back chevron only. */}
+          <PageHeader
+            type="left"
+            collapsed={scrolled}
+            title="Invoice Settings"
+            text="These settings apply to all new sales invoices"
+            onBack={() => onExit?.(s)}
+            showSearch={false}
+          />
+        </PageAppHeader>
 
-      {/* DS PageHeader (left): big 32px title + subtitle, back chevron only. */}
-      <PageHeader
-        type="left"
-        title="Invoice Settings"
-        text="These settings apply to all new sales invoices"
-        onBack={() => onExit?.(s)}
-        showSearch={false}
-      />
-
-      <div className="flex-1 overflow-y-auto bg-[#f9f5ea] px-4 pt-2 pb-6 flex flex-col gap-4">
+        <div className="px-4 pt-2 pb-6 flex flex-col gap-4">
         {/* Company — Company Details + Business Address */}
         <Group>
           <Row
@@ -293,11 +299,11 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             trailing={
               <span className="flex items-center gap-1.5 shrink-0">
                 <span className="text-right">
-                  <span className="block text-[14px] font-semibold leading-[1.2] text-[#1b1b1b]" style={FONT}>
+                  <span className="block text-[14px] font-semibold leading-[1.2] text-[var(--text-primary)]" style={FONT}>
                     {payAccount?.name ?? "Select account"}
                   </span>
                   {payAccount && (
-                    <span className="block text-[12px] leading-[1.2] text-[#808080]" style={FONT}>{payAccount.number}</span>
+                    <span className="block text-[12px] leading-[1.2] text-[var(--text-secondary)]" style={FONT}>{payAccount.number}</span>
                   )}
                 </span>
                 {chevron}
@@ -319,6 +325,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             }
           />
         </Group>
+        </div>
       </div>
 
       {/* Company Details — one sheet for all company identity fields: logo, name, email, then
@@ -327,7 +334,6 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         open={sheet === "company"}
         title="Company Details"
         onClose={() => setSheet(null)}
-        dsHeader
         heightClass="h-[72%]"
         footer={<ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && companyValid && detailsValid)} onPrimary={() => setSheet(null)} homeIndicator />}
       >
@@ -336,7 +342,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-4">
               <span className="shrink-0"><DemoLogo size={72} /></span>
-              <button type="button" onClick={pickLogo} className="flex items-center gap-2 text-[#1b1b1b]">
+              <button type="button" onClick={pickLogo} className="flex items-center gap-2 text-[var(--text-primary)]">
                 <Camera size={22} strokeWidth={1.75} />
                 <span className="text-[17px] font-medium" style={FONT}>Change Logo</span>
               </button>
@@ -417,14 +423,14 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
       <BottomSheet open={!!picker} title={picker?.title ?? ""} onClose={() => setPicker(null)} heightClass="h-[72%]">
         {picker && picker.options.length > 8 && (
           <div className="mb-3">
-            <Search size="md" placeholder={`Search ${picker.title.toLowerCase()}`} value={pickerQuery} onChange={(e) => setPickerQuery(e.target.value)} />
+            <SearchField size="md" placeholder={`Search ${picker.title.toLowerCase()}`} value={pickerQuery} onChange={(e) => setPickerQuery(e.target.value)} />
           </div>
         )}
         <div className="flex flex-col gap-2">
           {picker?.options
             .filter((o) => o.toLowerCase().includes(pickerQuery.toLowerCase()))
             .map((o) => (
-              <Tile
+              <SelectionCard
                 key={o}
                 title={o}
                 showDescription={false}

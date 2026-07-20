@@ -1,5 +1,5 @@
 /* Button — Figma "[APP] Design System" → Button (node 537-1561).
-   Color values come from ui/tokens.css. FAB/index.tsx reuses this file's
+   Color values come from styles/theme.css. FAB/index.tsx reuses this file's
    color classes (primary/secondary/tertiary + inverse + active) — keep them
    color-only (no layout) so both components stay in sync. */
 
@@ -9,9 +9,9 @@
   justify-content: center;
   gap: 4px;
   flex-shrink: 0;
-  border-radius: var(--ds-radius-md);
-  font-family: var(--ds-font-primary);
-  font-weight: 500;
+  border-radius: var(--radius-md);
+  font-family: var(--font-primary);
+  font-weight: var(--fw-medium);
   line-height: 1;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -27,12 +27,12 @@
 .md {
   min-height: 44px;
   padding: 13px 17px;
-  font-size: 16px;
+  font-size: var(--text-base);
 }
 .sm {
   height: 30px;
   padding: 0 13px;
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 .squareMd {
   width: 44px;
@@ -50,85 +50,85 @@
 
 /* Hierarchy colors (light surfaces). `.active` = Figma's pressed state. */
 .primary {
-  background: var(--ds-btn-primary);
-  border: 1px solid var(--ds-btn-primary);
-  color: var(--ds-text-neutral-inverse-primary);
+  background: var(--btn-primary);
+  border: 1px solid var(--btn-primary);
+  color: var(--text-neutral-inverse-primary);
 }
 .primary.active {
-  background: var(--ds-btn-hover);
-  border-color: var(--ds-btn-hover);
+  background: var(--btn-primary-hover);
+  border-color: var(--btn-primary-hover);
 }
 .primary:disabled {
-  background: var(--ds-btn-disabled);
+  background: var(--btn-disabled);
   border-color: transparent;
-  color: var(--ds-text-neutral-inverse-disabled);
+  color: var(--text-neutral-inverse-disabled);
 }
 
 .secondary {
   background: transparent;
-  border: 1px solid var(--ds-btn-primary);
-  color: var(--ds-btn-primary);
+  border: 1px solid var(--btn-primary);
+  color: var(--btn-primary);
 }
 .secondary.active {
-  border-color: var(--ds-btn-hover);
-  color: var(--ds-btn-hover);
+  border-color: var(--btn-primary-hover);
+  color: var(--btn-primary-hover);
 }
 .secondary:disabled {
-  border-color: var(--ds-btn-disabled);
-  color: var(--ds-btn-disabled);
+  border-color: var(--btn-disabled);
+  color: var(--btn-disabled);
 }
 
 .tertiary {
   background: transparent;
   border: 1px solid transparent;
-  color: var(--ds-btn-primary);
+  color: var(--btn-primary);
 }
 .tertiary.active {
-  background: var(--ds-btn-tertiary-hover);
+  background: var(--btn-tertiary-hover);
 }
 .tertiary:disabled {
-  color: var(--ds-btn-disabled);
+  color: var(--btn-disabled);
 }
 
 /* Inverse (dark-surface) hierarchies */
 .inversePrimary {
-  background: var(--ds-btn-inverse);
-  border: 1px solid var(--ds-btn-inverse);
-  color: var(--ds-btn-primary);
+  background: var(--btn-inverse);
+  border: 1px solid var(--btn-inverse);
+  color: var(--btn-primary);
 }
 .inversePrimary.active {
-  background: var(--ds-btn-inverse-hover);
-  border-color: var(--ds-btn-inverse-hover);
+  background: var(--btn-inverse-hover);
+  border-color: var(--btn-inverse-hover);
 }
 .inversePrimary:disabled {
-  background: var(--ds-btn-inverse-disabled);
+  background: var(--btn-inverse-disabled);
   border-color: transparent;
-  color: var(--ds-text-disabled);
+  color: var(--text-disabled);
 }
 
 .inverseSecondary {
   background: transparent;
-  border: 1px solid var(--ds-btn-inverse);
-  color: var(--ds-btn-inverse);
+  border: 1px solid var(--btn-inverse);
+  color: var(--btn-inverse);
 }
 .inverseSecondary.active {
-  border-color: var(--ds-btn-inverse-hover);
-  color: var(--ds-btn-inverse-hover);
+  border-color: var(--btn-inverse-hover);
+  color: var(--btn-inverse-hover);
 }
 .inverseSecondary:disabled {
-  border-color: var(--ds-btn-inverse-disabled);
-  color: var(--ds-btn-inverse-disabled);
+  border-color: var(--btn-inverse-disabled);
+  color: var(--btn-inverse-disabled);
 }
 
 .inverseTertiary {
   background: transparent;
   border: 1px solid transparent;
-  color: var(--ds-btn-inverse);
+  color: var(--btn-inverse);
 }
 .inverseTertiary.active {
-  background: var(--ds-btn-inverse-hover);
-  color: var(--ds-btn-primary);
+  background: var(--btn-inverse-hover);
+  color: var(--btn-primary);
 }
 .inverseTertiary:disabled {
-  color: var(--ds-btn-inverse-disabled);
+  color: var(--btn-inverse-disabled);
 }

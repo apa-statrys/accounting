@@ -1,0 +1,149 @@
+/* Tile — selectable selection card */
+
+.root {
+  display: flex;
+  gap: var(--space-6);
+  align-items: center;
+  width: 100%;
+  min-height: 66px;
+  box-sizing: border-box;
+  /* Exact Figma spec: 17px padding + 1px border = 18px content inset; 66px tall. */
+  padding: 17px;
+  border: var(--border-width-sm) solid transparent;
+  border-radius: var(--radius-2xl);
+  background: var(--bg-neutral-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-base), border-color var(--transition-base);
+}
+
+/* Default — dashed beige border on white */
+.root:not(.selected):not(.disabled) {
+  border-style: dashed;
+  border-color: var(--border-beige-primary);
+}
+
+/* Hover — subtle fill, border drops away */
+.root:not(.selected):not(.disabled):hover {
+  background: var(--bg-neutral-primary-hover);
+  border-color: transparent;
+  border-style: solid;
+}
+
+.root:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/* Selected — gradient fill, on-color text */
+.selected {
+  background: var(--gradient-default);
+  border-color: transparent;
+}
+
+.selected .title,
+.selected .description {
+  color: var(--text-on-color);
+}
+
+/* Disabled */
+.disabled {
+  background: var(--bg-neutral-primary-hover);
+  border-color: transparent;
+  cursor: not-allowed;
+}
+
+.disabled .title,
+.disabled .description {
+  color: var(--text-disabled);
+}
+
+/* ===== BODY ===== */
+.body {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Typography via .card-title-sm / .body-sm-medium utilities; color only here. */
+.title {
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.description {
+  color: var(--text-secondary);
+  margin: 0;
+  padding-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ===== ICON + STATUS ROW ===== */
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: var(--space-4);
+}
+
+.titleWithIcon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+/* Icon-row title stays on one line (truncates) — matches Figma */
+.titleWithIcon .title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--icon-primary);
+}
+
+.icon img,
+.iconSvg {
+  width: 16px;
+  height: 16px;
+}
+
+.selected .icon {
+  color: var(--icon-on-color);
+}
+
+.disabled .icon {
+  color: var(--icon-disabled);
+}
+
+/* ===== STATUS BADGE — typography via .caption-sm utility ===== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--gradient-black-cta);
+  color: var(--text-on-color);
+}
+
+.disabled .badge {
+  background: var(--bg-neutral-disabled);
+  color: var(--text-disabled);
+}

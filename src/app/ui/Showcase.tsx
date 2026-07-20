@@ -12,11 +12,14 @@ import { Search } from "./Search";
 import { Loading, LoadingSize } from "./Loading";
 import { PageHeader } from "./PageHeader";
 import { ButtonDock } from "../components/ButtonDock";
+import StatusBar from "../components/StatusBar";
 import { Tile } from "./Tile";
 import { USFlag } from "./TextField/USFlag";
 import { BottomSheet } from "./BottomSheet";
+import { Overlay } from "./Overlay";
 import { OutstandingCard } from "./OutstandingCard";
 import { InvoiceRow } from "./InvoiceRow";
+import { ActionRequired } from "./ActionRequired";
 
 /**
  * Showcase — standalone gallery of the design-system components in `ui/`,
@@ -47,24 +50,60 @@ function SettingsGearIcon() {
   );
 }
 
-/** Sidebar entries — add every new component here (id must match its ComponentPage branch). */
-const NAV = [
-  { id: "badge", label: "Badge" },
-  { id: "bottom-sheet", label: "Bottom Sheet" },
-  { id: "button", label: "Button" },
-  { id: "button-dock", label: "Button Dock" },
-  { id: "fab", label: "FAB" },
-  { id: "invoice-row", label: "Invoice Row" },
-  { id: "loading", label: "Loading" },
-  { id: "outstanding-card", label: "Outstanding Card" },
-  { id: "page-header", label: "Page Header" },
-  { id: "search", label: "Search" },
-  { id: "tabs-base", label: "Tabs Base" },
-  { id: "text-field", label: "Text Field" },
-  { id: "tile", label: "Tile" },
-  { id: "toggle", label: "Toggle" },
-  { id: "tooltip", label: "Tooltip" },
+/** Sidebar entries, grouped by function like a docs-site component index — add every
+    new component to the matching group (id must match its ComponentPage branch). */
+const NAV_GROUPS = [
+  {
+    category: "Actions",
+    items: [
+      { id: "button", label: "Button" },
+      { id: "button-dock", label: "Button Dock" },
+      { id: "fab", label: "FAB" },
+    ],
+  },
+  {
+    category: "Inputs & Selection",
+    items: [
+      { id: "text-field", label: "Text Field" },
+      { id: "search", label: "Search" },
+      { id: "toggle", label: "Toggle" },
+      { id: "tile", label: "Tile" },
+    ],
+  },
+  {
+    category: "Feedback & Status",
+    items: [
+      { id: "badge", label: "Badge" },
+      { id: "loading", label: "Loading" },
+      { id: "tooltip", label: "Tooltip" },
+    ],
+  },
+  {
+    category: "Navigation",
+    items: [
+      { id: "tabs-base", label: "Tabs Base" },
+      { id: "page-header", label: "Page Header" },
+    ],
+  },
+  {
+    category: "Data Display",
+    items: [
+      { id: "invoice-row", label: "Invoice Row" },
+      { id: "outstanding-card", label: "Outstanding Card" },
+      { id: "action-required", label: "Action Required" },
+    ],
+  },
+  {
+    category: "Surfaces",
+    items: [
+      { id: "bottom-sheet", label: "Bottom Sheet" },
+      { id: "overlay", label: "Overlay" },
+    ],
+  },
 ];
+
+/** Flat lookup — nav order, active-item search, etc. all still work off one list. */
+const NAV = NAV_GROUPS.flatMap((g) => g.items);
 
 /** Sidebar/topbar chrome accents (match the reference docs-site style; not DS tokens). */
 const NAV_ACCENT = "#2c46d4";
@@ -260,9 +299,9 @@ function BadgeVariants() {
       <div>
         <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Sizes & icon</p>
         <div className="grid grid-cols-4 gap-4">
-          <SwatchCell label="sm (16px)"><Badge label="Text" size="sm" color="success" /></SwatchCell>
-          <SwatchCell label="md (18px)"><Badge label="Text" color="success" /></SwatchCell>
-          <SwatchCell label="lg (20px)"><Badge label="Text" size="lg" color="success" /></SwatchCell>
+          <SwatchCell label="sm (h16, 12px type)"><Badge label="Text" size="sm" color="success" /></SwatchCell>
+          <SwatchCell label="md (h18, 14px type)"><Badge label="Text" color="success" /></SwatchCell>
+          <SwatchCell label="lg (h20, 16px type)"><Badge label="Text" size="lg" color="success" /></SwatchCell>
           <SwatchCell label="With icon"><Badge label="Text" color="info" icon={<CircleIcon size={12} />} /></SwatchCell>
         </div>
       </div>
@@ -574,18 +613,42 @@ function LoadingVariants() {
   );
 }
 
-/** 375px stage with page content dimmed behind a bottom sheet, matching the
-    app's bg-black/25 scrim rule. */
+/** Real 375×812 phone frame (matches every app screen's device size, same
+    recipe as `PhoneDockStage`) with a `StatusBar`, page content dimmed behind
+    a bottom sheet via the shared `Overlay` component. Used once, for the
+    Overview demo — compact `SheetStage` below covers the Variants grid. */
+function PhoneSheetStage({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="mobile-mode relative flex flex-col overflow-hidden rounded-[48px] bg-[#f9f5ea] shadow-2xl"
+      style={{ width: 375, height: 812 }}
+    >
+      <StatusBar />
+      <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-4">
+        <div className="h-3 w-3/4 rounded bg-[#d8cfb6]" />
+        <div className="h-12 w-full rounded bg-[#efe7d2]" />
+        <div className="h-3 w-1/2 rounded bg-[#e3dcc5]" />
+        <div className="h-12 w-full rounded bg-[#efe7d2]" />
+      </div>
+      <div className="absolute inset-0" style={{ background: "var(--overlay)" }} />
+      <div className="absolute inset-x-0 bottom-0">{children}</div>
+    </div>
+  );
+}
+
+/** Compact 375px-wide stage for the Variants grid — page content dimmed
+    behind a bottom sheet, no full device chrome (that's what
+    `PhoneSheetStage` is for). Keeps a page with many variants scannable. */
 function SheetStage({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative w-full max-w-[375px] overflow-hidden rounded-[12px] bg-[#f9f5ea]">
+    <div className="mobile-mode relative w-full max-w-[375px] overflow-hidden rounded-[12px] bg-[#f9f5ea]">
       <div className="flex flex-col gap-2 p-4 pb-20">
         <div className="h-3 w-3/4 rounded bg-[#d8cfb6]" />
         <div className="h-12 w-full rounded bg-[#efe7d2]" />
         <div className="h-3 w-1/2 rounded bg-[#e3dcc5]" />
         <div className="h-12 w-full rounded bg-[#efe7d2]" />
       </div>
-      <div className="absolute inset-0 bg-black/25" />
+      <div className="absolute inset-0" style={{ background: "var(--overlay)" }} />
       <div className="absolute inset-x-0 bottom-0">{children}</div>
     </div>
   );
@@ -598,7 +661,7 @@ function BottomSheetOverview() {
       <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
         As a currency picker sheet (Tiles inside, frosted search action):
       </p>
-      <SheetStage>
+      <PhoneSheetStage>
         <BottomSheet title="Currency" action={<CircleIcon size={20} />} actionLabel="Search currencies">
           <div className="flex flex-col gap-2 px-4">
             <Tile
@@ -619,7 +682,7 @@ function BottomSheetOverview() {
             />
           </div>
         </BottomSheet>
-      </SheetStage>
+      </PhoneSheetStage>
     </div>
   );
 }
@@ -648,13 +711,13 @@ function BottomSheetVariants() {
           <BottomSheet showHeader={false}>{filler}</BottomSheet>
         </SheetStage>
       </AutoCell>
-      <AutoCell label="With sticky button dock (composed)">
+      <AutoCell label="With footer (BottomsheetsEnd, composed from ButtonDock)">
         <SheetStage>
-          <BottomSheet title="Title">
+          <BottomSheet
+            title="Title"
+            footer={<ButtonDock type="double" primaryLabel="Confirm" secondaryLabel="Cancel" />}
+          >
             {filler}
-            <div className="mt-3">
-              <ButtonDock type="double" primaryLabel="Confirm" secondaryLabel="Cancel" />
-            </div>
           </BottomSheet>
         </SheetStage>
       </AutoCell>
@@ -662,12 +725,75 @@ function BottomSheetVariants() {
   );
 }
 
-/** 375px stage with busy content behind a `sticky` dock (the dock positions
-    itself), so the frosted gradient + blur reads like it does over a
-    scrolling page. */
+function OverlayOverview() {
+  return (
+    <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
+      <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
+        Full-bleed scrim behind a modal or bottom sheet — dims the page, no recede/scale:
+      </p>
+      <div
+        className="mobile-mode relative flex flex-col overflow-hidden rounded-[48px] bg-[#f9f5ea] shadow-2xl"
+        style={{ width: 375, height: 812 }}
+      >
+        <StatusBar />
+        <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-4">
+          <div className="h-3 w-3/4 rounded bg-[#d8cfb6]" />
+          <div className="h-12 w-full rounded bg-[#efe7d2]" />
+          <div className="h-3 w-1/2 rounded bg-[#e3dcc5]" />
+          <div className="h-12 w-full rounded bg-[#efe7d2]" />
+        </div>
+        <Overlay />
+      </div>
+    </div>
+  );
+}
+
+function OverlayVariants() {
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      <AutoCell label="--overlay · rgba(27, 27, 27, 0.6)">
+        <div className="relative h-[76px] w-full overflow-hidden rounded-[10px]">
+          <div className="absolute inset-0 bg-[#efe7d2]" />
+          <Overlay />
+        </div>
+      </AutoCell>
+    </div>
+  );
+}
+
+/** Real 375×812 phone frame (matches every app screen's device size) with a
+    default-iOS `StatusBar` (SF Pro, not the GT Walsheim brand font) and busy
+    placeholder content behind a `sticky` dock, so the frosted gradient +
+    blur reads like it does over a scrolling page. Used once, for the Overview
+    demo — the full-device chrome is too tall to repeat across the Variants
+    grid (see compact `DockStage` below for that). */
+function PhoneDockStage({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="mobile-mode relative flex flex-col overflow-hidden rounded-[48px] bg-[#f9f5ea] shadow-2xl"
+      style={{ width: 375, height: 812 }}
+    >
+      <StatusBar />
+      <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-4" style={{ paddingBottom: 220 }}>
+        <div className="h-3 w-3/4 rounded bg-[#d8cfb6]" />
+        <div className="h-3 w-1/2 rounded bg-[#e3dcc5]" />
+        <div className="h-12 w-full rounded bg-[#efe7d2]" />
+        <div className="h-3 w-2/3 rounded bg-[#d8cfb6]" />
+        <div className="h-12 w-full rounded bg-[#efe7d2]" />
+        <div className="h-3 w-3/5 rounded bg-[#e3dcc5]" />
+        <div className="h-12 w-full rounded bg-[#efe7d2]" />
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Compact 375px-wide stage for the Variants grid — just the dock itself over
+    a short strip of placeholder content, no full device chrome (that's what
+    `PhoneDockStage` is for). Keeps a page with many variants scannable. */
 function DockStage({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative w-full max-w-[375px] overflow-hidden rounded-[12px] bg-[#f9f5ea]">
+    <div className="mobile-mode relative w-full max-w-[375px] overflow-hidden rounded-[12px] bg-[#f9f5ea]">
       <div className="flex flex-col gap-2 p-4">
         <div className="h-3 w-3/4 rounded bg-[#d8cfb6]" />
         <div className="h-3 w-1/2 rounded bg-[#e3dcc5]" />
@@ -688,9 +814,9 @@ function ButtonDockOverview() {
       <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
         The frosted dock floating over page content via the sticky prop — the gradient fades in and content blurs underneath (page docks pass sticky; sheet footers stay in-flow):
       </p>
-      <DockStage>
+      <PhoneDockStage>
         <ButtonDock type="double" sticky primaryLabel="Send Invoice" secondaryLabel="Send Later" homeIndicator />
-      </DockStage>
+      </PhoneDockStage>
     </div>
   );
 }
@@ -725,7 +851,7 @@ function ButtonDockVariants() {
 
 /** 375px phone-bg strip so the frosted-glass buttons/pill read like in the app. */
 function HeaderStrip({ children }: { children: React.ReactNode }) {
-  return <div className="w-full max-w-[375px] rounded-[12px] bg-[#f9f5ea] py-2">{children}</div>;
+  return <div className="mobile-mode w-full max-w-[375px] rounded-[12px] bg-[#f9f5ea] py-2">{children}</div>;
 }
 
 function InvoiceRowOverview() {
@@ -859,8 +985,47 @@ function OutstandingCardVariants() {
   );
 }
 
+function ActionRequiredOverview() {
+  return (
+    <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
+      <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>A single actionable row — title, optional description, secondary "Proceed" button:</p>
+      <div className="w-full max-w-[343px]">
+        <ActionRequired title="Invoice extracted" description="Uploaded PDF invoice from Terra..." onAction={() => {}} />
+      </div>
+    </div>
+  );
+}
+
+function ActionRequiredVariants() {
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <AutoCell label="Title only">
+        <div className="w-full max-w-[343px]">
+          <ActionRequired title="Invoice extracted" onAction={() => {}} />
+        </div>
+      </AutoCell>
+      <AutoCell label="Title + description">
+        <div className="w-full max-w-[343px]">
+          <ActionRequired title="Invoice extracted" description="Uploaded PDF invoice from Terra..." onAction={() => {}} />
+        </div>
+      </AutoCell>
+      <AutoCell label="Custom action label">
+        <div className="w-full max-w-[343px]">
+          <ActionRequired title="Payment match found" description="HKD 2,800 from Globe Enterprises matches this invoice" actionLabel="Confirm" onAction={() => {}} />
+        </div>
+      </AutoCell>
+      <AutoCell label="Long title/description (truncates)">
+        <div className="w-full max-w-[343px]">
+          <ActionRequired title="Overpayment received on invoice awaiting review" description="INV-2026-000005 · paid USD 250.00 over the invoice total amount due" onAction={() => {}} />
+        </div>
+      </AutoCell>
+    </div>
+  );
+}
+
 function PageHeaderTestMe() {
   const [query, setQuery] = useState("");
+  const [collapsed, setCollapsed] = useState(false);
   return (
     <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
       <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
@@ -875,6 +1040,19 @@ function PageHeaderTestMe() {
       <HeaderStrip>
         <PageHeader type="search" searchPlaceholder="Search invoices" searchValue={query} onSearchChange={setQuery} />
       </HeaderStrip>
+
+      <p className="mt-2 text-[12px]" style={{ ...FONT, color: MUTED }}>
+        "Left" also animates smoothly in place via the <code>collapsed</code> prop — toggle it
+        to see the title slide up next to the back button (drive this from a scroll listener,
+        same pattern as FAB's <code>collapsed</code>):
+      </p>
+      <div className="flex items-center gap-2">
+        <Toggle checked={collapsed} onChange={setCollapsed} aria-label="Toggle collapsed" />
+        <span className="text-[12px]" style={{ ...FONT, color: INK }}>{collapsed ? "Collapsed" : "Expanded"}</span>
+      </div>
+      <HeaderStrip>
+        <PageHeader type="left" title="Invoices" text="last 5 invoices" collapsed={collapsed} />
+      </HeaderStrip>
     </div>
   );
 }
@@ -888,8 +1066,11 @@ function PageHeaderVariants() {
           <AutoCell label="Left align (32px title, slot below buttons)">
             <HeaderStrip><PageHeader type="left" title="Title" /></HeaderStrip>
           </AutoCell>
-          <AutoCell label="Left align on scroll (22px title)">
+          <AutoCell label="Left align on scroll (24px title)">
             <HeaderStrip><PageHeader type="left-on-scroll" title="Title" /></HeaderStrip>
+          </AutoCell>
+          <AutoCell label="Left align, collapsed prop (animates in place — see Test me)">
+            <HeaderStrip><PageHeader type="left" title="Title" collapsed /></HeaderStrip>
           </AutoCell>
           <AutoCell label="Center align (18px title)">
             <HeaderStrip><PageHeader type="center" title="Title" /></HeaderStrip>
@@ -921,7 +1102,7 @@ function PageHeaderVariants() {
             <HeaderStrip>
               <PageHeader type="left">
                 <div className="flex items-baseline gap-2">
-                  <p className="text-[32px] font-medium tracking-[-1.6px]" style={{ ...FONT, color: INK, lineHeight: 0.9 }}>$12,450</p>
+                  <p className="text-[32px] font-medium tracking-[-1.6px]" style={{ ...FONT, color: INK, lineHeight: 0.9 }}>USD 12,450</p>
                   <p className="text-[14px]" style={{ ...FONT, color: MUTED }}>outstanding</p>
                 </div>
               </PageHeader>
@@ -1252,30 +1433,40 @@ export function Showcase() {
               </div>
               {listOpen && (
                 <div className="flex flex-1 flex-col gap-1 overflow-y-auto pb-4">
-                  {NAV.map((item) => {
-                    const active = activeNav === item.id;
-                    return (
-                      <div key={item.id} className="relative w-full px-3">
-                        {active && (
-                          <span className="absolute bottom-1 left-0 top-1 w-[3px] rounded-r" style={{ background: NAV_ACCENT }} />
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => jumpTo(item.id)}
-                          className="w-full rounded-[8px] py-[11px] pl-4 text-left text-[15px] transition-colors"
-                          style={{
-                            ...FONT,
-                            color: INK,
-                            fontWeight: active ? 600 : 400,
-                            background: active ? "#f0f0f0" : "transparent",
-                            cursor: "pointer",
-                          }}
-                        >
-                          {item.label}
-                        </button>
-                      </div>
-                    );
-                  })}
+                  {NAV_GROUPS.map((group) => (
+                    <div key={group.category} className="mb-2">
+                      <p
+                        className="px-3 pb-1 pl-4 pt-3 text-[12px] uppercase tracking-wide"
+                        style={{ ...FONT, color: MUTED, fontWeight: 600 }}
+                      >
+                        {group.category}
+                      </p>
+                      {group.items.map((item) => {
+                        const active = activeNav === item.id;
+                        return (
+                          <div key={item.id} className="relative w-full px-3">
+                            {active && (
+                              <span className="absolute bottom-1 left-0 top-1 w-[3px] rounded-r" style={{ background: NAV_ACCENT }} />
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => jumpTo(item.id)}
+                              className="w-full rounded-[8px] py-[11px] pl-4 text-left text-[15px] transition-colors"
+                              style={{
+                                ...FONT,
+                                color: INK,
+                                fontWeight: active ? 600 : 400,
+                                background: active ? "#f0f0f0" : "transparent",
+                                cursor: "pointer",
+                              }}
+                            >
+                              {item.label}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
               )}
               <div className="mt-auto flex justify-end border-t border-[#e5e5e5] px-4 py-3">
@@ -1317,9 +1508,17 @@ export function Showcase() {
             {activeNav === "bottom-sheet" && (
               <ComponentPage
                 title="Bottom Sheet"
-                description="The modal sheet container — grabber, sticky 28px-title header with an optional frosted action button, content slot and 32px bottom pad."
+                description="The modal sheet container — grabber, sticky 32px-title header with an optional frosted action button, content slot and 32px bottom pad."
                 overview={<BottomSheetOverview />}
                 variants={<BottomSheetVariants />}
+              />
+            )}
+            {activeNav === "overlay" && (
+              <ComponentPage
+                title="Overlay"
+                description="The full-bleed scrim behind a modal or bottom sheet — a single flat color/opacity, no variants. Used by every BottomSheet in the app."
+                overview={<OverlayOverview />}
+                variants={<OverlayVariants />}
               />
             )}
             {activeNav === "button" && (
@@ -1380,6 +1579,14 @@ export function Showcase() {
                 description="The dark dashboard hero card — expected amount, collected progress with a gradient bar (green at 100%), and the outstanding balance with an invoices link."
                 overview={<OutstandingCardOverview />}
                 variants={<OutstandingCardVariants />}
+              />
+            )}
+            {activeNav === "action-required" && (
+              <ComponentPage
+                title="Action Required"
+                description="A single actionable row — title, optional description, and a secondary 'Proceed' button. Stack it (see components/NeedAttentionStack) for the dashboard's Action Required preview."
+                overview={<ActionRequiredOverview />}
+                variants={<ActionRequiredVariants />}
               />
             )}
             {activeNav === "page-header" && (

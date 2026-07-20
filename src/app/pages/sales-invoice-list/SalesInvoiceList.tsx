@@ -1,21 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { parse, format, addDays } from "date-fns";
-import { FilePlus } from "lucide-react";
+import { ArrowUpDown, Check, ChevronDown, FilePlus, Search } from "lucide-react";
 import { FAB } from "../../ui/FAB";
+import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { HorizontalTabs } from "../../ui/HorizontalTabs";
-import ImportExportIcon from "@mui/icons-material/ImportExport";
-import TuneIcon from "@mui/icons-material/Tune";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import CheckIcon from "@mui/icons-material/Check";
-import SearchIcon from "@mui/icons-material/Search";
-import StatusBar from "../../components/StatusBar";
+import { Tile } from "../../ui/Tile";
 import { SendSuccessToast } from "../../components/SendSuccessToast";
 import { CreateInvoiceSheet } from "../../components/CreateInvoiceSheet";
 import { BottomSheet } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
-import { Search } from "../../components/Search";
-import { CreditNoteDetailPage } from "../CreditNoteDetailPage";
+import { SearchField } from "../../components/SearchField";
+import { FilterIcon } from "../../components/FilterIcon";
+import { CreditNoteDetailPage } from "../credit-note-list/CreditNoteDetailPage";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { INVOICES } from "../../data/invoices";
 import { SHOW_RECURRING } from "../../lib/flags";
@@ -103,6 +100,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
   // list scrolls. Tap the icon again to hide + clear. Clearing text uses the ✕ inside the field.
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   const issueActive = Boolean(issueFrom || issueTo);
   // Due-date filter is only meaningful on the unpaid views (All / Awaiting).
@@ -117,7 +115,6 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
   // Qonto-style: only surface a search once the client list is long enough to need it.
   const visibleClients = CLIENTS.filter((c) => c.toLowerCase().includes(clientQuery.toLowerCase()));
 
-  const sortLabel = SORT_OPTIONS.find((o) => o.key === sortKey)!.label;
   // Number of active filters (date range + each picked client) — shown on the Filters button.
   const filterCount = selectedClients.length + (dueFilter === "all" ? 0 : 1) + (issueActive ? 1 : 0) + refundFilters.length;
 
@@ -182,54 +179,61 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
 
   return (
     <div
-      className="relative bg-[#f9f5ea] rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
-      style={{ width: 375, height: 812 }}
+      className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
+      style={{ width: 375, height: 812, background: "linear-gradient(180deg, var(--bg-beige-primary) 0%, var(--bg-beige-primary) 100px, #ffffff 150px)" }}
     >
       {/* Thin horizontal scrollbar for the status tab row (the DS scroller is the wrapper's child) */}
       <style>{`
         .tabs-wrap > div{scrollbar-width:thin;scrollbar-color:rgba(160,160,160,0.45) transparent;}
         .tabs-wrap > div::-webkit-scrollbar{height:2px;}
-        .tabs-wrap > div::-webkit-scrollbar-track{background:transparent;margin:0 16px;}
+        .tabs-wrap > div::-webkit-scrollbar-track{background:transparent;margin:0 0 0 16px;}
         .tabs-wrap > div::-webkit-scrollbar-thumb{background:rgba(160,160,160,0.45);border-radius:9999px;}
       `}</style>
 
-      <StatusBar />
+      <div
+        className="flex-1 overflow-y-auto thin-scrollbar"
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+      >
+        <PageAppHeader scrolled={scrolled}>
+          {/* DS PageHeader (center) — back chevron only, title optically centered by the spacer. */}
+          <PageHeader type="center" title="All Invoices" onBack={onBack} showSearch={false} />
 
-      {/* DS PageHeader (center) — back chevron only, title optically centered by the spacer. */}
-      <PageHeader type="center" title="Sales Invoices" onBack={onBack} showSearch={false} />
+          {/* Status filter tabs — DS HorizontalTabs (button style), horizontally scrollable. Sits
+              directly in the header's beige→white gradient panel, no separate box/shadow. Right
+              padding is intentionally omitted (Figma node 1332-18605): the row bleeds to the frame's
+              edge so an overflowing tab clips flush against it, signalling more content to scroll to. */}
+          <div ref={tabsWrapRef} className="tabs-wrap shrink-0 pl-4 pt-4 pb-3 relative z-10">
+            <HorizontalTabs
+              variant="button"
+              tabs={FILTERS.map((f, i) => `${f.label} (${counts[i]})`)}
+              activeIndex={active}
+              onChange={selectChip}
+            />
+          </div>
 
-      {/* Status filter tabs — DS HorizontalTabs (button style), horizontally scrollable */}
-      <div ref={tabsWrapRef} className="tabs-wrap shrink-0 bg-[#f9f5ea] px-4 pt-4 pb-3 rounded-b-lg shadow-[0_4px_14px_rgba(226,220,203,0.3)] relative z-10">
-        <HorizontalTabs
-          variant="button"
-          tabs={FILTERS.map((f, i) => `${f.label} (${counts[i]})`)}
-          activeIndex={active}
-          onChange={selectChip}
-        />
-      </div>
+          {/* Sort / Filter row — Figma "Sales Invoice · List" (node 1332-18479). The Sort button
+              label reflects the active sort (e.g. "Issue Date: Newest") once one is applied. */}
+          <div className="shrink-0 flex items-center justify-between pb-2 px-4 border-b border-[var(--border-neutral-primary)]">
+            <button onClick={() => setSortOpen(true)} className="flex items-center gap-1" style={FONT}>
+              <ArrowUpDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
+              <span className="body-sm-medium text-[var(--text-primary)]">{SORT_OPTIONS.find((o) => o.key === sortKey)?.label ?? "Sort by"}</span>
+              <ChevronDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
+            </button>
+            <button onClick={() => setFilterOpen(true)} className="relative flex items-center justify-center p-1 -m-1" aria-label="Filters">
+              <FilterIcon size={20} color="var(--text-primary)" />
+              {filterCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[var(--bg-brand-primary)] text-white text-[10px] font-bold flex items-center justify-center">
+                  {filterCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </PageAppHeader>
 
-      {/* Sort / Filter row (Variation A) */}
-      <div className="shrink-0 flex items-center justify-between bg-white px-4 py-2.5 border-b border-[#f1f1f1]">
-        <button onClick={() => setSortOpen(true)} className="flex items-center gap-1" style={FONT}>
-          <ImportExportIcon style={{ fontSize: 18, color: "#1b1b1b" }} />
-          <span className="text-[13px] font-medium text-[#1b1b1b]">{sortLabel}</span>
-          <KeyboardArrowDownIcon style={{ fontSize: 16, color: "#808080" }} />
-        </button>
-        <button onClick={() => setFilterOpen(true)} className="flex items-center gap-1.5" style={FONT}>
-          <TuneIcon style={{ fontSize: 18, color: "#1b1b1b" }} />
-          <span className="text-[13px] font-medium text-[#1b1b1b]">Filters</span>
-          {filterCount > 0 && (
-            <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[#ff4a15] text-white text-[11px] font-bold flex items-center justify-center">
-              {filterCount}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* Invoice list — DS InvoiceRows as a flat list on the white page (divider between rows). */}
-      <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pb-28 flex flex-col">
+        {/* Invoice list — DS InvoiceRows as a flat list on the white page (divider between rows). */}
+        <div className="bg-white px-4 pb-28 flex flex-col">
         {list.length === 0 ? (
-          <p className="text-center text-[13px] text-[#a0a0a0] pt-16" style={FONT}>No invoices found</p>
+          <p className="text-center text-[13px] text-[var(--text-placeholder)] pt-16" style={FONT}>No invoices found</p>
         ) : (
           list.map((inv, i) => (
             <InvoiceCard
@@ -244,6 +248,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
             />
           ))
         )}
+        </div>
       </div>
 
       {/* Create invoice FAB */}
@@ -300,29 +305,22 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
         );
       })()}
 
-      {/* Sort bottom sheet */}
+      {/* Sort bottom sheet — Figma "Sales Invoice · List" Sort by (node 1345-40965): DS Tile rows,
+          selected = brand border + check. */}
       <BottomSheet open={sortOpen} title="Sort by" onClose={() => setSortOpen(false)}>
-        <div className="flex flex-col">
-          {visibleSortOptions.map((o, i) => {
-            const isActive = o.key === sortKey;
-            return (
-              <button
-                key={o.key}
-                onClick={() => {
-                  setSortKey(o.key);
-                  setSortOpen(false);
-                }}
-                className={`w-full flex items-center justify-between py-3.5 text-left ${
-                  i === visibleSortOptions.length - 1 ? "" : "border-b border-[#f1f1f1]"
-                }`}
-              >
-                <span className={`text-[15px] ${isActive ? "font-bold text-[#1b1b1b]" : "text-[#1b1b1b]"}`} style={FONT}>
-                  {o.label}
-                </span>
-                {isActive && <CheckIcon style={{ fontSize: 20, color: "#ff4a15" }} />}
-              </button>
-            );
-          })}
+        <div className="flex flex-col gap-2">
+          {visibleSortOptions.map((o) => (
+            <Tile
+              key={o.key}
+              title={o.label}
+              selected={o.key === sortKey}
+              trailing={o.key === sortKey ? "check" : "none"}
+              onClick={() => {
+                setSortKey(o.key);
+                setSortOpen(false);
+              }}
+            />
+          ))}
         </div>
       </BottomSheet>
 
@@ -353,7 +351,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
       >
         {showDueFilter && (
           <>
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-2" style={FONT}>Due date</p>
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[var(--text-placeholder)] mb-2" style={FONT}>Due date</p>
             <div className="flex flex-wrap gap-2 mb-6">
               {DUE_FILTERS.map((r) => {
                 const isOn = dueFilter === r.key;
@@ -364,9 +362,9 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
                     className="h-9 px-3.5 rounded-full border text-[13px] font-medium transition-colors"
                     style={{
                       ...FONT,
-                      borderColor: isOn ? "#ff4a15" : "rgba(160,160,160,0.4)",
+                      borderColor: isOn ? "var(--text-brand)" : "rgba(160,160,160,0.4)",
                       background: isOn ? "#fff4f0" : "transparent",
-                      color: isOn ? "#ff4a15" : "#1b1b1b",
+                      color: isOn ? "var(--text-brand)" : "var(--text-primary)",
                     }}
                   >
                     {r.label}
@@ -377,11 +375,11 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
           </>
         )}
 
-        <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-2" style={FONT}>Issue date</p>
+        <p className="text-[12px] font-bold uppercase tracking-wide text-[var(--text-placeholder)] mb-2" style={FONT}>Issue date</p>
         <div className="flex items-center gap-3 mb-6">
           <div className="relative flex-1">
             {!issueFrom && (
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#a0a0a0]" style={FONT}>Start date</span>
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[var(--text-placeholder)]" style={FONT}>Start date</span>
             )}
             <input
               type="date"
@@ -389,12 +387,12 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
               max={issueTo || undefined}
               onChange={(e) => setIssueFrom(e.target.value)}
               className="w-full h-10 px-3 rounded-xl border border-[rgba(160,160,160,0.4)] text-[14px] bg-white"
-              style={{ ...FONT, color: issueFrom ? "#1b1b1b" : "transparent" }}
+              style={{ ...FONT, color: issueFrom ? "var(--text-primary)" : "transparent" }}
             />
           </div>
           <div className="relative flex-1">
             {!issueTo && (
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#a0a0a0]" style={FONT}>End date</span>
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[var(--text-placeholder)]" style={FONT}>End date</span>
             )}
             <input
               type="date"
@@ -402,7 +400,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
               min={issueFrom || undefined}
               onChange={(e) => setIssueTo(e.target.value)}
               className="w-full h-10 px-3 rounded-xl border border-[rgba(160,160,160,0.4)] text-[14px] bg-white"
-              style={{ ...FONT, color: issueTo ? "#1b1b1b" : "transparent" }}
+              style={{ ...FONT, color: issueTo ? "var(--text-primary)" : "transparent" }}
             />
           </div>
         </div>
@@ -410,7 +408,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
         {/* Refund status — a refunded invoice is still Paid, so it's a filter here (only on All / Paid). */}
         {showRefundFilter && (
           <>
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-2" style={FONT}>Refund Status</p>
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[var(--text-placeholder)] mb-2" style={FONT}>Refund Status</p>
             <div className="flex flex-col mb-6">
               {REFUND_FILTERS.map((r, i) => {
                 const isOn = refundFilters.includes(r.key);
@@ -420,12 +418,12 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
                     onClick={() => setRefundFilters((prev) => (prev.includes(r.key) ? prev.filter((k) => k !== r.key) : [...prev, r.key]))}
                     className={`w-full flex items-center justify-between py-3.5 text-left ${i === REFUND_FILTERS.length - 1 ? "" : "border-b border-[#f1f1f1]"}`}
                   >
-                    <span className="text-[15px] text-[#1b1b1b]" style={FONT}>{r.label}</span>
+                    <span className="text-[15px] text-[var(--text-primary)]" style={FONT}>{r.label}</span>
                     <span
                       className="size-6 rounded-md border flex items-center justify-center"
-                      style={{ borderColor: isOn ? "#ff4a15" : "rgba(160,160,160,0.5)", background: isOn ? "#ff4a15" : "transparent" }}
+                      style={{ borderColor: isOn ? "var(--text-brand)" : "rgba(160,160,160,0.5)", background: isOn ? "var(--bg-brand-primary)" : "transparent" }}
                     >
-                      {isOn && <CheckIcon style={{ fontSize: 16, color: "white" }} />}
+                      {isOn && <Check size={16} strokeWidth={1.67} color="white" />}
                     </span>
                   </button>
                 );
@@ -437,7 +435,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
         {/* Customer — title + count + search toggle stay sticky while the list scrolls beneath. */}
         <div className="sticky top-0 z-10 bg-white -mx-6 px-6 pb-2 border-b border-[#f1f1f1]">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0]" style={FONT}>Customer ({CLIENTS.length})</p>
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[var(--text-placeholder)]" style={FONT}>Customer ({CLIENTS.length})</p>
             {CLIENTS.length >= 5 && (
               <button
                 type="button"
@@ -445,12 +443,12 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
                 onClick={() => { if (customerSearchOpen) setClientQuery(""); setCustomerSearchOpen((v) => !v); }}
                 className="p-1 -m-1"
               >
-                <SearchIcon style={{ fontSize: 18, color: customerSearchOpen ? "#ff4a15" : "#1b1b1b" }} />
+                <Search size={18} strokeWidth={1.67} color={customerSearchOpen ? "var(--text-brand)" : "var(--text-primary)"} />
               </button>
             )}
           </div>
           {customerSearchOpen && CLIENTS.length >= 5 && (
-            <Search
+            <SearchField
               size="sm"
               autoFocus
               placeholder="Search by Customer name"
@@ -461,7 +459,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
         </div>
         <div className="flex flex-col">
           {visibleClients.length === 0 && (
-            <p className="text-[13px] text-[#a0a0a0] py-3.5" style={FONT}>No customers found</p>
+            <p className="text-[13px] text-[var(--text-placeholder)] py-3.5" style={FONT}>No customers found</p>
           )}
           {visibleClients.map((c, i) => {
             const checked = selectedClients.includes(c);
@@ -473,12 +471,12 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
                   i === visibleClients.length - 1 ? "" : "border-b border-[#f1f1f1]"
                 }`}
               >
-                <span className="text-[15px] text-[#1b1b1b]" style={FONT}>{c}</span>
+                <span className="text-[15px] text-[var(--text-primary)]" style={FONT}>{c}</span>
                 <span
                   className="size-6 rounded-md border flex items-center justify-center"
-                  style={{ borderColor: checked ? "#ff4a15" : "rgba(160,160,160,0.5)", background: checked ? "#ff4a15" : "transparent" }}
+                  style={{ borderColor: checked ? "var(--text-brand)" : "rgba(160,160,160,0.5)", background: checked ? "var(--bg-brand-primary)" : "transparent" }}
                 >
-                  {checked && <CheckIcon style={{ fontSize: 16, color: "white" }} />}
+                  {checked && <Check size={16} strokeWidth={1.67} color="white" />}
                 </span>
               </button>
             );
@@ -492,7 +490,6 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
         open={!!confirmDeleteId}
         title="Delete Draft Invoice?"
         onClose={() => setConfirmDeleteId(null)}
-        dsHeader
         compact
         footer={
           <ButtonDock
@@ -508,7 +505,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
           />
         }
       >
-        <p className="text-[16px] leading-[1.45] text-[#808080]" style={FONT}>
+        <p className="text-[16px] leading-[1.45] text-[var(--text-secondary)]" style={FONT}>
           This draft invoice will be permanently deleted and cannot be recovered.
         </p>
       </BottomSheet>

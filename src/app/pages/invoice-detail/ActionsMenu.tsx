@@ -48,7 +48,7 @@ export function ActionsMenu({
   onDeleteDraft,
 }: ActionsMenuProps) {
   return (
-    <BottomSheet open={open} title="" onClose={onClose} dsHeader>
+    <BottomSheet open={open} title="" onClose={onClose}>
       <div className="flex flex-col">
 
         {/* Plain Paid invoice (no refund yet) → start a refund with a credit note (DES-720). Once a refund

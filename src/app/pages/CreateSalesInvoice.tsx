@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { UserPlus } from "lucide-react";
-import StatusBar from "../components/StatusBar";
+import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { Search } from "../ui/Search";
 import { Tile } from "../ui/Tile";
@@ -54,6 +54,7 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
   const [query, setQuery] = useState("");
   // Selecting a tile only highlights it; "Continue" advances the flow.
   const [pendingId, setPendingId] = useState<string>(selectedId);
+  const [scrolled, setScrolled] = useState(false);
 
   const filtered = useMemo(
     () =>
@@ -86,31 +87,35 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
     />
   );
 
-  const SECTION_HEADING = "text-[18px] font-medium leading-[1.1] text-[#1b1b1b]";
+  const SECTION_HEADING = "text-[18px] font-medium leading-[1.1] text-[var(--text-primary)]";
 
   // Add a new customer on a full page (App handles it, then returns here with the new one selected).
   const openAdd = () => onAddCustomer?.();
 
   return (
     <div
-      className="relative bg-[#F9F5EA] rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
+      className="relative bg-[var(--bg-beige-primary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
       style={{ width: 375, height: 812 }}
     >
-      <StatusBar />
+      <div
+        className="flex-1 overflow-y-auto thin-scrollbar"
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+      >
+        <PageAppHeader scrolled={scrolled}>
+          {/* DS PageHeader (center) — per Figma the Add action lives in the body's
+              "All customers" row, so the header is title-only. The recurring flow
+              keeps its context as the secondary line. */}
+          <PageHeader
+            type="center"
+            title="Select Customer"
+            text={recurring ? "New Recurring Invoice" : undefined}
+            onBack={onClose}
+            showSearch={false}
+          />
+        </PageAppHeader>
 
-      {/* DS PageHeader (center) — per Figma the Add action lives in the body's
-          "All customers" row, so the header is title-only. The recurring flow
-          keeps its context as the secondary line. */}
-      <PageHeader
-        type="center"
-        title="Select Customer"
-        text={recurring ? "New Recurring Invoice" : undefined}
-        onBack={onClose}
-        showSearch={false}
-      />
-
-      {/* Body sits on the beige page bg (Figma); tiles are borderless white cards. */}
-      <div className="flex-1 overflow-y-auto thin-scrollbar px-4 pt-5 pb-28">
+        {/* Body sits on the beige page bg (Figma); tiles are borderless white cards. */}
+        <div className="px-4 pt-5 pb-28">
         <div className="flex flex-col gap-4">
           {/* Frequently used — the most-billed customers as full tile rows (top 5 of the same
               list, not a separate database). Hidden while searching so results read as one list. */}
@@ -154,12 +159,13 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
 
           {filtered.length === 0 && (
             <p
-              className="text-center text-[13px] text-[#a0a0a0] pt-10"
+              className="text-center text-[13px] text-[var(--text-placeholder)] pt-10"
               style={{ fontFamily: "GT Walsheim LC, sans-serif" }}
             >
               No customers found
             </p>
           )}
+        </div>
         </div>
       </div>
 

@@ -45,7 +45,6 @@ export function RecordPaymentSheet({
         open={open}
         title="Mark as paid"
         onClose={onClose}
-        dsHeader
         footer={
           <ButtonDock
             type="double"
@@ -57,7 +56,7 @@ export function RecordPaymentSheet({
           />
         }
       >
-        <div className="flex flex-col gap-5 -mt-2">
+        <div className="flex flex-col gap-5">
           <motion.div variants={sheetItem} className="flex flex-col gap-3">
             <p className="body-md leading-[1.45]" style={{ ...FONT, color: MUTED }}>
               Record a payment received for this invoice.
@@ -68,13 +67,13 @@ export function RecordPaymentSheet({
               size="md"
               // Locked currency prefix (flag + code) — the currency is fixed per invoice, not chosen here.
               iconLeft={
-                <span className="flex items-center gap-1.5 text-[15px] font-medium text-[#1b1b1b] -ml-0.5 mr-1 whitespace-nowrap">
+                <span className="flex items-center gap-1.5 text-[15px] font-medium text-[var(--text-primary)] -ml-0.5 mr-1 whitespace-nowrap">
                   {currencyFlag && <span className="text-[18px] leading-none">{currencyFlag}</span>}
                   {currency}
                 </span>
               }
               value={value}
-              hintText={`Invoice total: ${money(total)}`}
+              hintText={`Invoice total: ${money(total, currency)}`}
               onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ""))}
             />
           </motion.div>
@@ -101,7 +100,7 @@ export function RecordPaymentSheet({
       />
 
       {/* Optional payment date. */}
-      <BottomSheet open={dateOpen} title="Payment date" onClose={() => setDateOpen(false)} dsHeader>
+      <BottomSheet open={dateOpen} title="Payment date" onClose={() => setDateOpen(false)}>
         <Calendar value={date ?? undefined} onChange={(d) => { onDateChange(d); setDateOpen(false); }} />
         {date && (
           <button

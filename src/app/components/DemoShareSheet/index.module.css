@@ -1,0 +1,158 @@
+/* Demo iOS-style share sheet — visual only, no real sharing happens */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.sheet {
+  position: absolute;
+  left: var(--space-4);
+  right: var(--space-4);
+  bottom: var(--space-4);
+  border-radius: 20px;
+  background: #f2f2f7;
+  overflow: hidden;
+}
+
+/* ===== PREVIEW HEADER ===== */
+.previewHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  background: var(--bg-neutral-primary);
+  padding: var(--space-6) var(--space-8);
+}
+
+.previewIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-2xl);
+  background: var(--bg-neutral-inverse-primary);
+}
+
+.previewIconGlyph {
+  font-size: var(--text-2xl);
+  color: var(--icon-on-color);
+}
+
+.previewText {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+/* Typography via .card-title-sm utility; color + truncation only here. */
+.previewTitle {
+  margin: 0;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Typography via .caption utility; color + truncation only here. */
+.previewLink {
+  margin: 0;
+  color: #8e8e93;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Typography via .caption utility; color only here. */
+.previewBrand {
+  color: #8e8e93;
+}
+
+/* ===== CHANNELS ROW ===== */
+.channelsRow {
+  display: flex;
+  gap: var(--space-8);
+  overflow-x: auto;
+  padding: var(--space-8);
+  background: var(--bg-neutral-primary);
+  border-top: var(--border-width-sm) solid #ececef;
+}
+
+.channelButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  width: 60px;
+}
+
+.channelIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border-radius: var(--radius-full);
+}
+
+.channelIconGlyph {
+  font-size: var(--text-2xl);
+  color: var(--icon-on-color);
+}
+
+/* Typography via .caption utility; color + alignment only here. */
+.channelLabel {
+  color: var(--text-primary);
+  text-align: center;
+  line-height: 1.25;
+}
+
+/* ===== ACTIONS LIST ===== */
+.actionsList {
+  margin-top: var(--space-4);
+  background: var(--bg-neutral-primary);
+}
+
+.actionButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-7) var(--space-8);
+  border-bottom: var(--border-width-sm) solid #ececef;
+}
+
+.actionButtonLast {
+  border-bottom: none;
+}
+
+/* Typography via .body-md utility; color only here. */
+.actionLabel {
+  color: var(--text-primary);
+}
+
+.actionIcon {
+  font-size: var(--text-xl);
+  color: var(--icon-primary);
+}
+
+/* ===== CANCEL ===== */
+.cancelWrap {
+  margin-top: var(--space-4);
+}
+
+/* Typography via .h6 utility; color only here. */
+.cancelButton {
+  width: 100%;
+  background: var(--bg-neutral-primary);
+  padding: var(--space-7) 0;
+  color: #1f8fff;
+}

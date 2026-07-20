@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import { Trash2 } from "lucide-react";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { SHOW_CREDIT_NOTES } from "../../lib/flags";
 import { FONT } from "../../lib/theme";
@@ -55,7 +55,7 @@ export function InvoiceCard({ inv, highlighted, lastItem, onClick, onDelete, onO
   // Credit-note strip (DES-763 AC6): amount + label, opening the linked CN. Refund CNs read "Refund amount".
   const hasCn = SHOW_CREDIT_NOTES && Boolean(inv.cnNo);
   const cnAmountStr = linkedCn
-    ? `$${linkedCn.original.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    ? `USD ${linkedCn.original.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     : inv.amount;
 
   const row = (
@@ -114,7 +114,7 @@ function DraftSwipeRow({ children, highlightBg, onDelete, onClick }: { children:
           aria-label="Delete draft"
           className="h-full w-[80px] rounded-xl bg-[#fb4d4d] flex flex-col items-center justify-center gap-0.5 text-white active:bg-[#e23d3d]"
         >
-          <DeleteOutlineIcon style={{ fontSize: 22, color: "#fff" }} />
+          <Trash2 size={20} strokeWidth={1.67} color="var(--text-on-color)" />
           <span className="text-[12px] font-medium" style={FONT}>Delete</span>
         </button>
       </div>

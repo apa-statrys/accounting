@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
-import StatusBar from "../components/StatusBar";
+import { PageAppHeader } from "../components/PageAppHeader";
 import { SheetHeader, HeaderIconButton } from "../components/SheetHeader";
-import { Search } from "../components/Search";
+import { SearchField } from "../components/SearchField";
 import { Button } from "../ui/Button";
 import { SendSuccessToast } from "../components/SendSuccessToast";
 import type { Customer } from "../types";
@@ -21,7 +21,7 @@ function Avatar({ name }: { name: string }) {
   return (
     <span
       className="shrink-0 rounded-full flex items-center justify-center"
-      style={{ width: 40, height: 40, background: "#f3ecda", color: INK, fontFamily: FONT.fontFamily }}
+      style={{ width: 40, height: 40, background: "var(--bg-beige-secondary)", color: INK, fontFamily: FONT.fontFamily }}
     >
       <span className="font-medium" style={{ fontSize: 17.6, letterSpacing: -0.88 }}>{initials(name)}</span>
     </span>
@@ -48,6 +48,7 @@ export interface CustomerListProps {
  */
 export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer, flash, onFlashDone }: CustomerListProps) {
   const [query, setQuery] = useState("");
+  const [scrolled, setScrolled] = useState(false);
 
   const sorted = useMemo(() => [...customers].sort((a, b) => a.name.localeCompare(b.name)), [customers]);
   const filtered = useMemo(() => {
@@ -57,61 +58,66 @@ export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer,
   }, [sorted, query]);
 
   return (
-    <div className="relative bg-[#F9F5EA] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
-      <StatusBar />
+    <div className="relative bg-[var(--bg-beige-primary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
+      {/* Scrolling list — avatar rows with a thin divider between them. Tap → detail. The header +
+          heading/search chrome stay together as ONE sticky PageAppHeader unit (frosting once the
+          list scrolls beneath them) instead of a separate always-fixed block. */}
+      <div
+        className="flex-1 overflow-y-auto bg-white"
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+      >
+        <PageAppHeader scrolled={scrolled}>
+          <SheetHeader
+            title="Customers"
+            type="inside-page"
+            state="fixed"
+            leading={<HeaderIconButton aria-label="Back" onClick={onBack}><ChevronLeftIcon /></HeaderIconButton>}
+            trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
+          />
+          <div className="bg-white px-4 pt-4 pb-2 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <p className="text-[18px] font-bold leading-[1.1] text-[var(--text-primary)]" style={FONT}>
+                  {query ? "Results" : "All Customers"}
+                </p>
+                <span
+                  className="inline-flex items-center justify-center rounded-[4px] px-2 py-0.5 text-[14px] font-medium leading-[1.3] text-white"
+                  style={{ background: "var(--bg-brand-primary)", fontFamily: FONT.fontFamily }}
+                >
+                  {query ? filtered.length : customers.length}
+                </span>
+              </div>
+              <Button hierarchy="secondary" size="sm" iconLeft={<PersonAddAltIcon />} onClick={onAddCustomer} label="Add" />
+            </div>
 
-      <SheetHeader
-        title="Customers"
-        type="inside-page"
-        state="fixed"
-        leading={<HeaderIconButton aria-label="Back" onClick={onBack}><ChevronLeftIcon /></HeaderIconButton>}
-        trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
-      />
-
-      {/* Fixed top area — heading + count badge + Add New, then search. */}
-      <div className="shrink-0 bg-white px-4 pt-4 pb-2 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <p className="text-[18px] font-bold leading-[1.1] text-[#1b1b1b]" style={FONT}>
-              {query ? "Results" : "All Customers"}
-            </p>
-            <span
-              className="inline-flex items-center justify-center rounded-[4px] px-2 py-0.5 text-[14px] font-medium leading-[1.3] text-white"
-              style={{ background: "#ff4a15", fontFamily: FONT.fontFamily }}
-            >
-              {query ? filtered.length : customers.length}
-            </span>
+            <SearchField size="sm" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
-          <Button hierarchy="secondary" size="sm" iconLeft={<PersonAddAltIcon />} onClick={onAddCustomer} label="Add" />
+        </PageAppHeader>
+
+        <div className="bg-white px-4">
+          {filtered.map((c, i) => (
+            <button
+              key={c.id}
+              onClick={() => onOpenCustomer?.(c)}
+              className="w-full flex items-center gap-3 py-4 text-left"
+              style={{ borderBottom: i < filtered.length - 1 ? "1px solid rgba(160,160,160,0.2)" : "none" }}
+            >
+              <Avatar name={c.name} />
+              <span className="flex-1 min-w-0 flex flex-col">
+                <span className="text-[16px] font-medium leading-[1.1] tracking-[-0.6px] truncate" style={{ color: "#101828", fontFamily: FONT.fontFamily }}>
+                  {c.name}
+                </span>
+                <span className="text-[14px] font-medium leading-[1.3] truncate" style={{ color: MUTED, fontFamily: FONT.fontFamily }}>
+                  {c.email}
+                </span>
+              </span>
+            </button>
+          ))}
+
+          {filtered.length === 0 && (
+            <p className="text-center text-[13px] text-[var(--text-placeholder)] pt-10" style={FONT}>No customers found</p>
+          )}
         </div>
-
-        <Search size="sm" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
-      </div>
-
-      {/* Scrolling list — avatar rows with a thin divider between them. Tap → detail. */}
-      <div className="flex-1 overflow-y-auto bg-white px-4">
-        {filtered.map((c, i) => (
-          <button
-            key={c.id}
-            onClick={() => onOpenCustomer?.(c)}
-            className="w-full flex items-center gap-3 py-4 text-left"
-            style={{ borderBottom: i < filtered.length - 1 ? "1px solid rgba(160,160,160,0.2)" : "none" }}
-          >
-            <Avatar name={c.name} />
-            <span className="flex-1 min-w-0 flex flex-col">
-              <span className="text-[16px] font-medium leading-[1.1] tracking-[-0.6px] truncate" style={{ color: "#101828", fontFamily: FONT.fontFamily }}>
-                {c.name}
-              </span>
-              <span className="text-[14px] font-medium leading-[1.3] truncate" style={{ color: MUTED, fontFamily: FONT.fontFamily }}>
-                {c.email}
-              </span>
-            </span>
-          </button>
-        ))}
-
-        {filtered.length === 0 && (
-          <p className="text-center text-[13px] text-[#a0a0a0] pt-10" style={FONT}>No customers found</p>
-        )}
       </div>
 
       {/* Success confirmation (AC5) — shared toast style. */}

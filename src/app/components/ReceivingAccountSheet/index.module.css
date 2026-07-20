@@ -1,0 +1,43 @@
+/* ReceivingAccountSheet — Statrys account list + optional "other bank" option. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8); /* gap-4 */
+}
+
+/* No matching typography utility (medium 16px/1.3) — literal, matches other
+   converted components (e.g. NeedAttentionStack .title) that declare one-off
+   type styles directly when the DS ramp has no equivalent. */
+.heading {
+  margin: 0;
+  font-family: var(--font-primary);
+  font-size: var(--text-base);
+  font-weight: var(--fw-medium);
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+/* DS Tile country variant — 30px flag slot; the primary account wears the Figma
+   corner "Primary" badge (brand gradient, pinned top-right). */
+.accounts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4); /* gap-2 */
+}
+
+.flag {
+  font-size: var(--text-2xl);
+  line-height: 1;
+}
+
+/* Separator + other-bank option (hidden when the source must be a Statrys account, e.g. a refund). */
+.externalGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8); /* gap-4 */
+}
+
+.divider {
+  border-top: var(--border-width-sm) solid var(--border-beige-primary);
+}

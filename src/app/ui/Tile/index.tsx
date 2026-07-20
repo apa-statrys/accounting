@@ -46,7 +46,7 @@ interface TileProps {
 function ChevronRightIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -54,7 +54,7 @@ function ChevronRightIcon() {
 function CheckIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M13.3333 4L6 11.3333L2.66667 8" stroke="currentColor" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M13.3333 4L6 11.3333L2.66667 8" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

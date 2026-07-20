@@ -11,7 +11,7 @@
 .label {
   display: block;
   color: #090a0a; /* Ink/Darkest */
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   margin-bottom: 7px;
   white-space: nowrap;
 }

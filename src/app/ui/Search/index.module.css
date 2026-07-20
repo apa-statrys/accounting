@@ -2,9 +2,10 @@
    36px row (vs TextField's 48px), same border states as TextField: focus
    black via :focus-within, error red (wins over focus), disabled greys
    surface/text/icons. While focused the trailing mic is swapped for the
-   X clear button — pure CSS below. Colors from ui/tokens.css. */
+   X clear button — pure CSS below. Colors from styles/theme.css. */
 
 .field {
+  composes: body-md from global;
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -12,32 +13,28 @@
   height: 36px;
   width: 100%;
   padding: 0 16px;
-  background: var(--ds-field-bg);
-  border: 1px solid var(--ds-field-border);
-  border-radius: var(--ds-radius-xl);
-  font-family: var(--ds-font-primary);
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 1.3;
+  background: var(--field-bg);
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-xl);
 }
 .field:focus-within,
 .forceFocus {
-  border-color: var(--ds-field-border-focus);
+  border-color: var(--field-border-focus);
 }
 .error,
 .error:focus-within {
-  border-color: var(--ds-border-error-bold);
+  border-color: var(--border-error-bold);
 }
 .disabled {
-  background: var(--ds-field-bg-disabled);
+  background: var(--field-bg-disabled);
 }
 
 .searchIcon {
   display: flex;
-  color: var(--ds-text-primary);
+  color: var(--text-primary);
 }
 .disabled .searchIcon {
-  color: var(--ds-text-disabled);
+  color: var(--text-disabled);
 }
 
 .input {
@@ -48,15 +45,15 @@
   outline: none;
   background: transparent;
   font: inherit;
-  color: var(--ds-text-primary);
+  color: var(--text-primary);
 }
 .input::placeholder {
-  color: var(--ds-text-placeholder);
+  color: var(--text-placeholder);
   opacity: 1;
 }
 .disabled .input,
 .disabled .input::placeholder {
-  color: var(--ds-text-disabled);
+  color: var(--text-disabled);
 }
 
 /* Trailing actions — icon-only buttons, no extra hit-area chrome */
@@ -66,11 +63,11 @@
   padding: 0;
   border: none;
   background: none;
-  color: var(--ds-text-primary);
+  color: var(--text-primary);
   cursor: pointer;
 }
 .mic:disabled {
-  color: var(--ds-text-disabled);
+  color: var(--text-disabled);
   cursor: default;
 }
 

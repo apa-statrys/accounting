@@ -1,0 +1,39 @@
+/* SendInvoiceSheet — "Delivery method" full-page sheet, slides in from the right. */
+
+.root {
+  position: absolute;
+  inset: 0;
+  /* Matches the app's Tailwind z-40 stacking convention used by sibling
+     overlays — kept as a literal value since it doesn't correspond to this
+     project's semantic z-index scale (z-index/z-index.css) and must stay in
+     lockstep with the many not-yet-converted files still using the raw
+     Tailwind z-* classes (see BottomSheet/index.module.css for precedent). */
+  z-index: 40;
+  background: var(--bg-beige-primary);
+  /* Tailwind rounded-[48px] — matches the phone-frame shell radius used by
+     every full-page screen (App.tsx / pages/*.tsx); no radius token reaches
+     48px (--radius-5xl caps at 32px), so kept literal. */
+  border-radius: 48px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.trailingSpacer {
+  display: block;
+  width: 30px;
+  height: 30px;
+}
+
+.body {
+  flex: 1 1 0%;
+  overflow-y: auto;
+  background: var(--bg-neutral-primary);
+}
+
+.methods {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-10) var(--space-8) var(--space-20);
+}

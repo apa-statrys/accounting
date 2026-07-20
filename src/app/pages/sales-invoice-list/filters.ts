@@ -94,7 +94,7 @@ export type StatusMatch = "all" | Status | "Overdue";
 // Overdue rows show under Awaiting (an overdue invoice is Awaiting past its due date), and
 // Partially Paid rows show under Paid (any payment received). Each card still shows its own chip.
 export const FILTERS: { label: string; match: StatusMatch }[] = [
-  { label: "All Invoices", match: "all" },
+  { label: "All", match: "all" },
   { label: "Draft", match: "Draft" },
   { label: "Awaiting", match: "Awaiting" },
   { label: "Paid", match: "Paid" },

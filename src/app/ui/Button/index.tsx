@@ -6,7 +6,7 @@ import styles from "./index.module.css";
  * Variants: Hierarchy(primary|secondary|tertiary) × Size(md|sm) × Shape(rec|square) ×
  * Inverse(false|true, for dark surfaces) × states Default / Active / Disable.
  * Figma's "Active" is the pressed state: it applies while the finger/mouse is down.
- * All styling lives in index.module.css (colors via ui/tokens.css).
+ * All styling lives in index.module.css (colors via styles/theme.css).
  */
 
 export type Hierarchy = "primary" | "secondary" | "tertiary";

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { StatusBar } from "../components/StatusBar";
 
 const DEFAULT_STEPS = [
   "Preparing invoice details…",
@@ -54,9 +55,12 @@ export function GeneratingInvoice({ onDone, title = "Generating invoice", steps 
 
   return (
     <div
-      className="relative bg-[#F9F5EA] rounded-[48px] overflow-hidden shadow-2xl flex flex-col items-center justify-center"
+      className="relative bg-[var(--bg-beige-primary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col items-center justify-center"
       style={{ width: 375, height: 812 }}
     >
+        {/* App status bar — pinned to the top edge; the spinner stays centred below it. */}
+        <StatusBar className="absolute top-0 inset-x-0 z-10" />
+
         {/* Animated background blob */}
         <motion.div
           className="absolute w-64 h-64 rounded-full"
@@ -74,11 +78,11 @@ export function GeneratingInvoice({ onDone, title = "Generating invoice", steps 
         >
           <div className="w-20 h-20 rounded-3xl bg-white shadow-md flex items-center justify-center">
             <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-              <rect x="6" y="4" width="24" height="28" rx="3" fill="#F9F5EA" stroke="#E0E0E0" strokeWidth="1.5"/>
-              <path d="M11 12h14M11 17h14M11 22h8" stroke="#1B1B1B" strokeWidth="1.5" strokeLinecap="round"/>
+              <rect x="6" y="4" width="24" height="28" rx="3" fill="var(--icon-neutral-inverse-primary)" stroke="#E0E0E0" strokeWidth="1.5"/>
+              <path d="M11 12h14M11 17h14M11 22h8" stroke="var(--icon-primary)" strokeWidth="1.5" strokeLinecap="round"/>
               <motion.path
                 d="M11 12h14M11 17h14M11 22h8"
-                stroke="#FF4A15"
+                stroke="var(--icon-brand)"
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeDasharray="40"
@@ -91,7 +95,7 @@ export function GeneratingInvoice({ onDone, title = "Generating invoice", steps 
           {/* Spinning ring */}
           <motion.div
             className="absolute -inset-2 rounded-[22px] border-2 border-transparent"
-            style={{ borderTopColor: "#FF4A15", borderRightColor: "rgba(255,74,21,0.2)" }}
+            style={{ borderTopColor: "var(--border-brand-primary)", borderRightColor: "rgba(255,74,21,0.2)" }}
             animate={{ rotate: 360 }}
             transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
           />
@@ -126,7 +130,7 @@ export function GeneratingInvoice({ onDone, title = "Generating invoice", steps 
         {/* Progress bar */}
         <div className="w-48 h-1.5 bg-gray-200 rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-[#FF4A15] rounded-full"
+            className="h-full bg-[var(--bg-brand-primary)] rounded-full"
             style={{ width: `${progress}%` }}
             transition={{ duration: 0.05 }}
           />

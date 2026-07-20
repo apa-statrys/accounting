@@ -1,5 +1,6 @@
-/* Mobile sheet / page header */
-
+/* Mobile sheet / page header — no background/border of its own: it's always
+   rendered as components/PageAppHeader's children, which supplies the
+   transparent-at-rest / frosted-on-scroll backdrop (see PageAppHeader). */
 .root {
   display: flex;
   align-items: center;
@@ -9,8 +10,6 @@
   max-width: 375px;
   box-sizing: border-box;
   padding: var(--space-6) var(--space-8);
-  background: var(--bg-beige-primary);
-  border-bottom: var(--border-width-sm) solid var(--border-neutral-primary);
 }
 
 /* Collapsed (large-title) layout — button row stacked above the title */

@@ -3,9 +3,10 @@
    (border black), error border red (wins over focus, matching Figma's separate
    Error state), disabled greys the surface, text and icons. Selector types
    (mobile/currency/unit) use a 16px gap between selector and input; plain
-   types use 8px. Colors from ui/tokens.css. */
+   types use 8px. Colors from styles/theme.css. */
 
 .field {
+  composes: body-md from global;
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -13,27 +14,23 @@
   height: 48px;
   width: 100%;
   padding: 0 16px;
-  background: var(--ds-field-bg);
-  border: 1px solid var(--ds-field-border);
-  border-radius: var(--ds-radius-xl);
-  font-family: var(--ds-font-primary);
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 1.3;
+  background: var(--field-bg);
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-xl);
 }
 .withSelector {
   gap: 16px;
 }
 .field:focus-within,
 .forceFocus {
-  border-color: var(--ds-field-border-focus);
+  border-color: var(--field-border-focus);
 }
 .error,
 .error:focus-within {
-  border-color: var(--ds-border-error-bold);
+  border-color: var(--border-error-bold);
 }
 .disabled {
-  background: var(--ds-field-bg-disabled);
+  background: var(--field-bg-disabled);
 }
 
 .input {
@@ -44,15 +41,15 @@
   outline: none;
   background: transparent;
   font: inherit;
-  color: var(--ds-text-primary);
+  color: var(--text-primary);
 }
 .input::placeholder {
-  color: var(--ds-text-placeholder);
+  color: var(--text-placeholder);
   opacity: 1;
 }
 .disabled .input,
 .disabled .input::placeholder {
-  color: var(--ds-text-disabled);
+  color: var(--text-disabled);
 }
 
 /* Country-code / currency / unit selector (flag + label + 16px chevron) */
@@ -64,11 +61,11 @@
   border: none;
   background: none;
   font: inherit;
-  color: var(--ds-text-primary);
+  color: var(--text-primary);
   cursor: pointer;
 }
 .selector:disabled {
-  color: var(--ds-text-disabled);
+  color: var(--text-disabled);
   cursor: default;
 }
 .flag {
@@ -79,19 +76,19 @@
 }
 .chevronSm {
   display: flex;
-  color: var(--ds-text-secondary);
+  color: var(--text-secondary);
 }
 .selector:disabled .chevronSm {
-  color: var(--ds-text-disabled);
+  color: var(--text-disabled);
 }
 
 /* 20px leading icon (type="left-icon") */
 .leftIcon {
   display: flex;
-  color: var(--ds-text-secondary);
+  color: var(--text-secondary);
 }
 .disabled .leftIcon {
-  color: var(--ds-text-disabled);
+  color: var(--text-disabled);
 }
 
 /* Dropdown / date-picker: the whole row is one tap target */
@@ -107,11 +104,11 @@
   background: none;
   font: inherit;
   text-align: left;
-  color: var(--ds-text-primary);
+  color: var(--text-primary);
   cursor: pointer;
 }
 .picker:disabled {
-  color: var(--ds-text-disabled);
+  color: var(--text-disabled);
   cursor: default;
 }
 .pickerText {
@@ -122,22 +119,22 @@
   text-overflow: ellipsis;
 }
 .placeholderText {
-  color: var(--ds-text-placeholder);
+  color: var(--text-placeholder);
 }
 .picker:disabled .placeholderText {
   color: inherit;
 }
 .chevronLg {
   display: flex;
-  color: var(--ds-text-secondary);
+  color: var(--text-secondary);
 }
 .calendar {
   display: flex;
-  color: var(--ds-text-primary);
+  color: var(--text-primary);
 }
 .picker:disabled .chevronLg,
 .picker:disabled .calendar {
-  color: var(--ds-text-disabled);
+  color: var(--text-disabled);
 }
 
 /* Label + caption wrapper (Figma "Fields", node 4047-3379). Label stays
@@ -148,22 +145,20 @@
   align-items: flex-start;
   gap: 4px;
   width: 100%;
-  font-family: var(--ds-font-primary);
+  font-family: var(--font-primary);
 }
 .label {
   margin: 0;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: var(--text-base);
+  font-weight: var(--fw-medium);
   line-height: 1.3;
-  color: var(--ds-text-primary);
+  color: var(--text-primary);
 }
 .caption {
+  composes: body-sm from global;
   margin: 0;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.3;
-  color: var(--ds-text-secondary);
+  color: var(--text-secondary);
 }
 .captionError {
-  color: var(--ds-text-error-primary);
+  color: var(--text-error-primary);
 }

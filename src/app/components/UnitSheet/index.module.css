@@ -1,0 +1,7 @@
+/* UnitSheet — DS unit picker list (renders DS Tiles inside BottomSheet) */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}

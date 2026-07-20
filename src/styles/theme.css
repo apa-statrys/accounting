@@ -22,6 +22,7 @@
 --bg-neutral-inverse-primary-active: var(--neutral-6);
 --bg-neutral-inverse-secondary-active: var(--neutral-5);
 --bg-neutral-inverse-tertiary-active: var(--neutral-4);
+--bg-neutral-inverse-disabled: rgba(50, 50, 50, 0.6);
 
 /* BACKGROUNDS - Beige */
 --bg-beige-primary: var(--beige-3);
@@ -63,7 +64,6 @@
 /* TEXT - Neutral Inverse */
 --text-neutral-inverse-primary: var(--beige-3);
 --text-neutral-inverse-secondary: rgba(249, 245, 234, 0.7);
---text-neutral-inverse-tertiary: rgba(249, 245, 234, 0.65);
 --text-neutral-inverse-disabled: rgba(249, 245, 234, 0.6);
   
 /* TEXT - Status */
@@ -87,7 +87,6 @@
 /* ICON - Neutral Inverse */
 --icon-neutral-inverse-primary: var(--beige-3);
 --icon-neutral-inverse-secondary: rgba(249, 245, 234, 0.7);
---icon-neutral-inverse-tertiary: rgba(249, 245, 234, 0.65);
 --icon-neutral-inverse-disabled: rgba(249, 245, 234, 0.6);
 
 /* ICON - Status */
@@ -191,7 +190,7 @@
 --field-bg-disabled: var(--bg-neutral-disabled);
 --field-border: var(--border-neutral-primary);
 --field-border-hover: var(--border-neutral-primary-hover);
---field-border-focus: var(--neutral-8);
+--field-border-focus: var(--neutral-10);
 
 /* FOCUS */
 --focus: var(--brand-5);
@@ -210,9 +209,11 @@
 --gradient-direction-bottom-left: linear-gradient(102deg, #FF4A15 -2.47%, #FF7FC4 101.12%);
 --gradient-direction-bottom-right: linear-gradient(89deg, #FF4A15 1.41%, #FF7FC4 99.16%);
 --gradient-black-cta: linear-gradient(266deg, #1B1B1B 13.26%, rgba(27, 27, 27, 0.90) 101.71%);
+--gradient-badge-custom: linear-gradient(21deg, #ff4a15 15.7%, #ff553a 43.7%, #ff7fc4 153.4%);
 
 /* MISCELLANEOUS */
 --overlay: rgba(27, 27, 27, 0.6);
 --transparent: rgba(255, 255, 255, 0);
+--skeleton: var(--neutral-2);
 
 }

@@ -4,7 +4,7 @@ import { Menu, X, ChevronRight } from "lucide-react";
 import { QuickNavSidebar, type SidebarGroup } from "./components/QuickNavSidebar";
 import { Dashboard } from "./pages/Dashboard";
 import { AccountingHub } from "./pages/AccountingHub";
-import { CreditNotesList } from "./pages/CreditNotesList";
+import { CreditNotesList } from "./pages/credit-note-list/CreditNotesList";
 import { CustomerList } from "./pages/CustomerList";
 import { CustomerDetailPage } from "./pages/CustomerDetailPage";
 import { AddCustomerPage } from "./pages/AddCustomerPage";
@@ -19,7 +19,7 @@ import { AddInvoiceDetails } from "./pages/add-invoice-details/AddInvoiceDetails
 import { SalesInvoiceList } from "./pages/sales-invoice-list/SalesInvoiceList";
 import { NeedAttention } from "./pages/NeedAttention";
 import { DuplicateDecision } from "./pages/DuplicateDecision";
-import { UploadInvoice } from "./pages/UploadInvoice";
+import { UploadInvoice } from "./pages/upload-invoice/UploadInvoice";
 import { InvoiceSettings } from "./pages/InvoiceSettings";
 import { GeneratingInvoice } from "./pages/GeneratingInvoice";
 import { DEMO_EXTRACTION, DEMO_EXTRACTION_MATCHED, DEMO_EXTRACTION_NO_CUSTOMER, BLANK_EXTRACTION, EXISTING_INVOICES } from "./data/extraction";
@@ -392,7 +392,7 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#EDEDED] flex flex-col items-center justify-center gap-4 p-4">
+    <div className="mobile-mode min-h-screen bg-[#EDEDED] flex flex-col items-center justify-center gap-4 p-4">
       {screen === "dashboard" && (
         <Dashboard
           tab="dashboard"
@@ -708,7 +708,7 @@ export default function App() {
       )}
 
       {screen === "upload" && (
-        <div className="relative overflow-hidden rounded-[48px]" style={{ width: 375, height: 812 }}>
+        <div className="relative overflow-hidden rounded-[48px] shadow-2xl" style={{ width: 375, height: 812 }}>
           {/* The originating screen, shown dimmed behind the sheet. */}
           <div className="absolute inset-0 pointer-events-none">
             {uploadReturn === "dashboard" ? (
@@ -953,7 +953,7 @@ export default function App() {
         <RecurringSeriesDetail
           status={seriesScenario === "completed" ? "Completed" : seriesStatus}
           customerName={openInvoice.client}
-          amountLabel="$6,450.00"
+          amountLabel="USD 6,450.00"
           frequency="Monthly"
           startDate="01 Jul 2026"
           nextDate="01 Sep 2026"

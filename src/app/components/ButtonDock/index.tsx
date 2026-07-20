@@ -22,8 +22,9 @@ export interface ButtonDockProps extends React.HTMLAttributes<HTMLDivElement> {
   /** 'single' = primary only; 'double' = primary + outline; 'ghost' = primary
    *  + ghost (text) action; 'triple' = primary + outline + ghost. */
   type?: ButtonDockType;
-  /** 'horizontal' puts the two actions side by side (ghost left, primary
-   *  right — the Figma Primary + Ghost horizontal variant). Vertical default. */
+  /** 'horizontal' puts the two actions side by side, equal width (flex-1),
+   *  for a Close/Confirm pair. Figma only defines this for 'ghost' (ghost
+   *  left, primary right) — not 'double'/'triple'; ignored for those. */
   stack?: ButtonDockStack;
   /** Show the checkbox accessory row above the actions. */
   accessory?: boolean;
@@ -78,7 +79,7 @@ export const ButtonDock = React.forwardRef<HTMLDivElement, ButtonDockProps>(
     },
     ref
   ) => {
-    const horizontal = stack === 'horizontal' && type !== 'single';
+    const horizontal = stack === 'horizontal' && type === 'ghost';
 
     const primaryButton = (
       <Button

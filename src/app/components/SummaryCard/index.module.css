@@ -1,0 +1,56 @@
+/* SummaryCard — subtotal/discount/total rows */
+
+.card {
+  width: 100%;
+  background: var(--bg-neutral-primary);
+  border: var(--border-width-sm) dashed var(--border-beige-primary);
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-card-soft);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* Exact Figma spec: 16/16/17 (px-4 pt-4 pb-[17px]). */
+  padding: var(--space-8) var(--space-8) 17px;
+  border-bottom: var(--border-width-sm) solid var(--border-beige-primary);
+  background: var(--bg-neutral-primary);
+}
+
+.rowBeige {
+  background: var(--bg-neutral-primary-hover);
+}
+
+/* Typography via .body-sm utility; color only here (no token matches #808080). */
+.label {
+  color: #808080;
+}
+
+/* No utility matches 14px/bold/1.3 — literal declaration. */
+.labelBold {
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-bold);
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+/* Typography via .body-sm-medium utility; color only here (no token matches #101828). */
+.value {
+  color: #101828;
+}
+
+.valueBrand {
+  color: var(--text-brand);
+}
+
+/* No utility matches 16px/bold/1.3 — literal declaration. */
+.valueBold {
+  font-family: var(--font-primary);
+  font-size: var(--text-base);
+  font-weight: var(--fw-bold);
+  line-height: 1.3;
+  color: #101828;
+}

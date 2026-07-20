@@ -12,6 +12,11 @@ import styles from "./index.module.css";
  * Buttons and pill are frosted glass (White/40, 12px backdrop blur,
  * Shadow/MenuPageHeader) — made to float over page content while it scrolls
  * underneath. Styling in index.module.css.
+ *
+ * type="left" only — pass `collapsed` (toggle on scroll, same pattern as
+ * FAB's `collapsed` prop) to smoothly morph the SAME element from the big
+ * vertical-stack layout into the compact row, title sliding up next to the
+ * back button — no need to swap in a separate "left-on-scroll" instance.
  */
 
 export type PageHeaderType = "left" | "left-on-scroll" | "center" | "search";
@@ -44,6 +49,9 @@ interface PageHeaderProps {
   onMicClick?: () => void;
   /** type="left" only — custom content replacing the big-title slot. */
   children?: React.ReactNode;
+  /** type="left" only — animate into the compact "left-on-scroll" layout in
+   *  place (title next to the back button). Toggle on scroll. */
+  collapsed?: boolean;
 }
 
 function ChevronLeftIcon() {
@@ -108,6 +116,7 @@ export function PageHeader({
   searchPlaceholder,
   onMicClick,
   children,
+  collapsed = false,
 }: PageHeaderProps) {
   const back = showBack && (
     <GlassButton aria-label="Back" onClick={onBack}>
@@ -130,18 +139,21 @@ export function PageHeader({
 
   if (type === "left") {
     return (
-      <header className={`${styles.header} ${styles.left}`}>
+      <header className={`${styles.header} ${styles.left} ${collapsed ? styles.collapsed : ""}`}>
         <div className={styles.buttonRow}>
           {back || <span />}
+          <p className={styles.compactTitle}>{title}</p>
           {searchButton}
         </div>
         <div className={styles.slot}>
-          {children ?? (
-            <>
-              <p className={styles.title2xl}>{title}</p>
-              {text && <p className={styles.text}>{text}</p>}
-            </>
-          )}
+          <div className={styles.slotInner}>
+            {children ?? (
+              <>
+                <p className={styles.title2xl}>{title}</p>
+                {text && <p className={styles.text}>{text}</p>}
+              </>
+            )}
+          </div>
         </div>
       </header>
     );

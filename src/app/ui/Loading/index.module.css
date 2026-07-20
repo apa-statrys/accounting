@@ -20,7 +20,7 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  color: var(--ds-text-primary);
+  color: var(--text-primary);
 }
 
 @keyframes spin {

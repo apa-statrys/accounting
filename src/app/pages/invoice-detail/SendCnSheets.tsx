@@ -2,7 +2,7 @@
 // and the "which note to send" picker used when 2+ notes are unsent.
 import { BottomSheet } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
-import { Tile } from "../../components/Tile";
+import { SelectionCard } from "../../components/SelectionCard";
 import { money } from "../../lib/format";
 import { FONT, MUTED } from "../../lib/theme";
 import type { CreditNote } from "./creditNoteTypes";
@@ -14,7 +14,6 @@ export function ResendPromptSheet({ open, onClose, onNotNow, onSendUpdate }: { o
       open={open}
       title="Send updated credit note?"
       onClose={onClose}
-      dsHeader
       compact
       footer={
         <ButtonDock
@@ -36,8 +35,8 @@ export function ResendPromptSheet({ open, onClose, onNotNow, onSendUpdate }: { o
 
 /** "Send credit note" picker — opened only when there are 2+ unsent notes (a single note sends
  *  directly). Choose which note's document to send; the latest is the default selection. Reuses
- *  the shared selection-card (`Tile`) style. Rows are recent-first, matching the ledger. */
-export function SendPickerSheet({ open, onClose, creditNotes, selectedIndex, onSelect, onSend }: { open: boolean; onClose: () => void; creditNotes: CreditNote[]; selectedIndex: number; onSelect: (i: number) => void; onSend: () => void }) {
+ *  the shared selection-card (`SelectionCard`) style. Rows are recent-first, matching the ledger. */
+export function SendPickerSheet({ open, onClose, creditNotes, currency, selectedIndex, onSelect, onSend }: { open: boolean; onClose: () => void; creditNotes: CreditNote[]; currency: string; selectedIndex: number; onSelect: (i: number) => void; onSend: () => void }) {
   return (
     <BottomSheet
       open={open}
@@ -57,10 +56,10 @@ export function SendPickerSheet({ open, onClose, creditNotes, selectedIndex, onS
       </p>
       <div className="flex flex-col gap-2">
         {creditNotes.map((cn, i) => ({ cn, i })).reverse().map(({ cn, i }) => (
-          <Tile
+          <SelectionCard
             key={cn.no}
             title={cn.no}
-            description={`−${money(cn.amount)}${cn.sent ? ` · Sent on ${cn.sentDate}` : " · Not sent yet"}`}
+            description={`−${money(cn.amount, currency)}${cn.sent ? ` · Sent on ${cn.sentDate}` : " · Not sent yet"}`}
             showStatus={cn.sent}
             status="SENT"
             selected={selectedIndex === i}

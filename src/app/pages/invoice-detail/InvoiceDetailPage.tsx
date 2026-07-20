@@ -3,19 +3,19 @@ import { motion, AnimatePresence } from "motion/react";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import StatusBar from "../../components/StatusBar";
+import { PageAppHeader } from "../../components/PageAppHeader";
 import { SheetHeader, HeaderIconButton } from "../../components/SheetHeader";
 import { ButtonDock } from "../../components/ButtonDock";
 import { BottomSheet } from "../../components/BottomSheet";
 import { SendInvoiceSheet } from "../../components/SendInvoiceSheet";
 import { CreditNoteForm } from "../credit-note-form/CreditNoteForm";
-import { RefundCreditNoteFlow } from "../RefundCreditNoteFlow";
+import { RefundCreditNoteFlow } from "./RefundCreditNoteFlow";
 import { FilePreviewOverlay, type UploadedFileInfo } from "../../components/UploadedFile";
-import { CreditNotePreviewPage } from "../CreditNotePreviewPage";
-import { CreditNoteDetailPage } from "../CreditNoteDetailPage";
-import { ReviewEmail } from "../ReviewEmail";
+import { CreditNotePreviewPage } from "../credit-note-list/CreditNotePreviewPage";
+import { CreditNoteDetailPage } from "../credit-note-list/CreditNoteDetailPage";
+import { ReviewEmail } from "../shared/ReviewEmail";
 import { ShareLinkSheet } from "../../components/ShareLinkSheet";
-import { InvoicePreviewPage } from "../InvoicePreviewPage";
+import { InvoicePreviewPage } from "../shared/InvoicePreviewPage";
 import { SendSuccessToast } from "../../components/SendSuccessToast";
 import { getAccount, RECEIVING_ACCOUNTS } from "../../data/receivingAccounts";
 import { SHOW_CREDIT_NOTES, SHOW_RECURRING } from "../../lib/flags";
@@ -109,6 +109,7 @@ export function InvoiceDetailPage({
   const [actionsOpen, setActionsOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [bankExpanded, setBankExpanded] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   // Credit notes raised against this invoice (DES-719) — cumulative, capped at the total.
   // Model lives in ./creditNoteTypes.ts (CreditNote + RefundProof).
   // A credit note opened from the list is seeded here (DES-719 AC4 demo). Corrected Invoice Model:
@@ -307,16 +308,16 @@ export function InvoiceDetailPage({
   // The one-line status explainer under the amount.
   const bannerText: Record<DetailStatus, string> = {
     Draft: "",
-    Awaiting: credited > 0 ? `${money(credited)} credited from ${money(TOTAL)}` : "Due in 3 days",
+    Awaiting: credited > 0 ? `${money(credited, currency)} credited from ${money(TOTAL, currency)}` : "Due in 3 days",
     Overdue: credited > 0
-      ? `${money(credited)} credited from ${money(TOTAL)}`
+      ? `${money(credited, currency)} credited from ${money(TOTAL, currency)}`
       : `Overdue by ${overdueDays} days`,
-    PartiallyPaid: `${money(paidAmount)} received · ${money(remaining)} still due`,
-    Paid: overpayment > 0 ? `Paid · overpaid by ${money(overpayment)}, flagged for review` : "Paid on 28 Jun 2026",
+    PartiallyPaid: `${money(paidAmount, currency)} received · ${money(remaining, currency)} still due`,
+    Paid: overpayment > 0 ? `Paid · overpaid by ${money(overpayment, currency)}, flagged for review` : "Paid on 28 Jun 2026",
     Cancelled: "Voided with a credit note on 8 Jun 2026",
     // DES-720: refund context leads with the amount to refund; remaining paid is the secondary line.
-    PendingRefund: `${money(outstanding)} remaining paid`,
-    Refunded: credited >= TOTAL - 0.001 ? "Refunded in full" : `${money(outstanding)} remaining paid`,
+    PendingRefund: `${money(outstanding, currency)} remaining paid`,
+    Refunded: credited >= TOTAL - 0.001 ? "Refunded in full" : `${money(outstanding, currency)} remaining paid`,
   };
 
   // Refund money model (DES-720, cumulative). `credited` = total committed to refund credit notes;
@@ -622,8 +623,11 @@ export function InvoiceDetailPage({
 
   return (
     <div className="relative bg-white rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
-      <StatusBar />
-
+      <div
+        className="flex-1 overflow-y-auto thin-scrollbar bg-white"
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+      >
+      <PageAppHeader scrolled={scrolled}>
       <SheetHeader
         title={headerTitle}
         type="inside-page"
@@ -643,8 +647,9 @@ export function InvoiceDetailPage({
           )
         }
       />
+      </PageAppHeader>
 
-      <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pt-5 pb-44 flex flex-col gap-6">
+      <div className="px-4 pt-5 pb-44 flex flex-col gap-6">
         {/* Status + amount — cream hero card (Figma 1209). */}
         <InfoCard tone="hero">
           <div className="py-3 flex flex-col gap-1.5">
@@ -676,7 +681,7 @@ export function InvoiceDetailPage({
             {/* Headline: refund context → amount to refund (with a small label); otherwise amount due / total. */}
             <div className="flex items-baseline gap-2 flex-wrap">
               <p className="text-[20px] font-black leading-none tracking-[-0.8px]" style={{ ...FONT, color: INK }}>
-                {money(headlineAmount)}
+                {money(headlineAmount, currency)}
               </p>
               {headlineLabel && (
                 <span className="text-[12px] leading-none" style={{ ...FONT, color: MUTED }}>{headlineLabel}</span>
@@ -685,7 +690,7 @@ export function InvoiceDetailPage({
             {/* Partially Paid — keep the wording but highlight the amount still due. */}
             {status === "PartiallyPaid" ? (
               <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
-                {money(paidAmount)} received · <span style={{ color: "#b45309", fontWeight: 600 }}>{money(remaining)} still due</span>
+                {money(paidAmount, currency)} received · <span style={{ color: "#b45309", fontWeight: 600 }}>{money(remaining, currency)} still due</span>
               </p>
             ) : headlineBanner ? (
               <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: status === "Overdue" ? "#b42318" : MUTED }}>
@@ -710,7 +715,7 @@ export function InvoiceDetailPage({
                 line with a green "Paid on <date>" note beside it. */}
             {isRefundContext && (
               <p className="text-[11px] leading-[1.3]" style={FONT}>
-                <span style={{ color: INK, fontWeight: 500 }}>{money(TOTAL)}</span>
+                <span style={{ color: INK, fontWeight: 500 }}>{money(TOTAL, currency)}</span>
                 <span style={{ color: MUTED }}> · </span>
                 <span style={{ color: "#0f9d58", fontWeight: 500 }}>Paid full on 28 Jun 2026</span>
               </p>
@@ -723,6 +728,7 @@ export function InvoiceDetailPage({
         {SHOW_CREDIT_NOTES && creditNotes.length > 0 && (
           <CreditsAppliedSection
             creditNotes={creditNotes}
+            currency={currency}
             isRefundContext={isRefundContext}
             fullyRefunded={fullyRefunded}
             outstanding={outstanding}
@@ -744,7 +750,7 @@ export function InvoiceDetailPage({
           >
             <div className="py-3 flex items-center justify-between gap-2 border-b border-[rgba(160,160,160,0.18)]">
               <span className="flex items-center gap-2 min-w-0">
-                <Repeat size={16} strokeWidth={2.25} style={{ color: "#ff4a15" }} />
+                <Repeat size={16} strokeWidth={2.25} style={{ color: "var(--text-brand)" }} />
                 <span className="text-[15px] font-medium truncate" style={{ ...FONT, color: INK }}>Recurring series</span>
               </span>
               <span className="shrink-0 flex items-center gap-1.5">
@@ -753,17 +759,17 @@ export function InvoiceDetailPage({
                   style={{
                     ...FONT,
                     ...(seriesStatus === "Active"
-                      ? { background: "#ebfcef", borderColor: "#a3e9b6", color: "#006a1d" }
+                      ? { background: "var(--bg-success-subtle)", borderColor: "var(--border-success-subtle)", color: "var(--text-success-primary)" }
                       : seriesStatus === "Paused"
                       ? { background: "#fff7e6", borderColor: "#fde68a", color: "#b45309" }
                       : seriesStatus === "Completed"
                       ? { background: "#eef4ff", borderColor: "#c7d8fe", color: "#2f5fd0" }
-                      : { background: "#f4f4f4", borderColor: "#e0e0e0", color: "#808080" }),
+                      : { background: "#f4f4f4", borderColor: "#e0e0e0", color: "var(--text-secondary)" }),
                   }}
                 >
                   {seriesStatus}
                 </span>
-                <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5" style={{ fontSize: 18, color: "#808080" }} />
+                <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5" style={{ fontSize: 18, color: "var(--text-secondary)" }} />
               </span>
             </div>
             <MetaRow label="Frequency" value={recurringFrequency} />
@@ -797,7 +803,7 @@ export function InvoiceDetailPage({
                 </span>
                 <span className="text-[15px] font-medium truncate" style={{ ...FONT, color: INK }}>{receivingAcct.name}</span>
                 {receivingAcct.primary && (
-                  <span className="ml-auto shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold leading-[14px]" style={{ ...FONT, background: "#101828", color: "#fff" }}>PRIMARY</span>
+                  <span className="ml-auto shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold leading-[14px]" style={{ ...FONT, background: "#101828", color: "var(--text-on-color)" }}>PRIMARY</span>
                 )}
               </div>
               <p className="text-[13px] leading-[1.4] mt-1 truncate" style={{ ...FONT, color: MUTED }}>{receivingAcct.number}</p>
@@ -836,10 +842,10 @@ export function InvoiceDetailPage({
               <div className="flex-1 min-w-0 pr-3">
                 <p className="text-[14px] font-medium leading-tight" style={{ ...FONT, color: INK }}>{it.name}</p>
                 <p className="text-[12px] leading-[1.3] mt-0.5" style={{ ...FONT, color: MUTED }}>
-                  {it.qty} {it.unit} · {money(it.unitPrice)}
+                  {it.qty} {it.unit} · {money(it.unitPrice, currency)}
                 </p>
               </div>
-              <p className="text-[14px] font-medium" style={{ ...FONT, color: INK }}>{money(it.amount)}</p>
+              <p className="text-[14px] font-medium" style={{ ...FONT, color: INK }}>{money(it.amount, currency)}</p>
             </div>
           ))}
         </InfoCard>
@@ -849,30 +855,30 @@ export function InvoiceDetailPage({
         <InfoCard title="Summary">
           <div className="flex items-center justify-between py-2.5">
             <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Subtotal</span>
-            <span className="text-[13px]" style={{ ...FONT, color: INK }}>{money(SUBTOTAL)}</span>
+            <span className="text-[13px]" style={{ ...FONT, color: INK }}>{money(SUBTOTAL, currency)}</span>
           </div>
           {/* Discount row always shown (0.00 when none). Draft detail (DES-817) shows it in the
               accent colour to echo the Figma. */}
           <div className="flex items-center justify-between py-2.5">
             <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Discount</span>
-            <span className="text-[13px] font-medium" style={{ ...FONT, color: sectionedLayout ? "#ff4a15" : INK }}>{DISCOUNT > 0 ? `−${money(DISCOUNT)}` : money(0)}</span>
+            <span className="text-[13px] font-medium" style={{ ...FONT, color: sectionedLayout ? "var(--text-brand)" : INK }}>{DISCOUNT > 0 ? `−${money(DISCOUNT, currency)}` : money(0, currency)}</span>
           </div>
           {/* When credit is APPLIED, Total is just a reference and Amount due is the prominent figure.
               An UNapplied (Open) credit note isn't shown here — it's surfaced in the Credits Applied card
               above, and doesn't touch the invoice amount until applied. */}
           <div className={`flex items-center justify-between ${credited > 0 ? "pb-1.5" : "pb-3"} ${sectionedLayout && credited === 0 ? "pt-3 mt-1 -mx-4 px-4 rounded-lg bg-[#f2efe4]" : "pt-3 border-t border-[rgba(160,160,160,0.25)]"}`}>
             <span className={credited > 0 ? "text-[13px] font-medium" : "text-[15px] font-bold"} style={{ ...FONT, color: credited > 0 ? MUTED : INK }}>Total</span>
-            <span className={credited > 0 ? "text-[13px] font-medium" : "text-[15px] font-bold"} style={{ ...FONT, color: credited > 0 ? MUTED : INK }}>{money(TOTAL)}</span>
+            <span className={credited > 0 ? "text-[13px] font-medium" : "text-[15px] font-bold"} style={{ ...FONT, color: credited > 0 ? MUTED : INK }}>{money(TOTAL, currency)}</span>
           </div>
           {credited > 0 && (
             <>
               <div className="flex items-center justify-between pb-2.5">
                 <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>{isRefundContext ? "Refunded" : "Credit notes applied"}</span>
-                <span className="text-[13px] font-medium" style={{ ...FONT, color: "#b42318" }}>−{money(credited)}</span>
+                <span className="text-[13px] font-medium" style={{ ...FONT, color: "#b42318" }}>−{money(credited, currency)}</span>
               </div>
               <div className="flex items-center justify-between pb-3 pt-3 border-t border-[rgba(160,160,160,0.25)]">
                 <span className="text-[17px] font-black tracking-[-0.4px]" style={{ ...FONT, color: INK }}>{isRefundContext ? "Net Paid" : "Amount due"}</span>
-                <span className="text-[17px] font-black tracking-[-0.4px]" style={{ ...FONT, color: INK }}>{money(outstanding)}</span>
+                <span className="text-[17px] font-black tracking-[-0.4px]" style={{ ...FONT, color: INK }}>{money(outstanding, currency)}</span>
               </div>
             </>
           )}
@@ -913,6 +919,7 @@ export function InvoiceDetailPage({
             </button>
           </InfoCard>
         )}
+      </div>
       </div>
 
       {/* Primary action — per status. Void has no dock action (terminal, credit note lives on its
@@ -1041,7 +1048,6 @@ export function InvoiceDetailPage({
         open={confirmDelete}
         title="Delete this draft?"
         onClose={() => setConfirmDelete(false)}
-        dsHeader
         compact
         footer={
           <ButtonDock
@@ -1243,6 +1249,7 @@ export function InvoiceDetailPage({
         open={sendPickerOpen}
         onClose={() => setSendPickerOpen(false)}
         creditNotes={creditNotes}
+        currency={currency}
         selectedIndex={sendCnIndex}
         onSelect={setSendCnIndex}
         onSend={() => { setSendPickerOpen(false); setSendSheetOpen(true); }}

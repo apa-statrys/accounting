@@ -1,0 +1,20 @@
+/* DueDateSheet — 30/60/90-day presets + custom date field, plus a nested calendar sheet */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.optionsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Calendar icon in the "Custom Date" field's trailing slot — matches the previous
+   inline `style={{ fontSize: 20 }}` (TextInput's own .icon wrapper already sizes
+   svg children to 20x20; this keeps the MUI icon's own font-size in sync). */
+.calendarIcon {
+  font-size: var(--text-xl);
+}

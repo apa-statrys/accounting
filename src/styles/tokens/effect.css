@@ -4,5 +4,11 @@
   --shadow-lg: 0 10px 30px 0 rgba(0, 0, 0, 0.07);
   --shadow-dock-top: 0 -4px 10px 0 rgba(0, 0, 0, 0.06);
   --shadow-card-soft: 0 4px 14px 0 rgba(226, 220, 203, 0.3);
+  --shadow-card: 0px 10px 60px 0px rgba(0, 0, 0, 0.1);
+  --shadow-bottomsheets: 0px 10px 30px 0px rgba(0, 0, 0, 0.2);
+  /* filter drop-shadows (not box-shadow) so a protruding shape like a tooltip's
+     arrow is shaded along with the body */
+  --shadow-tooltip: drop-shadow(0px 12px 8px rgba(35, 40, 77, 0.08))
+    drop-shadow(0px 4px 3px rgba(35, 40, 77, 0.03));
   --blur: blur(12px);
 }

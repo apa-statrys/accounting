@@ -49,25 +49,6 @@ export interface Customer {
   currency?: string;
 }
 
-/** Demo Statrys payment contact (DES-713 AC2 — "prefill from a payment contact").
- *  Fields map 1:1 onto the Add Client form so selecting one auto-fills every matching field. */
-export interface PaymentContact {
-  id: string;
-  name: string;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  regNo?: string;
-  phone?: string;
-  website?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zip?: string;
-  country?: string;
-  currency?: string;
-}
-
 // ---------------------------------------------------------------------------
 // Invoices
 // ---------------------------------------------------------------------------
@@ -148,7 +129,7 @@ export interface ServiceLine {
 // live on the invoice-detail side per DES-720/721, not in this list.)
 // "Awaiting refund" = a refund credit note raised on a paid invoice, waiting for the accountant to
 // pay it out (the invoice-detail flow spells this "Awaiting refund by accountant"; the list uses the
-// short label). See doc/sales-invoice-flows/invoice-detail-behavior.md (DES-720/721).
+// short label). See Jira DES-720/721 for the refund/credit-note spec.
 export type CNStatus = "Draft" | "Applied" | "Cancelled" | "Awaiting refund";
 
 export interface CreditNote {

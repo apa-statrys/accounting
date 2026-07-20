@@ -1,0 +1,185 @@
+/* BottomSheet — shared modal shell for all pickers. Scrim dims the page with
+   the shared ui/Overlay component (no page recede/scale — see CLAUDE.md "Sheet motion"). */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  /* Matches the app's Tailwind z-40 stacking convention used by sibling
+     overlays (toasts sit at z-50, nav chrome lower) — kept as a literal
+     value since it doesn't correspond to this project's semantic z-index
+     scale (z-index/z-index.css) and must stay in lockstep with the many
+     not-yet-converted files still using the raw Tailwind z-* classes. */
+  z-index: 40;
+}
+
+/* Sliding sheet — sized to its content, capped so long content scrolls.
+   Background + top rounding live here (not on .dsHeader) so the header can be
+   transparent-over-scrolled-content, same recipe as components/PageAppHeader —
+   .scrollArea clips to this radius so scrolled children never poke past the
+   rounded corners. */
+.panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 88%;
+  background: var(--bg-neutral-primary);
+  border-top-left-radius: var(--radius-5xl);
+  border-top-right-radius: var(--radius-5xl);
+  overflow: hidden;
+}
+
+.panelTall {
+  min-height: 78%;
+}
+
+/* Scrollable area — grabber+title header sticks to its top (see .dsHeader)
+   while everything below scrolls underneath it. */
+.scrollArea {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* ===== HEADER (Figma Bottomsheets, node 4038-3018) =====
+   Sticky over .scrollArea's content — transparent at rest (the panel's own
+   background shows through, so it looks identical to the old solid header),
+   frosted glass once content scrolls beneath it. Same White/40 tint + blur +
+   eased bottom-fade mask as components/PageAppHeader — reuse that recipe
+   instead of re-deriving it so both stay visually consistent. */
+.dsHeader {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* Header's own content (grabber + title row) sits above the frost layer. */
+.dsHeader > :not(.frost) {
+  position: relative;
+  z-index: 1;
+}
+
+.frost {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  background: linear-gradient(to bottom, var(--alpha-white-40) 0%, transparent 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 60%, rgba(0, 0, 0, 0.94) 74%, rgba(0, 0, 0, 0.75) 84%, rgba(0, 0, 0, 0.4) 92%, rgba(0, 0, 0, 0.15) 97%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 60%, rgba(0, 0, 0, 0.94) 74%, rgba(0, 0, 0, 0.75) 84%, rgba(0, 0, 0, 0.4) 92%, rgba(0, 0, 0, 0.15) 97%, transparent 100%);
+}
+
+.dsHeader.scrolled .frost {
+  opacity: 1;
+}
+
+.grabberRow {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  height: 24px;
+  padding-top: var(--space-4);
+}
+
+.grabber {
+  width: 48px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  /* Value matches --text-disabled / --icon-disabled numerically, but this is
+     a grabber indicator (not disabled text/icon) — kept literal on purpose. */
+  background: rgba(27, 27, 27, 0.3);
+}
+
+/* Titleless menu sheets (e.g. the ⋯ actions menu) show just the grabber —
+   the 60px title row collapses to a small gap when there's no title/back/action. */
+.titlelessGap {
+  height: var(--space-4);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  height: 60px;
+  padding: 0 var(--space-8);
+}
+
+/* Frosted 36px action/back button — same recipe as ui/BottomSheet's actionButton */
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  background: var(--ds-white-40);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  box-shadow: var(--ds-shadow-menu-page-header);
+}
+
+/* Invisible spacer balances the back button so a centered title stays optically centered. */
+.spacer {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+/* DS title — Figma "Bottomsheets" (node 4038-2684): Card title/lg (left) or
+   Card title/md (centerTitle, "22px medium"). Composes the shared
+   .card-title-lg/-md utilities so the size tracks --fs-card-lg/-md through
+   .mobile-mode (22px/18px on the app's real phone-frame screens — see
+   CLAUDE.md "Mobile-mode typography"), not a hardcoded px value. */
+.dsTitle {
+  composes: card-title-lg from global;
+  flex: 1 1 0%;
+  min-width: 0;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.dsTitleCentered {
+  composes: card-title-md from global;
+  flex: 1 1 0%;
+  min-width: 0;
+  margin: 0;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+/* ===== CONTENT =====
+   Lives inside .scrollArea (below the sticky .dsHeader), so it no longer owns
+   its own scrolling/background — just the DS 16px side padding (title row is
+   px-4). No vertical padding by default — the Figma Bottomsheets Content slot
+   (node 4038-2585) has none. */
+.content {
+  padding-left: var(--space-8);
+  padding-right: var(--space-8);
+}
+
+.contentCompact {
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-2);
+}
+
+.footer {
+  background: var(--bg-neutral-primary);
+}
+
+/* Sheets with no footer (Figma "Padding Bottom", node 4038-3023): a fixed 32px
+   spacer after Content — sheets WITH a footer get their bottom space from the
+   footer's own padding (ButtonDock) instead, per Figma's BottomsheetsEnd. */
+.bottomPad {
+  height: var(--space-16);
+  flex-shrink: 0;
+  background: var(--bg-neutral-primary);
+}

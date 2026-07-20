@@ -1,5 +1,6 @@
+import { useState } from "react";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import StatusBar from "../components/StatusBar";
+import { PageAppHeader } from "../components/PageAppHeader";
 import { SheetHeader, HeaderIconButton } from "../components/SheetHeader";
 import { ButtonDock } from "../components/ButtonDock";
 import { SendSuccessToast } from "../components/SendSuccessToast";
@@ -37,13 +38,13 @@ function Section({
     <div
       className="shrink-0 rounded-[12px] overflow-hidden w-full"
       style={{
-        background: solid ? "#faf9f4" : "#ffffff",
+        background: solid ? "var(--bg-neutral-secondary)" : "var(--bg-neutral-primary)",
         border: "1px dashed rgba(160,160,160,0.2)",
         boxShadow: CARD_SHADOW,
       }}
     >
       {/* Title as the first row inside the card (Figma 1209): grey uppercase + full-width divider. */}
-      <p className="px-4 pt-3.5 pb-3 text-[12px] font-bold uppercase tracking-wide leading-[16.5px]" style={{ ...FONT, color: "#a0a0a0", borderBottom: "1px solid rgba(160,160,160,0.2)" }}>{title}</p>
+      <p className="px-4 pt-3.5 pb-3 text-[12px] font-bold uppercase tracking-wide leading-[16.5px]" style={{ ...FONT, color: "var(--text-placeholder)", borderBottom: "1px solid rgba(160,160,160,0.2)" }}>{title}</p>
       {present.map((r, i) => (
           <div
             key={r.label}
@@ -76,53 +77,59 @@ export interface CustomerDetailPageProps {
 export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDone }: CustomerDetailPageProps) {
   // The record is owned by App now (edits happen on the full-page form and flow back via props).
   const record = customer;
+  const [scrolled, setScrolled] = useState(false);
 
   return (
     <div className="relative bg-white rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
-      <StatusBar />
+      <div
+        className="flex-1 overflow-y-auto thin-scrollbar bg-white"
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+      >
+        <PageAppHeader scrolled={scrolled}>
+          <SheetHeader
+            title={record.name}
+            type="inside-page"
+            state="fixed"
+            leading={<HeaderIconButton aria-label="Back" onClick={onBack}><ChevronLeftIcon /></HeaderIconButton>}
+            trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
+          />
+        </PageAppHeader>
 
-      <SheetHeader
-        title={record.name}
-        type="inside-page"
-        state="fixed"
-        leading={<HeaderIconButton aria-label="Back" onClick={onBack}><ChevronLeftIcon /></HeaderIconButton>}
-        trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
-      />
+        <div className="px-4 pt-4 pb-28 flex flex-col gap-4">
+          {/* Identity — avatar + name + email */}
+          <div className="flex items-center gap-3">
+            <span
+              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: "var(--bg-beige-secondary)", color: INK, fontFamily: FONT.fontFamily }}
+            >
+              <span className="font-medium" style={{ fontSize: 17.6, letterSpacing: -0.88 }}>{initials(record.name)}</span>
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[16px] font-bold leading-none tracking-[-0.8px] truncate" style={{ ...FONT, color: "#101828" }}>{record.name}</span>
+              <span className="block text-[14px] font-medium mt-[3px] truncate" style={{ ...FONT, color: MUTED }}>{record.email}</span>
+            </span>
+          </div>
 
-      <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pt-4 pb-28 flex flex-col gap-4">
-        {/* Identity — avatar + name + email */}
-        <div className="flex items-center gap-3">
-          <span
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: "#f3ecda", color: INK, fontFamily: FONT.fontFamily }}
-          >
-            <span className="font-medium" style={{ fontSize: 17.6, letterSpacing: -0.88 }}>{initials(record.name)}</span>
-          </span>
-          <span className="min-w-0">
-            <span className="block text-[16px] font-bold leading-none tracking-[-0.8px] truncate" style={{ ...FONT, color: "#101828" }}>{record.name}</span>
-            <span className="block text-[14px] font-medium mt-[3px] truncate" style={{ ...FONT, color: MUTED }}>{record.email}</span>
-          </span>
+          <Section title="Default Currency" variant="solid" rows={[
+            { label: "Currency", value: record.currency },
+          ]} />
+
+          <Section title="Company Details" rows={[
+            { label: "First Name", value: record.firstName },
+            { label: "Last Name", value: record.lastName },
+            { label: "Company Registration No.", value: record.regNo },
+            { label: "Phone Number", value: record.phone },
+            { label: "Website", value: record.website },
+          ]} />
+
+          <Section title="Address" rows={[
+            { label: "Country", value: record.country },
+            { label: "Address", value: record.address },
+            { label: "City", value: record.city },
+            { label: "Zip / Postal", value: record.zip },
+            { label: "State", value: record.state },
+          ]} />
         </div>
-
-        <Section title="Default Currency" variant="solid" rows={[
-          { label: "Currency", value: record.currency },
-        ]} />
-
-        <Section title="Company Details" rows={[
-          { label: "First Name", value: record.firstName },
-          { label: "Last Name", value: record.lastName },
-          { label: "Company Registration No.", value: record.regNo },
-          { label: "Phone Number", value: record.phone },
-          { label: "Website", value: record.website },
-        ]} />
-
-        <Section title="Address" rows={[
-          { label: "Country", value: record.country },
-          { label: "Address", value: record.address },
-          { label: "City", value: record.city },
-          { label: "Zip / Postal", value: record.zip },
-          { label: "State", value: record.state },
-        ]} />
       </div>
 
       <ButtonDock

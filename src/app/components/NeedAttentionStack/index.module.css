@@ -1,0 +1,38 @@
+/* NeedAttentionStack — dashboard preview of the Need Attention queue.
+   Front card is draggable (swipe up/down); a second card peeks behind it
+   with 0-2 grey "stacked" cards further back. */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Card visuals now live in ui/ActionRequired — this file only positions the stack. */
+
+/* ===== STACK SLOTS ===== */
+.frontSlot,
+.backSlot {
+  position: relative;
+}
+
+.slot {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+}
+
+.second {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  z-index: 10;
+}
+
+.peek {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+}

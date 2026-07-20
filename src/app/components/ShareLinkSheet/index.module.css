@@ -1,0 +1,121 @@
+/* Shareable link sheet (DES-718) — link field, copy affordance, share action, note. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+/* ===== LINK FIELD — the single copy affordance (tap field or icon) ===== */
+.linkField {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  height: 52px;
+  padding-left: var(--space-8);
+  padding-right: var(--space-3);
+  border-radius: var(--radius-2xl);
+  border: var(--border-width-sm) solid var(--border-beige-primary-active);
+  background: #faf9f4;
+}
+
+.linkIcon {
+  font-size: var(--text-lg);
+  color: #808080;
+}
+
+/* Typography via .body-sm utility; color + truncation only here. */
+.linkText {
+  flex: 1 1 0%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.copyButton {
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border: none;
+  cursor: pointer;
+  background: var(--bg-neutral-inverse-primary);
+}
+
+.copyButton[data-copied='true'] {
+  background: #e7f6ec;
+}
+
+.copyIcon {
+  font-size: var(--text-base);
+  color: var(--icon-on-color);
+}
+
+.copyIconCopied {
+  font-size: var(--text-base);
+  color: #006a1d;
+}
+
+.copyLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  font-family: var(--font-primary);
+  color: var(--text-on-color);
+}
+
+.copyLabelCopied {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  font-family: var(--font-primary);
+  color: #006a1d;
+}
+
+/* ===== SHARE — single full-width action ===== */
+.shareButton {
+  width: 100%;
+  height: var(--space-24);
+  border-radius: var(--radius-full);
+  border: var(--border-width-sm) solid rgba(160, 160, 160, 0.45);
+  color: var(--text-primary);
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  cursor: pointer;
+}
+
+.shareIcon {
+  font-size: var(--text-lg);
+}
+
+.shareIconShared {
+  font-size: var(--text-lg);
+  color: #006a1d;
+}
+
+.shareLabel {
+  font-size: var(--text-base);
+  font-weight: var(--fw-medium);
+  font-family: var(--font-primary);
+}
+
+/* ===== NO-LOGIN / VALIDITY NOTE ===== */
+.note {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  font-family: var(--font-primary);
+  color: #808080;
+}

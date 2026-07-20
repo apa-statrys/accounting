@@ -1,0 +1,54 @@
+/* AddServicesSheet — Add/Edit Item form (Service Name / Description / Unit Price / Quantity) */
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+/* ===== Unit Price — leading flag + currency code ===== */
+.priceCurrency {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  /* Figma: 15px medium — no fonts.css utility matches (body-md is 16px, body-sm-medium is 14px). */
+  font-size: var(--text-base);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+  margin-left: -2px;
+  margin-right: var(--space-2);
+  white-space: nowrap;
+}
+
+.priceFlag {
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+/* ===== Quantity — trailing "Unit" picker button ===== */
+.unitButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-base);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.unitButtonFilled {
+  color: var(--text-primary);
+}
+
+.unitButtonEmpty {
+  /* Figma placeholder grey — doesn't match --text-secondary (#9e9e9e), kept literal. */
+  color: #808080;
+}
+
+.unitIcon {
+  font-size: var(--text-xl);
+  color: #808080;
+}

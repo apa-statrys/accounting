@@ -3,7 +3,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import MenuIcon from "@mui/icons-material/Menu";
 import { Repeat, XCircle } from "lucide-react";
-import StatusBar from "../components/StatusBar";
+import { PageAppHeader } from "../components/PageAppHeader";
 import { SheetHeader, HeaderIconButton } from "../components/SheetHeader";
 import { ButtonDock } from "../components/ButtonDock";
 import { BottomSheet } from "../components/BottomSheet";
@@ -46,7 +46,7 @@ const STATUS_PILL: Record<SeriesStatus, { bg: string; text: string }> = {
 function Row({ label, value, last }: { label: string; value: string; last?: boolean }) {
   return (
     <div className={`flex items-center justify-between gap-3 px-4 pt-4 pb-[17px] ${last ? "" : "border-b border-[rgba(160,160,160,0.2)]"}`}>
-      <span className="text-[14px] leading-[1.3]" style={{ ...FONT, color: "#1b1b1b" }}>{label}</span>
+      <span className="text-[14px] leading-[1.3]" style={{ ...FONT, color: "var(--text-primary)" }}>{label}</span>
       <span className="text-[14px] font-medium leading-[1.3] text-right" style={{ ...FONT, color: "#101828" }}>{value}</span>
     </div>
   );
@@ -70,6 +70,7 @@ export function RecurringSeriesDetail({
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   // Invoice log (AC5). `kind` drives the pill + label; a cancelled series drops the not-yet-generated
   // (scheduled) rows. More than 3 collapses behind "Show more".
@@ -84,101 +85,106 @@ export function RecurringSeriesDetail({
   const shown = visible.length > 3 && !expanded ? visible.slice(0, 3) : visible;
 
   return (
-    <div className="relative bg-[#F9F5EA] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
-      <StatusBar />
+    <div className="relative bg-[var(--bg-beige-primary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
+      <div
+        className="flex-1 overflow-y-auto thin-scrollbar bg-white"
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+      >
+        <PageAppHeader scrolled={scrolled}>
+          <SheetHeader
+            title="Recurring Schedule"
+            type="inside-page"
+            state="fixed"
+            leading={<HeaderIconButton aria-label="Back" onClick={onBack}><ChevronLeftIcon /></HeaderIconButton>}
+            trailing={
+              readOnly
+                ? <span className="w-[30px] h-[30px] block" aria-hidden />
+                : <HeaderIconButton aria-label="Actions" onClick={() => setMenuOpen(true)}><MenuIcon /></HeaderIconButton>
+            }
+          />
+        </PageAppHeader>
 
-      <SheetHeader
-        title="Recurring Schedule"
-        type="inside-page"
-        state="fixed"
-        leading={<HeaderIconButton aria-label="Back" onClick={onBack}><ChevronLeftIcon /></HeaderIconButton>}
-        trailing={
-          readOnly
-            ? <span className="w-[30px] h-[30px] block" aria-hidden />
-            : <HeaderIconButton aria-label="Actions" onClick={() => setMenuOpen(true)}><MenuIcon /></HeaderIconButton>
-        }
-      />
-
-      <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pt-5 pb-44 flex flex-col gap-4">
-        {/* Status card — series status + customer + amount per invoice */}
-        <div
-          className="w-full shrink-0 bg-[#faf9f4] border border-dashed border-[rgba(160,160,160,0.5)] rounded-[12px] px-4 py-[14px] flex flex-col gap-1"
-          style={{ boxShadow: CARD_SHADOW }}
-        >
-          <span className="self-start inline-flex items-center gap-1 rounded-full px-1.5 py-0.5" style={{ background: sp.bg }}>
-            <Repeat size={10} strokeWidth={2.75} style={{ color: sp.text }} />
-            <span className="text-[10px] font-medium leading-[1.3] tracking-[-0.5px]" style={{ ...FONT, color: sp.text }}>{status}</span>
-          </span>
-          <span className="text-[20px] font-black leading-none" style={{ ...FONT, color: "#1b1b1b" }}>{customerName}</span>
-          <span className="text-[14px] font-medium leading-[1.3]" style={{ ...FONT, color: "#808080" }}>{amountLabel} per invoice</span>
-        </div>
-
-        {/* Schedule details */}
-        <div
-          className="w-full shrink-0 bg-white rounded-xl overflow-hidden border border-dashed border-[rgba(160,160,160,0.2)]"
-          style={{ boxShadow: CARD_SHADOW }}
-        >
-          <div className="px-4 pt-2 pb-[9px] border-b border-[rgba(160,160,160,0.2)]">
-            <p className="text-[12px] font-bold leading-[16.5px] text-[#a0a0a0]" style={FONT}>SCHEDULE DETAILS</p>
+        <div className="px-4 pt-5 pb-44 flex flex-col gap-4">
+          {/* Status card — series status + customer + amount per invoice */}
+          <div
+            className="w-full shrink-0 bg-[var(--bg-neutral-secondary)] border border-dashed border-[rgba(160,160,160,0.5)] rounded-[12px] px-4 py-[14px] flex flex-col gap-1"
+            style={{ boxShadow: CARD_SHADOW }}
+          >
+            <span className="self-start inline-flex items-center gap-1 rounded-full px-1.5 py-0.5" style={{ background: sp.bg }}>
+              <Repeat size={10} strokeWidth={2.75} style={{ color: sp.text }} />
+              <span className="text-[10px] font-medium leading-[1.3] tracking-[-0.5px]" style={{ ...FONT, color: sp.text }}>{status}</span>
+            </span>
+            <span className="text-[20px] font-black leading-none" style={{ ...FONT, color: "var(--text-primary)" }}>{customerName}</span>
+            <span className="text-[14px] font-medium leading-[1.3]" style={{ ...FONT, color: "var(--text-secondary)" }}>{amountLabel} per invoice</span>
           </div>
-          <Row label="Frequency" value={frequency} />
-          <Row label="Start Date" value={startDate} />
-          <Row label="Ends" value={ends} />
-          <Row label="Auto-send" value={autoSend ? "On" : "Off"} last />
-        </div>
 
-        {/* Invoices log (AC5) — count badge + status pills; tap to open; Show more when >3. */}
-        <div
-          className="w-full shrink-0 bg-white rounded-xl overflow-hidden border border-dashed border-[rgba(160,160,160,0.2)]"
-          style={{ boxShadow: CARD_SHADOW }}
-        >
-          <div className="px-4 pt-2 pb-[9px] border-b border-[rgba(160,160,160,0.2)] flex items-center gap-1.5">
-            <p className="text-[12px] font-bold leading-[16.5px] text-[#a0a0a0]" style={FONT}>INVOICES</p>
-            {visible.length > 0 && (
-              <span className="inline-flex items-center justify-center rounded-[4px] bg-[#ff4a15] px-2 py-0.5" style={FONT}>
-                <span className="text-[14px] font-medium leading-[1.3] text-white">{visible.length}</span>
-              </span>
+          {/* Schedule details */}
+          <div
+            className="w-full shrink-0 bg-white rounded-xl overflow-hidden border border-dashed border-[rgba(160,160,160,0.2)]"
+            style={{ boxShadow: CARD_SHADOW }}
+          >
+            <div className="px-4 pt-2 pb-[9px] border-b border-[rgba(160,160,160,0.2)]">
+              <p className="text-[12px] font-bold leading-[16.5px] text-[var(--text-placeholder)]" style={FONT}>SCHEDULE DETAILS</p>
+            </div>
+            <Row label="Frequency" value={frequency} />
+            <Row label="Start Date" value={startDate} />
+            <Row label="Ends" value={ends} />
+            <Row label="Auto-send" value={autoSend ? "On" : "Off"} last />
+          </div>
+
+          {/* Invoices log (AC5) — count badge + status pills; tap to open; Show more when >3. */}
+          <div
+            className="w-full shrink-0 bg-white rounded-xl overflow-hidden border border-dashed border-[rgba(160,160,160,0.2)]"
+            style={{ boxShadow: CARD_SHADOW }}
+          >
+            <div className="px-4 pt-2 pb-[9px] border-b border-[rgba(160,160,160,0.2)] flex items-center gap-1.5">
+              <p className="text-[12px] font-bold leading-[16.5px] text-[var(--text-placeholder)]" style={FONT}>INVOICES</p>
+              {visible.length > 0 && (
+                <span className="inline-flex items-center justify-center rounded-[4px] bg-[var(--bg-brand-primary)] px-2 py-0.5" style={FONT}>
+                  <span className="text-[14px] font-medium leading-[1.3] text-white">{visible.length}</span>
+                </span>
+              )}
+            </div>
+            {shown.map((r) => {
+              const km = kindMeta[r.kind];
+              const scheduled = r.kind === "scheduled";
+              return (
+                <button
+                  key={r.number}
+                  type="button"
+                  onClick={() => onOpenInvoice?.({ number: r.number, status: r.status, scheduled })}
+                  className="w-full flex items-center justify-between gap-3 px-4 pt-2 pb-[9px] text-left border-b border-[rgba(160,160,160,0.2)]"
+                >
+                  <span className="flex flex-col gap-0.5 min-w-0">
+                    <span className="text-[14px] font-bold leading-[1.3] truncate" style={{ ...FONT, color: "var(--text-primary)" }}>{r.label}</span>
+                    <span className="text-[14px] font-medium leading-[1.3]" style={{ ...FONT, color: "#101828" }}>{r.date}</span>
+                  </span>
+                  <span className="shrink-0 inline-flex items-center rounded-full px-1.5 py-0.5" style={{ background: km.bg }}>
+                    <span className="text-[10px] font-medium leading-[1.3] tracking-[-0.5px] whitespace-nowrap" style={{ ...FONT, color: km.text }}>{km.label}</span>
+                  </span>
+                </button>
+              );
+            })}
+            {/* Show more / less — only when there are more than 3 invoices. */}
+            {visible.length > 3 && (
+              <button
+                type="button"
+                onClick={() => setExpanded((e) => !e)}
+                className="w-full flex items-center gap-1 px-4 pt-2 pb-[9px] bg-[var(--bg-neutral-tertiary)] text-left"
+              >
+                <span className="text-[14px] font-medium leading-[1.3]" style={{ ...FONT, color: "var(--text-primary)" }}>{expanded ? "Show less" : "Show more"}</span>
+                <ChevronDownIcon style={{ fontSize: 18, color: "var(--text-primary)", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+              </button>
             )}
           </div>
-          {shown.map((r) => {
-            const km = kindMeta[r.kind];
-            const scheduled = r.kind === "scheduled";
-            return (
-              <button
-                key={r.number}
-                type="button"
-                onClick={() => onOpenInvoice?.({ number: r.number, status: r.status, scheduled })}
-                className="w-full flex items-center justify-between gap-3 px-4 pt-2 pb-[9px] text-left border-b border-[rgba(160,160,160,0.2)]"
-              >
-                <span className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-[14px] font-bold leading-[1.3] truncate" style={{ ...FONT, color: "#1b1b1b" }}>{r.label}</span>
-                  <span className="text-[14px] font-medium leading-[1.3]" style={{ ...FONT, color: "#101828" }}>{r.date}</span>
-                </span>
-                <span className="shrink-0 inline-flex items-center rounded-full px-1.5 py-0.5" style={{ background: km.bg }}>
-                  <span className="text-[10px] font-medium leading-[1.3] tracking-[-0.5px] whitespace-nowrap" style={{ ...FONT, color: km.text }}>{km.label}</span>
-                </span>
-              </button>
-            );
-          })}
-          {/* Show more / less — only when there are more than 3 invoices. */}
-          {visible.length > 3 && (
-            <button
-              type="button"
-              onClick={() => setExpanded((e) => !e)}
-              className="w-full flex items-center gap-1 px-4 pt-2 pb-[9px] bg-[#f5f4f1] text-left"
-            >
-              <span className="text-[14px] font-medium leading-[1.3]" style={{ ...FONT, color: "#1b1b1b" }}>{expanded ? "Show less" : "Show more"}</span>
-              <ChevronDownIcon style={{ fontSize: 18, color: "#1b1b1b", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-            </button>
+
+          {cancelled && (
+            <p className="text-[13px] leading-[1.45]" style={{ ...FONT, color: "var(--text-secondary)" }}>
+              This series has been cancelled — no further invoices will be generated. Invoices already
+              created remain in your list.
+            </p>
           )}
         </div>
-
-        {cancelled && (
-          <p className="text-[13px] leading-[1.45]" style={{ ...FONT, color: "#808080" }}>
-            This series has been cancelled — no further invoices will be generated. Invoices already
-            created remain in your list.
-          </p>
-        )}
       </div>
 
       {/* Dock — Pause/Resume Recurring (secondary) + Edit Recurring (primary). Cancel is in the ⋯ menu.
@@ -215,7 +221,6 @@ export function RecurringSeriesDetail({
         open={confirmCancel}
         title="Cancel this schedule?"
         onClose={() => setConfirmCancel(false)}
-        dsHeader
         compact
         footer={
           <ButtonDock
@@ -228,7 +233,7 @@ export function RecurringSeriesDetail({
           />
         }
       >
-        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "#808080" }}>
+        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "var(--text-secondary)" }}>
           This will stop future invoices from being generated. Existing invoices will remain in your Sales
           Invoice list and won't be affected. This action cannot be undone.
         </p>

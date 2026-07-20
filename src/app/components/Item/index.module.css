@@ -39,7 +39,7 @@
 
 /* MUI chevron — size/color via a higher-specificity selector to win over MUI defaults. */
 .root .chevron {
-  font-size: 16px;
+  font-size: var(--text-base);
   color: var(--icon-primary);
 }
 

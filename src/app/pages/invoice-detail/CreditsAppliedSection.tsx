@@ -10,6 +10,8 @@ import { InfoCard } from "./InfoBits";
 
 interface CreditsAppliedSectionProps {
   creditNotes: CreditNote[];
+  /** Invoice/credit-note currency (fixed per invoice). */
+  currency: string;
   isRefundContext: boolean;
   fullyRefunded: boolean;
   outstanding: number;
@@ -23,6 +25,7 @@ interface CreditsAppliedSectionProps {
 
 export function CreditsAppliedSection({
   creditNotes,
+  currency,
   isRefundContext,
   fullyRefunded,
   outstanding,
@@ -83,7 +86,7 @@ export function CreditsAppliedSection({
                 </span>
                 <span className="flex items-center gap-1.5 shrink-0">
                   {/* A Draft hasn't been applied, so show its amount neutrally (no red −). */}
-                  <span className="text-[14px] font-medium" style={{ ...FONT, color: cn.draft ? MUTED : "#b42318" }}>{cn.draft ? money(cn.amount) : `−${money(cn.amount)}`}</span>
+                  <span className="text-[14px] font-medium" style={{ ...FONT, color: cn.draft ? MUTED : "#b42318" }}>{cn.draft ? money(cn.amount, currency) : `−${money(cn.amount, currency)}`}</span>
                   <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5" style={{ fontSize: 18, color: MUTED }} />
                 </span>
               </div>

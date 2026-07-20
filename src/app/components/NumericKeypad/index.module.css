@@ -1,0 +1,83 @@
+/* NumericKeypad — on-screen numeric keypad (DES-720) */
+
+.root {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  /* Literal magic value — matches other overlays stacked at z-[60] (e.g. DemoShareSheet); doesn't
+     correspond to this project's semantic z-index scale (z-index/z-index.css). */
+  z-index: 60;
+  background: #d1d4db;
+  padding: var(--space-4) var(--space-3) var(--space-6);
+  user-select: none;
+}
+
+/* ===== ACCESSORY BAR — quick-action chips (left) + Done button (right) ===== */
+.accessoryBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0 var(--space-2) var(--space-4);
+}
+
+.accessoryScroll {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  overflow-x: auto;
+}
+
+.doneBtn {
+  height: 44px;
+  border-radius: var(--radius-2xl);
+  color: var(--text-on-color);
+  font-family: var(--font-primary);
+  font-size: var(--text-base);
+  font-weight: var(--fw-medium);
+  background: var(--bg-brand-primary);
+}
+
+.doneBtnFull {
+  width: 100%;
+}
+
+.doneBtnCompact {
+  flex-shrink: 0;
+  padding: 0 var(--space-12);
+}
+
+/* ===== KEY GRID ===== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
+}
+
+.key {
+  height: 52px;
+  border-radius: var(--radius-xl);
+  background: var(--bg-neutral-primary);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.key:active {
+  background: #e9e9ee;
+}
+
+.keyText {
+  font-size: var(--text-2xl);
+  line-height: 1;
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+}
+
+.backspaceIcon {
+  font-size: var(--text-2xl);
+  color: var(--icon-primary);
+}

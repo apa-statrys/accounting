@@ -4,7 +4,7 @@
 
 A **mobile invoicing app UI prototype** (React + TS + Vite, 375×812 phone frame) with **dummy data
 only** — hosted on Vercel to share flows with the PO and stakeholders, eventually ported to Figma Make.
-Built screen-by-screen against Jira tickets (`doc/sales-invoice-flows/tickets/`) and Figma frames.
+Built screen-by-screen against Jira tickets (fetch live via the Atlassian connector) and Figma frames.
 
 **The owner is not a developer; this codebase is maintained by Claude.** Optimize every change for
 that: small focused files, one obvious home per concern, boring explicit code. **No state libraries,
@@ -13,7 +13,12 @@ behavior unless the task asks for it.
 
 ## Run / verify
 
-- Dev server: **http://localhost:5173/** (usually already running; `pnpm dev` if not).
+- Dev server: **http://localhost:5173/** (usually already running). Start it with
+  **`./node_modules/.bin/vite`** if not — there's no `dev` script in `package.json` (and `pnpm`
+  isn't guaranteed to be installed), so don't run `pnpm dev`.
+- Same server, two entry points, no extra process needed: **`/`** is the app prototype,
+  **`/#showcase`** is the design-system component gallery (a lightweight Storybook stand-in) —
+  just open the link.
 - Build check: **`./node_modules/.bin/vite build`** — NB plain `pnpm build` fails locally
   (pnpm v11 blocks un-approved build scripts before running any script); calling vite directly skips that.
 - Transform-check one changed file (catches import/syntax errors, NOT runtime errors):
@@ -34,8 +39,8 @@ src/app/
                      # CompanySettings, DetailStatus, …). One-component-only types stay in that file.
   data/              # ALL demo seed data, one file per register:
                      #   customers, invoices (+customerIdForInvoice), creditNotes, extraction,
-                     #   receivingAccounts (+formatAccount/getAccount), paymentContacts,
-                     #   attentionTasks, settings (DEFAULT_SETTINGS), heroScenarios
+                     #   receivingAccounts (+formatAccount/getAccount), attentionTasks,
+                     #   settings (DEFAULT_SETTINGS), heroScenarios
   lib/               # shared pure helpers:
                      #   theme.ts  → FONT / INK / MUTED (never re-declare these per file)
                      #   format.ts → money / fmtDate / formatMoney / EMAIL_RE
@@ -44,23 +49,39 @@ src/app/
   ui/                # design-system components rebuilt from the Figma "[APP] Design System"
                      #   (file Lt9QLcfsxzo9gdTV8hbWgs). One folder per component with
                      #   index.tsx + index.module.css (Toggle, Button, FAB, TabsBase,
-                     #   HorizontalTabs …); colors/radii come from tokens.css (:root CSS vars,
-                     #   Figma variable names in comments, loaded by main.tsx). FAB reuses
+                     #   HorizontalTabs …); colors/radii come straight from styles/theme.css
+                     #   and styles/tokens/*.css (:root CSS vars, Figma variable names in
+                     #   comments) — no separate ui/tokens.css, one source of truth. FAB reuses
                      #   Button's color classes — keep those color-only.
                      #   Showcase.tsx = review gallery at /#showcase. RULE: every DS component
                      #   build OR update changes both the component folder and its Showcase page
                      #   (NAV entry + Overview demo + Variants grid) in the same pass.
-  components/        # shared widgets only — sheets, cards, nav, inputs (no screens).
-                     #   ButtonDock + EditCard render ui/Button inside (old Buttons/ was
-                     #   deleted 2026-07-14 when ui/Button + ui/FAB rolled out app-wide).
+  components/        # shared widgets only — sheets, cards, nav, inputs (no screens). Same
+                     #   folder-per-component shape as ui/ now (index.tsx + index.module.css,
+                     #   e.g. SearchField/, SelectionCard/, BottomSheet/ — SearchField/
+                     #   SelectionCard renamed from Search/Tile 2026-07-16 to stop colliding
+                     #   with ui/'s same-named DS components (genuinely different, not dupes).
+                     #   ButtonDock + EditCard render ui/Button inside.
                      #   NB components/ui/ = legacy checkbox + utils (used by ReviewEmail,
                      #   ButtonDock); don't confuse with the DS ui/ above.
-  pages/             # every screen, flat; the 4 big screens each have a folder:
+  pages/             # screens. A screen that owns sub-pages/parts lives in a folder
+                     # holding the main page + its private pieces (folder-per-screen
+                     # reorg 2026-07-17); standalone single-file screens stay flat.
     sales-invoice-list/   # SalesInvoiceList (page) + filters.ts (pure) + InvoiceCard
-    add-invoice-details/  # AddInvoiceDetails (page) + derive.ts + Banners + ExistingInvoiceSheet
+    add-invoice-details/  # AddInvoiceDetails (page) + derive.ts + recurrence.ts + Banners + ExistingInvoiceSheet
     credit-note-form/     # CreditNoteForm (page) + lineMath.ts + ReasonSheet + ClientEditSheet
     invoice-detail/       # InvoiceDetailPage (page) + demoInvoice.ts + creditNoteTypes.ts +
-                          # InfoBits + CreditsAppliedSection + ActionsMenu + RecordPaymentSheet + SendCnSheets
+                          # InfoBits + CreditsAppliedSection + ActionsMenu + RecordPaymentSheet +
+                          # SendCnSheets + RefundCreditNoteFlow (DES-720, private to this page)
+    upload-invoice/       # UploadInvoice (page) + ScanDocument (native-scanner stand-in, private)
+    credit-note-list/     # CreditNotesList (page) + CreditNoteDetailPage + CreditNotePreviewPage
+                          # (the CN detail/preview are also opened from invoice-detail & the list)
+    shared/               # pages rendered inside >1 screen's flow: InvoicePreviewPage
+                          # (invoice-detail + add-invoice-details), ReviewEmail (both send
+                          # flows + CN detail). Flat single-file screens (Dashboard, AccountingHub,
+                          # InvoiceSettings, NeedAttention, CustomerList, CustomerDetailPage,
+                          # AddCustomerPage, CreateSalesInvoice, GeneratingInvoice, DuplicateDecision,
+                          # RecurringSeriesDetail) stay directly under pages/.
 ```
 
 Rules for new code:
@@ -83,10 +104,10 @@ All screen components live in `pages/`:
 |---|---|---|---|---|
 | dashboard (landing) | Dashboard | | invoiceDetail | invoice-detail/InvoiceDetailPage |
 | hub (Menu) | AccountingHub | | creditNote / refundCreditNote | credit-note-form/CreditNoteForm |
-| list | sales-invoice-list/SalesInvoiceList | | creditNotes | CreditNotesList |
+| list | sales-invoice-list/SalesInvoiceList | | creditNotes | credit-note-list/CreditNotesList |
 | customer (pick) | CreateSalesInvoice | | customers | CustomerList |
 | details (editor) | add-invoice-details/AddInvoiceDetails | | customerDetail | CustomerDetailPage |
-| upload / extracting | UploadInvoice / GeneratingInvoice | | addCustomer / editCustomer | AddCustomerPage |
+| upload / extracting | upload-invoice/UploadInvoice / GeneratingInvoice | | addCustomer / editCustomer | AddCustomerPage |
 | duplicateCheck | DuplicateDecision | | needAttention | NeedAttention |
 | settings | InvoiceSettings | | send | (send sub-flow inside the editor/detail) |
 
@@ -106,28 +127,24 @@ in-session only — a reload resets it (expected prototype limit).
   discount; locked = invoice number (shown), issue date, currency. No auto-resend on save (deferred).
 - **Invoice currency is fixed per invoice** — seeded OCR → edit-seed → customer default → Settings
   default; never chosen per invoice, never written back to the customer/Settings.
+- **Never show a "$" glyph for money** — always the currency code, e.g. "USD 6,450.00", "HKD 30.00",
+  "EUR 30.00" (ambiguous across currencies otherwise). `lib/format.ts`'s `money()`/`formatMoney()`
+  take a `currency` argument and format this way; don't hardcode "$" in new code.
 - Credit-note lifecycle, refund lifecycle, corrected-invoice model, per-note send state, status
-  chips: the full spec is **`doc/sales-invoice-flows/invoice-detail-behavior.md`** — read it before
-  touching `invoice-detail/`, `credit-note-form/`, `CreditNoteDetailPage`, or `CreditNotesList`.
+  chips: the source of truth is the code itself (`invoice-detail/`, `credit-note-form/`,
+  `credit-note-list/`) plus the live Jira tickets (DES-719/720/721) — read those before changing it.
 - Client delete/archive is out of scope (referential integrity; record shared with payments side).
-- Sheet motion: sheets dim the page with `bg-black/25` scrim (no page recede/scale). `ButtonDock`
-  labels single-line. Currency sheet height = Add-Services sheet (`SERVICE_SHEET_HEIGHT`).
+- Sheet motion: sheets dim the page with the shared `ui/Overlay` component (`--overlay`,
+  `rgba(27, 27, 27, 0.6)` — Figma dev-mode spec; no page recede/scale). `ButtonDock` labels
+  single-line. Currency sheet height = Add-Services sheet (`SERVICE_SHEET_HEIGHT`).
 
-## Docs (read before the matching task)
+## Specs / tickets
 
-- `doc/sales-invoice-flows/context-sales-invoice.md` — working context + session log (keep updated).
-- `doc/sales-invoice-flows/invoice-detail-behavior.md` — full invoice-detail / credit-note / refund spec.
-- `doc/sales-invoice-flows/history/` — per-ticket build notes (customers 713/714, settings 764,
-  built-per-ticket 715/716/718 + screen history).
-- `doc/sales-invoice-flows/open-questions.md` — pending decisions (e.g. lock a CN once sent?,
-  edit→auto-resend, provisional draft numbers — all pending Beatrice).
-- `doc/sales-invoice-flows/tickets/` — the Jira tickets. **Preferred: fetch tickets live via the
-  Jira (Atlassian) connector** and save them as `.md` files in the feature's `tickets/` folder — if
-  it isn't authenticated this session, ask the user to run `/mcp` → "claude.ai Atlassian Rovo".
-  Fallback for the existing PDFs: `pypdf` (poppler/`pdftotext` and the Read tool's PDF render are
-  unavailable): `python3 -m pip install --quiet --user pypdf`, then a small pypdf script. Two FigJam
-  exports: `Sales Invoices Details User Flows.pdf` (authoritative for detail-page actions) and
-  `Upload sales invoice flow.pdf`.
+There is **no local `doc/` folder** (removed 2026-07-17 — it had drifted out of sync with the code).
+The source of truth is now: **the code itself** for built behavior, and **the live Jira tickets**
+for requirements. Fetch tickets on demand via the **Jira (Atlassian) connector** (DES-7xx numbers
+are referenced throughout the code comments); if it isn't authenticated this session, ask the user
+to run `/mcp` → "claude.ai Atlassian Rovo". Figma frames are the visual source (Figma connector).
 
 ## Out of scope / backend (unchanged by any of this)
 
