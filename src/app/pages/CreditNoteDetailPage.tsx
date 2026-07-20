@@ -137,6 +137,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const [actionsOpen, setActionsOpen] = useState(false);
   // Draft delete confirmation (DES-719 AC7).
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const [sentLocal, setSentLocal] = useState(!!sent);
   // Send sub-flow (reused from the invoice send flow).
   const [sendSheetOpen, setSendSheetOpen] = useState(false);
@@ -168,8 +169,14 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const isFullyApplied = isCancellation && (displayStatus === "Fully Applied" || displayStatus === "Applied");
   const isApplied = isPartiallyApplied || isFullyApplied;
   // DES-720 — a refund CN is Pending Refund until transferred. NOT editable after creation (AC2) — only
-  // cancellable (⋯) while still pending; `onCancel` is wired by the invoice-detail entry.
+  // cancellable (⋯) while still pending; `onCancel` is wired by the invoice-detail entry. In this build
+  // an applied-but-not-yet-paid-out refund CN carries the status "Applied" (see the invoice-detail
+  // cnStatus derivation), so treat both labels as the same cancellable pre-payout state.
   const isPendingRefund = isRefund && displayStatus === "Pending Refund";
+  // A refund CN that's created but not yet paid out (Pending Refund / Applied) can be cancelled → the
+  // invoice reverts to Paid (DES-720). Once the payout is submitted ("Awaiting refund") or settled
+  // (Partially Refunded / Refunded) it can no longer be cancelled.
+  const isRefundCancellable = isRefund && (displayStatus === "Pending Refund" || displayStatus === "Applied");
   // A refund CN saved before it's created (backed out of the refund form) is still a DRAFT — an
   // unfinished document. Like any draft (DES-719) it's resumable (Edit) and deletable (⋯ Delete), NOT
   // sendable. `isOpen` is cancellation-only, so this is tracked separately to reach the draft dock/menu.
@@ -188,8 +195,8 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const draftComplete = !!reason && total > 0.001 && (reason !== "Other" || !!(reasonNote && reasonNote.trim()));
   const canApply = isOpen && !!onApply && draftComplete;
   // ⋯ exists for a Draft (Delete only — cancellation OR refund), an Applied note (Cancel + Preview),
-  // a Pending Refund (Cancel), or a Cancelled note (Preview as PDF lives in the menu — no dock).
-  const hasMenu = (isOpen && !!onCancel) || (isRefundDraft && !!onCancel) || (isApplied && !!onCancel) || (isPendingRefund && !!onCancel) || isCancelled;
+  // a cancellable refund (Cancel refund + Preview), or a Cancelled note (Preview as PDF — no dock).
+  const hasMenu = (isOpen && !!onCancel) || (isRefundDraft && !!onCancel) || (isApplied && !!onCancel) || (isRefundCancellable && !!onCancel) || isCancelled;
   const openSend = () => setSendSheetOpen(true);
 
   const closeSend = () => { setSendSheetOpen(false); setEmailReviewOpen(false); setShareLinkOpen(false); setPdfOpen(false); };
@@ -506,7 +513,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           {isApplied && (
             <>
               {onCancel && (
-                <button onClick={() => { setActionsOpen(false); onCancel(); }} className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]">
+                <button onClick={() => { setActionsOpen(false); setConfirmCancel(true); }} className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]">
                   <DeleteOutlineIcon style={{ fontSize: 20, color: "#b42318" }} />
                   <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Cancel credit note</span>
                 </button>
@@ -525,11 +532,11 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             </button>
           )}
           {isRefund && !isRefundDraft && (
-            // Pending refund → Cancel refund (reverse it) + Preview. Settled/locked → Preview only.
-            // (A refund DRAFT is handled by the draft-Delete block above — Delete only, no Preview.)
+            // Cancellable refund (Pending Refund / Applied, pre-payout) → Cancel refund (reverse it) +
+            // Preview. Settled/awaiting → Preview only. (A refund DRAFT is handled above — Delete only.)
             <>
-              {isPendingRefund && onCancel && (
-                <button onClick={() => { setActionsOpen(false); onCancel(); }} className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]">
+              {isRefundCancellable && onCancel && (
+                <button onClick={() => { setActionsOpen(false); setConfirmCancel(true); }} className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]">
                   <DeleteOutlineIcon style={{ fontSize: 20, color: "#b42318" }} />
                   <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Cancel refund</span>
                 </button>
@@ -565,6 +572,34 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       >
         <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: MUTED }}>
           This draft credit note will be permanently deleted. The linked invoice won't be affected.
+        </p>
+      </BottomSheet>
+
+      {/* Cancel confirmation — for an APPLIED cancellation note (full reversal) or a pre-payout REFUND
+          note (reverts the invoice to Paid). Previously the cancel happened immediately; both entry
+          points (invoice-detail journey + CN list) now confirm first. Safe action (Keep) is the filled
+          primary; the destructive Cancel is the outline secondary (memory: confirm-dialog-pattern). */}
+      <BottomSheet
+        open={confirmCancel}
+        title={isRefund ? "Cancel refund?" : "Cancel credit note?"}
+        onClose={() => setConfirmCancel(false)}
+        dsHeader
+        compact
+        footer={
+          <ButtonDock
+            type="double"
+            primaryLabel={isRefund ? "Keep Refund" : "Keep Credit Note"}
+            secondaryLabel={isRefund ? "Cancel Refund" : "Cancel Credit Note"}
+            onPrimary={() => setConfirmCancel(false)}
+            onSecondary={() => { setConfirmCancel(false); onCancel?.(); }}
+            homeIndicator
+          />
+        }
+      >
+        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: MUTED }}>
+          {isRefund
+            ? "This refund credit note will be cancelled and the invoice will return to Paid."
+            : "This credit note will be cancelled and its effect on the invoice reversed."}
         </p>
       </BottomSheet>
 
