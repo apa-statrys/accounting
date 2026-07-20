@@ -170,6 +170,10 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // DES-720 — a refund CN is Pending Refund until transferred. NOT editable after creation (AC2) — only
   // cancellable (⋯) while still pending; `onCancel` is wired by the invoice-detail entry.
   const isPendingRefund = isRefund && displayStatus === "Pending Refund";
+  // A refund CN saved before it's created (backed out of the refund form) is still a DRAFT — an
+  // unfinished document. Like any draft (DES-719) it's resumable (Edit) and deletable (⋯ Delete), NOT
+  // sendable. `isOpen` is cancellation-only, so this is tracked separately to reach the draft dock/menu.
+  const isRefundDraft = isRefund && displayStatus === "Draft";
   // Settled refund (Partially Refunded / Refunded) — past tense, Send dock, no ⋯ menu.
   const refundSettled = isRefund && (displayStatus === "Partially Refunded" || displayStatus === "Refunded");
   // Cancelled record (a voided Open/Pending note, kept for history) — Preview-only, no menu, never applied.
@@ -183,9 +187,9 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // "Other" (mirrors the form's create validation) — preset reasons don't carry a note.
   const draftComplete = !!reason && total > 0.001 && (reason !== "Other" || !!(reasonNote && reasonNote.trim()));
   const canApply = isOpen && !!onApply && draftComplete;
-  // ⋯ exists for a Draft (Delete only), an Applied note (Cancel + Preview), a Pending Refund (Cancel),
-  // or a Cancelled note (Preview as PDF lives in the menu — no dock).
-  const hasMenu = (isOpen && !!onCancel) || (isApplied && !!onCancel) || (isPendingRefund && !!onCancel) || isCancelled;
+  // ⋯ exists for a Draft (Delete only — cancellation OR refund), an Applied note (Cancel + Preview),
+  // a Pending Refund (Cancel), or a Cancelled note (Preview as PDF lives in the menu — no dock).
+  const hasMenu = (isOpen && !!onCancel) || (isRefundDraft && !!onCancel) || (isApplied && !!onCancel) || (isPendingRefund && !!onCancel) || isCancelled;
   const openSend = () => setSendSheetOpen(true);
 
   const closeSend = () => { setSendSheetOpen(false); setEmailReviewOpen(false); setShareLinkOpen(false); setPdfOpen(false); };
@@ -445,8 +449,9 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           onSecondary={() => onEdit?.()}
           homeIndicator
         />
-      ) : isOpen && onEdit ? (
-        // Draft missing required fields (no Apply) — lead with Edit to finish it.
+      ) : (isOpen || isRefundDraft) && onEdit ? (
+        // Draft (cancellation missing fields, or a refund draft) — lead with Edit to finish it. A refund
+        // draft is resumed through the refund form (its confirm step creates the refund), never "sent".
         <ButtonDock type="single" sticky primaryLabel="Edit" onPrimary={() => onEdit?.()} homeIndicator />
       ) : isApplied ? (
         isPartiallyApplied && onEdit ? (
@@ -490,8 +495,8 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           (grabber + actions), matching the invoice-detail ⋯ menu. */}
       <BottomSheet open={actionsOpen} title="" onClose={() => setActionsOpen(false)} dsHeader>
         <div className="flex flex-col">
-          {/* Draft → only Delete Credit Note (confirmed via a prompt). */}
-          {isOpen && onCancel && (
+          {/* Draft (cancellation or refund) → only Delete Credit Note (confirmed via a prompt). */}
+          {(isOpen || isRefundDraft) && onCancel && (
             <button onClick={() => { setActionsOpen(false); setConfirmDelete(true); }} className="w-full flex items-center gap-3 py-3.5 text-left">
               <DeleteOutlineIcon style={{ fontSize: 20, color: "#b42318" }} />
               <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Delete Credit Note</span>
@@ -519,8 +524,9 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
               <span className="text-[15px]" style={{ ...FONT, color: INK }}>Preview as PDF</span>
             </button>
           )}
-          {isRefund && (
+          {isRefund && !isRefundDraft && (
             // Pending refund → Cancel refund (reverse it) + Preview. Settled/locked → Preview only.
+            // (A refund DRAFT is handled by the draft-Delete block above — Delete only, no Preview.)
             <>
               {isPendingRefund && onCancel && (
                 <button onClick={() => { setActionsOpen(false); onCancel(); }} className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]">

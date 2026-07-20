@@ -148,7 +148,12 @@ Paid / **Cancelled** (was "Void" — renamed per DES-719). Actions per state (fr
     (per-line `$amount of $original`), and a refund **Summary = Invoice Total / Refund Amount (−) / Net Paid**.
     While Pending Refund (not yet transferred) the dock is **EDIT** and ⋯ = **Cancel refund** only (Send +
     Preview removed per design); `onEdit`+`onCancel` are wired from the invoice entry (`cnStatus==="Pending
-    Refund"`), and **Cancel refund** (`voidCreditNote`) reverts the invoice **PendingRefund → Paid**. **Settled
+    Refund"`), and **Cancel refund** (`voidCreditNote`) reverts the invoice **PendingRefund → Paid**.
+    **Draft refund CN (fixed 2026-07-20):** a refund CN saved *before* it's created (backing out of the
+    refund form → `saveRefundDraft`) is a **Draft**, not Pending Refund. Like any draft (DES-719) it is
+    **resumable + deletable, never sendable**: dock = **Edit** (resume the refund form), ⋯ = **Delete Credit
+    Note** only (no Preview). Tracked via `isRefundDraft` (`isRefund && status==="Draft"`) because `isOpen`
+    is cancellation-only; previously a refund draft wrongly showed a **Send** dock and **no ⋯ menu**. **Settled
     refund variant (Figma 731:4752, built 2026-07-01) — `Partially Refunded` / `Refunded`:** once transferred,
     the CN reads **Partially Refunded** (refund < invoice total) or **Refunded** (= invoice total) — **blue**
     "Partially Refunded" chip, **past-tense** labels (**Refunded on <date> / Refunded to / Refunded items**),
