@@ -75,7 +75,9 @@ interface AddInvoiceDetailsProps {
     invoiceNo?: string;
     currency?: string;
     services?: ServiceLine[];
-    /** Issued invoice = limited edit: lock customer, issue date, currency, receiving account. */
+    /** True when editing an ISSUED invoice (Awaiting/Overdue) vs a Draft. Informational only now —
+     *  per the updated story every field is editable except the invoice number + client identity
+     *  (the client tile is locked for any edit); it no longer restricts issue date/currency/etc. */
     limited?: boolean;
   } | null;
   /** Edit mode (Qonto-style): back arrow → return to the invoice detail page without saving. */
@@ -173,8 +175,10 @@ export function AddInvoiceDetails({
   const [failBannerOpen, setFailBannerOpen] = useState(true);
   // `initial` means we opened the form to edit an existing invoice (from the detail page).
   const isEditing = !!initial;
-  // Limited edit of an issued invoice — lock fields bound at issue (DES-715 AC4).
-  const lockedEdit = isEditing && !!initial?.limited;
+  // NB: an issued-invoice edit (Awaiting/Overdue, `initial.limited`) no longer restricts the form —
+  // updated story: every field is editable except the auto-generated invoice number (not on this form)
+  // and the client identity (locked via the customer tile below, for any edit). So there's no separate
+  // "locked edit" branch anymore; the form behaves like a create except the client tile is read-only.
   // Recurring-series setup (DES-782): a per-invoice "Recurring Invoice" toggle (below Invoice Details)
   // turns a one-off into a series and reveals the schedule. Shown on a fresh create AND when editing a
   // scheduled recurring draft (combined content + schedule edit) — but never for uploads or a normal edit.
@@ -394,16 +398,11 @@ export function AddInvoiceDetails({
           : "After a number of invoices")
     : recEnd.date ? format(recEnd.date, "d MMM yyyy") : "On a specific date";
 
-  const details = lockedEdit
-    ? [
-        // Issued limited edit (Awaiting/Overdue) — DES-817 + Figma 1130-6193: ONLY Due Date is
-        // editable; everything else is locked (dimmed, no chevron). Order matches the Figma.
-        { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false, readOnly: false },
-        { label: "Issue Date", value: format(issueDate, "d MMM yyyy"), onClick: () => {}, locked: true, readOnly: false },
-        { label: "Currency", value: currencyLabel, onClick: () => {}, locked: true, readOnly: false },
-        { label: "Receiving Account", value: externalCardLast4 ? `Visa (..${externalCardLast4})` : formatAccount(accountId), onClick: () => {}, locked: true, readOnly: false },
-      ]
-    : [
+  // Issued limited edit (Awaiting/Overdue) — updated story: ALL invoice fields are editable except the
+  // auto-generated invoice number and the client identity (name/address/email). So the detail rows
+  // (Currency, Issue Date, Due Date, Receiving Account) are editable exactly as in a fresh create; the
+  // client stays locked separately (see the customer tile below), and the number never appears here.
+  const details = [
         { label: "Currency", value: currencyLabel, onClick: () => setCurrencySheetOpen(true), locked: false, readOnly: false },
         ...(isRecurring
           ? []
@@ -667,24 +666,20 @@ export function AddInvoiceDetails({
                   key={s.id}
                   line={s}
                   invoiceCurrency={currency}
-                  // Issued limited edit: line items are read-only (no tap-to-edit, swipe, or chevron).
-                  readOnly={lockedEdit}
-                  hint={!lockedEdit && hintFirst && idx === 0}
-                  onClick={lockedEdit ? undefined : () => openEditService(s.id)}
-                  onDelete={lockedEdit ? undefined : () => setServices((prev) => prev.filter((x) => x.id !== s.id))}
+                  hint={hintFirst && idx === 0}
+                  onClick={() => openEditService(s.id)}
+                  onDelete={() => setServices((prev) => prev.filter((x) => x.id !== s.id))}
                 />
               ))}
-              {!lockedEdit && (
-                <Button hierarchy="secondary" iconLeft={<AddIcon />} fullWidth onClick={openAddService} label="Add Item" />
-              )}
+              <Button hierarchy="secondary" iconLeft={<AddIcon />} fullWidth onClick={openAddService} label="Add Item" />
             </div>
           )}
         </Section>
         </div>
 
-        {/* Discounts — appears once the first service is added. Hidden in the issued limited edit
-            (Awaiting/Overdue): discount is not editable after Send (DES-817). */}
-        {services.length > 0 && !lockedEdit && (
+        {/* Discounts — appears once the first service is added. Editable in the issued limited edit
+            (Awaiting/Overdue) too, per the updated story (only invoice number + client stay locked). */}
+        {services.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}

@@ -102,8 +102,11 @@ in-session only — a reload resets it (expected prototype limit).
 - **Single-line toasts**, keyed to action: "Saved as draft" / "Saved as awaiting payment" /
   "Invoice created successfully" (upload-flow) / "Invoice marked as sent" / "Draft deleted" /
   "Changes saved" / "Payment recorded" / "Invoice voided" / "Invoice duplicated".
-- **Edit (limited)** for issued invoices: editable = customer, due date, items, receiving account,
-  discount; locked = invoice number (shown), issue date, currency. No auto-resend on save (deferred).
+- **Edit for issued invoices (Awaiting/Overdue)** (updated story): **every field is editable** —
+  issue date, due date, currency, receiving account, items, discount — **except** the auto-generated
+  invoice number and the client identity (Company Info / client name, address, email). The client
+  tile is read-only in any edit; the number isn't on the form. Paid isn't editable at all (no Edit
+  action). No auto-resend on save (deferred).
 - **Invoice currency is fixed per invoice** — seeded OCR → edit-seed → customer default → Settings
   default; never chosen per invoice, never written back to the customer/Settings.
 - Credit-note lifecycle, refund lifecycle, corrected-invoice model, per-note send state, status
