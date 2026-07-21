@@ -949,21 +949,9 @@ export function InvoiceDetailPage({
             />
           )
         ) : (
-          // Once a payment is logged, drop the "Mark as paid" secondary → just "Send invoice".
-          pendingPayment ? (
-            <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryDisabled={!requiredComplete} onPrimary={() => setSendSheetOpen(true)} homeIndicator />
-          ) : (
-            <ButtonDock
-              type="double"
-              sticky
-              secondaryLabel="Mark as paid"
-              primaryLabel="Send invoice"
-              primaryDisabled={!requiredComplete}
-              onSecondary={() => { setRecordAmount(String(TOTAL)); setRecordPayOpen(true); }}
-              onPrimary={() => setSendSheetOpen(true)}
-              homeIndicator
-            />
-          )
+          // Created draft: "Mark as paid" is only offered on UPLOADED drafts (already settled outside
+          // Statrys). A created draft is issued through Statrys, so it leads with "Send invoice" only.
+          <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryDisabled={!requiredComplete} onPrimary={() => setSendSheetOpen(true)} homeIndicator />
         )
       ) : sendable ? (
         // Once a payment is logged (awaiting approval) the "Mark as paid" CTA drops, leaving just "Send invoice".
