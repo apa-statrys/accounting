@@ -13,7 +13,6 @@ import { IssueDateSheet } from "../../components/IssueDateSheet";
 import { NumericKeypad } from "../../components/NumericKeypad";
 import { FONT, INK, MUTED } from "../../lib/theme";
 import type { CreditNoteEditSeed, CreditNotePayload, DraftLine, InvoiceLine } from "../../types";
-import { EMAIL_RE } from "../../lib/format";
 import { fmtAmount, formatDMY, lineAmount } from "./lineMath";
 import { ReasonSheet } from "./ReasonSheet";
 import { ClientEditSheet } from "./ClientEditSheet";
@@ -223,8 +222,6 @@ export function CreditNoteForm({
     setDraftEmail(email);
     setClientSheetOpen(true);
   };
-  const clientDirty = draftName !== name || draftEmail !== email;
-  const clientValid = draftName.trim().length > 0 && EMAIL_RE.test(draftEmail.trim());
   const saveClient = () => {
     setName(draftName.trim());
     setEmail(draftEmail.trim());
@@ -609,8 +606,6 @@ export function CreditNoteForm({
         draftEmail={draftEmail}
         setDraftName={setDraftName}
         setDraftEmail={setDraftEmail}
-        dirty={clientDirty}
-        valid={clientValid}
         onSave={saveClient}
       />
 

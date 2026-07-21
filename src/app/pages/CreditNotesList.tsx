@@ -119,6 +119,8 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
   // DES-818 actions: delete a Draft (row removed, number retired) · cancel an Applied note (full reversal → Cancelled).
   const deleteFromList = (no: string) => { setNotes((prev) => prev.filter((c) => c.no !== no)); setPreview(null); };
   const cancelFromList = (no: string) => setNotes((prev) => prev.map((c) => (c.no === no ? { ...c, status: "Cancelled", applied: 0 } : c)));
+  // Apply a complete Draft to its invoice (Draft → Applied) — mirrors the invoice-detail applyDraft.
+  const applyFromList = (no: string) => setNotes((prev) => prev.map((c) => (c.no === no ? { ...c, status: "Applied", applied: c.original } : c)));
 
   const counts = useMemo(
     () => FILTERS.map((f) => (f.match === "all" ? notes.length : notes.filter((c) => c.status === f.match).length)),
@@ -347,6 +349,9 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               onBack={() => setPreview(null)}
               // Related Invoice row → open that invoice's detail (shows the chevron arrow).
               onViewInvoice={onOpenInvoice ? () => onOpenInvoice(preview.invoiceNo) : undefined}
+              // Draft → Apply to invoice (Draft → Applied), same as the invoice-detail flow. A complete
+              // Draft leads with "Apply to invoice"; an incomplete one falls back to "Edit" (see canApply).
+              onApply={isDraft ? () => applyFromList(preview.no) : undefined}
               // Draft → Edit reopens the form. Applied/Cancelled are locked (no edit).
               onEdit={isDraft ? () => setEditingNo(preview.no) : undefined}
               // Draft → Delete (row removed); Applied → Cancel (full reversal → Cancelled). Cancelled → none.
