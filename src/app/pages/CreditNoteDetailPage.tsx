@@ -625,6 +625,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             invoiceNo={creditNoteNo}
             amountLabel={amountLabel}
             dueDateLabel={issueDateLabel}
+            docType="creditNote"
             onBack={() => setEmailReviewOpen(false)}
             onSend={completeSend}
           />

@@ -54,6 +54,8 @@ interface ReviewEmailProps {
   amountLabel: string;
   /** Pre-formatted due date, e.g. "17 July 2025". */
   dueDateLabel: string;
+  /** Which document is being sent — drives the subject/message/button wording. */
+  docType?: "invoice" | "creditNote";
   onBack?: () => void;
   /** Send the email — the parent shows the sent toast and navigates away. */
   onSend?: () => void;
@@ -68,16 +70,22 @@ export function ReviewEmail({
   invoiceNo,
   amountLabel,
   dueDateLabel,
+  docType = "invoice",
   onBack,
   onSend,
 }: ReviewEmailProps) {
   const companyInitial = (companyName.trim()[0] ?? "L").toUpperCase();
+  // Document noun for the subject / message / preview button ("Invoice" vs "Credit Note").
+  const isCreditNote = docType === "creditNote";
+  const docLabel = isCreditNote ? "Credit Note" : "Invoice";
   const [recipients, setRecipients] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
   const [cc, setCc] = useState(false);
-  const [subject, setSubject] = useState(`Invoice #${invoiceNo}`);
+  const [subject, setSubject] = useState(`${docLabel} #${invoiceNo}`);
   const [message, setMessage] = useState(
-    `Hi,\n\nPlease find attached Invoice #${invoiceNo} for ${amountLabel}, due on ${dueDateLabel}.\n\nYou can view and pay your invoice using the button below.\n\nThank you for your business.`
+    isCreditNote
+      ? `Hi,\n\nPlease find attached Credit Note #${invoiceNo} for ${amountLabel}.\n\nYou can view your credit note using the button below.\n\nThank you for your business.`
+      : `Hi,\n\nPlease find attached Invoice #${invoiceNo} for ${amountLabel}, due on ${dueDateLabel}.\n\nYou can view and pay your invoice using the button below.\n\nThank you for your business.`
   );
   const [saveDefault, setSaveDefault] = useState(false);
   const [showRecipients, setShowRecipients] = useState(false);
@@ -302,7 +310,7 @@ export function ReviewEmail({
               className="w-full rounded-lg bg-[#1b1b1b] text-white py-2.5 text-[14px] font-medium"
               style={FONT}
             >
-              Open invoice
+              {isCreditNote ? "Open credit note" : "Open invoice"}
             </button>
           </div>
         </div>
