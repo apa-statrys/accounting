@@ -680,17 +680,19 @@ export function InvoiceDetailPage({
               </p>
             </div>
             {/* Single status sub-line for every status ("$X remaining · due <date>" / "Due <date>" /
-                "Overdue since <date>" …). One font weight + size; Overdue is the only colour variant (red). */}
-            {headlineBanner ? (
+                "Overdue since <date>" …). One font weight + size; Overdue is the only colour variant (red).
+                While a payment is pending reconciliation, this line is hidden — the "Pending
+                Reconciliation of $X" line below replaces it (no duplicated amount / stale "remaining"). */}
+            {!pendingPayment && headlineBanner ? (
               <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: status === "Overdue" ? "#b42318" : MUTED }}>
                 {headlineBanner}
               </p>
             ) : null}
-            {/* A payment has been logged and is waiting on the accountant's approval — the invoice stays
-                Awaiting Payment until then (shown right in the hero card). */}
+            {/* A payment has been recorded and is waiting on the accountant to reconcile it — the invoice
+                stays Awaiting Payment until then. Shows the amount the user recorded as "Marked as paid". */}
             {pendingPayment && (
               <p className="text-[13px] font-medium leading-[1.3]" style={{ ...FONT, color: "#b45309" }}>
-                Awaiting approval by accountant
+                Pending Reconciliation of {money(pendingPayment.amount)}
               </p>
             )}
             {/* Draft hero carries a source line under the amount (DES-817 UI): created drafts show
@@ -936,7 +938,7 @@ export function InvoiceDetailPage({
               secondaryLabel="Mark as sent"
               primaryLabel="Mark as paid"
               onSecondary={onIssued}
-              onPrimary={() => { setRecordAmount(String(TOTAL)); setRecordPayOpen(true); }}
+              onPrimary={() => { setRecordAmount(String(remaining)); setRecordPayOpen(true); }}
               homeIndicator
             />
           )
@@ -958,7 +960,7 @@ export function InvoiceDetailPage({
             secondaryLabel="Send invoice"
             primaryLabel="Mark as paid"
             onSecondary={() => setSendSheetOpen(true)}
-            onPrimary={() => { setRecordAmount(String(TOTAL)); setRecordPayOpen(true); }}
+            onPrimary={() => { setRecordAmount(String(remaining)); setRecordPayOpen(true); }}
             homeIndicator
           />
         )
