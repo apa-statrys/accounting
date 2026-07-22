@@ -25,7 +25,17 @@ export type Screen =
   | "customerDetail"
   | "addCustomer"
   | "editCustomer"
-  | "recurringSeries";
+  | "recurringSeries"
+  | "lockedPeriodBanner"
+  | "lockedPeriodDialog"
+  | "lockedPeriodUpload"
+  | "lockedPeriodEditCn"
+  | "lockedPeriodInvoiceDraft"
+  | "lockedPeriodEditInvoice"
+  | "lockedPeriodPaid"
+  | "lockedPeriodRefundDraft"
+  | "lockedPeriodRefundApplied"
+  | "lockedPeriodCnApplied";
 
 // ---------------------------------------------------------------------------
 // Customers

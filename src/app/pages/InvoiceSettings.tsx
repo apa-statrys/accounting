@@ -6,6 +6,7 @@ import StatusBar from "../components/StatusBar";
 import { ButtonDock } from "../components/ButtonDock";
 import { BottomSheet } from "../components/BottomSheet";
 import { TextInput } from "../components/TextInput";
+import { PhoneInput } from "../components/PhoneInput";
 import { Tile } from "../components/Tile";
 import { Search } from "../components/Search";
 import { CurrencySheet, CURRENCIES } from "../components/CurrencySheet";
@@ -22,15 +23,6 @@ import { EMAIL_RE } from "../lib/format";
 // Company-logo upload rules (DES-764).
 const LOGO_TYPES = ["image/jpeg", "image/png"];
 const LOGO_MAX_MB = 10;
-
-// Static country-code prefix inside the Phone field (visual only) — matches the Create Customer screen.
-const phonePrefix = (
-  <span className="flex items-center gap-1" style={{ ...FONT, color: "#1b1b1b" }}>
-    <span style={{ fontSize: 16, lineHeight: 1 }}>🇺🇸</span>
-    <span className="body-md">+1</span>
-    <ExpandMoreIcon style={{ fontSize: 16, color: "#808080" }} />
-  </span>
-);
 
 /** Reminder schedule (DES-764 AC5): two reminders, each timing chosen from presets via a bottom sheet.
  *  "Don't send" (first option) disables that reminder. The per-invoice toggle inherits `chaserEnabled`. */
@@ -229,18 +221,27 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   })();
 
   /** One field's TextInput, configured from FIELD_META — used inside the section sheets. */
-  const field = (k: FieldKey) => (
-    <TextInput
-      label={FIELD_META[k].label}
-      type={FIELD_META[k].type}
-      placeholder={FIELD_META[k].placeholder}
-      required={FIELD_META[k].required}
-      showHint={false}
-      iconLeft={k === "phone" ? phonePrefix : undefined}
-      value={s[k]}
-      onChange={(e) => set(k, e.target.value)}
-    />
-  );
+  const field = (k: FieldKey) =>
+    k === "phone" ? (
+      <PhoneInput
+        label={FIELD_META[k].label}
+        placeholder={FIELD_META[k].placeholder}
+        required={FIELD_META[k].required}
+        showHint={false}
+        value={s[k]}
+        onChange={(v) => set(k, v)}
+      />
+    ) : (
+      <TextInput
+        label={FIELD_META[k].label}
+        type={FIELD_META[k].type}
+        placeholder={FIELD_META[k].placeholder}
+        required={FIELD_META[k].required}
+        showHint={false}
+        value={s[k]}
+        onChange={(e) => set(k, e.target.value)}
+      />
+    );
 
   /** Mock a logo pick (sandbox can't open a real file dialog) → validate against the rules. */
   const pickLogo = () => {

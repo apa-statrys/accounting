@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   addMonths,
   subMonths,
@@ -28,6 +28,10 @@ interface CalendarProps {
   disablePast?: boolean;
   /** Disable (grey out) any date after this day — e.g. the 6-month due-date cap. */
   maxDate?: Date;
+  /** Disable (grey out) any date before this day — e.g. a closed accounting period boundary. */
+  minDate?: Date;
+  /** Fired with the first day of the month currently in view (on mount and on navigation). */
+  onViewChange?: (viewMonthStart: Date) => void;
 }
 
 function MonthYearPicker({ view, onPick }: { view: Date; onPick: (d: Date) => void }) {
@@ -71,16 +75,24 @@ function MonthYearPicker({ view, onPick }: { view: Date; onPick: (d: Date) => vo
   );
 }
 
-export function Calendar({ value, onChange, disablePast = false, maxDate }: CalendarProps) {
+export function Calendar({ value, onChange, disablePast = false, maxDate, minDate, onViewChange }: CalendarProps) {
   const [view, setView] = useState<Date>(value ?? new Date());
   const [picking, setPicking] = useState(false);
+
+  // Report the month in view so callers can react (e.g. hide a closed-period note once past it).
+  useEffect(() => {
+    onViewChange?.(startOfMonth(view));
+  }, [view, onViewChange]);
 
   const firstWeekday = getDay(startOfMonth(view));
   const dayCount = getDaysInMonth(view);
   const today = startOfDay(new Date());
   const maxDay = maxDate ? startOfDay(maxDate) : undefined;
+  const minDay = minDate ? startOfDay(minDate) : undefined;
   const isDisabled = (date: Date) =>
-    (disablePast && isBefore(date, today)) || (maxDay ? isAfter(date, maxDay) : false);
+    (disablePast && isBefore(date, today)) ||
+    (maxDay ? isAfter(date, maxDay) : false) ||
+    (minDay ? isBefore(date, minDay) : false);
 
   const cells: (Date | null)[] = [];
   for (let i = 0; i < firstWeekday; i++) cells.push(null);
@@ -146,24 +158,28 @@ export function Calendar({ value, onChange, disablePast = false, maxDate }: Cale
                 <div key={`b${i}`} />
               ) : (
                 <div key={date.toISOString()} className="flex items-center justify-center py-1">
-                  <button
-                    disabled={isDisabled(date)}
-                    onClick={() => onChange?.(date)}
-                    style={
-                      value && isSameDay(date, value)
-                        ? { backgroundImage: "var(--gradient-default)" }
-                        : undefined
-                    }
-                    className={`w-9 h-9 flex items-center justify-center rounded-full text-[15px] transition-colors ${
-                      value && isSameDay(date, value)
-                        ? "text-white font-bold"
-                        : isDisabled(date)
-                        ? "text-[#c8c8c8]"
-                        : "text-[#1b1b1b] hover:bg-[#faf9f4]"
-                    }`}
-                  >
-                    {date.getDate()}
-                  </button>
+                  {(() => {
+                    const disabled = isDisabled(date);
+                    // A disabled date never reads as "selected" — greyed styling wins (e.g. the
+                    // current issue date sits inside a closed accounting period).
+                    const selected = value && isSameDay(date, value) && !disabled;
+                    return (
+                      <button
+                        disabled={disabled}
+                        onClick={() => onChange?.(date)}
+                        style={selected ? { backgroundImage: "var(--gradient-default)" } : undefined}
+                        className={`w-9 h-9 flex items-center justify-center rounded-full text-[15px] transition-colors ${
+                          selected
+                            ? "text-white font-bold"
+                            : disabled
+                            ? "text-[#c8c8c8]"
+                            : "text-[#1b1b1b] hover:bg-[#faf9f4]"
+                        }`}
+                      >
+                        {date.getDate()}
+                      </button>
+                    );
+                  })()}
                 </div>
               )
             )}

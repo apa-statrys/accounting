@@ -17,6 +17,8 @@ import { CreditNoteForm } from "./pages/credit-note-form/CreditNoteForm";
 import { CreateSalesInvoice } from "./pages/CreateSalesInvoice";
 import { RecurringSeriesDetail } from "./pages/RecurringSeriesDetail";
 import { AddInvoiceDetails } from "./pages/add-invoice-details/AddInvoiceDetails";
+import { InformationBanner } from "./pages/locked-period/InformationBanner";
+import { LockedPeriodBanner } from "./pages/locked-period/LockedPeriodBanner";
 import { SalesInvoiceList } from "./pages/sales-invoice-list/SalesInvoiceList";
 import type { StatusMatch } from "./pages/sales-invoice-list/filters";
 import { NeedAttention } from "./pages/NeedAttention";
@@ -267,8 +269,12 @@ export default function App() {
   const [editingSeries, setEditingSeries] = useState(false);
   // Where the full-page Add Customer returns: the Customers list, or the invoice customer picker.
   const [addCustomerReturn, setAddCustomerReturn] = useState<"customers" | "customer">("customers");
-  // Preset filter to apply when the list is opened from a dashboard hero stat.
+  // Preset/remembered status tab for the Sales Invoice List — set by a dashboard hero stat, and kept
+  // in sync as the user switches tabs so the tab is restored when returning (e.g. back from a detail).
   const [listPreset, setListPreset] = useState<{ status?: StatusMatch } | null>(null);
+  // Create Locked-Period demo: whether the Issue Date calendar is open — swaps the beside-frame
+  // annotation from the "Click Here" arrow (closed) to the locked-dates explanation (open).
+  const [lockedIssueSheetOpen, setLockedIssueSheetOpen] = useState(false);
   // Dev: which hero demo state the dashboard renders (switched from QuickNav).
   const [heroScenario, setHeroScenario] = useState(0);
   // Dev sidebar deep link: CN detail to open when jumping to the Credit Notes list (null = plain list).
@@ -279,14 +285,34 @@ export default function App() {
 
   // Sidebar deep link: open the invoice detail seeded with a register demo invoice.
   const jumpDetail = (
-    inv: { number: string; client: string; status: DetailStatus; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean; cnAwaiting?: boolean },
+    inv: { number: string; client: string; status: DetailStatus; origin?: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean; cnAwaiting?: boolean },
     viewCn = false
   ) => {
     setOpenInvoice({ origin: "created", ...inv, viewCn });
     setDetailFlash(null);
     setEditFromDuplicate(false);
+    // Back from any QuickNav-opened detail lands on the full (unfiltered) invoice list.
+    setListPreset(null);
     setDetailReturn("list");
     setDetailNavNonce((n) => n + 1);
+    setScreen("invoiceDetail");
+  };
+
+  // Open a credit note's related invoice from its detail (the Related Invoice row's arrow). `returnScreen`
+  // is where Back lands — the CN screen it was opened from (regular list or a locked-period preview).
+  const openCnRelatedInvoice = (no: string, returnScreen: Screen) => {
+    const inv = INVOICES.find((i) => i.id === no || i.id.startsWith(no));
+    if (!inv) return;
+    setOpenInvoice({
+      number: no,
+      client: inv.client,
+      status: inv.status as DetailStatus,
+      origin: (inv.origin as "created" | "uploaded") ?? "created",
+      cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent, recurring: inv.recurring,
+    });
+    setDetailFlash(null);
+    setEditFromDuplicate(false);
+    setDetailReturn(returnScreen);
     setScreen("invoiceDetail");
   };
 
@@ -321,19 +347,24 @@ export default function App() {
         { label: "Sales Invoice List", active: screen === "list", onSelect: () => { setToast(null); setListPreset(null); setScreen("list"); } },
         // Dev jump lands on the pre-filled editor (demo customer + demo items), not the picker (user, 15/Jul).
         { label: "Create Invoice", active: screen === "customer" || screen === "details", onSelect: () => { setRecurring(false); setEditingSeries(false); setExtracted(null); setCustomer(DEMO_CUSTOMER); setDevSeedItems(true); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setScreen("details"); } },
+        { label: "Create (Locked Period)", active: screen === "lockedPeriodDialog", onSelect: () => setScreen("lockedPeriodDialog") },
         { label: "Send Invoice", active: screen === "send", onSelect: () => setScreen("send") },
         { label: "Upload Invoice", active: screen === "upload" || screen === "extracting", onSelect: () => { setUploadedFiles([]); setUploadedFile(null); setUploadReturn("list"); setScreen("upload"); } },
+        { label: "Upload (Locked Period)", active: screen === "lockedPeriodUpload", onSelect: () => setScreen("lockedPeriodUpload") },
       ],
       sections: [
         {
           // One entry per detail-page status — each opens a matching register demo invoice.
           heading: "Invoice Detail",
           items: [
-            { label: "Draft", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003", onSelect: () => jumpDetail({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Draft" }) },
+            { label: "Draft (Created)", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "created", onSelect: () => jumpDetail({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Draft", origin: "created" }) },
+            { label: "Draft (Uploaded)", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "uploaded", onSelect: () => jumpDetail({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Draft", origin: "uploaded" }) },
             { label: "Awaiting Payment", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000004", onSelect: () => jumpDetail({ number: "INV-2026-000004", client: "Marlow & Finch Studio", status: "Awaiting" }) },
+            { label: "Awaiting (Locked Period)", active: screen === "lockedPeriodEditInvoice", onSelect: () => setScreen("lockedPeriodEditInvoice") },
             { label: "Overdue + 1 Applied CN", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000010", onSelect: () => jumpDetail({ number: "INV-2026-000010", client: "Harbor & Co.", status: "Overdue", cnNo: "CN-2026-000003", cnAmount: 2000, cnSent: true }) },
             { label: "Partially Paid", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000014", onSelect: () => jumpDetail({ number: "INV-2026-000014", client: "Verde Coffee Roasters", status: "PartiallyPaid" }) },
             { label: "Paid", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000005", onSelect: () => jumpDetail({ number: "INV-2026-000005", client: "Atlas Logistics", status: "Paid" }) },
+            { label: "Paid (Locked Period)", active: screen === "lockedPeriodPaid", onSelect: () => setScreen("lockedPeriodPaid") },
             { label: "Refund Pending + 1 Applied CN", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000011", onSelect: () => jumpDetail({ number: "INV-2026-000011", client: "Cobalt Systems", status: "Paid", cnNo: "CN-2026-000004", cnAmount: 1200, cnSent: false }) },
             // Fully-refunded invoice — its refund CN is paid out (refundState=full), so the detail reads "Refunded".
             { label: "Refunded", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && refundState["INV-2026-000015"] === "full", onSelect: () => { setRefundState((s) => ({ ...s, "INV-2026-000015": "full" })); jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false }); } },
@@ -355,7 +386,9 @@ export default function App() {
           items: [
             { label: "Create Credit Note", active: screen === "creditNote", onSelect: () => setScreen("creditNote") },
             { label: "CN Detail — Draft", active: screen === "creditNotes" && cnPreview === "CN-2026-000005", onSelect: () => { setCnPreview("CN-2026-000005"); setScreen("creditNotes"); } },
+            { label: "CN-Draft (Locked Period)", active: screen === "lockedPeriodEditCn", onSelect: () => setScreen("lockedPeriodEditCn") },
             { label: "CN Detail — Applied", active: screen === "creditNotes" && cnPreview === "CN-2026-000003", onSelect: () => { setCnPreview("CN-2026-000003"); setScreen("creditNotes"); } },
+            { label: "CN-Applied (Locked Period)", active: screen === "lockedPeriodCnApplied", onSelect: () => setScreen("lockedPeriodCnApplied") },
             { label: "CN Detail — Cancelled", active: screen === "creditNotes" && cnPreview === "CN-2026-000009", onSelect: () => { setCnPreview("CN-2026-000009"); setScreen("creditNotes"); } },
           ],
         },
@@ -373,6 +406,7 @@ export default function App() {
                 jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false, cnDraft: true }, true);
               },
             },
+            { label: "Refund-Draft (Locked Period)", active: screen === "lockedPeriodRefundDraft", onSelect: () => setScreen("lockedPeriodRefundDraft") },
             {
               label: "Refund CN — Applied",
               active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && !openInvoice.cnDraft && !openInvoice.cnAwaiting && !refundState["INV-2026-000015"],
@@ -381,6 +415,7 @@ export default function App() {
                 jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false }, true);
               },
             },
+            { label: "Refund CN — Applied (Locked Period)", active: screen === "lockedPeriodRefundApplied", onSelect: () => setScreen("lockedPeriodRefundApplied") },
             {
               label: "Refund CN — Awaiting refund",
               active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && !!openInvoice.cnAwaiting,
@@ -1042,6 +1077,315 @@ export default function App() {
             </p>
           </div>
         </div>
+      )}
+
+      {/* Design-rationale annotation — shown in the white space to the right of the phone frame on the
+          Refund CN — Draft screen (INV-…015), explaining the Apply-vs-Edit CTA gating. */}
+      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && openInvoice.cnDraft && openInvoice.viewCn && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              This draft has all required information, so it leads with{" "}
+              <span className="font-semibold">Apply to invoice</span> as the primary action.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              If a credit-note draft is not completed with all required information, only the{" "}
+              <span className="font-semibold">Edit</span> button is shown instead.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Design-rationale annotation — shown in the white space to the right of the phone frame, only on
+          the created Draft demo invoice (INV-…003), explaining the Send-Invoice gating on the detail page. */}
+      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "created" && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              The <span className="font-semibold">Send Invoice</span> action is shown only when all required
+              fields are completed. This prevents users from sending incomplete invoices and ensures the
+              invoice is ready for delivery.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              Otherwise, the <span className="font-semibold">Edit</span> button is shown as the primary button.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Design-rationale annotation — shown in the white space to the right of the phone frame, only on
+          the uploaded Draft demo invoice (INV-…003), explaining the Mark-as-Sent/Paid actions. */}
+      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "uploaded" && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              Invoices imported through the <span className="font-semibold">Upload Invoice</span> flow may have
+              already been sent to customers outside of Statrys.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              Instead of requiring users to go through the Send Invoice flow again, we provide{" "}
+              <span className="font-semibold">Mark as Sent</span> and{" "}
+              <span className="font-semibold">Mark as Paid</span> actions directly.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Locked Period (DES-751) — how a locked accounting period surfaces on the client app:
+          a passive inline banner, and a blocking alert when a locked action is attempted. */}
+      {screen === "lockedPeriodBanner" && (
+        <InformationBanner
+          onBack={() => setScreen("dashboard")}
+          onSettings={() => setScreen("settings")}
+          onOpenInvoices={() => { setListPreset(null); setScreen("list"); }}
+        />
+      )}
+
+      {/* Design-rationale annotation — shown in the white space right of the phone frame on the
+          locked-period banner screen (mirrors the voided-invoice scenario note). */}
+      {screen === "lockedPeriodBanner" && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Why this banner</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              Information will help to let users know about the restriction before they take any action.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              Since it affects creating, editing, voiding, and cancelling, it's better to explain it
+              once upfront.
+            </p>
+          </div>
+        </div>
+      )}
+      {/* Locked Period — "closed accounting period" on the Create Invoice flow: the same top alert
+          banner as the upload demo, the Issue Date defaults to the first open day (1 Jan 2027), and
+          the calendar disables any date in the closed period (with a warning helper). */}
+      {screen === "lockedPeriodDialog" && (
+        <AddInvoiceDetails
+          key="locked-period-demo"
+          lockExceptIssueDate
+          customer={DEMO_CUSTOMER}
+          customers={customers}
+          seedServices={DEMO_EXTRACTION.services}
+          companyName={settings.companyName}
+          companyEmail={settings.email}
+          defaultCurrency="USD"
+          defaultChaser={settings.chaserEnabled}
+          defaultAccountId={settings.paymentMethod}
+          seedIssueDate={new Date(2027, 0, 1)}
+          issueMinDate={new Date(2027, 0, 1)}
+          issueSheetHelper="Dates on or before 31 Dec 2026 aren't available because accounting period is closed"
+          lockActions
+          onIssueSheetToggle={setLockedIssueSheetOpen}
+          onClose={() => setScreen("dashboard")}
+          onChangeCustomer={() => {}}
+        />
+      )}
+
+      {/* Beside-frame guidance for the Create (Locked Period) demo. Before the calendar opens, a
+          "Click Here" arrow points at the Issue Date row (the only permitted interaction); once it's
+          open, the arrow is replaced by the locked-dates explanation note. */}
+      {screen === "lockedPeriodDialog" && !lockedIssueSheetOpen && (
+        <div
+          className="hidden lg:flex fixed top-[calc(50%-112px)] left-[calc(50%+196px)] items-center gap-3"
+          style={FONT}
+        >
+          {/* Straight arrow pointing left, toward the Issue Date row inside the frame. */}
+          <svg width="56" height="24" viewBox="0 0 56 24" fill="none" aria-hidden="true">
+            <path d="M54 12 L4 12 M4 12 L14 5 M4 12 L14 19" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          </svg>
+          <span className="text-[20px] font-bold tracking-[-0.2px] text-[#2563eb]">Click Issue Date</span>
+        </div>
+      )}
+      {screen === "lockedPeriodDialog" && lockedIssueSheetOpen && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              The Issue Date defaults to the first available (unlocked) date.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              If the user goes back to a previous, already-closed month, those dates can't be selected —
+              all dates within the locked accounting period are disabled. This prevents confusion and
+              avoids creating invoices in a closed accounting period.
+            </p>
+          </div>
+        </div>
+      )}
+      {/* Locked Period — "closed accounting period" on the Upload Invoice flow: the review screen
+          shows the amber alert at the top (in place of the OCR coverage banner) and the Issue Date
+          reads a muted "Select issue date" placeholder because the extracted date (May 2025) falls
+          in the closed period and must be re-picked from the locked calendar before proceeding. */}
+      {screen === "lockedPeriodUpload" && (
+        <AddInvoiceDetails
+          key="locked-period-upload-demo"
+          customer={DEMO_CUSTOMER}
+          customers={customers}
+          extracted={{ ...DEMO_EXTRACTION, customerEmail: "daniel.smith@example.com", emailNotFound: false, issueDate: new Date(2027, 0, 1) }}
+          uploadedFile={uploadedFile}
+          companyName={settings.companyName}
+          companyEmail={settings.email}
+          defaultCurrency="USD"
+          defaultChaser={settings.chaserEnabled}
+          defaultAccountId={settings.paymentMethod}
+          headerTitle="Upload Invoice"
+          topBanner={<LockedPeriodBanner body="Invoices dated on or before DD/MM/YY can’t be uploaded because this period has been closed." showContact={false} />}
+          issuePlaceholder="Select issue date"
+          issueMinDate={new Date(2027, 0, 1)}
+          issueSheetHelper="Dates on or before 31 Dec 2026 aren't available because accounting period is closed"
+          // Lock every interaction except the Issue Date row + the header Back; the Create Invoice CTA
+          // stays live so the user can re-issue once a valid (unlocked) date is picked.
+          lockExceptIssueDate
+          onSend={(t, r) => {
+            setToast(t ?? { title: "Invoice created successfully" });
+            setRecent(r ?? null);
+            setScreen("list");
+          }}
+          onClose={() => setScreen("dashboard")}
+          onChangeCustomer={() => {}}
+        />
+      )}
+
+      {/* Design-rationale annotation — shown in the white space to the right of the phone frame on the
+          Upload (Locked Period) screen, explaining why the uploaded invoice's Issue Date must be re-picked. */}
+      {screen === "lockedPeriodUpload" && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              If the uploaded invoice has an Issue Date within a locked accounting period, that date can't
+              be used. Users are prompted to select a new Issue Date outside the closed period before
+              creating the invoice.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Locked Period — Draft credit note in a closed accounting period: the CN detail opens first
+          (Draft CN preview); tapping "Edit" surfaces the locked-period dialog instead of the form. */}
+      {screen === "lockedPeriodEditCn" && (
+        <CreditNotesList
+          key="locked-period-editcn-demo"
+          initialPreviewNo="CN-2026-000005"
+          companyEmail={settings.email}
+          lockedPeriod
+          onOpenInvoice={(no) => openCnRelatedInvoice(no, "lockedPeriodEditCn")}
+          onBack={() => setScreen("dashboard")}
+        />
+      )}
+
+      {/* Locked Period — Applied credit note in a closed accounting period: the CN detail opens first
+          (Applied CN preview); "Cancel credit note" (⋯ menu) surfaces the locked-period dialog. */}
+      {screen === "lockedPeriodCnApplied" && (
+        <CreditNotesList
+          key="locked-period-cnapplied-demo"
+          initialPreviewNo="CN-2026-000003"
+          companyEmail={settings.email}
+          lockedPeriod
+          onOpenInvoice={(no) => openCnRelatedInvoice(no, "lockedPeriodCnApplied")}
+          onBack={() => setScreen("dashboard")}
+        />
+      )}
+
+      {/* Locked Period — "Invoice Draft" in a closed accounting period: a normal Draft invoice detail
+          where "Send invoice" (dock) and "Edit invoice" (⋯ menu) open the locked-period dialog. */}
+      {screen === "lockedPeriodInvoiceDraft" && (
+        <InvoiceDetailPage
+          key="locked-period-invoicedraft-demo"
+          initialStatus="Draft"
+          invoiceNo="INV-2026-000003"
+          customerName="Bright Harbor Co."
+          companyEmail={settings.email}
+          lockedPeriod
+          onBack={() => setScreen("dashboard")}
+        />
+      )}
+
+      {/* Locked Period — "Edit Invoice" on an Awaiting Payment invoice in a closed accounting period:
+          the normal detail page, but "Edit invoice" (⋯ menu) opens the locked-period dialog. */}
+      {screen === "lockedPeriodEditInvoice" && (
+        <InvoiceDetailPage
+          key="locked-period-editinvoice-demo"
+          initialStatus="Awaiting"
+          invoiceNo="INV-2026-000004"
+          customerName="Marlow & Finch Studio"
+          companyEmail={settings.email}
+          lockedPeriod
+          // Back arrow is locked on this demo — the invoice is in a closed period, so no exit navigation.
+          onBack={() => {}}
+        />
+      )}
+
+      {/* Locked Period — a Paid invoice in a closed accounting period: "Refund with Credit Note"
+          (⋯ menu) opens the locked-period dialog instead of the refund form. */}
+      {screen === "lockedPeriodPaid" && (
+        <InvoiceDetailPage
+          key="locked-period-paid-demo"
+          initialStatus="Paid"
+          invoiceNo="INV-2026-000005"
+          customerName="Atlas Logistics"
+          companyEmail={settings.email}
+          lockedPeriod
+          // Back arrow is locked on this demo — the invoice is in a closed period, so no exit navigation.
+          onBack={() => {}}
+        />
+      )}
+
+      {/* Locked Period — a Draft refund credit note in a closed period: the refund CN detail opens
+          first (overlaid on its Paid invoice); tapping "Edit" surfaces the locked-period dialog. */}
+      {screen === "lockedPeriodRefundDraft" && (
+        <InvoiceDetailPage
+          key="locked-period-refunddraft-demo"
+          initialStatus="Paid"
+          invoiceNo="INV-2026-000015"
+          customerName="Solstice Media"
+          customerEmail={CREDIT_NOTES.find((c) => c.no === "CN-2026-000007")?.email}
+          companyEmail={settings.email}
+          initialCreditNote={{ no: "CN-2026-000007", amount: 6450, sent: false, draft: true }}
+          initialViewCn
+          refundTag="Refund pending"
+          lockedPeriod
+          onBack={() => setScreen("dashboard")}
+        />
+      )}
+
+      {/* Locked Period — an Applied (pending-payout) refund credit note in a closed accounting period:
+          the refund CN detail opens first; "Cancel refund" (⋯ menu) opens the locked-period dialog. */}
+      {screen === "lockedPeriodRefundApplied" && (
+        <InvoiceDetailPage
+          key="locked-period-refundapplied-demo"
+          initialStatus="Paid"
+          invoiceNo="INV-2026-000015"
+          customerName="Solstice Media"
+          customerEmail={CREDIT_NOTES.find((c) => c.no === "CN-2026-000007")?.email}
+          companyEmail={settings.email}
+          initialCreditNote={{ no: "CN-2026-000007", amount: 6450, sent: false }}
+          initialViewCn
+          refundTag="Refund pending"
+          lockedPeriod
+          onBack={() => setScreen("dashboard")}
+        />
       )}
 
       {/* Screen jumper — the collapsible QuickNav sidebar (stakeholder demos), shown in

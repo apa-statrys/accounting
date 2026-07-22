@@ -12,6 +12,7 @@ import { ButtonDock } from "../components/ButtonDock";
 import { BottomSheet } from "../components/BottomSheet";
 import { SendInvoiceSheet } from "../components/SendInvoiceSheet";
 import { ReviewEmail } from "./ReviewEmail";
+import { LockedPeriodDialog } from "./locked-period/LockedPeriodDialog";
 import { ShareLinkSheet } from "../components/ShareLinkSheet";
 import { SendSuccessToast } from "../components/SendSuccessToast";
 import { CreditNotePreviewPage } from "./CreditNotePreviewPage";
@@ -93,6 +94,9 @@ export interface CreditNoteDetailPageProps {
   onCancel?: () => void;
   /** Receiving account shown on the note (Figma 1209) — omit to hide the card. */
   receivingAccount?: { name: string; number: string; primary: boolean };
+  /** Locked-period demo (DES-751): "Cancel refund" opens a locked-period dialog (the note is dated in
+   *  a closed accounting period) instead of the cancel-confirm flow. */
+  lockedPeriod?: boolean;
 }
 
 /** Small dashed cream card matching the invoice detail's InfoCard. */
@@ -131,13 +135,15 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const {
     creditNoteNo, invoiceNo, customerName, customerEmail, companyEmail = "hello@lumenstudio.co", issueDateLabel, dueDateLabel, currency = "USD",
     total, invoiceTotal, lines, reason, reasonNote, kind = "cancellation", status, refundProof, sent, updatedDateLabel,
-    onBack, onViewInvoice, onSent, onApply, onEdit, onCancel, receivingAccount,
+    onBack, onViewInvoice, onSent, onApply, onEdit, onCancel, receivingAccount, lockedPeriod = false,
   } = props;
 
   const [actionsOpen, setActionsOpen] = useState(false);
   // Draft delete confirmation (DES-719 AC7).
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  // Locked-period demo: "Cancel refund" opens this dialog instead of the cancel-confirm flow.
+  const [lockedCancelOpen, setLockedCancelOpen] = useState(false);
   const [sentLocal, setSentLocal] = useState(!!sent);
   // Send sub-flow (reused from the invoice send flow).
   const [sendSheetOpen, setSendSheetOpen] = useState(false);
@@ -193,7 +199,10 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // Complete = a reason + a credit amount. The free-text description is only required when the reason is
   // "Other" (mirrors the form's create validation) — preset reasons don't carry a note.
   const draftComplete = !!reason && total > 0.001 && (reason !== "Other" || !!(reasonNote && reasonNote.trim()));
-  const canApply = isOpen && !!onApply && draftComplete;
+  // A complete Draft — cancellation OR refund — leads with "Apply to invoice"; an incomplete one falls
+  // back to Edit only (see the dock below). Applying a refund draft commits it and moves the invoice to
+  // Pending Refund (the payout step stays separate).
+  const canApply = (isOpen || isRefundDraft) && !!onApply && draftComplete;
   // ⋯ exists for a Draft (Delete only — cancellation OR refund), an Applied note (Cancel + Preview),
   // a cancellable refund (Cancel refund + Preview), or a Cancelled note (Preview as PDF — no dock).
   const hasMenu = (isOpen && !!onCancel) || (isRefundDraft && !!onCancel) || (isApplied && !!onCancel) || (isRefundCancellable && !!onCancel) || isCancelled;
@@ -246,15 +255,24 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
               <span className="px-2.5 py-0.5 rounded-full border text-[11px] font-bold" style={{ ...FONT, background: chip.bg, borderColor: chip.border, color: chip.text }}>{displayStatus}</span>
             </span>
             <p className="text-[20px] font-black leading-none tracking-[-0.8px]" style={{ ...FONT, color: "#b42318" }}>−{money(total)}</p>
-            <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
-              {isCancelled
-                ? `Cancelled on ${updatedDateLabel ?? issueDateLabel}`
-                : isRefund
-                ? (refundSettled ? `Refunded on ${refundProof ? fmtDate(refundProof.date) : issueDateLabel}` : `Created on ${issueDateLabel}`)
-                : isApplied
-                  ? `Applied on ${updatedDateLabel ?? issueDateLabel}`
-                  : `${updatedDateLabel ? "Updated" : "Created"} on ${updatedDateLabel ?? issueDateLabel}`}
-            </p>
+            {/* Awaiting refund shows no date subline — the payout date isn't known yet. */}
+            {displayStatus !== "Awaiting refund" && (
+              <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
+                {isCancelled
+                  ? `Cancelled on ${updatedDateLabel ?? issueDateLabel}`
+                  : isRefund
+                  ? (refundSettled
+                      ? `Refunded on ${refundProof ? fmtDate(refundProof.date) : issueDateLabel}`
+                      // An applied (pre-payout) refund CN reads "Applied on …", matching the cancellation
+                      // Applied detail; a not-yet-applied refund (Pending Refund) shows "Created on …".
+                      : displayStatus === "Applied"
+                      ? `Applied on ${updatedDateLabel ?? issueDateLabel}`
+                      : `Created on ${issueDateLabel}`)
+                  : isApplied
+                    ? `Applied on ${updatedDateLabel ?? issueDateLabel}`
+                    : `${updatedDateLabel ? "Updated" : "Created"} on ${updatedDateLabel ?? issueDateLabel}`}
+              </p>
+            )}
           </div>
         </Card>
 
@@ -513,7 +531,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           {isApplied && (
             <>
               {onCancel && (
-                <button onClick={() => { setActionsOpen(false); setConfirmCancel(true); }} className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]">
+                <button onClick={() => { setActionsOpen(false); if (lockedPeriod) { setLockedCancelOpen(true); return; } setConfirmCancel(true); }} className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]">
                   <DeleteOutlineIcon style={{ fontSize: 20, color: "#b42318" }} />
                   <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Cancel credit note</span>
                 </button>
@@ -536,7 +554,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             // Preview. Settled/awaiting → Preview only. (A refund DRAFT is handled above — Delete only.)
             <>
               {isRefundCancellable && onCancel && (
-                <button onClick={() => { setActionsOpen(false); setConfirmCancel(true); }} className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]">
+                <button onClick={() => { setActionsOpen(false); if (lockedPeriod) { setLockedCancelOpen(true); return; } setConfirmCancel(true); }} className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]">
                   <DeleteOutlineIcon style={{ fontSize: 20, color: "#b42318" }} />
                   <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Cancel refund</span>
                 </button>
@@ -602,6 +620,18 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             : "This credit note will be cancelled and its effect on the invoice reversed."}
         </p>
       </BottomSheet>
+
+      {/* Locked-period demo (DES-751): cancelling a refund / credit note dated in a closed period. */}
+      <LockedPeriodDialog
+        open={lockedCancelOpen}
+        title={isRefund ? "Refund can’t be cancelled" : "Credit note can’t be cancelled"}
+        body={
+          isRefund
+            ? "This refund can’t be cancelled because its date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
+            : "This credit note can’t be cancelled because its date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
+        }
+        onClose={() => setLockedCancelOpen(false)}
+      />
 
       {/* Send sub-flow */}
       <SendInvoiceSheet

@@ -110,6 +110,31 @@ interface AddInvoiceDetailsProps {
   recurring?: boolean;
   /** Editing an existing series (DES-782 AC4) — recurring form with a "Save changes" CTA. */
   editingSeries?: boolean;
+  /** Locked-period demo (DES-751): seed the Issue Date, open its calendar on mount, disable dates
+   *  before `issueMinDate`, show `issueSheetHelper` inside the calendar sheet, and (if `lockIssueSheet`)
+   *  prevent dismissing the sheet by tapping ✕/scrim (a valid date must be picked to proceed). */
+  seedIssueDate?: Date;
+  autoOpenIssueSheet?: boolean;
+  issueMinDate?: Date;
+  issueSheetHelper?: string;
+  lockIssueSheet?: boolean;
+  /** Override the header title (e.g. "Upload Invoice" for the locked-period upload demo). */
+  headerTitle?: string;
+  /** Banner rendered at the top of the form (e.g. the locked-period alert) — replaces the OCR
+   *  coverage banner when set. */
+  topBanner?: React.ReactNode;
+  /** Show the Issue Date as an unset, muted placeholder (e.g. "Select issue date") until a date is
+   *  picked — used when the OCR date fell in a closed period and must be re-chosen. */
+  issuePlaceholder?: string;
+  /** Locked-period demo: disable the header Back button and the primary CTA (Send/Create Invoice). */
+  lockActions?: boolean;
+  /** Locked-period demo: block every in-page interaction EXCEPT the Issue Date row (and the header Back,
+   *  which is locked too). The CTA sits outside the guarded area — gate it separately via `lockActions`.
+   *  Create Locked-Period locks the CTA; Upload Locked-Period leaves it live for re-issue. */
+  lockExceptIssueDate?: boolean;
+  /** Notifies the parent when the Issue Date calendar sheet opens/closes (drives the beside-frame
+   *  annotation on the Create Locked-Period demo). */
+  onIssueSheetToggle?: (open: boolean) => void;
 }
 
 import { FONT, MUTED } from "../../lib/theme";
@@ -168,6 +193,17 @@ export function AddInvoiceDetails({
   defaultAccountId = "personal",
   recurring = false,
   editingSeries = false,
+  seedIssueDate,
+  autoOpenIssueSheet = false,
+  issueMinDate,
+  issueSheetHelper,
+  lockIssueSheet = false,
+  headerTitle,
+  topBanner,
+  issuePlaceholder,
+  lockActions = false,
+  lockExceptIssueDate = false,
+  onIssueSheetToggle,
 }: AddInvoiceDetailsProps) {
   // When `extracted` is present we came from an upload.
   const isExtracted = !!extracted;
@@ -229,8 +265,19 @@ export function AddInvoiceDetails({
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const [customerSheetOpen, setCustomerSheetOpen] = useState(false);
 
-  const [issueDate, setIssueDate] = useState<Date>(extracted?.issueDate ?? new Date(2026, 5, 15));
-  const [issueSheetOpen, setIssueSheetOpen] = useState(false);
+  const [issueDate, setIssueDate] = useState<Date>(extracted?.issueDate ?? seedIssueDate ?? new Date(2026, 5, 15));
+  const [issueSheetOpen, setIssueSheetOpen] = useState(autoOpenIssueSheet);
+  // Let the parent (Create Locked-Period demo) swap its beside-frame annotation when the calendar opens.
+  useEffect(() => { onIssueSheetToggle?.(issueSheetOpen); }, [issueSheetOpen, onIssueSheetToggle]);
+  // Placeholder mode (locked-period upload demo): the Issue Date reads "Select issue date" until picked.
+  const [issuePicked, setIssuePicked] = useState(!issuePlaceholder);
+  // Create flow: the Issue Date defaults to today, shown with a "Today (…)" descriptor until the user
+  // picks another date (mirrors the Due Date row's "Next 30 days (…)" pattern).
+  const [issueChanged, setIssueChanged] = useState(false);
+  const showIssueToday = !isExtracted && !isEditing && !isRecurring && !seedIssueDate && !issuePlaceholder && !issueChanged;
+  // Set when the user hits the CTA with the Issue Date still unset — flags the row + scrolls to it.
+  const [issueError, setIssueError] = useState(false);
+  const issueRowRef = useRef<HTMLDivElement>(null);
   const [dueDate, setDueDate] = useState(extracted?.dueDate || "Next 30 days");
   const [dueSheetOpen, setDueSheetOpen] = useState(false);
   // Currency seeds from the customer default (→ Settings default), or OCR/edit-seed for an
@@ -369,6 +416,17 @@ export function AddInvoiceDetails({
   // Line items in the invoice currency, for the PDF preview.
   const previewItems = toPreviewItems(services, currency);
 
+  // Locked-period upload (DES-751): the OCR Issue Date sat in a closed period, so it must be
+  // re-picked. Block the CTA while it's still the "Select issue date" placeholder — flag the row
+  // red and scroll it into view. Returns true when blocked.
+  const issueDateMissing = !!issuePlaceholder && !issuePicked;
+  const guardIssueDate = () => {
+    if (!issueDateMissing) return false;
+    setIssueError(true);
+    setTimeout(() => issueRowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+    return true;
+  };
+
   const openAddService = () => {
     setEditingId(null);
     setServicesSheetOpen(true);
@@ -403,15 +461,15 @@ export function AddInvoiceDetails({
   // (Currency, Issue Date, Due Date, Receiving Account) are editable exactly as in a fresh create; the
   // client stays locked separately (see the customer tile below), and the number never appears here.
   const details = [
-        { label: "Currency", value: currencyLabel, onClick: () => setCurrencySheetOpen(true), locked: false, readOnly: false },
-        ...(isRecurring
-          ? []
-          : [
-              { label: "Issue Date", value: format(issueDate, "d MMM yyyy"), onClick: () => setIssueSheetOpen(true), locked: false, readOnly: false },
-              { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false, readOnly: false },
-            ]),
-        { label: "Receiving Account", value: externalCardLast4 ? `Visa (..${externalCardLast4})` : formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false, readOnly: false },
-      ];
+    { label: "Currency", value: currencyLabel, onClick: () => setCurrencySheetOpen(true), locked: false, readOnly: false },
+    ...(isRecurring
+      ? []
+      : [
+          { label: "Issue Date", value: !issuePicked ? issuePlaceholder! : showIssueToday ? `Today (${format(issueDate, "d MMM yyyy")})` : format(issueDate, "d MMM yyyy"), onClick: () => setIssueSheetOpen(true), locked: false, readOnly: false, placeholder: !issuePicked },
+          { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false, readOnly: false },
+        ]),
+    { label: "Receiving Account", value: externalCardLast4 ? `Visa (..${externalCardLast4})` : formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false, readOnly: false },
+  ];
 
   return (
     <div
@@ -426,8 +484,8 @@ export function AddInvoiceDetails({
           draft on exit); the autosave chip lives in the header's custom right slot. */}
       <PageHeader
         type="center"
-        title={editingSeries ? "Edit recurring series" : isRecurring ? (isEditing ? "Edit invoice" : "New Recurring Invoice") : isEditing ? "Edit invoice" : "New Invoice"}
-        onBack={isEditing && !editExitToList ? onEditBack : onSaveDraft ? saveDraft : onClose}
+        title={headerTitle ?? (editingSeries ? "Edit recurring series" : isRecurring ? (isEditing ? "Edit invoice" : "New Recurring Invoice") : isEditing ? "Edit invoice" : "New Invoice")}
+        onBack={lockActions || lockExceptIssueDate ? () => {} : isEditing && !editExitToList ? onEditBack : onSaveDraft ? saveDraft : onClose}
         right={
           <div className="flex items-center gap-1 whitespace-nowrap" aria-live="polite">
             {saveState === "saving" ? (
@@ -446,12 +504,30 @@ export function AddInvoiceDetails({
         }
       />
 
-      <div className="flex-1 overflow-y-auto thin-scrollbar px-4 pt-5 pb-28 flex flex-col gap-4">
+      <div
+        className="flex-1 overflow-y-auto thin-scrollbar px-4 pt-5 pb-28 flex flex-col gap-4"
+        // Locked-period demos: the only permitted in-page interaction is picking the Issue Date. A
+        // capture-phase click guard swallows every click outside the Issue Date row (scrolling is a
+        // separate event stream, so it stays fully usable).
+        onClickCapture={
+          lockExceptIssueDate
+            ? (e) => {
+                if (!issueRowRef.current?.contains(e.target as Node)) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }
+            : undefined
+        }
+      >
+        {/* Custom top banner (e.g. the locked-period alert) — replaces the OCR coverage banner. */}
+        {topBanner}
+
         {/* Duplicate found — shown at the very top, above the uploaded-file preview. */}
         {isExtracted && existingInvoice && <DuplicateBanner />}
 
         {/* Extraction coverage — only when a field couldn't be read (OCR-missing case). */}
-        {isExtracted && !extractionFailed && fieldsNeedAttention > 0 && (
+        {isExtracted && !extractionFailed && !topBanner && fieldsNeedAttention > 0 && (
           <CoverageBanner fieldsExtracted={fieldsExtracted} fieldsTotal={fieldsTotal} />
         )}
 
@@ -633,17 +709,33 @@ export function AddInvoiceDetails({
             className="w-full bg-white rounded-xl overflow-hidden border border-dashed border-[rgba(160,160,160,0.2)]"
             style={{ boxShadow: "var(--shadow-card-soft)" }}
           >
-            {details.map((d) => (
-              <Item
-                key={d.label}
-                variant="dropdown"
-                label={d.label}
-                value={d.value}
-                onClick={d.onClick}
-                disabled={d.locked}
-                readOnly={d.readOnly}
-              />
-            ))}
+            {details.map((d) => {
+              const isIssueRow = d.label === "Issue Date";
+              const rowError = isIssueRow && issueError && !issuePicked;
+              // Unset Issue Date (placeholder mode) reads amber by default to signal it must be re-picked;
+              // the required-field error escalates it to red once the CTA is tapped.
+              const rowWarning = isIssueRow && !issuePicked && !rowError;
+              return (
+                <div key={d.label} ref={isIssueRow ? issueRowRef : undefined} className="scroll-mt-24">
+                  <Item
+                    variant="dropdown"
+                    label={d.label}
+                    value={d.value}
+                    onClick={d.onClick}
+                    disabled={d.locked}
+                    readOnly={d.readOnly}
+                    placeholder={(d as { placeholder?: boolean }).placeholder}
+                    error={rowError}
+                    warning={rowWarning}
+                  />
+                  {rowError && (
+                    <p className="px-4 py-2 text-[13px] font-medium leading-[1.3]" style={{ ...FONT, color: "var(--ds-text-error-primary)" }}>
+                      Issue date is required
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </Section>
 
@@ -816,7 +908,9 @@ export function AddInvoiceDetails({
             // Uploaded invoices are record-only by default (DES-716): issuing moves them
             // to Awaiting Payment (sending happened elsewhere). The toast confirms the record
             // action — the Awaiting Payment status is shown by the detail-page badge.
-            onPrimary={() => onSend?.({ title: "Invoice created successfully" }, recentSent)}
+            // Locked-period demo: an unset Issue Date shows the required-field error (guardIssueDate
+            // scrolls + flags); once picked, lockActions keeps the CTA inert so it never lands.
+            onPrimary={() => { if (!guardIssueDate() && !lockActions) onSend?.({ title: "Invoice created successfully" }, recentSent); }}
             homeIndicator
           />
         ) : (
@@ -825,7 +919,8 @@ export function AddInvoiceDetails({
             sticky
             primaryLabel="Send Invoice"
             primaryDisabled={services.length === 0}
-            onPrimary={() => setSendSheetOpen(true)}
+            // Locked-period demo: the CTA stays visually enabled but tapping it goes nowhere.
+            onPrimary={() => { if (!lockActions) setSendSheetOpen(true); }}
             homeIndicator
           />
         )}
@@ -846,9 +941,15 @@ export function AddInvoiceDetails({
       <IssueDateSheet
         open={issueSheetOpen}
         value={issueDate}
+        minDate={issueMinDate}
+        helperText={issueSheetHelper}
+        locked={lockIssueSheet}
         onClose={() => setIssueSheetOpen(false)}
         onSelect={(d) => {
           setIssueDate(d);
+          setIssuePicked(true);
+          setIssueChanged(true);
+          setIssueError(false);
           setIssueSheetOpen(false);
         }}
       />

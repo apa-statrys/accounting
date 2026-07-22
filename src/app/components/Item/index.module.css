@@ -37,6 +37,30 @@
   color: var(--text-primary);
 }
 
+.valuePlaceholder {
+  color: var(--text-placeholder);
+}
+
+/* Invalid row (e.g. a required Issue Date left unset) — red value + red inset ring. */
+.valueError {
+  color: var(--ds-text-error-primary);
+}
+
+.errorRow {
+  box-shadow: inset 0 0 0 var(--border-width-md, 1.5px) var(--ds-border-error-bold);
+  background: #fef2f2;
+}
+
+/* Soft attention row (e.g. an Issue Date that must be re-picked) — amber, matching the locked-period banner. */
+.valueWarning {
+  color: #b45309;
+}
+
+.warningRow {
+  box-shadow: inset 0 0 0 var(--border-width-md, 1.5px) #ffd9a8;
+  background: #fff7ed;
+}
+
 /* MUI chevron — size/color via a higher-specificity selector to win over MUI defaults. */
 .root .chevron {
   font-size: 16px;

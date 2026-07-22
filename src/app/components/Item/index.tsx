@@ -16,6 +16,12 @@ export interface ItemProps {
   disabled?: boolean;
   /** Read-only (e.g. a fixed account default): no chevron, not tappable, but NOT dimmed. */
   readOnly?: boolean;
+  /** Render `value` as a muted placeholder (e.g. an unset "Select issue date"). */
+  placeholder?: boolean;
+  /** Flag the row as invalid (e.g. a required Issue Date left unset) — red value + red ring. */
+  error?: boolean;
+  /** Soft attention state (e.g. an Issue Date that must be re-picked) — amber value + amber ring. */
+  warning?: boolean;
   className?: string;
 }
 
@@ -32,6 +38,9 @@ export const Item: React.FC<ItemProps> = ({
   onClick,
   disabled = false,
   readOnly = false,
+  placeholder = false,
+  error = false,
+  warning = false,
   className = '',
 }) => {
   const interactive = !disabled && !readOnly;
@@ -51,12 +60,12 @@ export const Item: React.FC<ItemProps> = ({
       type="button"
       onClick={interactive ? onClick : undefined}
       disabled={!interactive}
-      className={[styles.root, styles.rowButton, className].filter(Boolean).join(' ')}
+      className={[styles.root, styles.rowButton, error ? styles.errorRow : warning ? styles.warningRow : '', className].filter(Boolean).join(' ')}
       style={disabled ? { opacity: 0.5, cursor: 'default' } : readOnly ? { cursor: 'default' } : undefined}
     >
       <span className={`${styles.label} body-sm`}>{label}</span>
       <span className={styles.value}>
-        {value && <span className={`${styles.valueText} body-sm-medium`}>{value}</span>}
+        {value && <span className={`${error ? styles.valueError : warning ? styles.valueWarning : placeholder ? styles.valuePlaceholder : styles.valueText} body-sm-medium`}>{value}</span>}
         {interactive && <ChevronRightIcon className={styles.chevron} />}
       </span>
     </button>

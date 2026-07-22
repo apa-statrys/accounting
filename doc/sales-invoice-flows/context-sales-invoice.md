@@ -5,6 +5,50 @@ only the CURRENT state and next steps — overwrite/trim it each session. Dated 
 `./history/session-log.md`; the full invoice-detail/credit-note/refund spec is
 `./invoice-detail-behavior.md`; repo map + conventions + run/verify commands are **CLAUDE.md**.
 
+## Locked Period (DES-751) + PhoneInput + Today issue-date — done, uncommitted (2026-07-20)
+
+**PhoneInput** — new `components/PhoneInput.tsx`: country-code selector (flag + dial code + chevron)
+opening a searchable `DialCodeSheet` (DS `Tile` rows, `DIAL_COUNTRIES`). Stores dial + national as one
+combined `phone` string via `value`/`onChange`. Replaced the static `🇺🇸 +1` prefix in **AddCustomerPage**
++ **InvoiceSettings**.
+
+**Today issue-date descriptor** — a fresh Create-Invoice Issue Date row now reads **"Today (15 Jun 2026)"**
+(mirrors Due Date's "Next 30 days (…)"); the prefix drops once a date is picked. `AddInvoiceDetails`:
+`issueChanged` state + `showIssueToday` (create flow only — not extracted/editing/recurring/seeded/placeholder).
+The default date itself is still the hard-coded 15 Jun 2026, NOT wired to a real "today".
+
+**Locked Period (DES-751)** — how a closed accounting period surfaces on the *client* app (locks are set
+on the admin app, read-only here). New `pages/locked-period/`: `LockedPeriodBanner` (amber inline notice),
+`LockedPeriodDialog` (bottom-sheet blocking dialog, `dsHeader`+`hideClose`, single **OK**; default copy =
+CN-edit), `InformationBanner` (Dashboard + `noticeBanner` prop, all inert via `pointer-events:none`).
+
+**Two interception mechanisms** (both key off a `lockedPeriod` prop):
+- `AddInvoiceDetails.lockedPeriod`? No — it uses `lockActions` (locks Back + primary CTA inert) +
+  `seedIssueDate`/`autoOpenIssueSheet`/`issueMinDate`/`issueSheetHelper`/`lockIssueSheet`/`headerTitle`/
+  `topBanner`/`issuePlaceholder`. Upload flow adds the "Issue date is required" validation (guardIssueDate →
+  scroll+flag; `Item` gained `error`=red + `warning`=amber row states; the unset Issue Date shows amber by default).
+- `InvoiceDetailPage.lockedPeriod` → `lockedAction` state routes Send / Edit / Add-credit-note / Refund
+  (from dock + ⋯ menu) to `LockedPeriodDialog` with per-action copy. Its CN-detail overlay passes
+  `lockedPeriod` to `CreditNoteDetailPage` (Cancel refund / Cancel credit note → dialog, skipping the
+  confirm) and intercepts the overlay's draft-CN Edit.
+- `CreditNotesList.lockedPeriod` → Draft-CN Edit → dialog; forwards `lockedPeriod` to `CreditNoteDetailPage`.
+- Dialog copy pattern (all): "…can't be [edited/added/cancelled] because its date ([DD/MM/YYYY]) falls in a
+  closed accounting period. Contact your accountant for assistance." Titles: "Editing isn't available",
+  "Credit note can't be added", "Refund can't be added", "Unable to send invoice", "Refund can't be
+  cancelled", "Credit note can't be cancelled".
+
+**QuickNav layout** (final): the standalone "Locked Period" group was REMOVED; each demo now sits under its
+real counterpart. Sales Invoice → `Create (Locked Period)` (after Create Invoice), `Upload (Locked Period)`
+(after Upload Invoice); Invoice-Detail section → `Awaiting (Locked Period)`, `Paid (Locked Period)`. Credit
+Note → Unpaid Invoice → `CN-Draft (Locked Period)`, `CN-Applied (Locked Period)`; Paid Invoices →
+`Refund-Draft (Locked Period)`, `Refund CN — Applied (Locked Period)`. Screen ids: `lockedPeriodDialog`
+(Create), `lockedPeriodUpload`, `lockedPeriodEditInvoice` (Awaiting), `lockedPeriodPaid`,
+`lockedPeriodEditCn` (CN-Draft), `lockedPeriodCnApplied`, `lockedPeriodRefundDraft`, `lockedPeriodRefundApplied`.
+`lockedPeriodBanner` + `lockedPeriodInvoiceDraft` screens still exist but are unreachable (nav entries removed).
+CN/refund locked demos reuse the register data (CN-…005 draft, CN-…003 applied, CN-…007 refund on INV-…015).
+All verified headless; build clean. **Copy still uses literal `DD/MM/YYYY`/`DD/MM/YY` placeholders** (swap for
+real dates before Figma-Make port).
+
 ## Current state (2026-07-02)
 
 All Block-1 sales-invoice stories are **built and working** on the dev server:

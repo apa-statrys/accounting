@@ -3,6 +3,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import StatusBar from "../components/StatusBar";
 import { PageHeader } from "../ui/PageHeader";
 import { TextInput } from "../components/TextInput";
+import { PhoneInput } from "../components/PhoneInput";
 import { ButtonDock } from "../components/ButtonDock";
 import { BottomSheet } from "../components/BottomSheet";
 import { CurrencySheet } from "../components/CurrencySheet";
@@ -17,15 +18,6 @@ function initials(name: string): string {
   const words = name.split(/\s+/).filter((w) => /[a-z0-9]/i.test(w[0] ?? ""));
   return ((words[0]?.[0] ?? "") + (words[1]?.[0] ?? "")).toUpperCase();
 }
-
-// Static country-code prefix shown inside the Phone field (visual only, matching the Figma).
-const phonePrefix = (
-  <span className="flex items-center gap-1" style={{ ...FONT, color: "#1b1b1b" }}>
-    <span style={{ fontSize: 16, lineHeight: 1 }}>🇺🇸</span>
-    <span className="body-md">+1</span>
-    <ExpandMoreIcon style={{ fontSize: 16, color: "#808080" }} />
-  </span>
-);
 
 import { EMAIL_RE } from "../lib/format";
 const PHONE_RE = /^[+()\d][\d\s()-]{5,}$/;
@@ -217,8 +209,8 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
           <TextInput id="client-field-email" label="Email Address" type="email" placeholder="e.g. abc@gmail.com" size="md" required
             error={err("email")} value={email} onChange={(e) => setEmail(e.target.value)} />
 
-          <TextInput id="client-field-phone" label="Phone Number" type="tel" placeholder="Enter contact phone number" size="md"
-            iconLeft={phonePrefix} error={err("phone")} value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <PhoneInput id="client-field-phone" label="Phone Number" size="md"
+            error={err("phone")} value={phone} onChange={setPhone} />
 
           <TextInput id="client-field-website" label="Website" placeholder="Enter company website" size="md"
             error={err("website")} value={website} onChange={(e) => setWebsite(e.target.value)} />

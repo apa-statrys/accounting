@@ -14,6 +14,10 @@ import { InvoiceRow } from "../ui/InvoiceRow";
 
 import { FONT, INK } from "../lib/theme";
 import { SHOW_CREDIT_NOTES } from "../lib/flags";
+import { money } from "../lib/format";
+// Prototype: recent-invoice rows mirror the list card — every row shows the shared demo total
+// (demoInvoice.TOTAL = $6,450), matching what each invoice's detail page displays.
+import { TOTAL } from "./invoice-detail/demoInvoice";
 
 /** Peer-benchmark note in the hero's Collected box (hidden at 0% collected, per Figma). */
 const PEER_NOTE = "You’re ahead of 71% of similar businesses this month";
@@ -45,6 +49,8 @@ interface DashboardProps {
   onOpenOutstanding?: () => void;
   /** Which hero demo state to render (dev — driven by QuickNav). */
   scenario?: number;
+  /** Optional notice rendered directly under the "Sales Invoices" title (e.g. the locked-period banner). */
+  noticeBanner?: React.ReactNode;
 }
 
 /** Uppercase section header with an optional count badge + view-all affordance
@@ -71,7 +77,7 @@ function SectionHead({ title, badge, onViewAll }: { title: string; badge?: numbe
 }
 
 
-export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, onSettings, onOpenNeedAttention, onOpenInvoice, onCreate, onUpload, onRecurring, onOpenPaid, onOpenOutstanding, scenario = 0 }: DashboardProps) {
+export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, onSettings, onOpenNeedAttention, onOpenInvoice, onCreate, onUpload, onRecurring, onOpenPaid, onOpenOutstanding, scenario = 0, noticeBanner }: DashboardProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   // Scroll interactions: past the big header, the PageHeader collapses to its
   // "left-on-scroll" state (pinned bar) and the pill FAB shrinks to a circle;
@@ -148,6 +154,9 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
           onRightClick={onSettings}
         />
 
+        {/* Optional notice under the title (e.g. locked-period banner) — sits above the hero card. */}
+        {noticeBanner && <div className="w-full px-4">{noticeBanner}</div>}
+
         {/* Dark hero card — DS ui/OutstandingCard (Figma node 4141-8627). */}
         <div className="w-full px-4">
           <OutstandingCard
@@ -190,31 +199,32 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
         <div className="w-full bg-white rounded-[12px] px-4 pb-4 flex flex-col items-center gap-2" style={{ boxShadow: "var(--ds-shadow-card)" }}>
           <div className="w-full flex flex-col">
             <InvoiceRow
-              title="Marlow & Finch Studio" invoiceNo="INV-2026-000006" amount="$6,345.00"
-              status={SHOW_CREDIT_NOTES ? "Refund Pending" : "Paid"}
+              title="Marlow & Finch Studio" invoiceNo="INV-2026-000006" amount={money(TOTAL)}
+              status={SHOW_CREDIT_NOTES ? "Pending Refund" : "Paid"}
               statusColor={SHOW_CREDIT_NOTES ? "warning" : "success"}
-              statusCaption={SHOW_CREDIT_NOTES ? "Paid on 20 Jun 2026" : "on 20 Jun 2026"}
-              creditedAmount={SHOW_CREDIT_NOTES ? "$2,450.00" : undefined}
+              statusCaption={SHOW_CREDIT_NOTES ? undefined : "on 20 Jun 2026"}
+              creditedAmount={SHOW_CREDIT_NOTES ? "CN-2026-000006" : undefined}
+              creditedLabel=""
               onClick={() => onOpenInvoice?.({ number: "INV-2026-000006", client: "Marlow & Finch Studio", status: "Paid", origin: "created" })}
               onCreditedClick={() => onOpenInvoice?.({ number: "INV-2026-000006", client: "Marlow & Finch Studio", status: "Paid", origin: "created" })}
             />
             <InvoiceRow
-              title="Marlow & Finch Studio" invoiceNo="INV-2026-000005" amount="$6,430.05"
+              title="Marlow & Finch Studio" invoiceNo="INV-2026-000005" amount={money(TOTAL)}
               status="Awaiting Payment" statusColor="warning" statusCaption="Due in 3 days"
               onClick={() => onOpenInvoice?.({ number: "INV-2026-000005", client: "Marlow & Finch Studio", status: "Awaiting", origin: "created" })}
             />
             <InvoiceRow
-              title="Bright Harbor Co." amount="$283.23"
+              title="Bright Harbor Co." amount={money(TOTAL)}
               status="Draft" statusColor="neutral" statusCaption="Created on 20 Jun 2026"
               onClick={() => onOpenInvoice?.({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Awaiting", origin: "created" })}
             />
             <InvoiceRow
-              title="Otto Reyes" amount="$100,034.00"
+              title="Otto Reyes" amount={money(TOTAL)}
               status="Draft" statusColor="neutral" statusCaption="Created on 18 Jun 2026"
               onClick={() => onOpenInvoice?.({ number: "INV-2026-000002", client: "Otto Reyes", status: "Awaiting", origin: "created" })}
             />
             <InvoiceRow
-              title="Northwind Traders" invoiceNo="INV-2026-000001" amount="$980.50"
+              title="Northwind Traders" invoiceNo="INV-2026-000001" amount={money(TOTAL)}
               status="Paid" statusColor="success" statusCaption="on 12 Jun 2026" lastItem
               onClick={() => onOpenInvoice?.({ number: "INV-2026-000001", client: "Northwind Traders", status: "Paid", origin: "created" })}
             />

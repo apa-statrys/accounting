@@ -31,6 +31,7 @@ import { Repeat, Asterisk } from "lucide-react";
 import { MetaRow, InfoCard } from "./InfoBits";
 import { CreditsAppliedSection } from "./CreditsAppliedSection";
 import { ActionsMenu } from "./ActionsMenu";
+import { LockedPeriodDialog } from "../locked-period/LockedPeriodDialog";
 import { RecordPaymentSheet } from "./RecordPaymentSheet";
 import { ResendPromptSheet, SendPickerSheet } from "./SendCnSheets";
 
@@ -76,6 +77,9 @@ interface InvoiceDetailPageProps {
   onRefunded?: (invoiceNo: string, result: "partial" | "full") => void;
   /** Dev QuickNav deep link: open the seeded credit note's detail overlay on mount. */
   initialViewCn?: boolean;
+  /** Locked-period demo (DES-751): "Send invoice" and "Edit invoice" open a blocking locked-period
+   *  dialog instead of proceeding (the invoice is dated in a closed accounting period). */
+  lockedPeriod?: boolean;
 }
 
 /** Status-aware sales-invoice detail (DES-715 / DES-716). */
@@ -104,9 +108,16 @@ export function InvoiceDetailPage({
   refundTag,
   onRefunded,
   initialViewCn = false,
+  lockedPeriod = false,
 }: InvoiceDetailPageProps) {
   const [status, setStatus] = useState<DetailStatus>(initialStatus);
   const [actionsOpen, setActionsOpen] = useState(false);
+  // Locked-period demo: which blocked action was tapped (drives the dialog copy). null = closed.
+  const [lockedAction, setLockedAction] = useState<null | "send" | "edit" | "createCn" | "refund" | "markPaid">(null);
+  // Locked-period demo: which blocked action was tapped on the (refund) credit-note DETAIL overlay
+  // (Edit or Apply) — its own dialog so it layers above the z-50 CN overlay (the top-level dialog would
+  // render behind it). null = closed.
+  const [lockedCnAction, setLockedCnAction] = useState<null | "edit" | "apply">(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [bankExpanded, setBankExpanded] = useState(false);
   // Credit notes raised against this invoice (DES-719) — cumulative, capped at the total.
@@ -308,9 +319,9 @@ export function InvoiceDetailPage({
   // The one-line status explainer under the amount.
   const bannerText: Record<DetailStatus, string> = {
     Draft: "",
-    // Hero shows the ORIGINAL full total as the big number; the reduced-balance sub-line reads
-    // "$X remaining · due/overdue since <date>", otherwise the plain due date / overdue date. All the
-    // "due" lines share one font weight + size (see render).
+    // Hero shows the ORIGINAL full total as the big number; the sub-line shows what's actually due —
+    // "$X due" once a credit note reduces the balance, otherwise the due date ("Due 5 Jul 2026",
+    // same absolute format as the list). All "due" lines share one font weight + size (see render).
     Awaiting: credited > 0 ? `${money(outstanding)} remaining · due ${dueDateLabel}` : `Due ${dueDateLabel}`,
     Overdue: credited > 0 ? `${money(outstanding)} remaining · overdue since ${dueDateLabel}` : `Overdue since ${dueDateLabel}`,
     PartiallyPaid: `${money(remaining)} remaining · due ${dueDateLabel}`,
@@ -349,8 +360,9 @@ export function InvoiceDetailPage({
   const sectionedLayout = true;
   // Headline: while a payout is due, lead with the pending amount ("Amount to refund"); once settled,
   // show the cumulative amount refunded to date.
-  // Hero big number is ALWAYS the original full invoice total — for every status. Credit notes /
-  // refunds are detailed in the sub-line + Summary below, not in the big number.
+  // Hero big number is ALWAYS the original full invoice total (user, 22/Jul) — for every status,
+  // including refund context. Credit notes / refunds are detailed in the sub-line + Summary below,
+  // not in the big number.
   const headlineAmount = TOTAL;
   // Refund-context sub-line: the amount still to refund (payout pending) or the amount refunded (settled).
   const refundAmt = refundPending > 0.001 ? refundPending : refundedOut;
@@ -614,7 +626,11 @@ export function InvoiceDetailPage({
     })),
     limited: issued,
   };
-  const openEdit = () => { setActionsOpen(false); onEdit?.(editSeed); };
+  const openEdit = () => { setActionsOpen(false); if (lockedPeriod) { setLockedAction("edit"); return; } onEdit?.(editSeed); };
+  // Locked-period demo: "Send invoice" opens the blocking dialog instead of the send sheet.
+  const openSend = () => { if (lockedPeriod) { setLockedAction("send"); return; } setSendSheetOpen(true); };
+  // Locked-period demo: "Mark as paid" opens the blocking dialog instead of the record-payment sheet.
+  const openMarkPaid = () => { if (lockedPeriod) { setLockedAction("markPaid"); return; } setRecordAmount(String(remaining)); setRecordPayOpen(true); };
 
   // Required-field gate for issuing/sending a draft (DES-715 AC2 / DES-716 AC3).
   const requiredComplete = !!customerName && ITEMS.length > 0 && !!dueDateLabel;
@@ -679,8 +695,8 @@ export function InvoiceDetailPage({
                 {money(headlineAmount)}
               </p>
             </div>
-            {/* Single status sub-line for every status ("$X remaining · due <date>" / "Due <date>" /
-                "Overdue since <date>" …). One font weight + size; Overdue is the only colour variant (red).
+            {/* Single status sub-line for every status ("$X due" / "Due <date>" / "Overdue since …" /
+                refund amount). One font weight + size; Overdue is the only colour variant (red).
                 While a payment is pending reconciliation, this line is hidden — the "Pending
                 Reconciliation of $X" line below replaces it (no duplicated amount / stale "remaining"). */}
             {!pendingPayment && headlineBanner ? (
@@ -702,8 +718,8 @@ export function InvoiceDetailPage({
                 {uploaded ? "Uploaded on" : "Created on"} {issueDateLabel}
               </p>
             )}
-            {/* Refund context sub-line: how much is still to refund (pending) or was refunded (partial).
-                A FULL refund shows nothing extra — the badge + full amount say it all. */}
+            {/* Refund context: the refund amount is primary above, so the paid amount drops to a secondary
+                line with a green "Paid on <date>" note beside it. */}
             {isRefundContext && !fullyRefunded && (
               <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
                 {money(refundAmt)} {refundVerb}
@@ -801,9 +817,7 @@ export function InvoiceDetailPage({
 
         {/* Details — sectioned layout (DES-817) titles it "Invoice Details" and leads with Currency. */}
         <InfoCard title={sectionedLayout ? "Invoice Details" : undefined}>
-          {/* Invoice-number row only on Awaiting / Overdue. Drafts have no number yet (or carry the
-              UL- label); Paid / Partially Paid / Void show the number in the page header instead. */}
-          {(status === "Awaiting" || status === "Overdue") && <MetaRow label="Invoice number" value={invoiceNo} />}
+          {/* Invoice number is shown in the page header only — never repeated inside this card. */}
           {sectionedLayout ? (
             <>
               <MetaRow label="Currency" value={currency} />
@@ -938,14 +952,14 @@ export function InvoiceDetailPage({
               secondaryLabel="Mark as sent"
               primaryLabel="Mark as paid"
               onSecondary={onIssued}
-              onPrimary={() => { setRecordAmount(String(remaining)); setRecordPayOpen(true); }}
+              onPrimary={openMarkPaid}
               homeIndicator
             />
           )
         ) : (
           // Created draft: "Mark as paid" is only offered on UPLOADED drafts (already settled outside
           // Statrys). A created draft is issued through Statrys, so it leads with "Send invoice" only.
-          <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryDisabled={!requiredComplete} onPrimary={() => setSendSheetOpen(true)} homeIndicator />
+          <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryDisabled={!requiredComplete} onPrimary={openSend} homeIndicator />
         )
       ) : sendable ? (
         // Once a payment is logged (awaiting approval) the "Mark as paid" CTA drops, leaving just "Send invoice".
@@ -960,7 +974,7 @@ export function InvoiceDetailPage({
             secondaryLabel="Send invoice"
             primaryLabel="Mark as paid"
             onSecondary={() => setSendSheetOpen(true)}
-            onPrimary={() => { setRecordAmount(String(remaining)); setRecordPayOpen(true); }}
+            onPrimary={openMarkPaid}
             homeIndicator
           />
         )
@@ -1008,12 +1022,12 @@ export function InvoiceDetailPage({
         terminal={terminal}
         cancellable={cancellable}
         creditNotesCount={activeCnCount}
-        onRefundWithCn={() => { setActionsOpen(false); setRefundFormOpen(true); }}
+        onRefundWithCn={() => { setActionsOpen(false); if (lockedPeriod) { setLockedAction("refund"); return; } setRefundFormOpen(true); }}
         onPreviewPdf={() => { setActionsOpen(false); setPdfPreviewOpen(true); }}
         onSendInvoice={() => { setActionsOpen(false); setSendSheetOpen(true); }}
         onEdit={openEdit}
         onDuplicate={duplicate}
-        onCreateCn={() => { setActionsOpen(false); setResumeDraftIndex(null); setCreditFormOpen(true); }}
+        onCreateCn={() => { setActionsOpen(false); if (lockedPeriod) { setLockedAction("createCn"); return; } setResumeDraftIndex(null); setCreditFormOpen(true); }}
         onDeleteDraft={() => { setActionsOpen(false); setConfirmDelete(true); }}
       />
 
@@ -1040,6 +1054,35 @@ export function InvoiceDetailPage({
           This draft will be removed from the system. This can’t be undone.
         </p>
       </BottomSheet>
+
+      {/* Locked-period demo (DES-751): Send / Edit / Add-credit-note blocked because the invoice is
+          in a closed accounting period. Copy is specific to the action the operator attempted. */}
+      <LockedPeriodDialog
+        open={lockedAction !== null}
+        title={
+          lockedAction === "send"
+            ? "Unable to send invoice"
+            : lockedAction === "createCn"
+            ? "Credit note can’t be added"
+            : lockedAction === "refund"
+            ? "Refund can’t be added"
+            : lockedAction === "markPaid"
+            ? "Payment can’t be recorded"
+            : "Editing isn’t available"
+        }
+        body={
+          lockedAction === "send"
+            ? "This invoice can’t be sent because it belongs to a closed accounting period (DD/MM/YY)."
+            : lockedAction === "createCn"
+            ? "A credit note can’t be added because this invoice’s date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
+            : lockedAction === "refund"
+            ? "A refund credit note can’t be added because this invoice’s date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
+            : lockedAction === "markPaid"
+            ? "A payment can’t be recorded because this invoice’s date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
+            : "This invoice can’t be edited because its date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
+        }
+        onClose={() => setLockedAction(null)}
+      />
 
       {/* Create Credit Note (DES-719) — opens on the invoice's CURRENT corrected state, so a second
           note shows lines already credited by earlier notes (Brand = 3,000 after CN-001). */}
@@ -1147,18 +1190,20 @@ export function InvoiceDetailPage({
               refundProof={cn.refundProof}
               sent={cn.sent}
               updatedDateLabel={cn.updatedDate}
-              onBack={() => setViewingCnIndex(null)}
+              // Locked-period demo: the CN detail's Back arrow is inert (closed period — no exit).
+              onBack={lockedPeriod ? () => {} : () => setViewingCnIndex(null)}
               // AC3: the linked invoice is this very detail page → returning to it IS opening the invoice.
               onViewInvoice={() => setViewingCnIndex(null)}
               // AC4: sending happens inside the detail page's own send flow; persist the sent state here.
               onSent={() => setCreditNotes((prev) => prev.map((c, i) => (i === viewingCnIndex ? { ...c, sent: true, sentDate: SENT_TODAY } : c)))}
               // DES-719 (cancellation CNs): a DRAFT can be Applied to the invoice, Edited (resume the
               // form), or Deleted; an Applied note is view/send only. DES-720 refund CNs are NOT editable
-              // after creation (AC2) — only Cancel (while Pending Refund) + Send.
-              onApply={cn.draft ? () => applyDraft(viewingCnIndex) : undefined}
+              // after creation (AC2) — only Cancel (while Pending Refund) + Send. In the locked-period
+              // demo, Apply/Edit surface the closed-period dialog instead of acting.
+              onApply={cn.draft ? () => { if (lockedPeriod) { setLockedCnAction("apply"); return; } applyDraft(viewingCnIndex); } : undefined}
               onEdit={
                 cn.draft
-                  ? () => { const i = viewingCnIndex; setViewingCnIndex(null); resumeDraft(i); }
+                  ? () => { if (lockedPeriod) { setLockedCnAction("edit"); return; } const i = viewingCnIndex; setViewingCnIndex(null); resumeDraft(i); }
                   : undefined
               }
               onCancel={
@@ -1173,6 +1218,19 @@ export function InvoiceDetailPage({
                   : undefined
               }
               receivingAccount={(() => { const a = getAccount(cn.accountId ?? "") ?? receivingAcct; return { name: a.name, number: a.number, primary: !!a.primary }; })()}
+              lockedPeriod={lockedPeriod}
+            />
+            {/* Locked-period demo: Apply/Edit on a Draft CN dated in a closed period — inside the overlay
+                so the dialog layers above the CN detail. */}
+            <LockedPeriodDialog
+              open={lockedCnAction !== null}
+              title={lockedCnAction === "apply" ? "Credit note can’t be applied" : "Editing isn’t available"}
+              body={
+                lockedCnAction === "apply"
+                  ? "This credit note can’t be applied because its date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
+                  : "This credit note can’t be edited because its date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
+              }
+              onClose={() => setLockedCnAction(null)}
             />
           </div>
         );

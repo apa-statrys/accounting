@@ -14,6 +14,7 @@ import type { BadgeColor } from "../ui/Badge";
 import { BottomSheet } from "../components/BottomSheet";
 import { ButtonDock } from "../components/ButtonDock";
 import { CreditNoteDetailPage } from "./CreditNoteDetailPage";
+import { LockedPeriodDialog } from "./locked-period/LockedPeriodDialog";
 import { CreditNoteForm } from "./credit-note-form/CreditNoteForm";
 import type { CreditNotePayload, DraftLine } from "../types";
 import { CREDIT_NOTES } from "../data/creditNotes";
@@ -82,6 +83,9 @@ interface CreditNotesListProps {
   initialPreviewNo?: string | null;
   /** Sender company email (from Invoice Settings) — forwarded to the CN detail's send preview. */
   companyEmail?: string;
+  /** Locked-period demo (DES-751): a Draft CN detail whose "Edit" opens a locked-period dialog
+   *  (the note is dated in a closed accounting period) instead of the edit form. */
+  lockedPeriod?: boolean;
 }
 
 /**
@@ -90,7 +94,7 @@ interface CreditNotesListProps {
  * Statuses are Draft / Applied / Cancelled. Tap a row → the shared CreditNoteDetailPage, wired with the
  * same per-status actions as the invoice-detail flow (Draft: Edit/Delete · Applied: Send/Cancel · Cancelled: Preview).
  */
-export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, companyEmail }: CreditNotesListProps) {
+export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, companyEmail, lockedPeriod = false }: CreditNotesListProps) {
   const [active, setActive] = useState(0);
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [sortOpen, setSortOpen] = useState(false);
@@ -108,6 +112,9 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
   const [notes, setNotes] = useState<CreditNote[]>(CREDIT_NOTES);
   const [previewNo, setPreviewNo] = useState<string | null>(initialPreviewNo ?? null);
   const [editingNo, setEditingNo] = useState<string | null>(null);
+  // Locked-period demo: which blocked action was tapped on a Draft CN (Edit or Apply) — drives the
+  // blocking dialog's copy. null = closed.
+  const [lockedNotice, setLockedNotice] = useState<null | "edit" | "apply">(null);
   const preview = notes.find((n) => n.no === previewNo) ?? null;
   const setPreview = (cn: CreditNote | null) => setPreviewNo(cn?.no ?? null);
 
@@ -346,17 +353,34 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               kind="cancellation"
               status={preview.status}
               sent={preview.sent}
-              onBack={() => setPreview(null)}
+              // Locked-period demo: the Back arrow is inert (the CN is in a closed period — no exit).
+              onBack={lockedPeriod ? () => {} : () => setPreview(null)}
               // Related Invoice row → open that invoice's detail (shows the chevron arrow).
               onViewInvoice={onOpenInvoice ? () => onOpenInvoice(preview.invoiceNo) : undefined}
               // Draft → Apply to invoice (Draft → Applied), same as the invoice-detail flow. A complete
               // Draft leads with "Apply to invoice"; an incomplete one falls back to "Edit" (see canApply).
-              onApply={isDraft ? () => applyFromList(preview.no) : undefined}
-              // Draft → Edit reopens the form. Applied/Cancelled are locked (no edit).
-              onEdit={isDraft ? () => setEditingNo(preview.no) : undefined}
+              // In the locked-period demo, Apply surfaces the closed-period dialog instead of applying.
+              onApply={isDraft ? () => (lockedPeriod ? setLockedNotice("apply") : applyFromList(preview.no)) : undefined}
+              // Draft → Edit reopens the form. Applied/Cancelled are locked (no edit). In the
+              // locked-period demo, Edit surfaces the closed-period dialog instead of the form.
+              onEdit={isDraft ? () => (lockedPeriod ? setLockedNotice("edit") : setEditingNo(preview.no)) : undefined}
               // Draft → Delete (row removed); Applied → Cancel (full reversal → Cancelled). Cancelled → none.
               onCancel={isDraft ? () => deleteFromList(preview.no) : isApplied ? () => cancelFromList(preview.no) : undefined}
               onSent={() => setNotes((prev) => prev.map((c) => (c.no === preview.no ? { ...c, sent: true } : c)))}
+              lockedPeriod={lockedPeriod}
+            />
+            {/* Locked-period demo (DES-751): the Draft "Edit"/"Apply" blocking dialog, rendered inside the
+                preview overlay (its own stacking context) so it layers above the CN detail. The Applied
+                "Cancel credit note" dialog lives inside CreditNoteDetailPage itself. */}
+            <LockedPeriodDialog
+              open={lockedNotice !== null}
+              title={lockedNotice === "apply" ? "Credit note can’t be applied" : "Editing isn’t available"}
+              body={
+                lockedNotice === "apply"
+                  ? "This credit note can’t be applied because its date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
+                  : "This credit note can’t be edited because its date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
+              }
+              onClose={() => setLockedNotice(null)}
             />
           </div>
         );
