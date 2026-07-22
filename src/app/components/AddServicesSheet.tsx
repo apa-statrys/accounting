@@ -20,7 +20,7 @@ interface AddServicesSheetProps {
 
 /**
  * Add a service / product line to the invoice — Figma "Add Item" sheet (user, 15/Jul):
- * DS header, Service Name / Description / Unit Price (flag + currency prefix) / Quantity with
+ * DS header, Line Item / Description / Unit Price (flag + currency prefix) / Quantity with
  * the Unit picker inline in the field. CTA always enabled — a failed click scrolls to the
  * first invalid field and shows its inline error (form-cta-validation pattern).
  */
@@ -98,7 +98,7 @@ export function AddServicesSheet({
           <motion.div variants={sheetItem}>
             <TextInput
               id="svc-field-name"
-              label="Service Name"
+              label="Line Item"
               required
               placeholder="e.g. Brand Identity Design"
               size="md"
