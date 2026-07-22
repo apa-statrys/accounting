@@ -3,10 +3,15 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { SHOW_CREDIT_NOTES } from "../../lib/flags";
 import { FONT } from "../../lib/theme";
+import { money } from "../../lib/format";
 import type { Invoice } from "../../types";
 import { InvoiceRow } from "../../ui/InvoiceRow";
 import type { BadgeColor } from "../../ui/Badge";
 import { effectiveStatus, metaLine, type EffectiveStatus } from "./filters";
+// Prototype: every invoice's detail page shows the same shared demo total (demoInvoice.TOTAL =
+// $6,450). The list card's big amount mirrors it so each row's "original full amount" matches what
+// the detail shows (user, 22/Jul) — the varied per-invoice `inv.amount` is no longer displayed here.
+import { TOTAL } from "../invoice-detail/demoInvoice";
 
 const REVEAL = 88;
 
@@ -67,7 +72,7 @@ export function InvoiceCard({ inv, highlighted, lastItem, onClick, onDelete, onO
       status={status.label}
       statusColor={status.color}
       statusCaption={caption || undefined}
-      amount={inv.amount}
+      amount={money(TOTAL)}
       creditedAmount={hasCn ? cnAmountStr : undefined}
       creditedLabel={refundChip ? "Refund amount" : "Credited amount"}
       onCreditedClick={hasCn ? () => onOpenCN?.(inv) : undefined}

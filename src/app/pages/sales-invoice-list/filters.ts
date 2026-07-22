@@ -170,11 +170,16 @@ export function metaLine(inv: Invoice, eff: EffectiveStatus): { number: string; 
   if (inv.due && (eff === "Overdue" || eff === "Awaiting")) {
     const diff = Math.round((parseISO(inv.due).getTime() - TODAY.getTime()) / DAY_MS);
     if (eff === "Overdue") {
-      // Caption reads "since <due date>" (the DS InvoiceRow overdue format from the Showcase) —
-      // the "Overdue" Badge already carries the status word, so the caption just dates it.
-      return { number, rest: `since ${format(parseISO(inv.due), "d MMM yyyy")}`, danger: true };
+      // Caption reads "Due <due date>" — same format as Partially Paid; the red "Overdue" Badge
+      // already carries the status, so the caption just dates it.
+      return { number, rest: `Due ${format(parseISO(inv.due), "d MMM yyyy")}`, danger: true };
     }
     return { number, rest: diff <= 0 ? "Due today" : diff === 1 ? "Due tomorrow" : `Due in ${diff} days`, danger: false };
+  }
+  // Partially Paid pairs its badge with the due date (like Awaiting/Overdue). The remaining balance
+  // used to read here ("$2,450.00 due") but that stray second amount looked odd next to the full total.
+  if (eff === "PartiallyPaid" && inv.due) {
+    return { number, rest: `Due ${format(parseISO(inv.due), "d MMM yyyy")}`, danger: false };
   }
   // Terminal statuses keep the authored absolute date, normalised to read "<verb> on <date>".
   return { number, rest: rest.replace(/^(Paid|Created|Uploaded|Void) (?=\d)/, "$1 on "), danger: false };
