@@ -249,7 +249,6 @@ export function InvoiceDetailPage({
   // Partially Paid and Void expose their actions on the dock instead, so no menu (DES-817 review).
   const showMenu = !terminal && status !== "PartiallyPaid";
   const sendable = status === "Awaiting" || status === "Overdue" || status === "PartiallyPaid";
-  const overdueDays = 17; // demo
 
   // Refund context (Paid/PendingRefund/Refunded, or a derived refund tag) vs cancellation context.
   const refundCtx = status === "Paid" || status === "PendingRefund" || status === "Refunded" || !!refundTag;
@@ -309,13 +308,16 @@ export function InvoiceDetailPage({
   // The one-line status explainer under the amount.
   const bannerText: Record<DetailStatus, string> = {
     Draft: "",
-    Awaiting: credited > 0 ? `${money(credited)} credited from ${money(TOTAL)}` : "Due in 3 days",
-    Overdue: credited > 0
-      ? `${money(credited)} credited from ${money(TOTAL)}`
-      : `Overdue by ${overdueDays} days`,
-    PartiallyPaid: `${money(paidAmount)} received · ${money(remaining)} still due`,
-    Paid: overpayment > 0 ? `Paid · overpaid by ${money(overpayment)}, flagged for review` : "Paid on 28 Jun 2026",
-    Cancelled: "Voided with a credit note on 8 Jun 2026",
+    // Hero shows the ORIGINAL full total as the big number; the reduced-balance sub-line reads
+    // "$X remaining · due/overdue since <date>", otherwise the plain due date / overdue date. All the
+    // "due" lines share one font weight + size (see render).
+    Awaiting: credited > 0 ? `${money(outstanding)} remaining · due ${dueDateLabel}` : `Due ${dueDateLabel}`,
+    Overdue: credited > 0 ? `${money(outstanding)} remaining · overdue since ${dueDateLabel}` : `Overdue since ${dueDateLabel}`,
+    PartiallyPaid: `${money(remaining)} remaining · due ${dueDateLabel}`,
+    // No "Paid on <date>" line on the hero (removed app-wide); only the overpayment note remains.
+    Paid: overpayment > 0 ? `Paid · overpaid by ${money(overpayment)}, flagged for review` : "",
+    // Voided invoices show just the badge + amount — no "Voided … on <date>" sub-line.
+    Cancelled: "",
     // DES-720: refund context leads with the amount to refund; remaining paid is the secondary line.
     PendingRefund: `${money(outstanding)} remaining paid`,
     Refunded: credited >= TOTAL - 0.001 ? "Refunded in full" : `${money(outstanding)} remaining paid`,
@@ -347,14 +349,12 @@ export function InvoiceDetailPage({
   const sectionedLayout = true;
   // Headline: while a payout is due, lead with the pending amount ("Amount to refund"); once settled,
   // show the cumulative amount refunded to date.
-  const headlineAmount =
-    !isRefundContext ? (credited > 0 ? outstanding : TOTAL)
-    : refundPending > 0.001 ? refundPending
-    : refundedOut;
-  const headlineLabel =
-    !isRefundContext ? undefined
-    : refundPending > 0.001 ? "Amount to refund"
-    : "Amount refunded";
+  // Hero big number is ALWAYS the original full invoice total — for every status. Credit notes /
+  // refunds are detailed in the sub-line + Summary below, not in the big number.
+  const headlineAmount = TOTAL;
+  // Refund-context sub-line: the amount still to refund (payout pending) or the amount refunded (settled).
+  const refundAmt = refundPending > 0.001 ? refundPending : refundedOut;
+  const refundVerb = refundPending > 0.001 ? "to refund" : "refunded";
   // Refund context shows just the amount to refund (no "remaining paid" line); other statuses keep their banner.
   // Paused in-session → show the pause date (today, for the demo).
   const pausedLabel = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -678,16 +678,10 @@ export function InvoiceDetailPage({
               <p className="text-[20px] font-black leading-none tracking-[-0.8px]" style={{ ...FONT, color: INK }}>
                 {money(headlineAmount)}
               </p>
-              {headlineLabel && (
-                <span className="text-[12px] leading-none" style={{ ...FONT, color: MUTED }}>{headlineLabel}</span>
-              )}
             </div>
-            {/* Partially Paid — keep the wording but highlight the amount still due. */}
-            {status === "PartiallyPaid" ? (
-              <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
-                {money(paidAmount)} received · <span style={{ color: "#b45309", fontWeight: 600 }}>{money(remaining)} still due</span>
-              </p>
-            ) : headlineBanner ? (
+            {/* Single status sub-line for every status ("$X remaining · due <date>" / "Due <date>" /
+                "Overdue since <date>" …). One font weight + size; Overdue is the only colour variant (red). */}
+            {headlineBanner ? (
               <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: status === "Overdue" ? "#b42318" : MUTED }}>
                 {headlineBanner}
               </p>
@@ -706,13 +700,11 @@ export function InvoiceDetailPage({
                 {uploaded ? "Uploaded on" : "Created on"} {issueDateLabel}
               </p>
             )}
-            {/* Refund context: the refund amount is primary above, so the paid amount drops to a secondary
-                line with a green "Paid on <date>" note beside it. */}
-            {isRefundContext && (
-              <p className="text-[11px] leading-[1.3]" style={FONT}>
-                <span style={{ color: INK, fontWeight: 500 }}>{money(TOTAL)}</span>
-                <span style={{ color: MUTED }}> · </span>
-                <span style={{ color: "#0f9d58", fontWeight: 500 }}>Paid full on 28 Jun 2026</span>
+            {/* Refund context sub-line: how much is still to refund (pending) or was refunded (partial).
+                A FULL refund shows nothing extra — the badge + full amount say it all. */}
+            {isRefundContext && !fullyRefunded && (
+              <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
+                {money(refundAmt)} {refundVerb}
               </p>
             )}
           </div>

@@ -10,6 +10,7 @@ import { CustomerDetailPage } from "./pages/CustomerDetailPage";
 import { AddCustomerPage } from "./pages/AddCustomerPage";
 import { CREDIT_NOTES } from "./data/creditNotes";
 import { INVOICES } from "./data/invoices";
+import { fmtDate } from "./lib/format";
 import { FONT } from "./lib/theme";
 import { InvoiceDetailPage } from "./pages/invoice-detail/InvoiceDetailPage";
 import { CreditNoteForm } from "./pages/credit-note-form/CreditNoteForm";
@@ -17,6 +18,7 @@ import { CreateSalesInvoice } from "./pages/CreateSalesInvoice";
 import { RecurringSeriesDetail } from "./pages/RecurringSeriesDetail";
 import { AddInvoiceDetails } from "./pages/add-invoice-details/AddInvoiceDetails";
 import { SalesInvoiceList } from "./pages/sales-invoice-list/SalesInvoiceList";
+import type { StatusMatch } from "./pages/sales-invoice-list/filters";
 import { NeedAttention } from "./pages/NeedAttention";
 import { DuplicateDecision } from "./pages/DuplicateDecision";
 import { UploadInvoice } from "./pages/UploadInvoice";
@@ -266,7 +268,7 @@ export default function App() {
   // Where the full-page Add Customer returns: the Customers list, or the invoice customer picker.
   const [addCustomerReturn, setAddCustomerReturn] = useState<"customers" | "customer">("customers");
   // Preset filter to apply when the list is opened from a dashboard hero stat.
-  const [listPreset, setListPreset] = useState<{ status?: "Paid" | "Awaiting" } | null>(null);
+  const [listPreset, setListPreset] = useState<{ status?: StatusMatch } | null>(null);
   // Dev: which hero demo state the dashboard renders (switched from QuickNav).
   const [heroScenario, setHeroScenario] = useState(0);
   // Dev sidebar deep link: CN detail to open when jumping to the Credit Notes list (null = plain list).
@@ -641,6 +643,7 @@ export default function App() {
           onSuccessDone={() => setToast(null)}
           recent={recent}
           initialStatus={listPreset?.status}
+          onActiveStatusChange={(s) => setListPreset({ status: s === "all" ? undefined : s })}
           refundState={refundState}
           onBack={() => setScreen("dashboard")}
           onOpenInvoice={(inv) => {
@@ -686,6 +689,7 @@ export default function App() {
           customerName={openInvoice.client}
           customerEmail={CREDIT_NOTES.find((c) => c.no === openInvoice.cnNo)?.email}
           companyEmail={settings.email}
+          dueDateLabel={(() => { const inv = INVOICES.find((i) => i.id === openInvoice.number); return inv?.due ? fmtDate(inv.due) : undefined; })()}
           initialCreditNote={openInvoice.cnNo ? { no: openInvoice.cnNo, amount: openInvoice.cnAmount, sent: !!openInvoice.cnSent, draft: openInvoice.cnDraft, awaiting: openInvoice.cnAwaiting } : undefined}
           refundTag={(() => {
             // A refund completed in-session this run wins (Partially Refunded / Refunded).

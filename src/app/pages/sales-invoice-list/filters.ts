@@ -151,8 +151,6 @@ export function sortInvoices(rows: Invoice[], key: SortKey): Invoice[] {
   }
 }
 
-const DAY_MS = 86400000;
-
 /**
  * Status-aware secondary line (competitor-aligned): relative "Due in N days" for Awaiting,
  * red "Overdue by N days" for overdue; other statuses keep their authored meta suffix.
@@ -168,13 +166,13 @@ export function metaLine(inv: Invoice, eff: EffectiveStatus): { number: string; 
     return { number: inv.origin === "uploaded" ? number.replace(/^INV/, "UL") : "", rest: norm, danger: false };
   }
   if (inv.due && (eff === "Overdue" || eff === "Awaiting")) {
-    const diff = Math.round((parseISO(inv.due).getTime() - TODAY.getTime()) / DAY_MS);
     if (eff === "Overdue") {
-      // Caption reads "Due <due date>" — same format as Partially Paid; the red "Overdue" Badge
-      // already carries the status, so the caption just dates it.
-      return { number, rest: `Due ${format(parseISO(inv.due), "d MMM yyyy")}`, danger: true };
+      // The row's red "Overdue" Badge already carries the status, so the caption just dates it →
+      // reads "Overdue since <date>" (matches the invoice-detail hero).
+      return { number, rest: `since ${format(parseISO(inv.due), "d MMM yyyy")}`, danger: true };
     }
-    return { number, rest: diff <= 0 ? "Due today" : diff === 1 ? "Due tomorrow" : `Due in ${diff} days`, danger: false };
+    // Awaiting → absolute due date ("Due 5 Jul 2026"), matching the invoice-detail hero (no relative "Due in N days").
+    return { number, rest: `Due ${format(parseISO(inv.due), "d MMM yyyy")}`, danger: false };
   }
   // Partially Paid pairs its badge with the due date (like Awaiting/Overdue). The remaining balance
   // used to read here ("$2,450.00 due") but that stray second amount looked odd next to the full total.

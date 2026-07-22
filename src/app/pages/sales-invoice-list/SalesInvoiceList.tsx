@@ -62,13 +62,15 @@ interface SalesInvoiceListProps {
   onRecurring?: () => void;
   /** Preset the status chip when opened from a dashboard tile (e.g. "Paid"). */
   initialStatus?: StatusMatch;
+  /** Report the active status tab up so the parent can restore it on return (e.g. back from detail). */
+  onActiveStatusChange?: (status: StatusMatch) => void;
   /** Preset the due-date quick filter when opened from elsewhere (e.g. "week"). */
   initialDue?: DueFilter;
   /** Refunds completed in-session (DES-720), keyed by invoice number → "partial" | "full". */
   refundState?: Record<string, "partial" | "full">;
 }
 
-export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, onSuccessDone, recent, onBack, onOpenInvoice, onManual, onUpload, onRecurring, initialStatus, initialDue, refundState }: SalesInvoiceListProps) {
+export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, onSuccessDone, recent, onBack, onOpenInvoice, onManual, onUpload, onRecurring, initialStatus, onActiveStatusChange, initialDue, refundState }: SalesInvoiceListProps) {
   const initialActive = initialStatus ? Math.max(0, FILTERS.findIndex((f) => f.match === initialStatus)) : 0;
   const [active, setActive] = useState(initialActive);
   // Keep the selected status tab scrolled into view (e.g. when opened pre-filtered from the hero).
@@ -85,6 +87,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
   const selectChip = (i: number) => {
     const m = FILTERS[i].match;
     setActive(i);
+    onActiveStatusChange?.(m);
     setSortKey(defaultSortFor(m));
     // Due-date filtering only applies to the unpaid views (All / Awaiting).
     if (m !== "all" && m !== "Awaiting") setDueFilter("all");

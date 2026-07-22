@@ -56,6 +56,9 @@ export function InvoiceCard({ inv, highlighted, lastItem, onClick, onDelete, onO
   let caption = meta.rest;
   if (status.label === "Paid") caption = caption.replace(/^Paid /, "");
   if (status.label === "Void") caption = caption.replace(/^Void /, "");
+  // Refund states (Pending Refund / Refunded / Partially Refunded) and Void show no date caption —
+  // just the badge (the CN-number strip carries the link).
+  if (refundChip || status.label === "Void") caption = "";
 
   // Credit-note strip (DES-763 AC6): shows the linked CN NUMBER (no amount) and opens that credit note.
   const hasCn = SHOW_CREDIT_NOTES && Boolean(inv.cnNo);
