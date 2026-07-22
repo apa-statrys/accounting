@@ -304,22 +304,6 @@ export function ReviewEmail({
             >
               Open invoice
             </button>
-            <div className="mt-3 rounded-lg border border-[rgba(160,160,160,0.25)] px-3.5 py-1">
-              {[
-                { label: "Invoice number", value: `#${invoiceNo}` },
-                { label: "Amount due", value: amountLabel },
-                { label: "Due date", value: dueDateLabel },
-                { label: "Payment reference", value: invoiceNo },
-              ].map((r, i, arr) => (
-                <div
-                  key={r.label}
-                  className={`flex items-center justify-between py-2 ${i === arr.length - 1 ? "" : "border-b border-[rgba(160,160,160,0.15)]"}`}
-                >
-                  <span className="text-[12px]" style={{ ...FONT, color: "#808080" }}>{r.label}</span>
-                  <span className="text-[12px] font-medium text-[#1b1b1b]" style={FONT}>{r.value}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </BottomSheet>
