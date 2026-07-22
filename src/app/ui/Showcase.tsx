@@ -790,6 +790,7 @@ function InvoiceRowVariants() {
       {cell("md", <InvoiceRow {...base} recurring size="md" />)}
       {cell("With credited amount", <InvoiceRow {...base} recurring creditedAmount="USD 2,000.00" />)}
       {cell("Custom credited label (refund)", <InvoiceRow {...base} creditedAmount="USD 2,000.00" creditedLabel="Refund amount" />)}
+      {cell("Value only (empty label — CN number)", <InvoiceRow {...base} creditedAmount="CN-2026-000006" creditedLabel="" />)}
       {cell("No recurring chip", <InvoiceRow {...base} />)}
       {cell("No invoice number", <InvoiceRow {...base} invoiceNo={undefined} />)}
       {cell(

@@ -57,11 +57,8 @@ export function InvoiceCard({ inv, highlighted, lastItem, onClick, onDelete, onO
   if (status.label === "Paid") caption = caption.replace(/^Paid /, "");
   if (status.label === "Void") caption = caption.replace(/^Void /, "");
 
-  // Credit-note strip (DES-763 AC6): amount + label, opening the linked CN. Refund CNs read "Refund amount".
+  // Credit-note strip (DES-763 AC6): shows the linked CN NUMBER (no amount) and opens that credit note.
   const hasCn = SHOW_CREDIT_NOTES && Boolean(inv.cnNo);
-  const cnAmountStr = linkedCn
-    ? `$${linkedCn.original.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    : inv.amount;
 
   const row = (
     <InvoiceRow
@@ -73,8 +70,8 @@ export function InvoiceCard({ inv, highlighted, lastItem, onClick, onDelete, onO
       statusColor={status.color}
       statusCaption={caption || undefined}
       amount={money(TOTAL)}
-      creditedAmount={hasCn ? cnAmountStr : undefined}
-      creditedLabel={refundChip ? "Refund amount" : "Credited amount"}
+      creditedAmount={hasCn ? inv.cnNo : undefined}
+      creditedLabel=""
       onCreditedClick={hasCn ? () => onOpenCN?.(inv) : undefined}
       lastItem={lastItem}
       onClick={onClick}
