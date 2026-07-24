@@ -386,7 +386,6 @@ export default function App() {
           items: [
             { label: "Create Credit Note", active: screen === "creditNote", onSelect: () => setScreen("creditNote") },
             { label: "CN Detail — Draft", active: screen === "creditNotes" && cnPreview === "CN-2026-000005", onSelect: () => { setCnPreview("CN-2026-000005"); setScreen("creditNotes"); } },
-            { label: "CN-Draft (Locked Period)", active: screen === "lockedPeriodEditCn", onSelect: () => setScreen("lockedPeriodEditCn") },
             { label: "CN Detail — Applied", active: screen === "creditNotes" && cnPreview === "CN-2026-000003", onSelect: () => { setCnPreview("CN-2026-000003"); setScreen("creditNotes"); } },
             { label: "CN-Applied (Locked Period)", active: screen === "lockedPeriodCnApplied", onSelect: () => setScreen("lockedPeriodCnApplied") },
             { label: "CN Detail — Cancelled", active: screen === "creditNotes" && cnPreview === "CN-2026-000009", onSelect: () => { setCnPreview("CN-2026-000009"); setScreen("creditNotes"); } },
@@ -406,7 +405,6 @@ export default function App() {
                 jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false, cnDraft: true }, true);
               },
             },
-            { label: "Refund-Draft (Locked Period)", active: screen === "lockedPeriodRefundDraft", onSelect: () => setScreen("lockedPeriodRefundDraft") },
             {
               label: "Refund CN — Applied",
               active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && !openInvoice.cnDraft && !openInvoice.cnAwaiting && !refundState["INV-2026-000015"],

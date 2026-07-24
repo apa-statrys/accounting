@@ -32,6 +32,7 @@ import { MetaRow, InfoCard } from "./InfoBits";
 import { CreditsAppliedSection } from "./CreditsAppliedSection";
 import { ActionsMenu } from "./ActionsMenu";
 import { LockedPeriodDialog } from "../locked-period/LockedPeriodDialog";
+import { LockedPeriodBanner } from "../locked-period/LockedPeriodBanner";
 import { RecordPaymentSheet } from "./RecordPaymentSheet";
 import { ResendPromptSheet, SendPickerSheet } from "./SendCnSheets";
 
@@ -113,7 +114,7 @@ export function InvoiceDetailPage({
   const [status, setStatus] = useState<DetailStatus>(initialStatus);
   const [actionsOpen, setActionsOpen] = useState(false);
   // Locked-period demo: which blocked action was tapped (drives the dialog copy). null = closed.
-  const [lockedAction, setLockedAction] = useState<null | "send" | "edit" | "createCn" | "refund" | "markPaid">(null);
+  const [lockedAction, setLockedAction] = useState<null | "send" | "edit" | "createCn" | "refund">(null);
   // Locked-period demo: which blocked action was tapped on the (refund) credit-note DETAIL overlay
   // (Edit or Apply) — its own dialog so it layers above the z-50 CN overlay (the top-level dialog would
   // render behind it). null = closed.
@@ -629,8 +630,9 @@ export function InvoiceDetailPage({
   const openEdit = () => { setActionsOpen(false); if (lockedPeriod) { setLockedAction("edit"); return; } onEdit?.(editSeed); };
   // Locked-period demo: "Send invoice" opens the blocking dialog instead of the send sheet.
   const openSend = () => { if (lockedPeriod) { setLockedAction("send"); return; } setSendSheetOpen(true); };
-  // Locked-period demo: "Mark as paid" opens the blocking dialog instead of the record-payment sheet.
-  const openMarkPaid = () => { if (lockedPeriod) { setLockedAction("markPaid"); return; } setRecordAmount(String(remaining)); setRecordPayOpen(true); };
+  // Mark as paid is allowed even in a locked period — recording a payment doesn't change the invoice's
+  // accounting date, so it's not blocked (unlike Send / Edit / credit note / refund).
+  const openMarkPaid = () => { setRecordAmount(String(remaining)); setRecordPayOpen(true); };
 
   // Required-field gate for issuing/sending a draft (DES-715 AC2 / DES-716 AC3).
   const requiredComplete = !!customerName && ITEMS.length > 0 && !!dueDateLabel;
@@ -661,6 +663,20 @@ export function InvoiceDetailPage({
       />
 
       <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pt-5 pb-44 flex flex-col gap-6">
+        {/* Locked-period notice (DES-751) — neutral, non-blocking; Mark as paid still works. */}
+        {lockedPeriod && (
+          <LockedPeriodBanner
+            tone="amber"
+            showContact={false}
+            title="Accounting period closed"
+            body={
+              refundCtx
+                ? "You can’t refund this invoice because its invoice date falls within a locked accounting period."
+                : "You can’t edit this invoice or create a credit note because its invoice date falls within a locked accounting period."
+            }
+          />
+        )}
+
         {/* Status + amount — cream hero card (Figma 1209). */}
         <InfoCard tone="hero">
           <div className="py-3 flex flex-col gap-1.5">
@@ -1066,8 +1082,6 @@ export function InvoiceDetailPage({
             ? "Credit note can’t be added"
             : lockedAction === "refund"
             ? "Refund can’t be added"
-            : lockedAction === "markPaid"
-            ? "Payment can’t be recorded"
             : "Editing isn’t available"
         }
         body={
@@ -1077,8 +1091,6 @@ export function InvoiceDetailPage({
             ? "A credit note can’t be added because this invoice’s date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
             : lockedAction === "refund"
             ? "A refund credit note can’t be added because this invoice’s date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
-            : lockedAction === "markPaid"
-            ? "A payment can’t be recorded because this invoice’s date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
             : "This invoice can’t be edited because its date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
         }
         onClose={() => setLockedAction(null)}

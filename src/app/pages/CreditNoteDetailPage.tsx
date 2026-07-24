@@ -13,6 +13,7 @@ import { BottomSheet } from "../components/BottomSheet";
 import { SendInvoiceSheet } from "../components/SendInvoiceSheet";
 import { ReviewEmail } from "./ReviewEmail";
 import { LockedPeriodDialog } from "./locked-period/LockedPeriodDialog";
+import { LockedPeriodBanner } from "./locked-period/LockedPeriodBanner";
 import { ShareLinkSheet } from "../components/ShareLinkSheet";
 import { SendSuccessToast } from "../components/SendSuccessToast";
 import { CreditNotePreviewPage } from "./CreditNotePreviewPage";
@@ -248,6 +249,20 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       />
 
       <div className="flex-1 overflow-y-auto thin-scrollbar bg-white px-4 pt-5 pb-44 flex flex-col gap-4">
+        {/* Locked-period notice (DES-751) — amber, non-blocking; explains why edit/cancel are unavailable. */}
+        {lockedPeriod && (
+          <LockedPeriodBanner
+            tone="amber"
+            showContact={false}
+            title="Accounting period closed"
+            body={
+              isOpen || isPartiallyApplied || isRefundDraft
+                ? "You can’t edit or cancel this credit note because its date falls within a locked accounting period."
+                : "You can’t cancel this credit note because its date falls within a locked accounting period."
+            }
+          />
+        )}
+
         {/* Status + amount — cream hero card. */}
         <Card tone="hero">
           <div className="py-3 flex flex-col gap-1.5">
