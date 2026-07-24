@@ -6,6 +6,7 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import StatusBar from "../../components/StatusBar";
 import { SheetHeader, HeaderIconButton } from "../../components/SheetHeader";
 import { ButtonDock } from "../../components/ButtonDock";
@@ -403,6 +404,9 @@ export function CreditNoteForm({
           />
         </div>
 
+        {/* Refund-only helper — explains how to reach a partial amount using the existing fields (Option A). */}
+        {refund && <HowToPartialRefund />}
+
         {/* Corrected invoice — edit each line to its CORRECT value; the credit is derived automatically. */}
         <div ref={itemsRef} className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2 px-1">
@@ -617,6 +621,36 @@ export function CreditNoteForm({
           onBackspace={keypadBackspace}
           onDone={closeKeypad}
         />
+      )}
+    </div>
+  );
+}
+
+/** Collapsible helper that tells the user how to reach a partial refund with the existing fields
+ *  (edit Quantity / Unit price). Blue info accordion shown above the refund line items. */
+function HowToPartialRefund() {
+  const [open, setOpen] = useState(false);
+  const BLUE = "#2563eb";
+  return (
+    <div className="rounded-[10px] border overflow-hidden shrink-0" style={{ ...FONT, background: "#eef4ff", borderColor: "#c7d8fe" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left"
+        style={{ ...FONT }}
+      >
+        <InfoOutlinedIcon style={{ fontSize: 19, color: BLUE, flexShrink: 0 }} />
+        <span className="flex-1 text-[13.5px] font-semibold" style={{ color: INK }}>How to create a partial refund?</span>
+        <KeyboardArrowDownIcon style={{ fontSize: 20, color: BLUE, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s ease" }} />
+      </button>
+      {open && (
+        <div className="px-3.5 pb-3.5" style={{ paddingLeft: 42 }}>
+          <ul className="list-disc pl-4 flex flex-col gap-1.5 text-[13px] leading-[1.5]" style={{ color: "#33404d" }}>
+            <li>Change <b style={{ color: INK }}>Quantity</b> to refund fewer items.</li>
+            <li>Change <b style={{ color: INK }}>Unit Price</b> to refund part of an item&rsquo;s value.</li>
+          </ul>
+        </div>
       )}
     </div>
   );
