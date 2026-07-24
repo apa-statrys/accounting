@@ -621,10 +621,10 @@ export default function App() {
             invoiceTotal={CREDIT_NOTE_TOTAL}
             alreadyCredited={0}
             outstanding={CREDIT_NOTE_TOTAL}
-            // Back while creating → save progress as a Draft (DES-719) and open the invoice's detail.
+            // Back while creating → save progress as a Draft (DES-719) and open the credit note's detail.
             onBack={() => jumpDetail({ number: "INV-2026-000007", client: "Northwind Traders", status: "Awaiting" })}
             onSaveDraft={(p) => {
-              jumpDetail({ number: "INV-2026-000007", client: "Northwind Traders", status: "Awaiting", cnNo: "CN-2026-000001", cnAmount: p.amount, cnSent: false, cnDraft: true });
+              jumpDetail({ number: "INV-2026-000007", client: "Northwind Traders", status: "Awaiting", cnNo: "CN-2026-000001", cnAmount: p.amount, cnSent: false, cnDraft: true }, true);
               setDetailFlash("Saved as draft");
             }}
             // Apply → open the related invoice's detail with the new credit note applied (full → Void).
@@ -653,10 +653,10 @@ export default function App() {
             invoiceTotal={CREDIT_NOTE_TOTAL}
             alreadyCredited={0}
             outstanding={CREDIT_NOTE_TOTAL}
-            // Back while creating → save progress as a Draft refund CN and open the invoice's detail.
+            // Back while creating → save progress as a Draft refund CN and open the credit note's detail.
             onBack={() => jumpDetail({ number: "INV-2026-000005", client: "Atlas Logistics", status: "Paid" })}
             onSaveDraft={(p) => {
-              jumpDetail({ number: "INV-2026-000005", client: "Atlas Logistics", status: "Paid", cnNo: "CN-2026-000010", cnAmount: p.amount, cnSent: false, cnDraft: true });
+              jumpDetail({ number: "INV-2026-000005", client: "Atlas Logistics", status: "Paid", cnNo: "CN-2026-000010", cnAmount: p.amount, cnSent: false, cnDraft: true }, true);
               setDetailFlash("Saved as draft");
             }}
             // Apply → open the related invoice's detail with the refund credit note applied (Pending Refund).

@@ -445,6 +445,7 @@ export function InvoiceDetailPage({
   // Resuming a draft updates it in place; a fresh form appends a new draft. Returns to the invoice detail,
   // where the Credits section shows it with a Draft chip.
   const saveDraft = (p: CreditNotePayload) => {
+    const idx = resumeDraftIndex != null ? resumeDraftIndex : creditNotes.length;
     setCreditNotes((prev) =>
       resumeDraftIndex != null
         ? prev.map((c, i) => (i === resumeDraftIndex ? { ...cnFromPayload(c.no, p), applied: 0, draft: true, sent: c.sent } : c))
@@ -453,12 +454,14 @@ export function InvoiceDetailPage({
     setCreditFormOpen(false);
     setResumeDraftIndex(null);
     setLocalToast("Saved as draft");
+    setViewingCnIndex(idx); // Back while creating → land on the new draft's CN detail.
   };
 
   // Back out of the refund create form (DES-720) → save what's entered as a DRAFT refund CN. Mirrors
   // saveDraft but returns to the refund form on resume. A draft refund CN lives while the invoice is
   // still Paid (isRefundContext only turns on once it's applied → Pending Refund).
   const saveRefundDraft = (p: CreditNotePayload) => {
+    const idx = resumeDraftIndex != null ? resumeDraftIndex : creditNotes.length;
     setCreditNotes((prev) =>
       resumeDraftIndex != null
         ? prev.map((c, i) => (i === resumeDraftIndex ? { ...cnFromPayload(c.no, p), applied: 0, draft: true, sent: c.sent } : c))
@@ -467,6 +470,7 @@ export function InvoiceDetailPage({
     setRefundFormOpen(false);
     setResumeDraftIndex(null);
     setLocalToast("Saved as draft");
+    setViewingCnIndex(idx); // Back while creating → land on the new draft's CN detail.
   };
 
   // Reopen a Draft credit note to resume it. A draft on a Paid / refund-context invoice is a refund

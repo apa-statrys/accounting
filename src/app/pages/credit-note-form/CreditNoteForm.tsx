@@ -6,9 +6,9 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import StatusBar from "../../components/StatusBar";
 import { SheetHeader, HeaderIconButton } from "../../components/SheetHeader";
+import { HorizontalTabs } from "../../ui/HorizontalTabs";
 import { ButtonDock } from "../../components/ButtonDock";
 import { IssueDateSheet } from "../../components/IssueDateSheet";
 import { NumericKeypad } from "../../components/NumericKeypad";
@@ -123,6 +123,9 @@ export function CreditNoteForm({
   // Both modes carry a real per-unit price + quantity, seeded at the full invoiced qty: credit starts
   // with nothing credited (corrected = original), refund starts at the full line refundable (reduce qty
   // or unit price for a partial refund).
+  // Seed each line at the original per-unit price. For refund that's a FULL refund (its default); for
+  // credit that's the un-corrected invoice = nothing credited yet (its Partial default). applyFull /
+  // applyPartial adjust from here when the user switches tabs.
   const initLines = (): DraftLine[] =>
     items.map((it, i) => ({ id: `cn-${i}`, name: it.name, unit: it.unit, qty: it.qty, unitPrice: String(it.unitPrice), maxQty: it.qty, origAmount: it.amount }));
   // Which refund input is focused (raw while editing; comma/2dp formatted when blurred).
@@ -135,6 +138,9 @@ export function CreditNoteForm({
     setScrollLocked(false);
   };
   const [lines, setLines] = useState<DraftLine[]>(initial?.lines ?? initLines);
+  // Refund only: Full (read-only lines, default on create) vs Partial (editable). Editing a refund CN
+  // opens Partial so its saved lines stay editable. Ignored by the credit-note flow.
+  const [fpMode, setFpMode] = useState<"full" | "partial">(isEdit ? "partial" : "full");
 
   // Autosave indicator (DES-719 — the CN is a saved draft): "Saving" on any edit, "Saved" once it settles.
   const [saveState, setSaveState] = useState<"saved" | "saving">("saved");
@@ -181,6 +187,18 @@ export function CreditNoteForm({
   const unitCap = (l: DraftLine) => lineOriginal(l) / (l.maxQty || 1);
   const capStr = (cap: number) => (Number.isInteger(cap) ? String(cap) : cap.toFixed(2));
   const clampUnit = (l: DraftLine, v: string) => ((Number(v) || 0) > unitCap(l) + 0.001 ? capStr(unitCap(l)) : v);
+
+  const origUnitStr = (l: DraftLine) => capStr(lineOriginal(l) / (l.maxQty || 1));
+  // Full: max credit for the mode — refund gives back the full per-unit price; credit corrects to 0.
+  const applyFull = () => {
+    setFpMode("full");
+    setLines((prev) => prev.map((l) => ({ ...l, qty: l.maxQty, unitPrice: refund ? origUnitStr(l) : "0" })));
+  };
+  // Partial: start from the original line values (refund = full, edit down; credit = nothing credited yet).
+  const applyPartial = () => {
+    setFpMode("partial");
+    setLines((prev) => prev.map((l) => ({ ...l, qty: l.maxQty, unitPrice: origUnitStr(l) })));
+  };
 
   const setUnitPrice = (id: string, raw: string) =>
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, unitPrice: clampUnit(l, raw.replace(/[^0-9.]/g, "")) } : l)));
@@ -284,6 +302,23 @@ export function CreditNoteForm({
 
   // Back — save a Draft (DES-719) when the parent provides onSaveDraft (the create flow); else just leave.
   const handleBack = () => (onSaveDraft ? onSaveDraft(buildPayload()) : onBack());
+
+  // Optional free-text description (any reason) — rendered below the summary in both flows.
+  const descriptionBlock = (
+    <div className="flex flex-col gap-[7px]">
+      <label className="text-[16px] font-medium leading-[1.3]" style={{ ...FONT, color: "#090a0a" }}>
+        Description
+      </label>
+      <textarea
+        value={reasonNote}
+        onChange={(e) => setReasonNote(e.target.value)}
+        placeholder={`Add a note about this ${refund ? "refund" : "credit note"}`}
+        rows={3}
+        className="w-full rounded-[8px] border px-4 py-3 bg-white text-[16px] outline-none resize-none"
+        style={{ ...FONT, color: "#1b1b1b", borderColor: "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
+      />
+    </div>
+  );
 
   return (
     <div className="absolute inset-0 z-50 bg-white rounded-[48px] overflow-hidden flex flex-col" style={{ width: 375, height: 812 }}>
@@ -389,29 +424,14 @@ export function CreditNoteForm({
           )}
         </div>
 
-        {/* Optional free-text description — applies to any reason (both credit + refund flows). */}
-        <div className="flex flex-col gap-[7px]">
-          <label className="text-[16px] font-medium leading-[1.3]" style={{ ...FONT, color: "#090a0a" }}>
-            Description
-          </label>
-          <textarea
-            value={reasonNote}
-            onChange={(e) => setReasonNote(e.target.value)}
-            placeholder={`Add a note about this ${refund ? "refund" : "credit note"}`}
-            rows={3}
-            className="w-full rounded-[8px] border px-4 py-3 bg-white text-[16px] outline-none resize-none"
-            style={{ ...FONT, color: "#1b1b1b", borderColor: "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
-          />
-        </div>
-
-        {/* Refund-only helper — explains how to reach a partial amount using the existing fields (Option A). */}
-        {refund && <HowToPartialRefund />}
+        {/* Credit note: description sits above the items (refund shows it below the summary). */}
+        {!refund && descriptionBlock}
 
         {/* Corrected invoice — edit each line to its CORRECT value; the credit is derived automatically. */}
         <div ref={itemsRef} className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2 px-1">
             <p className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>{refund ? "Items to refund" : "Items"} <span style={{ color: "#b42318" }}>*</span></p>
-            {credited > 0 && (
+            {!refund && credited > 0 && (
               <span
                 className="px-2 py-0.5 rounded-full border text-[10px] font-bold leading-[15px]"
                 style={
@@ -420,7 +440,7 @@ export function CreditNoteForm({
                     : { ...FONT, background: "#fff7e6", borderColor: "#fde68a", color: "#b45309" }
                 }
               >
-                {isFull ? (refund ? "Full Refund" : "Full Credit") : (refund ? "Partial Refund" : "Partial Credit")}
+                {isFull ? "Full Credit" : "Partial Credit"}
               </span>
             )}
           </div>
@@ -431,8 +451,32 @@ export function CreditNoteForm({
                 : "Lower at least one item's amount to credit — the credit can't be zero."}
             </p>
           )}
-          {/* Per-line cards — edit each line to its CORRECTED value; Original / Corrected / Credited are
-              shown explicitly so the derivation is legible (the credit is never typed directly). */}
+          {/* Refund only: Full (read-only lines) vs Partial (editable). DS tab control. */}
+          {refund && (
+            <HorizontalTabs
+              variant="button"
+              tabs={["Full refund", "Partial refund"]}
+              activeIndex={fpMode === "full" ? 0 : 1}
+              onChange={(i) => { if (i === 0 && fpMode !== "full") applyFull(); else if (i === 1 && fpMode !== "partial") applyPartial(); }}
+            />
+          )}
+
+          {refund && fpMode === "full" ? (
+            /* Full refund → read-only line list; amounts in red = being refunded. */
+            <div className="rounded-xl border bg-white overflow-hidden" style={{ borderColor: "rgba(160,160,160,0.25)", boxShadow: "var(--shadow-card-soft)" }}>
+              {(itemsExpanded ? items : items.slice(0, COLLAPSED_ITEMS)).map((it, i) => (
+                <div key={i} className="flex items-start justify-between gap-3 px-4 py-3.5 border-t first:border-t-0" style={{ borderColor: "rgba(160,160,160,0.18)" }}>
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold leading-tight" style={{ ...FONT, color: INK }}>{it.name}</p>
+                    <p className="text-[12px] mt-0.5" style={{ ...FONT, color: MUTED }}>{it.qty} {it.unit} · {money(it.unitPrice)}</p>
+                  </div>
+                  <span className="text-[14px] font-semibold shrink-0" style={{ ...FONT, color: "#b42318" }}>−{money(it.amount)}</span>
+                </div>
+              ))}
+              {items.length > COLLAPSED_ITEMS && showMoreBtn}
+            </div>
+          ) : (
+          /* Per-line cards — Partial refund (editable) or credit mode (corrected values). */
           <div className="flex flex-col gap-3">
             {(itemsExpanded ? lines : lines.slice(0, COLLAPSED_ITEMS)).map((l, i) => (
               <div
@@ -481,10 +525,10 @@ export function CreditNoteForm({
                   </div>
                 </div>
 
-                {/* Derived per-line credit / refund — only when this line contributes an amount */}
-                {lineCredit(l) > 0.001 && (
+                {/* Credit mode: derived per-line credit (Original − corrected). */}
+                {!refund && lineCredit(l) > 0.001 && (
                   <div className="flex items-center justify-between border-t border-[rgba(160,160,160,0.18)] pt-2.5">
-                    <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>{refund ? "Refund amount" : "Credited"}</span>
+                    <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Credited</span>
                     <span className="text-[14px] font-medium" style={{ ...FONT, color: "#b42318" }}>−{money(lineCredit(l))}</span>
                   </div>
                 )}
@@ -492,6 +536,7 @@ export function CreditNoteForm({
             ))}
             {lines.length > COLLAPSED_ITEMS && showMoreBtn}
           </div>
+          )}
         </div>
 
         {/* Summary — auto-derived; the user never types a total. */}
@@ -558,12 +603,15 @@ export function CreditNoteForm({
             <p className="px-1 text-[12px] leading-[1.4]" style={{ ...FONT, color: MUTED }}>{helper}</p>
           ) : null;
         })()}
+
+        {/* Refund: description sits below the summary. */}
+        {refund && descriptionBlock}
       </div>
 
       <ButtonDock
         type="single"
         sticky
-        primaryLabel={isEdit ? (submitLabel ?? "Save changes") : "Apply to Invoice"}
+        primaryLabel={isEdit ? (submitLabel ?? "Save changes") : "Create Credit Note"}
         onPrimary={handleCreate}
         homeIndicator
       />
@@ -621,36 +669,6 @@ export function CreditNoteForm({
           onBackspace={keypadBackspace}
           onDone={closeKeypad}
         />
-      )}
-    </div>
-  );
-}
-
-/** Collapsible helper that tells the user how to reach a partial refund with the existing fields
- *  (edit Quantity / Unit price). Blue info accordion shown above the refund line items. */
-function HowToPartialRefund() {
-  const [open, setOpen] = useState(false);
-  const BLUE = "#2563eb";
-  return (
-    <div className="rounded-[10px] border overflow-hidden shrink-0" style={{ ...FONT, background: "#eef4ff", borderColor: "#c7d8fe" }}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left"
-        style={{ ...FONT }}
-      >
-        <InfoOutlinedIcon style={{ fontSize: 19, color: BLUE, flexShrink: 0 }} />
-        <span className="flex-1 text-[13.5px] font-semibold" style={{ color: INK }}>How to create a partial refund?</span>
-        <KeyboardArrowDownIcon style={{ fontSize: 20, color: BLUE, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s ease" }} />
-      </button>
-      {open && (
-        <div className="px-3.5 pb-3.5" style={{ paddingLeft: 42 }}>
-          <ul className="list-disc pl-4 flex flex-col gap-1.5 text-[13px] leading-[1.5]" style={{ color: "#33404d" }}>
-            <li>Change <b style={{ color: INK }}>Quantity</b> to refund fewer items.</li>
-            <li>Change <b style={{ color: INK }}>Unit Price</b> to refund part of an item&rsquo;s value.</li>
-          </ul>
-        </div>
       )}
     </div>
   );
