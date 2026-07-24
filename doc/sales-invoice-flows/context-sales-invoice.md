@@ -5,7 +5,7 @@ only the CURRENT state and next steps — overwrite/trim it each session. Dated 
 `./history/session-log.md`; the full invoice-detail/credit-note/refund spec is
 `./invoice-detail-behavior.md`; repo map + conventions + run/verify commands are **CLAUDE.md**.
 
-## Locked Period (DES-751) + PhoneInput + Today issue-date — done, uncommitted (2026-07-20)
+## Locked Period (DES-751) + PhoneInput + Today issue-date — committed 2026-07-22 (`215ac49`, on main + develop)
 
 **PhoneInput** — new `components/PhoneInput.tsx`: country-code selector (flag + dial code + chevron)
 opening a searchable `DialCodeSheet` (DS `Tile` rows, `DIAL_COUNTRIES`). Stores dial + national as one
@@ -22,20 +22,32 @@ on the admin app, read-only here). New `pages/locked-period/`: `LockedPeriodBann
 `LockedPeriodDialog` (bottom-sheet blocking dialog, `dsHeader`+`hideClose`, single **OK**; default copy =
 CN-edit), `InformationBanner` (Dashboard + `noticeBanner` prop, all inert via `pointer-events:none`).
 
-**Two interception mechanisms** (both key off a `lockedPeriod` prop):
-- `AddInvoiceDetails.lockedPeriod`? No — it uses `lockActions` (locks Back + primary CTA inert) +
-  `seedIssueDate`/`autoOpenIssueSheet`/`issueMinDate`/`issueSheetHelper`/`lockIssueSheet`/`headerTitle`/
-  `topBanner`/`issuePlaceholder`. Upload flow adds the "Issue date is required" validation (guardIssueDate →
-  scroll+flag; `Item` gained `error`=red + `warning`=amber row states; the unset Issue Date shows amber by default).
-- `InvoiceDetailPage.lockedPeriod` → `lockedAction` state routes Send / Edit / Add-credit-note / Refund
-  (from dock + ⋯ menu) to `LockedPeriodDialog` with per-action copy. Its CN-detail overlay passes
-  `lockedPeriod` to `CreditNoteDetailPage` (Cancel refund / Cancel credit note → dialog, skipping the
-  confirm) and intercepts the overlay's draft-CN Edit.
-- `CreditNotesList.lockedPeriod` → Draft-CN Edit → dialog; forwards `lockedPeriod` to `CreditNoteDetailPage`.
-- Dialog copy pattern (all): "…can't be [edited/added/cancelled] because its date ([DD/MM/YYYY]) falls in a
-  closed accounting period. Contact your accountant for assistance." Titles: "Editing isn't available",
-  "Credit note can't be added", "Refund can't be added", "Unable to send invoice", "Refund can't be
-  cancelled", "Credit note can't be cancelled".
+**Interception mechanisms** (all key off a `lockedPeriod` prop unless noted):
+- `AddInvoiceDetails` — Create uses `lockActions` (Back + primary CTA inert) AND `lockExceptIssueDate`
+  (2026-07-22 rename of the old `highlightIssueDate`): a capture-phase click guard on the scroll container
+  swallows every click outside the Issue Date row (scrolling untouched) and locks Back; the CTA is gated
+  separately by `lockActions`. Upload passes `lockExceptIssueDate` but NOT `lockActions`, so its
+  **Create Invoice CTA stays live** (`onSend` → list + "Invoice created successfully") for re-issue after a
+  valid date is picked. Also `seedIssueDate`/`issueMinDate`/`issueSheetHelper`/`issuePlaceholder`/`topBanner`.
+  `onIssueSheetToggle` lifts the calendar open/close state to App. `Item` has `error`=red + `warning`=amber
+  row states (the unset Issue Date reads amber; guardIssueDate scrolls+flags on the Upload CTA).
+- `InvoiceDetailPage.lockedPeriod` → `lockedAction` routes Send / Edit / Add-credit-note / Refund / **Mark as
+  paid** (`openMarkPaid`, 2026-07-22 — blocks Record Payment) to `LockedPeriodDialog`. Its CN-detail overlay
+  passes `lockedPeriod` to `CreditNoteDetailPage`, locks the overlay Back arrow, and routes overlay draft-CN
+  **Apply + Edit** to `lockedCnAction` (edit|apply) dialog. Cancel refund / Cancel credit note → dialog.
+- `CreditNotesList.lockedPeriod` → Back arrow inert; Draft-CN **Apply + Edit** → `lockedNotice` (edit|apply)
+  dialog; forwards `lockedPeriod` to `CreditNoteDetailPage`.
+- Dialog copy pattern (all): "…can't be [edited/applied/added/cancelled/recorded] because its date
+  ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance." Titles:
+  "Editing isn't available", "Credit note can't be applied", "Credit note can't be added", "Refund can't be
+  added", "Unable to send invoice", "Payment can't be recorded", "Refund can't be cancelled", "Credit note
+  can't be cancelled".
+- **Beside-frame annotation boxes** (`App.tsx`, `hidden lg:block` right of the frame, same card style as the
+  Void "Scenario" note): Create-locked shows a "Click Issue Date" straight arrow → swaps to the locked-dates
+  explanation once the calendar opens; Upload-locked shows the re-pick-issue-date note; Refund-CN-Draft shows
+  the Apply-vs-Edit note (complete draft leads with Apply, incomplete → Edit only).
+- **Back-arrow lock scope (2026-07-22):** Awaiting-, Paid-, all CN- and both Refund-CN locked screens have an
+  inert Back arrow; other locked screens still return to dashboard.
 
 **QuickNav layout** (final): the standalone "Locked Period" group was REMOVED; each demo now sits under its
 real counterpart. Sales Invoice → `Create (Locked Period)` (after Create Invoice), `Upload (Locked Period)`
@@ -47,7 +59,27 @@ Note → Unpaid Invoice → `CN-Draft (Locked Period)`, `CN-Applied (Locked Peri
 `lockedPeriodBanner` + `lockedPeriodInvoiceDraft` screens still exist but are unreachable (nav entries removed).
 CN/refund locked demos reuse the register data (CN-…005 draft, CN-…003 applied, CN-…007 refund on INV-…015).
 All verified headless; build clean. **Copy still uses literal `DD/MM/YYYY`/`DD/MM/YY` placeholders** (swap for
-real dates before Figma-Make port).
+real dates before Figma-Make port). Invoice-Detail section also split **Draft** into `Draft (Created)` +
+`Draft (Uploaded)` (same INV-…003, distinguished by `openInvoice.origin`), each with a beside-frame note
+(Created: Send shown only when all fields complete, else Edit is primary; Uploaded: Mark-as-Sent/Paid offered
+since it may already be sent outside Statrys). Related-Invoice row arrow now wired on the locked-period CN
+screens too (`openCnRelatedInvoice` helper; Back returns to the locked preview).
+
+## Session 2026-07-22 — invoice/CN detail refinements (committed, `215ac49`)
+
+Non-locked-period tweaks shipped alongside the locking work:
+- **Back nav:** every QuickNav-opened invoice detail returns to the FULL invoice list (`jumpDetail` now
+  clears `listPreset`).
+- **Dashboard recent invoices** mirror the list `InvoiceCard`: amount = shared demo total `money(TOTAL)`
+  ($6,450 every row), the credit strip shows the CN NUMBER (empty `creditedLabel`), refund state reads
+  **"Pending Refund"** with no date caption.
+- **Invoice detail:** invoice number shows in the page header ONLY — the "Invoice number" row was removed
+  from the Invoice Details card (was on Awaiting/Overdue).
+- **CN detail sublines** (`CreditNoteDetailPage` hero): refund **Applied** → "Applied on …"; **Awaiting
+  refund** → NO subline (payout date unknown); Pending Refund → "Created on …"; settled → "Refunded on …".
+- **Refund CN draft can Apply:** `canApply` now includes complete refund drafts (`isRefundDraft`), so a
+  complete refund draft leads with **Apply to invoice** + Edit; incomplete → Edit only. (Shared component —
+  applies to any complete refund draft, not just the demo.)
 
 ## Current state (2026-07-02)
 

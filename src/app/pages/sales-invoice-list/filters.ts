@@ -91,8 +91,8 @@ export function matchesIssueRange(iso: string, from: string, to: string): boolea
 export type StatusMatch = "all" | Status | "Overdue";
 
 // No standalone Overdue / Partially Paid tabs — they fold into a related tab (see matchStatus):
-// Overdue rows show under Awaiting (an overdue invoice is Awaiting past its due date), and
-// Partially Paid rows show under Paid (any payment received). Each card still shows its own chip.
+// Overdue and Partially Paid rows both show under Awaiting (still outstanding — a balance is due).
+// Each card still shows its own chip.
 export const FILTERS: { label: string; match: StatusMatch }[] = [
   { label: "All", match: "all" },
   { label: "Draft", match: "Draft" },
@@ -112,14 +112,14 @@ export function effectiveStatus(inv: Invoice): EffectiveStatus {
 
 /**
  * Whether an invoice matches a status chip:
- * - "Awaiting" = all outstanding (on-time + overdue) — no separate Overdue tab.
- * - "Paid" = fully paid + partially paid — no separate Partially Paid tab.
+ * - "Awaiting" = all outstanding (on-time + overdue + partially paid) — no separate Overdue/Partial tab.
+ * - "Paid" = fully paid only.
  */
 export function matchStatus(inv: Invoice, match: StatusMatch): boolean {
   if (match === "all") return true;
   const eff = effectiveStatus(inv);
-  if (match === "Awaiting") return eff === "Awaiting" || eff === "Overdue"; // Outstanding = unpaid
-  if (match === "Paid") return eff === "Paid" || eff === "PartiallyPaid"; // any payment received
+  if (match === "Awaiting") return eff === "Awaiting" || eff === "Overdue" || eff === "PartiallyPaid"; // still owed a balance
+  if (match === "Paid") return eff === "Paid"; // fully paid only
   return eff === match;
 }
 
