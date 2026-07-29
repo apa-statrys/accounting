@@ -5,9 +5,9 @@ import styles from "./index.module.css";
  * TextAreaFields, node 4338-1074 / TextArea, node 4338-1075). States:
  * Default / Focus (real :focus-within) / Filled (has a value) / Error /
  * Disabled. Optional label/caption/mandatory props add the labeled wrapper
- * (node 4338-1075): 16px medium label above, 14px caption below — caption
- * turns red on error, the label never does (matches TextField/ui/Checkbox's
- * label convention). Styling in index.module.css.
+ * (node 4338-1075): 14px regular label above, 14px caption below — caption
+ * turns red on error, the label never does (matches ui/TextField's label
+ * convention exactly). Styling in index.module.css.
  */
 
 interface TextAreaProps {

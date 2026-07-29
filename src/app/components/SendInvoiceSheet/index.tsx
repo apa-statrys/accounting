@@ -168,14 +168,16 @@ export function SendInvoiceSheet({
           <div className={styles.body} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}>
             <PageAppHeader scrolled={scrolled}>
               <PageHeader type="center" title="Send Invoice" onBack={onClose} showSearch={false} />
+              {/* PageAppHeader's own flex `gap: 12px` already provides part of Figma's 16px top
+                  padding here (node 1896-17204) — pt-1 (4px) tops it up to 16px total; pb-2 (8px)
+                  matches the frame's asymmetric bottom padding. */}
+              <div className="px-4 pt-1 pb-2">
+                <SegmentedControls segments={["Send by Email", "Share/Download"]} activeIndex={tab} onChange={setTab} />
+              </div>
             </PageAppHeader>
 
-            <div className="px-4 py-4">
-              <SegmentedControls segments={["Send by Email", "Share/Download"]} activeIndex={tab} onChange={setTab} />
-            </div>
-
             {tab === 0 ? (
-              <div className={`px-4 flex flex-col gap-5 ${keyboardOpen ? "pb-[430px]" : "pb-44"}`}>
+              <div className={`px-4 pt-4 flex flex-col gap-5 ${keyboardOpen ? "pb-[430px]" : "pb-44"}`}>
                 {/* Delivery-failure banner — content is kept so the client can retry */}
                 {sendError && (
                   <div className="flex items-start gap-2.5 rounded-xl bg-[#fdecea] border border-[#f5c6c0] px-3.5 py-3">
@@ -288,7 +290,7 @@ export function SendInvoiceSheet({
                 <Checkbox checked={saveDefault} onChange={setSaveDefault} label="Save the content as default" />
               </div>
             ) : (
-              <div className="px-4 flex flex-col gap-5 pb-32">
+              <div className="px-4 pt-4 flex flex-col gap-5 pb-32">
                 {/* Link field + copy */}
                 <div className="flex flex-col gap-2">
                   <TextField

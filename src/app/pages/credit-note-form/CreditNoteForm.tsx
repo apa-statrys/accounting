@@ -306,7 +306,7 @@ export function CreditNoteForm({
   // Optional free-text description (any reason) — rendered below the summary in both flows.
   const descriptionBlock = (
     <div className="flex flex-col gap-[7px]">
-      <label className="text-[16px] font-medium leading-[1.3]" style={{ ...FONT, color: "#090a0a" }}>
+      <label className="body-sm" style={{ ...FONT, color: "#090a0a" }}>
         Description
       </label>
       <textarea
@@ -401,7 +401,9 @@ export function CreditNoteForm({
 
         {/* Reason — white zone (DES-719). Required, chosen from the fixed enum in the sheet. */}
         <div ref={reasonRef} className="flex flex-col gap-[7px] pt-1">
-          <label className="text-[16px] font-medium leading-[1.3]" style={{ ...FONT, color: "#090a0a" }}>Reason For Credit <span style={{ color: "var(--text-error-primary)" }}>*</span></label>
+          <label className="body-sm" style={{ ...FONT, color: "#090a0a" }}>
+            Reason For Credit <span className="text-[length:var(--fs-body-md)] font-medium" style={{ color: "var(--text-error-primary)" }}>*</span>
+          </label>
           <button
             type="button"
             onClick={() => setReasonSheetOpen(true)}
