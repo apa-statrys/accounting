@@ -19,14 +19,18 @@ import { Keyboard } from '../Keyboard';
  *                  actions instead of the plain home-indicator bar — Keyboard
  *                  supplies its own). The two are mutually exclusive, same as
  *                  the Figma axis; `keyboard` wins if both are set.
- * (Figma's "Slot" type is a design-reference frame — slotted content isn't
- * rendered by this component.)
+ *   Slot → `slot` — arbitrary content above the actions (e.g. the price summary
+ *          on Create Invoice, Figma node 1419-52781); caller decides what/when
+ *          to render, this just reserves the position + side padding.
  */
 
 export type ButtonDockType = 'single' | 'double' | 'ghost' | 'triple';
 export type ButtonDockStack = 'vertical' | 'horizontal';
 
 interface ButtonDockCommonProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Arbitrary content rendered above the actions (Figma "Slot", e.g. a price summary) —
+   *  shares the actions row's 16px side padding; omit for docks with no slot content. */
+  slot?: React.ReactNode;
   /** Show the checkbox accessory row above the actions. */
   accessory?: boolean;
   /** Show the iOS home indicator at the bottom. */
@@ -95,6 +99,7 @@ export type ButtonDockProps = ButtonDockCommonProps & (ButtonDockVerticalProps |
 export function ButtonDock({
   type = 'double',
   stack = 'vertical',
+  slot,
   accessory = false,
   homeIndicator = false,
   keyboard = false,
@@ -158,6 +163,7 @@ export function ButtonDock({
       {...rest}
     >
       <div className={styles.frost} aria-hidden />
+      {slot && <div className={styles.slot}>{slot}</div>}
       {accessory && (
         <div className={styles.accessory}>
           <Checkbox checked={!!checked} onChange={(c) => onCheckedChange?.(c)} label={accessoryLabel} />

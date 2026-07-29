@@ -74,6 +74,11 @@
   padding: 0 16px 12px;
 }
 
+/* ===== SLOT — arbitrary content above the actions (Figma "Slot", e.g. a price summary). ===== */
+.slot {
+  padding: 0 16px 12px;
+}
+
 /* ===== ACTIONS — Figma: 8px gap between buttons, all full width.
    Vertical stack: primary on top, then outline, then ghost. ===== */
 .actions {

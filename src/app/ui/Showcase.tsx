@@ -16,6 +16,7 @@ import { Search } from "./Search";
 import { Loading, LoadingSize } from "./Loading";
 import { PageHeader, type PageHeaderType } from "./PageHeader";
 import { ButtonDock, type ButtonDockType, type ButtonDockStack } from "../components/ButtonDock";
+import { SummaryCard } from "../components/SummaryCard";
 import StatusBar from "../components/StatusBar";
 import { Tile, type TileTrailing } from "./Tile";
 import { Chips } from "./Chips";
@@ -1111,6 +1112,14 @@ const BUTTONDOCK_CONTROL_GROUPS: ControlGroup[] = [
     ],
   },
   {
+    key: "slot",
+    label: "Slot (e.g. a price summary)",
+    options: [
+      { value: "off", label: "Hidden" },
+      { value: "on", label: "Shown — e.g. Create Invoice's price summary" },
+    ],
+  },
+  {
     key: "bottom",
     label: "iOS controls",
     options: [
@@ -1136,7 +1145,7 @@ function ButtonDockOverview() {
       </div>
       <InteractiveDemo
         groups={BUTTONDOCK_CONTROL_GROUPS}
-        defaultValues={{ type: "double", stack: "vertical", accessory: "off", bottom: "none" }}
+        defaultValues={{ type: "double", stack: "vertical", accessory: "off", slot: "off", bottom: "none" }}
         render={(v) => {
           const typeStack =
             v.type === "ghost"
@@ -1147,6 +1156,7 @@ function ButtonDockOverview() {
               <ButtonDock
                 {...typeStack}
                 sticky
+                slot={v.slot === "on" ? <SummaryCard bare currency="USD" subtotal={110} discount={80} total={30} /> : undefined}
                 accessory={v.accessory === "on"}
                 checked
                 primaryLabel="Confirm"

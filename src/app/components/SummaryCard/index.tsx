@@ -48,18 +48,23 @@ interface SummaryCardProps {
   /** Discount amount in the invoice currency (the Discount row always shows, 0.00 when none). */
   discount: number;
   total: number;
+  /** Skip the white card chrome and just render the rows — for reuse inside another surface
+   *  that already provides its own background (e.g. the sticky dock's price-summary slot,
+   *  Figma "Create Invoice" node 1419-52781). */
+  bare?: boolean;
 }
 
-export function SummaryCard({ currency, subtotal, discount, total }: SummaryCardProps) {
-  return (
-    <div className={styles.card}>
+export function SummaryCard({ currency, subtotal, discount, total, bare = false }: SummaryCardProps) {
+  const rows = (
+    <>
       {/* Figma (node 1826-15916): the divider sits below Discount, not below Subtotal. */}
       <Row label="Subtotal" value={fmt(currency, subtotal)} last />
       {/* Always shown — 0.00 when there's no discount. */}
       <Row label="Discount" value={discount > 0 ? `- ${fmt(currency, discount)}` : fmt(currency, 0)} brand={discount > 0} />
       <Row label="Total" value={fmt(currency, total)} boldLabel boldValue last />
-    </div>
+    </>
   );
+  return bare ? rows : <div className={styles.card}>{rows}</div>;
 }
 
 export default SummaryCard;

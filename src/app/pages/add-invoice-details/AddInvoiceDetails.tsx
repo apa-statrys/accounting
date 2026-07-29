@@ -21,7 +21,8 @@ import { SendInvoiceSheet } from "../../components/SendInvoiceSheet";
 import { InvoicePreviewPage } from "../shared/InvoicePreviewPage";
 import { BankInfoSheet } from "../../components/BankInfoSheet";
 import { CustomerSheet } from "../../components/CustomerSheet";
-import { CURRENCIES, CurrencySheet } from "../../components/CurrencySheet";
+import { CURRENCIES, CURRENCY_COUNTRY, CurrencySheet } from "../../components/CurrencySheet";
+import { CountryFlag } from "../../components/CountryFlag";
 import { Toggle } from "../../ui/Toggle";
 import { DueDateSheet } from "../../components/DueDateSheet";
 import { IssueDateSheet } from "../../components/IssueDateSheet";
@@ -415,6 +416,23 @@ export function AddInvoiceDetails({
     }
   }, [services.length]);
 
+  // Sticky dock's price-summary slot (Figma "Create Invoice", node 1419-52781) — shown until the
+  // real inline Summary card scrolls into view, since it'd be redundant once the user can see it.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const [summaryVisible, setSummaryVisible] = useState(false);
+  useEffect(() => {
+    const root = scrollRef.current;
+    const target = summaryRef.current;
+    if (!root || !target) {
+      setSummaryVisible(false);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => setSummaryVisible(entry.isIntersecting), { root });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [services.length > 0]);
+
   // Items validation error (Send Invoice tapped with none added yet) — clears itself the moment
   // an item exists, not just on the next tap.
   const [itemsError, setItemsError] = useState(false);
@@ -492,6 +510,7 @@ export function AddInvoiceDetails({
       {/* Page — stays in place; the open sheet dims it with its own scrim (no recede). */}
       <div className="absolute inset-0 flex flex-col bg-[var(--bg-beige-primary)] overflow-hidden rounded-[48px]">
         <div
+          ref={scrollRef}
           className="flex-1 overflow-y-auto thin-scrollbar"
           onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
         >
@@ -738,6 +757,7 @@ export function AddInvoiceDetails({
                   <ListRow
                     label={d.label}
                     value={d.value}
+                    valueFlag={d.label === "Currency" ? <CountryFlag name={CURRENCY_COUNTRY[currency]} size={16} /> : undefined}
                     trailing={d.locked ? "none" : "chevron"}
                     onClick={d.locked ? undefined : d.onClick}
                     last={i === details.length - 1}
@@ -878,14 +898,16 @@ export function AddInvoiceDetails({
               exit={{ opacity: 0, y: 8 }}
               transition={{ duration: 0.3 }}
             >
-              <Section title="Summary">
-                <SummaryCard
-                  currency={currency}
-                  subtotal={subtotal}
-                  discount={discountAmount}
-                  total={total}
-                />
-              </Section>
+              <div ref={summaryRef}>
+                <Section title="Summary">
+                  <SummaryCard
+                    currency={currency}
+                    subtotal={subtotal}
+                    discount={discountAmount}
+                    total={total}
+                  />
+                </Section>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -959,6 +981,11 @@ export function AddInvoiceDetails({
           <ButtonDock
             type="single"
             sticky
+            slot={
+              services.length > 0 && !summaryVisible ? (
+                <SummaryCard bare currency={currency} subtotal={subtotal} discount={discountAmount} total={total} />
+              ) : undefined
+            }
             primaryLabel="Create Invoice"
             primaryLoading={sendPending}
             // Locked-period demo: the CTA stays visually enabled but tapping it goes nowhere.
