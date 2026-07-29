@@ -428,7 +428,7 @@ export function CreditNoteForm({
         {/* Reason — white zone (DES-719). Required, chosen from the fixed enum in the sheet. */}
         <div ref={reasonRef} className="flex flex-col gap-[7px] pt-1">
           <label className="body-sm" style={{ ...FONT, color: "#090a0a" }}>
-            Reason For Credit <span className="text-[length:var(--fs-body-md)] font-medium" style={{ color: "var(--text-error-primary)" }}>*</span>
+            Reason For Credit <span className="text-[length:var(--fs-body-md)] font-medium">*</span>
           </label>
           <button
             type="button"
@@ -454,7 +454,7 @@ export function CreditNoteForm({
         {/* Corrected invoice — edit each line to its CORRECT value; the credit is derived automatically. */}
         <div ref={itemsRef} className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2 px-1">
-            <p className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>{refund ? "Items to refund" : "Items"} <span style={{ color: "#b42318" }}>*</span></p>
+            <p className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>{refund ? "Items to refund" : "Items"} <span>*</span></p>
             {!refund && credited > 0 && (
               <span
                 className="px-2 py-0.5 rounded-full border text-[10px] font-bold leading-[15px]"
