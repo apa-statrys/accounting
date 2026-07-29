@@ -286,9 +286,9 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
         </div>
       </div>
 
-      {/* Search state (Figma node 1333-30416) swaps the home indicator for the on-screen
-          keyboard (Figma "IOS controls" = Keyboard, node 4141-2746) — ButtonDock renders it
-          natively via the `keyboard` prop, no separate composition needed. */}
+      {/* Search state (Figma node 1333-30416) shows the on-screen keyboard (Figma "IOS
+          controls" = Keyboard, node 4141-2746) — ButtonDock renders it natively via the
+          `keyboard` prop, no separate composition needed. */}
       <ButtonDock
         type="single"
         keyboard={searching}

@@ -96,8 +96,8 @@ export function SendInvoiceSheet({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [recipientError, setRecipientError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
-  // Any of the three text fields (recipients / subject / message) focused → the dock swaps its
-  // home indicator for the on-screen keyboard (Figma "IOS controls" = Keyboard).
+  // Any of the three text fields (recipients / subject / message) focused → the dock shows
+  // the on-screen keyboard (Figma "IOS controls" = Keyboard).
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const focusKeyboard = () => setKeyboardOpen(true);
   const blurKeyboard = () => setKeyboardOpen(false);

@@ -295,8 +295,8 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               primaryLabel={`Show ${list.length} ${list.length === 1 ? "credit note" : "credit notes"}`}
               onSecondary={() => { setSelectedCustomers([]); setIssueFrom(""); setIssueTo(""); setCustomerQuery(""); }}
               onPrimary={() => setFilterOpen(false)}
-              // While the customer search field is focused, the keyboard replaces the
-              // home indicator (Figma "IOS controls" = Keyboard, same as CreateSalesInvoice).
+              // While the customer search field is focused, the dock shows the on-screen
+              // keyboard (Figma "IOS controls" = Keyboard, same as CreateSalesInvoice).
               keyboard={customerSearchOpen}
             />
           )

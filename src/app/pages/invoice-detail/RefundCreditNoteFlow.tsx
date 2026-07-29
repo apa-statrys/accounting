@@ -76,8 +76,7 @@ export function RefundCreditNoteFlow({
   const manualValid = enteredAmount > 0 && !exceedsOutstanding && !!mAccount;
   const [scrolled, setScrolled] = useState(false);
   // On-screen keyboard (Figma "IOS controls" = Keyboard, same idea as CreateSalesInvoice) — no
-  // free-text field remains on the manual step, so nothing currently focuses it true, but the dock
-  // still reads it to decide between the home indicator and the keyboard bar.
+  // free-text field remains on the manual step, so nothing currently focuses it true.
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   // All steps share one scroll container (below) — advancing/going back a step must land on
   // top of the new step's content, not wherever the previous step happened to be scrolled to.
