@@ -274,8 +274,9 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         open={sheet === "company"}
         title="Company Details"
         onClose={() => setSheet(null)}
+        keyboardOpen={keyboardOpen}
         heightClass="h-[72%]"
-        footer={<ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && companyValid && detailsValid)} onPrimary={() => setSheet(null)} homeIndicator={!keyboardOpen} keyboard={keyboardOpen} />}
+        footer={<ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && companyValid && detailsValid)} onPrimary={() => setSheet(null)} keyboard={keyboardOpen} />}
       >
         <div className="flex flex-col gap-4">
           {/* Logo — beige monogram preview + "Change Logo" (mock picker; sandbox has no real image). */}
@@ -301,8 +302,9 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         open={sheet === "address"}
         title="Business Address"
         onClose={() => setSheet(null)}
+        keyboardOpen={keyboardOpen}
         heightClass="h-[72%]"
-        footer={<ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && addressValid)} onPrimary={() => setSheet(null)} homeIndicator={!keyboardOpen} keyboard={keyboardOpen} />}
+        footer={<ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && addressValid)} onPrimary={() => setSheet(null)} keyboard={keyboardOpen} />}
       >
         <div className="flex flex-col gap-4">
           {/* Country first — drives the city/state options below. Dropdown TextField to match

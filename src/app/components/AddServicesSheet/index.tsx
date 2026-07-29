@@ -97,6 +97,7 @@ export function AddServicesSheet({
         onClose?.();
         setStep("form");
       }}
+      keyboardOpen={keyboardOpen}
       heightClass={SERVICE_SHEET_HEIGHT}
       footer={
         step === "unit" ? undefined : (
@@ -105,7 +106,6 @@ export function AddServicesSheet({
             type="single"
             primaryLabel={initial ? "Save Changes" : "Add Item"}
             onPrimary={handleAdd}
-            homeIndicator={!keyboardOpen}
             keyboard={keyboardOpen}
           />
         )

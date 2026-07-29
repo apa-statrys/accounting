@@ -67,6 +67,12 @@ interface BottomSheetProps {
    *  under the title/search row belongs here, inheriting this header's own frost/background once
    *  instead of needing its own copy. */
   headerExtra?: React.ReactNode;
+  /** True while the footer's on-screen keyboard mock is showing (caller's own `keyboardOpen` state,
+   *  same one passed to its ButtonDock's `keyboard` prop) — disables the footer-overlap behavior
+   *  below so the panel grows to use available empty space instead of just covering more of a
+   *  fixed-size scroll area with a taller footer. Still capped by .panel's own max-height (88%);
+   *  content scrolls normally if it genuinely doesn't fit even then. */
+  keyboardOpen?: boolean;
 }
 
 /** Shared fixed height for the Add-Services sheet and its nested pickers, so they match exactly. */
@@ -77,7 +83,7 @@ export const SERVICE_SHEET_HEIGHT = "h-[68%]";
  * The parent screen handles the "book-page" recede of the page behind.
  * See memory: bottom-sheet-animation.
  */
-export function BottomSheet({ open, title, onClose, children, footer, tall, heightClass, fullPage, action, onAction, actionLabel = "Action", onBack, backLabel = "Back", centerTitle, onContentScroll, compact, searchValue, onSearchChange, searchPlaceholder, autoFocusSearch, headerExtra }: BottomSheetProps) {
+export function BottomSheet({ open, title, onClose, children, footer, tall, heightClass, fullPage, action, onAction, actionLabel = "Action", onBack, backLabel = "Back", centerTitle, onContentScroll, compact, searchValue, onSearchChange, searchPlaceholder, autoFocusSearch, headerExtra, keyboardOpen = false }: BottomSheetProps) {
   const isSearch = onSearchChange !== undefined;
   // Drives the header's frost — same transparent-at-rest/frosted-on-scroll
   // recipe as components/PageAppHeader, but tracked internally so every sheet
@@ -128,6 +134,20 @@ export function BottomSheet({ open, title, onClose, children, footer, tall, heig
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, Boolean(footer)]);
 
+  // While the keyboard mock is showing, force the footer back in-flow instead of overlapping —
+  // lets the panel grow into whatever empty space is available (still capped by .panel's own
+  // max-height) rather than wasting it while the taller footer just covers more of a frozen-size
+  // scroll area. See BottomSheetProps.keyboardOpen.
+  const effectiveOverlap = footerOverlap && !keyboardOpen;
+
+  // A fixed heightClass (e.g. "h-[68%]", used so sibling sheets match exactly) sets an explicit
+  // `height`, not just a cap — so a taller keyboard-mock footer had nowhere to grow into even with
+  // the overlap fix above, leaving dead empty space above the panel. While the keyboard mock is
+  // showing, drop the pin and fall back to the default auto-sized panel (still capped by .panel's
+  // own 88% max-height) so it can grow up to use that space. Doesn't apply to `fullPage`, which is
+  // already pinned near the very top of the frame with no meaningful room left to grow into.
+  const effectiveHeightClass = keyboardOpen ? undefined : heightClass;
+
   return (
     <AnimatePresence>
       {open && (
@@ -139,8 +159,8 @@ export function BottomSheet({ open, title, onClose, children, footer, tall, heig
           <motion.div
             className={[
               styles.panel,
-              fullPage ? styles.panelFull : heightClass || "",
-              !fullPage && !heightClass && tall ? styles.panelTall : "",
+              fullPage ? styles.panelFull : effectiveHeightClass || "",
+              !fullPage && !effectiveHeightClass && tall ? styles.panelTall : "",
             ]
               .filter(Boolean)
               .join(" ")}
@@ -151,7 +171,7 @@ export function BottomSheet({ open, title, onClose, children, footer, tall, heig
             <div
               ref={scrollRef}
               className={["thin-scrollbar", styles.scrollArea].join(" ")}
-              style={footerOverlap ? { paddingBottom: footerHeight } : undefined}
+              style={effectiveOverlap ? { paddingBottom: footerHeight } : undefined}
               onScroll={(e) => {
                 setScrolled(e.currentTarget.scrollTop > 4);
                 onContentScroll?.(e);
@@ -242,7 +262,7 @@ export function BottomSheet({ open, title, onClose, children, footer, tall, heig
               </div>
             </div>
 
-            <BottomsheetsEnd ref={footerRef} overlap={footerOverlap} skipSpacer={compact}>
+            <BottomsheetsEnd ref={footerRef} overlap={effectiveOverlap} skipSpacer={compact}>
               {footer}
             </BottomsheetsEnd>
           </motion.div>

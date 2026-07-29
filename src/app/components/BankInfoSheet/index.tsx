@@ -55,7 +55,8 @@ export function BankInfoSheet({ open, onBack, onClose, onConfirm }: BankInfoShee
       centerTitle
       onBack={onBack}
       backLabel="Back to receiving accounts"
-      footer={<ButtonDock type="single" homeIndicator={!keyboardOpen} keyboard={keyboardOpen} primaryLabel="Confirm" onPrimary={confirm} />}
+      keyboardOpen={keyboardOpen}
+      footer={<ButtonDock type="single" keyboard={keyboardOpen} primaryLabel="Confirm" onPrimary={confirm} />}
     >
       <div className={styles.fields}>
         <motion.div variants={sheetItem}>

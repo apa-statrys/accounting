@@ -47,10 +47,10 @@ export function RecordPaymentSheet({
         open={open}
         title="Mark as paid"
         onClose={onClose}
+        keyboardOpen={keyboardOpen}
         footer={
           <ButtonDock
             type="double"
-            homeIndicator={!keyboardOpen}
             keyboard={keyboardOpen}
             secondaryLabel="Cancel"
             primaryLabel="Mark as paid"

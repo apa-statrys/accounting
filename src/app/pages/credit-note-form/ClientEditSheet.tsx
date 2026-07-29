@@ -35,12 +35,12 @@ export function ClientEditSheet({ open, onClose, draftName, draftEmail, setDraft
       open={open}
       title="Edit client details"
       onClose={onClose}
+      keyboardOpen={keyboardOpen}
       footer={
         <ButtonDock
           type="single"
           primaryLabel="Save"
           onPrimary={handleSave}
-          homeIndicator={!keyboardOpen}
           keyboard={keyboardOpen}
         />
       }
