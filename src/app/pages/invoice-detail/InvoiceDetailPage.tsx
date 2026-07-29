@@ -957,14 +957,13 @@ export function InvoiceDetailPage({
             primaryLoading={sendPending}
             onSecondary={openEdit}
             onPrimary={openSend}
-            homeIndicator
           />
         ) : uploaded ? (
           // Uploaded draft: it was already sent elsewhere, so the likely next step is recording
           // payment → "Mark as paid" primary, "Mark as sent" (→ Awaiting) secondary. Once a payment is
           // logged (awaiting approval) the Mark-as-paid CTA drops, leaving just "Mark as sent".
           pendingPayment ? (
-            <ButtonDock type="single" sticky primaryLabel="Mark as sent" onPrimary={onIssued} homeIndicator />
+            <ButtonDock type="single" sticky primaryLabel="Mark as sent" onPrimary={onIssued} />
           ) : (
             <ButtonDock
               type="double"
@@ -973,18 +972,17 @@ export function InvoiceDetailPage({
               primaryLabel="Mark as paid"
               onSecondary={onIssued}
               onPrimary={openMarkPaid}
-              homeIndicator
             />
           )
         ) : (
           // Created draft: "Mark as paid" is only offered on UPLOADED drafts (already settled outside
           // Statrys). A created draft is issued through Statrys, so it leads with "Send invoice" only.
-          <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryDisabled={!requiredComplete} primaryLoading={sendPending} onPrimary={openSend} homeIndicator />
+          <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryDisabled={!requiredComplete} primaryLoading={sendPending} onPrimary={openSend} />
         )
       ) : sendable ? (
         // Once a payment is logged (awaiting approval) the "Mark as paid" CTA drops, leaving just "Send invoice".
         pendingPayment ? (
-          <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryLoading={sendPending} onPrimary={openSend} homeIndicator />
+          <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryLoading={sendPending} onPrimary={openSend} />
         ) : (
           <ButtonDock
             type="double"
@@ -996,7 +994,6 @@ export function InvoiceDetailPage({
             secondaryLoading={sendPending}
             onSecondary={openSend}
             onPrimary={openMarkPaid}
-            homeIndicator
           />
         )
       ) : isRefundContext ? (
@@ -1011,7 +1008,6 @@ export function InvoiceDetailPage({
             sticky
             primaryLabel={anyUnsent ? "Send Credit Note" : "Resend Credit Note"}
             onPrimary={openSendCreditNote}
-            homeIndicator
           />
         ) : (
           // Refund pending (Figma 696:5495): Send Invoice (secondary) + Refund Credit Note (primary,
@@ -1024,14 +1020,13 @@ export function InvoiceDetailPage({
             secondaryLoading={sendPending}
             onSecondary={openSend}
             onPrimary={() => setRefundFlowOpen(true)}
-            homeIndicator
           />
         )
       ) : status === "Paid" && activeCnCount === 0 ? (
         // Paid (DES-817): Refund + Preview as PDF live in the ⋯ menu (no dock).
         null
       ) : (
-        <ButtonDock type="single" sticky primaryLabel="Preview as PDF" onPrimary={() => setPdfPreviewOpen(true)} homeIndicator />
+        <ButtonDock type="single" sticky primaryLabel="Preview as PDF" onPrimary={() => setPdfPreviewOpen(true)} />
       )}
 
       {/* Secondary actions sheet */}
@@ -1067,7 +1062,6 @@ export function InvoiceDetailPage({
             secondaryLabel="Delete Draft"
             onPrimary={() => setConfirmDelete(false)}
             onSecondary={() => { setConfirmDelete(false); onDeleted?.(); }}
-            homeIndicator
           />
         }
       >

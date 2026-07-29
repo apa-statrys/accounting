@@ -22,7 +22,6 @@ export function ResendPromptSheet({ open, onClose, onNotNow, onSendUpdate }: { o
           primaryLabel="Send Update"
           onSecondary={onNotNow}
           onPrimary={onSendUpdate}
-          homeIndicator
         />
       }
     >
@@ -47,7 +46,6 @@ export function SendPickerSheet({ open, onClose, creditNotes, currency, selected
           type="single"
           primaryLabel="Send credit note"
           onPrimary={onSend}
-          homeIndicator
         />
       }
     >

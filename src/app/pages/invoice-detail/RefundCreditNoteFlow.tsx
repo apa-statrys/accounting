@@ -242,7 +242,6 @@ export function RefundCreditNoteFlow({
         primaryLabel={step === "confirm" ? "Confirm transfer" : step === "manual" ? "Record refund" : "Continue"}
         primaryDisabled={step === "manual" && !manualValid}
         onPrimary={onContinue}
-        homeIndicator={!keyboardOpen}
         keyboard={keyboardOpen}
       />
 

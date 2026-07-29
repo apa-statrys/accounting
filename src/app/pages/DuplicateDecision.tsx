@@ -104,7 +104,6 @@ export function DuplicateDecision({ existing, file, onBack, onEditExisting, onVi
         secondaryLabel="Create New Invoice"
         onPrimary={isDraft ? onEditExisting : onViewInvoice}
         onSecondary={onCreateNew}
-        homeIndicator
       />
 
       <FilePreviewOverlay open={filePreviewOpen} file={file ?? null} onClose={() => setFilePreviewOpen(false)} />

@@ -291,7 +291,6 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
           natively via the `keyboard` prop, no separate composition needed. */}
       <ButtonDock
         type="single"
-        homeIndicator={!searching}
         keyboard={searching}
         sticky
         primaryLabel="Continue"

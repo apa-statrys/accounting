@@ -273,7 +273,6 @@ export function CreditNotePreviewPage(props: CreditNotePreviewPageProps) {
         sticky
         primaryLabel={isView ? "Send Credit Note" : "Download PDF"}
         onPrimary={isView ? (onSend ?? (() => {})) : download}
-        homeIndicator
       />
     </div>
   );

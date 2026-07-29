@@ -51,16 +51,11 @@
   box-shadow: 0px 10px 30px 0px rgba(0, 0, 0, 0.2);
 }
 
-/* When the home indicator is present it provides the bottom space. */
-.withHomeIndicator {
-  padding-bottom: 0;
-}
-
 /* Keyboard variant (Figma "IOS controls" = Keyboard): the Keyboard sits flush
-   against the dock's own bottom edge (no root padding-bottom, same idea as
-   .withHomeIndicator) — the 12px gap above it lives on .actions instead
-   (.actionsKeyboardGap), since padding-bottom here would land AFTER the
-   keyboard (the last child), not between it and the button(s) above. */
+   against the dock's own bottom edge (no root padding-bottom) — the 12px gap
+   above it lives on .actions instead (.actionsKeyboardGap), since
+   padding-bottom here would land AFTER the keyboard (the last child), not
+   between it and the button(s) above. */
 .withKeyboard {
   padding-bottom: 0;
 }
@@ -119,24 +114,6 @@
 
 .fullButton {
   width: 100%;
-}
-
-/* ===== HOME INDICATOR (iOS) — Figma AppStatusBarLower: 32px area,
-   134×5 black bar ending 6px above the bottom edge ===== */
-.homeIndicator {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  height: 32px;
-  padding-bottom: 6px;
-  overflow: hidden;
-}
-
-.homeBar {
-  width: 134px;
-  height: 5px;
-  border-radius: var(--radius-full);
-  background: #000;
 }
 
 /* ===== RESPONSIVE ===== */

@@ -130,7 +130,6 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
         sticky
         primaryLabel="Edit Customer"
         onPrimary={() => onEdit?.()}
-        homeIndicator
       />
 
       <SendSuccessToast open={!!flash} message={flash ?? ""} onDone={onFlashDone} />

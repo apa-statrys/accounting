@@ -946,7 +946,6 @@ export function AddInvoiceDetails({
                         : { ...recentSent, status: "Draft", recurring: true, meta: `— · Scheduled on ${format(recStart, "d MMM yyyy")}` }
                     )
             }
-            homeIndicator={!keyboardOpen}
             keyboard={keyboardOpen}
           />
         ) : isEditing ? (
@@ -958,7 +957,6 @@ export function AddInvoiceDetails({
             // leave at any time). The limited edit-from-detail flow keeps the items gate.
             primaryDisabled={services.length === 0 && !editExitToList}
             onPrimary={onEditSave}
-            homeIndicator={!keyboardOpen}
             keyboard={keyboardOpen}
           />
         ) : isExtracted && existingInvoice ? (
@@ -969,7 +967,6 @@ export function AddInvoiceDetails({
             sticky
             primaryLabel={existingPrimaryLabel}
             onPrimary={() => onOpenExisting?.(existingInvoice)}
-            homeIndicator={!keyboardOpen}
             keyboard={keyboardOpen}
           />
         ) : isExtracted ? (
@@ -984,7 +981,6 @@ export function AddInvoiceDetails({
             // Locked-period demo: an unset Issue Date shows the required-field error (guardIssueDate
             // scrolls + flags); once picked, lockActions keeps the CTA inert so it never lands.
             onPrimary={() => { if (!guardIssueDate() && !lockActions) onSend?.({ title: "Invoice created successfully" }, recentSent); }}
-            homeIndicator={!keyboardOpen}
             keyboard={keyboardOpen}
           />
         ) : (
@@ -1011,7 +1007,6 @@ export function AddInvoiceDetails({
               }
               handleSendInvoiceClick();
             }}
-            homeIndicator={!keyboardOpen}
             keyboard={keyboardOpen}
           />
         )}
@@ -1100,7 +1095,6 @@ export function AddInvoiceDetails({
             primaryLabel="Confirm"
             primaryDisabled={(recEnd.mode === "count" && recEnd.count <= 0) || (recEnd.mode === "date" && !recEnd.date)}
             onPrimary={() => setRecEndOpen(false)}
-            homeIndicator
           />
         }
       >

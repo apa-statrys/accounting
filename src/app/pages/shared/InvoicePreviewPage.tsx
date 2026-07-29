@@ -266,7 +266,6 @@ export function InvoicePreviewPage(props: InvoicePreviewPageProps) {
         sticky
         primaryLabel="Download PDF"
         onPrimary={download}
-        homeIndicator
       />
     </div>
   );

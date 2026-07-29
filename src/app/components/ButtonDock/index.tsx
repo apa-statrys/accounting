@@ -15,11 +15,12 @@ import { Keyboard } from '../Keyboard';
  *                so `stack` is only assignable when `type: 'ghost'` (a type
  *                error otherwise, not a silently-ignored prop — see the
  *                ButtonDockVerticalProps/ButtonDockGhostProps union below).
- *   showCheckbox → accessory · IOS controls: "App status bar" → homeIndicator ·
- *                  "Keyboard" → keyboard (renders components/Keyboard below the
- *                  actions instead of the plain home-indicator bar — Keyboard
- *                  supplies its own). The two are mutually exclusive, same as
- *                  the Figma axis; `keyboard` wins if both are set.
+ *   showCheckbox → accessory · IOS controls: "Keyboard" → keyboard (renders
+ *                  components/Keyboard below the actions — Keyboard supplies
+ *                  its own home indicator). "App status bar" (the plain
+ *                  home-indicator bar at rest) was dropped from the dock itself
+ *                  (2026-07-29, user feedback) — the dock just reserves its
+ *                  normal bottom padding instead.
  *   Slot → `slot` — arbitrary content above the actions (e.g. the price summary
  *          on Create Invoice, Figma node 1419-52781); caller decides what/when
  *          to render, this just reserves the position + side padding. A dock
@@ -36,11 +37,8 @@ interface ButtonDockCommonProps extends React.HTMLAttributes<HTMLDivElement> {
   slot?: React.ReactNode;
   /** Show the checkbox accessory row above the actions. */
   accessory?: boolean;
-  /** Show the iOS home indicator at the bottom. */
-  homeIndicator?: boolean;
-  /** Show the on-screen keyboard below the actions instead of the plain home
-   *  indicator (Figma "IOS controls" = Keyboard) — e.g. a dock sitting above a
-   *  focused search/text field. Wins over `homeIndicator` if both are set. */
+  /** Show the on-screen keyboard below the actions (Figma "IOS controls" =
+   *  Keyboard) — e.g. a dock sitting above a focused search/text field. */
   keyboard?: boolean;
   /** Float the dock over the page's scroll area (absolute, bottom of the
    *  phone frame) so content frosts through the backdrop blur as it scrolls
@@ -104,7 +102,6 @@ export function ButtonDock({
   stack = 'vertical',
   slot,
   accessory = false,
-  homeIndicator = false,
   keyboard = false,
   sticky = false,
   primaryLabel = 'Confirm',
@@ -158,7 +155,7 @@ export function ButtonDock({
         styles.root,
         slot ? styles.opaque : '',
         sticky ? styles.sticky : '',
-        keyboard ? styles.withKeyboard : homeIndicator ? styles.withHomeIndicator : '',
+        keyboard ? styles.withKeyboard : '',
         className,
       ]
         .filter(Boolean)
@@ -215,8 +212,8 @@ export function ButtonDock({
         )}
       </div>
 
-      <AnimatePresence initial={false} mode="wait">
-        {keyboard ? (
+      <AnimatePresence initial={false}>
+        {keyboard && (
           <motion.div
             key="keyboard"
             initial={{ opacity: 0, height: 0 }}
@@ -226,19 +223,6 @@ export function ButtonDock({
           >
             <Keyboard />
           </motion.div>
-        ) : (
-          homeIndicator && (
-            <motion.div
-              key="home-indicator"
-              className={styles.homeIndicator}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.25, ease: 'easeInOut' }}
-            >
-              <span className={styles.homeBar} />
-            </motion.div>
-          )
         )}
       </AnimatePresence>
     </div>

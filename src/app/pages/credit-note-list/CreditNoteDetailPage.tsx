@@ -489,12 +489,11 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           secondaryLabel="Edit"
           onPrimary={() => onApply?.()}
           onSecondary={() => onEdit?.()}
-          homeIndicator
         />
       ) : (isOpen || isRefundDraft) && onEdit ? (
         // Draft (cancellation missing fields, or a refund draft) — lead with Edit to finish it. A refund
         // draft is resumed through the refund form (its confirm step creates the refund), never "sent".
-        <ButtonDock type="single" sticky primaryLabel="Edit" onPrimary={() => onEdit?.()} homeIndicator />
+        <ButtonDock type="single" sticky primaryLabel="Edit" onPrimary={() => onEdit?.()} />
       ) : isApplied ? (
         isPartiallyApplied && onEdit ? (
           <ButtonDock
@@ -504,7 +503,6 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             secondaryLabel="Edit"
             onPrimary={openSend}
             onSecondary={() => onEdit?.()}
-            homeIndicator
           />
         ) : (
           // Applied (fully) — a single "Send Credit Note" CTA (kept as "Send" even after sending).
@@ -513,7 +511,6 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             sticky
             primaryLabel="Send Credit Note"
             onPrimary={openSend}
-            homeIndicator
           />
         )
       ) : isCancelled ? (
@@ -521,7 +518,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         null
       ) : isCancellation ? (
         // An Open cancellation note where Apply isn't wired → Preview only.
-        <ButtonDock type="single" sticky primaryLabel="Preview as PDF" onPrimary={openPdfPreview} homeIndicator />
+        <ButtonDock type="single" sticky primaryLabel="Preview as PDF" onPrimary={openPdfPreview} />
       ) : (
         // Refund CN (Pending Refund or settled) → Send/Resend the credit note. Not editable (AC2).
         <ButtonDock
@@ -529,7 +526,6 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           sticky
           primaryLabel={sentLocal ? "Resend Credit Note" : "Send Credit Note"}
           onPrimary={openSend}
-          homeIndicator
         />
       )}
 
@@ -600,7 +596,6 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             secondaryLabel="Delete Credit note"
             onPrimary={() => setConfirmDelete(false)}
             onSecondary={() => { setConfirmDelete(false); onCancel?.(); }}
-            homeIndicator
           />
         }
       >
@@ -625,7 +620,6 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             secondaryLabel={isRefund ? "Cancel Refund" : "Cancel Credit Note"}
             onPrimary={() => setConfirmCancel(false)}
             onSecondary={() => { setConfirmCancel(false); onCancel?.(); }}
-            homeIndicator
           />
         }
       >

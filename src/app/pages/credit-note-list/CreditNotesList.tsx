@@ -297,7 +297,6 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               onPrimary={() => setFilterOpen(false)}
               // While the customer search field is focused, the keyboard replaces the
               // home indicator (Figma "IOS controls" = Keyboard, same as CreateSalesInvoice).
-              homeIndicator={!customerSearchOpen}
               keyboard={customerSearchOpen}
             />
           )

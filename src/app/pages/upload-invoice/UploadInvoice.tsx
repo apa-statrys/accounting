@@ -124,7 +124,6 @@ export function UploadInvoice({ onBack, onContinue, initialFiles = [] }: UploadI
               type="single"
               primaryLabel="Continue"
               onPrimary={() => onContinue?.(files)}
-              homeIndicator
             />
           ) : undefined
         }

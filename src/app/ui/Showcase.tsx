@@ -1123,9 +1123,8 @@ const BUTTONDOCK_CONTROL_GROUPS: ControlGroup[] = [
     key: "bottom",
     label: "iOS controls",
     options: [
-      { value: "none", label: "None" },
-      { value: "home", label: "Home indicator" },
-      { value: "keyboard", label: "Keyboard" },
+      { value: "none", label: "None — use for most docks (the plain home-indicator bar was dropped)" },
+      { value: "keyboard", label: "Keyboard — use when the dock sits above a focused text field" },
     ],
   },
 ];
@@ -1162,7 +1161,6 @@ function ButtonDockOverview() {
                 primaryLabel="Confirm"
                 secondaryLabel={v.type === "ghost" ? "Close" : "Cancel"}
                 tertiaryLabel="Close"
-                homeIndicator={v.bottom === "home"}
                 keyboard={v.bottom === "keyboard"}
               />
             </DockStage>
@@ -1174,7 +1172,7 @@ function ButtonDockOverview() {
           The frosted dock floating over page content via the sticky prop — the gradient fades in and content blurs underneath (page docks pass sticky; sheet footers stay in-flow):
         </p>
         <PhoneDockStage>
-          <ButtonDock type="double" sticky primaryLabel="Send Invoice" secondaryLabel="Send Later" homeIndicator />
+          <ButtonDock type="double" sticky primaryLabel="Send Invoice" secondaryLabel="Send Later" />
         </PhoneDockStage>
       </div>
     </div>

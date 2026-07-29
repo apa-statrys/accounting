@@ -662,7 +662,6 @@ export function CreditNoteForm({
         }
         primaryLabel={isEdit ? (submitLabel ?? "Save changes") : "Create Credit Note"}
         onPrimary={handleCreate}
-        homeIndicator={!keyboardOpen}
         keyboard={keyboardOpen}
       />
 

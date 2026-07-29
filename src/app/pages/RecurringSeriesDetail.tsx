@@ -193,7 +193,6 @@ export function RecurringSeriesDetail({
           primaryLabel="Edit Recurring"
           onSecondary={active ? onPause : onResume}
           onPrimary={onEdit}
-          homeIndicator
         />
       )}
 
@@ -225,7 +224,6 @@ export function RecurringSeriesDetail({
             primaryLabel="Keep Schedule"
             onSecondary={() => { setConfirmCancel(false); onCancel?.(); }}
             onPrimary={() => setConfirmCancel(false)}
-            homeIndicator
           />
         }
       >

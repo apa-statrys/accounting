@@ -296,7 +296,6 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         primaryLabel={isEdit ? "Save Changes" : "Add Customer"}
         primaryDisabled={isEdit && !dirty}
         onPrimary={handleSave}
-        homeIndicator={!keyboardOpen}
         keyboard={keyboardOpen}
       />
 
@@ -335,7 +334,6 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
             secondaryLabel="Discard"
             onPrimary={() => setDiscardOpen(false)}
             onSecondary={() => { setDiscardOpen(false); onBack?.(); }}
-            homeIndicator
           />
         }
       >
@@ -358,7 +356,6 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
             primaryLabel={isEdit ? "Save Anyway" : "Create Anyway"}
             onSecondary={() => setDupOpen(false)} // Cancel → stay on the customer form
             onPrimary={() => { setDupOpen(false); commitSave(); }}
-            homeIndicator
           />
         }
       >

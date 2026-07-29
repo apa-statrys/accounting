@@ -331,7 +331,6 @@ export function SendInvoiceSheet({
             primaryLabel={tab === 0 ? (sendError ? "Try again" : `Send ${docLabel}`) : "Mark as Sent"}
             onSecondary={() => setPreviewOpen(true)}
             onPrimary={tab === 0 ? handleSend : onSent}
-            homeIndicator={!keyboardOpen}
             keyboard={tab === 0 && keyboardOpen}
           />
 

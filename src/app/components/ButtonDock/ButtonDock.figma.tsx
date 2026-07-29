@@ -9,9 +9,11 @@ import { ButtonDock, type ButtonDockProps } from './index';
  * Figma axes: Button Type (Primary / Primary + Outline / Primary + Ghost /
  * Primary + Secondary + Tertiary) × Stack (Vertical/Horizontal) ×
  * IOS controls (None / App status bar / Keyboard) × showCheckbox × Type
- * (Default/Slot). "App status bar" maps to homeIndicator, "Keyboard" to the
- * keyboard prop (renders components/Keyboard below the actions). "Slot" is a
- * design-reference variant with no code counterpart.
+ * (Default/Slot). "Keyboard" maps to the keyboard prop (renders
+ * components/Keyboard below the actions); "App status bar" (the plain
+ * home-indicator bar at rest) has no code counterpart — dropped from the
+ * dock itself 2026-07-29 (user feedback). "Slot" is a design-reference
+ * variant with no code counterpart either.
  */
 figma.connect(
   ButtonDock,
@@ -29,18 +31,13 @@ figma.connect(
         Horizontal: 'horizontal',
       }),
       accessory: figma.boolean('showCheckbox'),
-      homeIndicator: figma.enum('IOS controls', {
-        'App status bar': true,
-        Keyboard: false,
-        None: false,
-      }),
       keyboard: figma.enum('IOS controls', {
         Keyboard: true,
         'App status bar': false,
         None: false,
       }),
     },
-    example: ({ type, stack, accessory, homeIndicator, keyboard }) => {
+    example: ({ type, stack, accessory, keyboard }) => {
       // `type` and `stack` are two independent Figma enums, but every real instance is
       // internally consistent (Stack=Horizontal is only ever set on a Primary+Ghost instance —
       // Figma has no such variant to author otherwise). ButtonDockProps' discriminated union
@@ -52,7 +49,6 @@ figma.connect(
         <ButtonDock
           {...props}
           accessory={accessory}
-          homeIndicator={homeIndicator}
           keyboard={keyboard}
           primaryLabel="Confirm"
           secondaryLabel="Cancel"

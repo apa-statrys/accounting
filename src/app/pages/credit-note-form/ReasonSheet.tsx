@@ -28,7 +28,6 @@ export function ReasonSheet({ open, onClose, reason, setReason }: ReasonSheetPro
           primaryLabel="Done"
           primaryDisabled={reason === ""}
           onPrimary={onClose}
-          homeIndicator
         />
       }
     >

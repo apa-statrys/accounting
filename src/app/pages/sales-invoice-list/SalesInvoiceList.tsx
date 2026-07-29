@@ -515,7 +515,6 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
                 setOpenCalendar(null);
               }}
               onPrimary={() => setFilterOpen(false)}
-              homeIndicator
             />
           )
         }
@@ -714,7 +713,6 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
               if (confirmDeleteId) setDeletedIds((prev) => [...prev, confirmDeleteId]);
               setConfirmDeleteId(null);
             }}
-            homeIndicator
           />
         }
       >
