@@ -1164,98 +1164,6 @@ export default function App() {
           }}
         />
       )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Scenario annotation — shown in the white space to the right of the phone frame, only on the
-          voided demo invoice (INV-…008), explaining how it reached the Void state. Deliberately
-          OUTSIDE the sliding wrapper above: it's `fixed`-positioned relative to the viewport, and a
-          `transform`'d ancestor (the slide animation) would re-anchor it and drag it along mid-slide. */}
-      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000008" && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Scenario</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              A user sent an invoice for a website design project.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              Before payment is made, their customer decides to cancel the entire project.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              The user creates a full credit note, and the invoice status changes to{" "}
-              <span className="font-semibold">Voided</span>.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Design-rationale annotation — shown in the white space to the right of the phone frame on the
-          Refund CN — Draft screen (INV-…015), explaining the Apply-vs-Edit CTA gating. */}
-      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && openInvoice.cnDraft && openInvoice.viewCn && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              This draft has all required information, so it leads with{" "}
-              <span className="font-semibold">Apply to invoice</span> as the primary action.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              If a credit-note draft is not completed with all required information, only the{" "}
-              <span className="font-semibold">Edit</span> button is shown instead.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Design-rationale annotation — shown in the white space to the right of the phone frame, only on
-          the created Draft demo invoice (INV-…003), explaining the Send-Invoice gating on the detail page. */}
-      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "created" && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              The <span className="font-semibold">Send Invoice</span> action is shown only when all required
-              fields are completed. This prevents users from sending incomplete invoices and ensures the
-              invoice is ready for delivery.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              Otherwise, the <span className="font-semibold">Edit</span> button is shown as the primary button.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Design-rationale annotation — shown in the white space to the right of the phone frame, only on
-          the uploaded Draft demo invoice (INV-…003), explaining the Mark-as-Sent/Paid actions. */}
-      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "uploaded" && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              Invoices imported through the <span className="font-semibold">Upload Invoice</span> flow may have
-              already been sent to customers outside of Statrys.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              Instead of requiring users to go through the Send Invoice flow again, we provide{" "}
-              <span className="font-semibold">Mark as Sent</span> and{" "}
-              <span className="font-semibold">Mark as Paid</span> actions directly.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Locked Period (DES-751) — how a locked accounting period surfaces on the client app:
           a passive inline banner, and a blocking alert when a locked action is attempted. */}
@@ -1267,25 +1175,6 @@ export default function App() {
         />
       )}
 
-      {/* Design-rationale annotation — shown in the white space right of the phone frame on the
-          locked-period banner screen (mirrors the voided-invoice scenario note). */}
-      {screen === "lockedPeriodBanner" && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Why this banner</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              Information will help to let users know about the restriction before they take any action.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              Since it affects creating, editing, voiding, and cancelling, it's better to explain it
-              once upfront.
-            </p>
-          </div>
-        </div>
-      )}
       {/* Locked Period — "closed accounting period" on the Create Invoice flow: the same top alert
           banner as the upload demo, the Issue Date defaults to the first open day (1 Jan 2027), and
           the calendar disables any date in the closed period (with a warning helper). */}
@@ -1311,39 +1200,6 @@ export default function App() {
         />
       )}
 
-      {/* Beside-frame guidance for the Create (Locked Period) demo. Before the calendar opens, a
-          "Click Here" arrow points at the Issue Date row (the only permitted interaction); once it's
-          open, the arrow is replaced by the locked-dates explanation note. */}
-      {screen === "lockedPeriodDialog" && !lockedIssueSheetOpen && (
-        <div
-          className="hidden lg:flex fixed top-[calc(50%-112px)] left-[calc(50%+196px)] items-center gap-3"
-          style={FONT}
-        >
-          {/* Straight arrow pointing left, toward the Issue Date row inside the frame. */}
-          <svg width="56" height="24" viewBox="0 0 56 24" fill="none" aria-hidden="true">
-            <path d="M54 12 L4 12 M4 12 L14 5 M4 12 L14 19" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-          </svg>
-          <span className="text-[20px] font-bold tracking-[-0.2px] text-[#2563eb]">Click Issue Date</span>
-        </div>
-      )}
-      {screen === "lockedPeriodDialog" && lockedIssueSheetOpen && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              The Issue Date defaults to the first available (unlocked) date.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              If the user goes back to a previous, already-closed month, those dates can't be selected —
-              all dates within the locked accounting period are disabled. This prevents confusion and
-              avoids creating invoices in a closed accounting period.
-            </p>
-          </div>
-        </div>
-      )}
       {/* Locked Period — "closed accounting period" on the Upload Invoice flow: the review screen
           shows the amber alert at the top (in place of the OCR coverage banner) and the Issue Date
           reads a muted "Select issue date" placeholder because the extracted date (May 2025) falls
@@ -1376,24 +1232,6 @@ export default function App() {
           onClose={() => setScreen("dashboard")}
           onChangeCustomer={() => {}}
         />
-      )}
-
-      {/* Design-rationale annotation — shown in the white space to the right of the phone frame on the
-          Upload (Locked Period) screen, explaining why the uploaded invoice's Issue Date must be re-picked. */}
-      {screen === "lockedPeriodUpload" && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              If the uploaded invoice has an Issue Date within a locked accounting period, that date can't
-              be used. Users are prompted to select a new Issue Date outside the closed period before
-              creating the invoice.
-            </p>
-          </div>
-        </div>
       )}
 
       {/* Locked Period — Draft credit note in a closed accounting period: the CN detail opens first
@@ -1500,6 +1338,168 @@ export default function App() {
           lockedPeriod
           onBack={() => setScreen("dashboard")}
         />
+      )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Scenario annotation — shown in the white space to the right of the phone frame, only on the
+          voided demo invoice (INV-…008), explaining how it reached the Void state. Deliberately
+          OUTSIDE the sliding wrapper above: it's `fixed`-positioned relative to the viewport, and a
+          `transform`'d ancestor (the slide animation) would re-anchor it and drag it along mid-slide. */}
+      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000008" && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Scenario</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              A user sent an invoice for a website design project.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              Before payment is made, their customer decides to cancel the entire project.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              The user creates a full credit note, and the invoice status changes to{" "}
+              <span className="font-semibold">Voided</span>.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Design-rationale annotation — shown in the white space to the right of the phone frame on the
+          Refund CN — Draft screen (INV-…015), explaining the Apply-vs-Edit CTA gating. */}
+      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && openInvoice.cnDraft && openInvoice.viewCn && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              This draft has all required information, so it leads with{" "}
+              <span className="font-semibold">Apply to invoice</span> as the primary action.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              If a credit-note draft is not completed with all required information, only the{" "}
+              <span className="font-semibold">Edit</span> button is shown instead.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Design-rationale annotation — shown in the white space to the right of the phone frame, only on
+          the created Draft demo invoice (INV-…003), explaining the Send-Invoice gating on the detail page. */}
+      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "created" && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              The <span className="font-semibold">Send Invoice</span> action is shown only when all required
+              fields are completed. This prevents users from sending incomplete invoices and ensures the
+              invoice is ready for delivery.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              Otherwise, the <span className="font-semibold">Edit</span> button is shown as the primary button.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Design-rationale annotation — shown in the white space to the right of the phone frame, only on
+          the uploaded Draft demo invoice (INV-…003), explaining the Mark-as-Sent/Paid actions. */}
+      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "uploaded" && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              Invoices imported through the <span className="font-semibold">Upload Invoice</span> flow may have
+              already been sent to customers outside of Statrys.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              Instead of requiring users to go through the Send Invoice flow again, we provide{" "}
+              <span className="font-semibold">Mark as Sent</span> and{" "}
+              <span className="font-semibold">Mark as Paid</span> actions directly.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Design-rationale annotation — shown in the white space right of the phone frame on the
+          locked-period banner screen (mirrors the voided-invoice scenario note). */}
+      {screen === "lockedPeriodBanner" && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Why this banner</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              Information will help to let users know about the restriction before they take any action.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              Since it affects creating, editing, voiding, and cancelling, it's better to explain it
+              once upfront.
+            </p>
+          </div>
+        </div>
+      )}
+      {/* Beside-frame guidance for the Create (Locked Period) demo. Before the calendar opens, a
+          "Click Here" arrow points at the Issue Date row (the only permitted interaction); once it's
+          open, the arrow is replaced by the locked-dates explanation note. */}
+      {screen === "lockedPeriodDialog" && !lockedIssueSheetOpen && (
+        <div
+          className="hidden lg:flex fixed top-[calc(50%-112px)] left-[calc(50%+196px)] items-center gap-3"
+          style={FONT}
+        >
+          {/* Straight arrow pointing left, toward the Issue Date row inside the frame. */}
+          <svg width="56" height="24" viewBox="0 0 56 24" fill="none" aria-hidden="true">
+            <path d="M54 12 L4 12 M4 12 L14 5 M4 12 L14 19" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          </svg>
+          <span className="text-[20px] font-bold tracking-[-0.2px] text-[#2563eb]">Click Issue Date</span>
+        </div>
+      )}
+      {screen === "lockedPeriodDialog" && lockedIssueSheetOpen && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              The Issue Date defaults to the first available (unlocked) date.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              If the user goes back to a previous, already-closed month, those dates can't be selected —
+              all dates within the locked accounting period are disabled. This prevents confusion and
+              avoids creating invoices in a closed accounting period.
+            </p>
+          </div>
+        </div>
+      )}
+      {/* Design-rationale annotation — shown in the white space to the right of the phone frame on the
+          Upload (Locked Period) screen, explaining why the uploaded invoice's Issue Date must be re-picked. */}
+      {screen === "lockedPeriodUpload" && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              If the uploaded invoice has an Issue Date within a locked accounting period, that date can't
+              be used. Users are prompted to select a new Issue Date outside the closed period before
+              creating the invoice.
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Screen jumper — the collapsible QuickNav sidebar (stakeholder demos), shown in

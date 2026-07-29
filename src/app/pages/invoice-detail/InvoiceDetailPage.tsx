@@ -957,7 +957,7 @@ export function InvoiceDetailPage({
             primaryLabel="Send now"
             primaryLoading={sendPending}
             onSecondary={openEdit}
-            onPrimary={handleSendInvoiceClick}
+            onPrimary={openSend}
             homeIndicator
           />
         ) : uploaded ? (
@@ -985,7 +985,7 @@ export function InvoiceDetailPage({
       ) : sendable ? (
         // Once a payment is logged (awaiting approval) the "Mark as paid" CTA drops, leaving just "Send invoice".
         pendingPayment ? (
-          <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryLoading={sendPending} onPrimary={handleSendInvoiceClick} homeIndicator />
+          <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryLoading={sendPending} onPrimary={openSend} homeIndicator />
         ) : (
           <ButtonDock
             type="double"
@@ -995,7 +995,7 @@ export function InvoiceDetailPage({
             secondaryLabel="Send invoice"
             primaryLabel="Mark as paid"
             secondaryLoading={sendPending}
-            onSecondary={handleSendInvoiceClick}
+            onSecondary={openSend}
             onPrimary={openMarkPaid}
             homeIndicator
           />
@@ -1023,7 +1023,7 @@ export function InvoiceDetailPage({
             secondaryLabel="Send invoice"
             primaryLabel="Refund Credit Note"
             secondaryLoading={sendPending}
-            onSecondary={handleSendInvoiceClick}
+            onSecondary={openSend}
             onPrimary={() => setRefundFlowOpen(true)}
             homeIndicator
           />
