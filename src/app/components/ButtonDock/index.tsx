@@ -1,4 +1,5 @@
 import React from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import styles from './index.module.css';
 import { Button } from '../../ui/Button';
 import { Checkbox } from '../../ui/Checkbox';
@@ -21,7 +22,9 @@ import { Keyboard } from '../Keyboard';
  *                  the Figma axis; `keyboard` wins if both are set.
  *   Slot → `slot` — arbitrary content above the actions (e.g. the price summary
  *          on Create Invoice, Figma node 1419-52781); caller decides what/when
- *          to render, this just reserves the position + side padding.
+ *          to render, this just reserves the position + side padding. A dock
+ *          with a slot renders opaque (solid white + drop shadow, no frost/blur)
+ *          since real content needs a legible surface — see .opaque in the CSS.
  */
 
 export type ButtonDockType = 'single' | 'double' | 'ghost' | 'triple';
@@ -153,6 +156,7 @@ export function ButtonDock({
     <div
       className={[
         styles.root,
+        slot ? styles.opaque : '',
         sticky ? styles.sticky : '',
         keyboard ? styles.withKeyboard : homeIndicator ? styles.withHomeIndicator : '',
         className,
@@ -162,8 +166,21 @@ export function ButtonDock({
       data-type={type}
       {...rest}
     >
-      <div className={styles.frost} aria-hidden />
-      {slot && <div className={styles.slot}>{slot}</div>}
+      {!slot && <div className={styles.frost} aria-hidden />}
+      <AnimatePresence initial={false}>
+        {slot && (
+          <motion.div
+            key="dock-slot"
+            className={styles.slot}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
+          >
+            {slot}
+          </motion.div>
+        )}
+      </AnimatePresence>
       {accessory && (
         <div className={styles.accessory}>
           <Checkbox checked={!!checked} onChange={(c) => onCheckedChange?.(c)} label={accessoryLabel} />

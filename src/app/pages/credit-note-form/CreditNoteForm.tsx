@@ -186,7 +186,10 @@ export function CreditNoteForm({
     const root = scrollRef.current;
     const target = summaryRef.current;
     if (!root || !target) return;
-    const observer = new IntersectionObserver(([entry]) => setSummaryVisible(entry.isIntersecting), { root });
+    // threshold 1 (not the default 0) — a sliver of the card peeking into view at the bottom
+    // edge shouldn't count as "visible", or the sticky slot disappears before the user can
+    // actually read the real card.
+    const observer = new IntersectionObserver(([entry]) => setSummaryVisible(entry.isIntersecting), { root, threshold: 1 });
     observer.observe(target);
     return () => observer.disconnect();
   }, []);

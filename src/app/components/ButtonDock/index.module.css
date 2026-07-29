@@ -18,6 +18,8 @@
   /* Figma: 16px top, 32px bottom when there's no home-indicator area */
   padding-top: 16px;
   padding-bottom: 32px;
+  /* Crossfades .opaque in/out alongside the slot's own height/opacity animation (index.tsx). */
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .root > :not(.frost) {
@@ -38,6 +40,15 @@
      (nearest the scrolling content) instead of the bottom. */
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.15) 3%, rgba(0, 0, 0, 0.4) 8%, rgba(0, 0, 0, 0.75) 16%, rgba(0, 0, 0, 0.94) 26%, #000 40%);
   mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.15) 3%, rgba(0, 0, 0, 0.4) 8%, rgba(0, 0, 0, 0.75) 16%, rgba(0, 0, 0, 0.94) 26%, #000 40%);
+}
+
+/* Opaque variant — a slot with real content (e.g. a price summary) needs a solid, legible
+   surface, not the frosted blur (Figma "Create Invoice", node 1419-52781: solid white +
+   drop shadow, no blur). Auto-applied whenever `slot` is passed; .frost isn't rendered
+   at all in this case (see index.tsx), so there's no conflicting blur/gradient layer. */
+.opaque {
+  background: var(--bg-neutral-primary);
+  box-shadow: 0px 10px 30px 0px rgba(0, 0, 0, 0.2);
 }
 
 /* When the home indicator is present it provides the bottom space. */
