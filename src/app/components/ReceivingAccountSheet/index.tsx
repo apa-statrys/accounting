@@ -1,7 +1,6 @@
 import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../BottomSheet";
 import { Tile } from "../../ui/Tile";
-import { Badge } from "../../ui/Badge";
 import { CountryFlag } from "../CountryFlag";
 import { RECEIVING_ACCOUNTS } from "../../data/receivingAccounts";
 import styles from "./index.module.css";
@@ -47,7 +46,7 @@ export function ReceivingAccountSheet({
                 title={a.name}
                 text={a.number}
                 flag={<CountryFlag name={a.country} size={30} />}
-                cornerBadge={a.primary ? <Badge label="Primary" size="sm" variant="bold" color="custom" /> : undefined}
+                badgeLabel={a.primary ? "Primary" : undefined}
                 selected={value === a.id}
                 trailing={value === a.id ? "check" : "none"}
                 onClick={() => onSelect?.(a.id)}

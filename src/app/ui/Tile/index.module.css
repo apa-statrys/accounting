@@ -7,7 +7,6 @@
 
 .tile {
   box-sizing: border-box;
-  position: relative; /* anchors .cornerBadge */
   display: flex;
   align-items: center;
   gap: 10px;
@@ -102,28 +101,32 @@ button.tile {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* Badge pinned to the tile's top-right corner (Figma primary-account tile).
-   The badge's radii are reshaped so it hugs the card corner. */
-.cornerBadge {
-  position: absolute;
-  top: -1px;
-  right: -1px;
-  display: flex; /* kills the inline-baseline gap under the badge */
-}
-.cornerBadge > * {
-  border-radius: 0 var(--radius-2xl) 0 var(--radius-md);
-}
-
-/* Title + inline badge (e.g. "Primary" on a receiving account) */
+/* Title + inline badge (e.g. "Primary" on a receiving account) — Figma showBadge,
+   node 4222-8331 (title+badge row: 6px gap). */
 .titleRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
 .titleRow .title {
   flex-shrink: 1;
   min-width: 0;
+}
+/* Fixed pill styling per Figma — not the general ui/Badge (no matching beige-tertiary
+   color there). */
+.badgePill {
+  composes: caption-medium from global;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 18px;
+  padding: 2px 6px;
+  border-radius: var(--radius-md);
+  background: var(--bg-beige-tertiary);
+  color: var(--text-primary);
+  white-space: nowrap;
 }
 .text {
   composes: caption from global;

@@ -3,7 +3,6 @@
 import { BottomSheet } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
 import { Tile } from "../../ui/Tile";
-import { Badge } from "../../ui/Badge";
 import { money } from "../../lib/format";
 import { FONT, MUTED } from "../../lib/theme";
 import type { CreditNote } from "./creditNoteTypes";
@@ -62,7 +61,7 @@ export function SendPickerSheet({ open, onClose, creditNotes, currency, selected
             size="sm"
             title={cn.no}
             text={`−${money(cn.amount, currency)}${cn.sent ? ` · Sent on ${cn.sentDate}` : " · Not sent yet"}`}
-            cornerBadge={cn.sent ? <Badge label="Sent" size="sm" variant="bold" color="custom" /> : undefined}
+            badgeLabel={cn.sent ? "Sent" : undefined}
             selected={selectedIndex === i}
             trailing={selectedIndex === i ? "check" : "none"}
             onClick={() => onSelect(i)}

@@ -29,11 +29,12 @@ interface TileProps {
   size?: "md" | "sm";
   /** Second line under the title (Figma showText). */
   text?: string;
-  /** Inline badge rendered after the title (e.g. <Badge label="Primary" />). */
-  badge?: React.ReactNode;
-  /** Badge pinned to the tile's top-right corner (Figma primary-account tile) —
-   *  pass a <Badge size="sm">; the corner radii are reshaped to hug the card corner. */
-  cornerBadge?: React.ReactNode;
+  /** Inline "Primary"/"Sent"-style tag rendered right after the title (Figma showBadge,
+   *  e.g. the primary receiving account, or a sent credit note) — a small fixed beige-
+   *  tertiary pill baked into the Tile component itself, not the general ui/Badge (which
+   *  has no matching color for it). Was previously (incorrectly) built with a corner-
+   *  pinned ui/Badge — Figma's Tile has no corner-badge variant, only this inline one. */
+  badgeLabel?: string;
   /** 24px leading icon (Figma icon-swap slot; inherits the state color). */
   icon?: React.ReactNode;
   /** 30px leading country flag (e.g. <USFlag size={30} />). */
@@ -78,8 +79,7 @@ export function Tile({
   title,
   size = "md",
   text,
-  badge,
-  cornerBadge,
+  badgeLabel,
   icon,
   flag,
   avatar,
@@ -121,10 +121,10 @@ export function Tile({
         <span className={styles.icon}>{icon}</span>
       ) : null}
       <span className={styles.textBlock}>
-        {badge ? (
+        {badgeLabel ? (
           <span className={styles.titleRow}>
             <span className={styles.title}>{title}</span>
-            {badge}
+            <span className={styles.badgePill}>{badgeLabel}</span>
           </span>
         ) : (
           <span className={styles.title}>{title}</span>
@@ -141,7 +141,6 @@ export function Tile({
           )}
         </span>
       )}
-      {cornerBadge && <span className={styles.cornerBadge}>{cornerBadge}</span>}
     </>
   );
   if (onClick) {

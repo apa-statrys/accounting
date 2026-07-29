@@ -1742,6 +1742,14 @@ const TILE_CONTROL_GROUPS: ControlGroup[] = [
     ],
   },
   {
+    key: "badge",
+    label: "Badge",
+    options: [
+      { value: "off", label: "Hidden" },
+      { value: "on", label: "Shown — e.g. \"Primary\" on a receiving account, \"Sent\" on a credit note" },
+    ],
+  },
+  {
     key: "state",
     label: "State",
     options: [
@@ -1764,7 +1772,7 @@ function TileTestMe() {
   return (
     <InteractiveDemo
       groups={TILE_CONTROL_GROUPS}
-      defaultValues={{ size: "md", leading: "flag", trailing: "chevron", text: "on", state: "default", surface: "neutral" }}
+      defaultValues={{ size: "md", leading: "flag", trailing: "chevron", text: "on", badge: "off", state: "default", surface: "neutral" }}
       canvasBg={(v) => (v.surface === "beige" ? "#f9f5ea" : "#f4f4f2")}
       render={(v) => (
         <div className="w-[320px]">
@@ -1772,6 +1780,7 @@ function TileTestMe() {
             title="Title"
             size={v.size as "md" | "sm"}
             text={v.text === "on" ? "Text" : undefined}
+            badgeLabel={v.badge === "on" ? "Primary" : undefined}
             icon={v.leading === "icon" ? <CircleIcon size={24} /> : undefined}
             flag={v.leading === "flag" ? <USFlag size={30} /> : undefined}
             avatar={v.leading === "avatar" ? "OR" : undefined}

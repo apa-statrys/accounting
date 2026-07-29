@@ -6,7 +6,6 @@ import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
 import { BottomSheet } from "../../components/BottomSheet";
 import { Tile } from "../../ui/Tile";
-import { Badge } from "../../ui/Badge";
 import { CountryFlag } from "../../components/CountryFlag";
 import { RECEIVING_ACCOUNTS, getAccount } from "../../data/receivingAccounts";
 import { money } from "../../lib/format";
@@ -152,7 +151,7 @@ export function RefundCreditNoteFlow({
                   title={a.name}
                   text={a.number}
                   flag={<CountryFlag name={a.country} size={30} />}
-                  cornerBadge={a.primary ? <Badge label="Primary" size="sm" variant="bold" color="custom" /> : undefined}
+                  badgeLabel={a.primary ? "Primary" : undefined}
                   selected={fromAccount === a.id}
                   trailing={fromAccount === a.id ? "check" : "none"}
                   onClick={() => setFromAccount(a.id)}
