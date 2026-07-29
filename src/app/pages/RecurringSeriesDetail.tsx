@@ -1,7 +1,6 @@
 import { useState } from "react";
 import ChevronDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import MenuIcon from "@mui/icons-material/Menu";
-import { Repeat, XCircle } from "lucide-react";
+import { Repeat, XCircle, Menu as MenuIcon } from "lucide-react";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { ButtonDock } from "../components/ButtonDock";
@@ -95,7 +94,7 @@ export function RecurringSeriesDetail({
             title="Recurring Schedule"
             onBack={onBack}
             showSearch={!readOnly}
-            rightIcon={<MenuIcon style={{ fontSize: 20 }} />}
+            rightIcon={<MenuIcon size={20} strokeWidth={1} />}
             rightLabel="Actions"
             onRightClick={() => setMenuOpen(true)}
           />

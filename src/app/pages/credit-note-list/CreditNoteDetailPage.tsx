@@ -1,10 +1,9 @@
 import { useState } from "react";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { Asterisk } from "lucide-react";
+import { Asterisk, MoreHorizontal } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
@@ -244,7 +243,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         title={status === "Draft" ? (kind === "refund" ? "Refund Credit Note" : "Credit Note") : creditNoteNo}
         onBack={onBack}
         showSearch={hasMenu}
-        rightIcon={<MoreHorizIcon style={{ fontSize: 20 }} />}
+        rightIcon={<MoreHorizontal size={20} strokeWidth={1} />}
         rightLabel="More actions"
         onRightClick={() => setActionsOpen(true)}
       />

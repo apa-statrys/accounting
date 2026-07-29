@@ -179,7 +179,7 @@ export function BottomSheet({ open, title, onClose, children, footer, tall, heig
                       aria-label={backLabel}
                     >
                       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                        <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </button>
                   )}

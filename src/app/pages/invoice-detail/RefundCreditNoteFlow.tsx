@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import { X } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
@@ -124,7 +124,7 @@ export function RefundCreditNoteFlow({
         type="center"
         title={title}
         onBack={onLeading}
-        backIcon={step === "method" ? <CloseIcon style={{ fontSize: 20 }} /> : undefined}
+        backIcon={step === "method" ? <X size={20} strokeWidth={1} /> : undefined}
         backLabel={step === "method" ? "Close" : "Back"}
         showSearch={false}
       />

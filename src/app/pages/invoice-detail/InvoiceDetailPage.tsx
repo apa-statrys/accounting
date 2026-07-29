@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
@@ -24,7 +23,7 @@ import type { CreditNotePayload, DraftLine, DetailStatus, InvoiceEditSeed, Invoi
 import { ITEMS, SUBTOTAL, DISCOUNT, TOTAL, PAID_PARTIAL, SENT_TODAY, REFUND_DATE_ISO, EDITED_TODAY } from "./demoInvoice";
 import type { CreditNote, RefundProof } from "./creditNoteTypes";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { Repeat, Asterisk } from "lucide-react";
+import { Repeat, Asterisk, MoreHorizontal } from "lucide-react";
 import { MetaRow, InfoCard } from "./InfoBits";
 import { CreditsAppliedSection } from "./CreditsAppliedSection";
 import { ActionsMenu } from "./ActionsMenu";
@@ -658,7 +657,7 @@ export function InvoiceDetailPage({
         title={headerTitle}
         onBack={onBack}
         showSearch={showMenu || paidActionsInMenu}
-        rightIcon={<MoreHorizIcon style={{ fontSize: 20 }} />}
+        rightIcon={<MoreHorizontal size={20} strokeWidth={1} />}
         rightLabel="More actions"
         onRightClick={() => setActionsOpen(true)}
       />
