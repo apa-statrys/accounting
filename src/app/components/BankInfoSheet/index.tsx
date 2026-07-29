@@ -27,6 +27,9 @@ export function BankInfoSheet({ open, onBack, onClose, onConfirm }: BankInfoShee
   const [holder, setHolder] = useState("");
   // Field errors appear only after a failed Confirm; typing in a field clears its error.
   const [errors, setErrors] = useState<{ card?: string; expiry?: string; cvv?: string; holder?: string }>({});
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const focusKeyboard = () => setKeyboardOpen(true);
+  const blurKeyboard = () => setKeyboardOpen(false);
 
   const confirm = () => {
     const next: typeof errors = {};
@@ -52,7 +55,7 @@ export function BankInfoSheet({ open, onBack, onClose, onConfirm }: BankInfoShee
       centerTitle
       onBack={onBack}
       backLabel="Back to receiving accounts"
-      footer={<ButtonDock type="single" homeIndicator primaryLabel="Confirm" onPrimary={confirm} />}
+      footer={<ButtonDock type="single" homeIndicator={!keyboardOpen} keyboard={keyboardOpen} primaryLabel="Confirm" onPrimary={confirm} />}
     >
       <div className={styles.fields}>
         <motion.div variants={sheetItem}>
@@ -66,6 +69,8 @@ export function BankInfoSheet({ open, onBack, onClose, onConfirm }: BankInfoShee
             error={!!errors.card}
             caption={errors.card}
             onChange={(v) => { setCardNumber(v); if (errors.card) setErrors((p) => ({ ...p, card: undefined })); }}
+            onFocus={focusKeyboard}
+            onBlur={blurKeyboard}
           />
         </motion.div>
 
@@ -81,6 +86,8 @@ export function BankInfoSheet({ open, onBack, onClose, onConfirm }: BankInfoShee
             error={!!errors.expiry}
             caption={errors.expiry}
             onChange={(v) => { setExpiry(v); if (errors.expiry) setErrors((p) => ({ ...p, expiry: undefined })); }}
+            onFocus={focusKeyboard}
+            onBlur={blurKeyboard}
           />
           <TextField
             id="bank-field-cvv"
@@ -94,6 +101,8 @@ export function BankInfoSheet({ open, onBack, onClose, onConfirm }: BankInfoShee
             error={!!errors.cvv}
             caption={errors.cvv}
             onChange={(v) => { setCvv(v); if (errors.cvv) setErrors((p) => ({ ...p, cvv: undefined })); }}
+            onFocus={focusKeyboard}
+            onBlur={blurKeyboard}
           />
         </motion.div>
 
@@ -107,6 +116,8 @@ export function BankInfoSheet({ open, onBack, onClose, onConfirm }: BankInfoShee
             error={!!errors.holder}
             caption={errors.holder}
             onChange={(v) => { setHolder(v); if (errors.holder) setErrors((p) => ({ ...p, holder: undefined })); }}
+            onFocus={focusKeyboard}
+            onBlur={blurKeyboard}
           />
         </motion.div>
       </div>

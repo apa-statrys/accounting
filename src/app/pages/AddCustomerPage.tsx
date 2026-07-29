@@ -78,6 +78,9 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
   const [phoneCountry, setPhoneCountry] = useState(DEFAULT_COUNTRY_CODE);
   const [phoneCodeOpen, setPhoneCodeOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const focusKeyboard = () => setKeyboardOpen(true);
+  const blurKeyboard = () => setKeyboardOpen(false);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setScrolled(e.currentTarget.scrollTop > 4);
@@ -205,26 +208,28 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
           />
         </PageAppHeader>
 
-        <div className="px-4 pt-5 pb-28">
+        <div className={`px-4 pt-5 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-4">
             <p style={SECTION_TITLE_STYLE}>Details</p>
             <div className="flex flex-col gap-3">
               <TextField id="client-field-company" label="Company Name" mandatory placeholder="e.g. Atlas Logistics"
-                error={!!err("company")} caption={err("company") || undefined} value={company} onChange={setCompany} />
+                error={!!err("company")} caption={err("company") || undefined} value={company} onChange={setCompany}
+                onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
               <div className="flex gap-4">
                 <TextField label="First Name" placeholder="Enter first name" className="flex-1"
-                  value={firstName} onChange={setFirstName} />
+                  value={firstName} onChange={setFirstName} onFocus={focusKeyboard} onBlur={blurKeyboard} />
                 <TextField label="Last Name" placeholder="Enter last name" className="flex-1"
-                  value={lastName} onChange={setLastName} />
+                  value={lastName} onChange={setLastName} onFocus={focusKeyboard} onBlur={blurKeyboard} />
               </div>
 
               <TextField label="Company Registration Number" placeholder="Enter registration number"
-                value={regNo} onChange={setRegNo} />
+                value={regNo} onChange={setRegNo} onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
               <TextField id="client-field-email" label="Email Address" inputType="email" placeholder="e.g. abc@gmail.com" mandatory
-                error={!!err("email")} caption={err("email") || undefined} value={email} onChange={setEmail} />
+                error={!!err("email")} caption={err("email") || undefined} value={email} onChange={setEmail}
+                onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
               <TextField type="left-icon" id="client-field-phone" label="Phone Number" inputType="tel" placeholder="Enter contact phone number"
                 icon={
@@ -239,10 +244,12 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
                     <ExpandMoreIcon style={{ fontSize: 16, color: "var(--text-secondary)" }} />
                   </button>
                 }
-                error={!!err("phone")} caption={err("phone") || undefined} value={phone} onChange={setPhone} />
+                error={!!err("phone")} caption={err("phone") || undefined} value={phone} onChange={setPhone}
+                onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
               <TextField id="client-field-website" label="Website" placeholder="Enter company website"
-                error={!!err("website")} caption={err("website") || undefined} value={website} onChange={setWebsite} />
+                error={!!err("website")} caption={err("website") || undefined} value={website} onChange={setWebsite}
+                onFocus={focusKeyboard} onBlur={blurKeyboard} />
             </div>
           </div>
 
@@ -253,19 +260,22 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
                 error={!!err("country")} caption={err("country") || undefined} value={country} onClick={() => setCountryOpen(true)} />
 
               <TextField id="client-field-address" label="Address" mandatory placeholder="Enter company address"
-                error={!!err("address")} caption={err("address") || undefined} value={address} onChange={setAddress} />
+                error={!!err("address")} caption={err("address") || undefined} value={address} onChange={setAddress}
+                onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
               <div className="flex gap-4">
                 <TextField id="client-field-city" label="City" mandatory placeholder="Enter city"
-                  error={!!err("city")} caption={err("city") || undefined} className="flex-1" value={city} onChange={setCity} />
+                  error={!!err("city")} caption={err("city") || undefined} className="flex-1" value={city} onChange={setCity}
+                  onFocus={focusKeyboard} onBlur={blurKeyboard} />
                 {!noPostal && (
                   <TextField id="client-field-zip" label="Zip / Postal" mandatory placeholder="e.g. 11102"
-                    error={!!err("zip")} caption={err("zip") || undefined} className="flex-1" value={zip} onChange={setZip} />
+                    error={!!err("zip")} caption={err("zip") || undefined} className="flex-1" value={zip} onChange={setZip}
+                    onFocus={focusKeyboard} onBlur={blurKeyboard} />
                 )}
               </div>
 
               <TextField label="State" placeholder="Enter state or province"
-                value={stateVal} onChange={setStateVal} />
+                value={stateVal} onChange={setStateVal} onFocus={focusKeyboard} onBlur={blurKeyboard} />
             </div>
           </div>
 
@@ -286,7 +296,8 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         primaryLabel={isEdit ? "Save Changes" : "Add Customer"}
         primaryDisabled={isEdit && !dirty}
         onPrimary={handleSave}
-        homeIndicator
+        homeIndicator={!keyboardOpen}
+        keyboard={keyboardOpen}
       />
 
       <CountrySheet

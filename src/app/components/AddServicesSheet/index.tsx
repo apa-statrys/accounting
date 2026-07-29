@@ -47,6 +47,9 @@ export function AddServicesSheet({
   const [errors, setErrors] = useState<{ name?: string; description?: string; price?: string; qty?: string }>({});
 
   const [step, setStep] = useState<"form" | "unit">("form");
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const focusKeyboard = () => setKeyboardOpen(true);
+  const blurKeyboard = () => setKeyboardOpen(false);
 
   // Every line uses the invoice currency — it's shown (read-only) here, not chosen per line.
   const currency = invoiceCurrency;
@@ -102,7 +105,8 @@ export function AddServicesSheet({
             type="single"
             primaryLabel={initial ? "Save Changes" : "Add Item"}
             onPrimary={handleAdd}
-            homeIndicator
+            homeIndicator={!keyboardOpen}
+            keyboard={keyboardOpen}
           />
         )
       }
@@ -151,6 +155,8 @@ export function AddServicesSheet({
                 error={!!errors.name}
                 caption={errors.name}
                 onChange={(v) => { setServiceName(v); if (errors.name) setErrors((p) => ({ ...p, name: undefined })); }}
+                onFocus={focusKeyboard}
+                onBlur={blurKeyboard}
               />
 
               <TextField
@@ -162,6 +168,8 @@ export function AddServicesSheet({
                 error={!!errors.description}
                 caption={errors.description}
                 onChange={(v) => { setDescription(v); if (errors.description) setErrors((p) => ({ ...p, description: undefined })); }}
+                onFocus={focusKeyboard}
+                onBlur={blurKeyboard}
               />
 
               <TextField
@@ -175,6 +183,8 @@ export function AddServicesSheet({
                 error={!!errors.price}
                 caption={errors.price}
                 onChange={(v) => { setUnitPrice(v); if (errors.price) setErrors((p) => ({ ...p, price: undefined })); }}
+                onFocus={focusKeyboard}
+                onBlur={blurKeyboard}
                 icon={
                   <span className={styles.priceCurrency}>
                     {currencyCountry && <CountryFlag name={currencyCountry} size={18} />}
@@ -196,6 +206,8 @@ export function AddServicesSheet({
                 error={!!errors.qty}
                 caption={errors.qty}
                 onChange={(v) => { setQuantity(v.replace(/[^0-9]/g, "")); if (errors.qty) setErrors((p) => ({ ...p, qty: undefined })); }}
+                onFocus={focusKeyboard}
+                onBlur={blurKeyboard}
                 iconRight={
                   <button
                     type="button"

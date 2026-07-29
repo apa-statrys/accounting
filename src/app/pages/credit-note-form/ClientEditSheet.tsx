@@ -20,6 +20,7 @@ export function ClientEditSheet({ open, onClose, draftName, draftEmail, setDraft
   // inline errors on the offending field instead of greying the button out.
   const [showErrors, setShowErrors] = useState(false);
   useEffect(() => { if (open) setShowErrors(false); }, [open]);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   const nameErr = draftName.trim().length === 0 ? "Enter a customer name" : undefined;
   const emailErr = !EMAIL_RE.test(draftEmail.trim()) ? "Enter a valid email address" : undefined;
@@ -39,13 +40,33 @@ export function ClientEditSheet({ open, onClose, draftName, draftEmail, setDraft
           type="single"
           primaryLabel="Save"
           onPrimary={handleSave}
-          homeIndicator
+          homeIndicator={!keyboardOpen}
+          keyboard={keyboardOpen}
         />
       }
     >
       <div className="flex flex-col gap-3">
-        <TextField label="Customer name" value={draftName} onChange={setDraftName} mandatory error={showErrors && !!nameErr} caption={showErrors ? nameErr : undefined} />
-        <TextField label="Email address" inputType="email" value={draftEmail} onChange={setDraftEmail} mandatory error={showErrors && !!emailErr} caption={showErrors ? emailErr : undefined} />
+        <TextField
+          label="Customer name"
+          value={draftName}
+          onChange={setDraftName}
+          mandatory
+          error={showErrors && !!nameErr}
+          caption={showErrors ? nameErr : undefined}
+          onFocus={() => setKeyboardOpen(true)}
+          onBlur={() => setKeyboardOpen(false)}
+        />
+        <TextField
+          label="Email address"
+          inputType="email"
+          value={draftEmail}
+          onChange={setDraftEmail}
+          mandatory
+          error={showErrors && !!emailErr}
+          caption={showErrors ? emailErr : undefined}
+          onFocus={() => setKeyboardOpen(true)}
+          onBlur={() => setKeyboardOpen(false)}
+        />
       </div>
     </BottomSheet>
   );

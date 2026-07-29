@@ -122,6 +122,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   const [phoneCountry, setPhoneCountry] = useState(DEFAULT_COUNTRY_CODE);
   const [phoneCodeOpen, setPhoneCodeOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   const openSheet = (k: SheetKey) => { setBaseline(s); setLogoError(null); setSheet(k); };
   const openPicker = (p: { field: "country" | "city" | "state"; title: string; options: string[] }) => { setPickerQuery(""); setPicker(p); };
@@ -188,6 +189,8 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
       }
       value={s[k]}
       onChange={(v) => set(k, v)}
+      onFocus={() => setKeyboardOpen(true)}
+      onBlur={() => setKeyboardOpen(false)}
     />
   );
 
@@ -272,7 +275,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         title="Company Details"
         onClose={() => setSheet(null)}
         heightClass="h-[72%]"
-        footer={<ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && companyValid && detailsValid)} onPrimary={() => setSheet(null)} homeIndicator />}
+        footer={<ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && companyValid && detailsValid)} onPrimary={() => setSheet(null)} homeIndicator={!keyboardOpen} keyboard={keyboardOpen} />}
       >
         <div className="flex flex-col gap-4">
           {/* Logo — beige monogram preview + "Change Logo" (mock picker; sandbox has no real image). */}
@@ -299,7 +302,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         title="Business Address"
         onClose={() => setSheet(null)}
         heightClass="h-[72%]"
-        footer={<ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && addressValid)} onPrimary={() => setSheet(null)} homeIndicator />}
+        footer={<ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && addressValid)} onPrimary={() => setSheet(null)} homeIndicator={!keyboardOpen} keyboard={keyboardOpen} />}
       >
         <div className="flex flex-col gap-4">
           {/* Country first — drives the city/state options below. Dropdown TextField to match

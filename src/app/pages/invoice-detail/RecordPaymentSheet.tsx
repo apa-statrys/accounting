@@ -38,6 +38,7 @@ export function RecordPaymentSheet({
 }: RecordPaymentSheetProps) {
   const [accountOpen, setAccountOpen] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const currencyCountry = CURRENCY_COUNTRY[currency];
 
   return (
@@ -49,7 +50,8 @@ export function RecordPaymentSheet({
         footer={
           <ButtonDock
             type="double"
-            homeIndicator
+            homeIndicator={!keyboardOpen}
+            keyboard={keyboardOpen}
             secondaryLabel="Cancel"
             primaryLabel="Mark as paid"
             onSecondary={onClose}
@@ -76,6 +78,8 @@ export function RecordPaymentSheet({
               value={value}
               caption={`Invoice total: ${money(total, currency)}`}
               onChange={(v) => onChange(v.replace(/[^0-9.]/g, ""))}
+              onFocus={() => setKeyboardOpen(true)}
+              onBlur={() => setKeyboardOpen(false)}
             />
           </motion.div>
 
