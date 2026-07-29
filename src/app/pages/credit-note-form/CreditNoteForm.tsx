@@ -193,6 +193,12 @@ export function CreditNoteForm({
     observer.observe(target);
     return () => observer.disconnect();
   }, []);
+
+  // On-screen keyboard mock (Figma "IOS controls" = Keyboard) — shown while the Description
+  // field is focused, same convention as every other real text entry point in the app. (Line-item
+  // amounts use the separate NumericKeypad below, not this — different, numeric-only input.)
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
   const reasonInvalid = reason === "";
   const amountInvalid = credited <= 0.001; // nothing credited yet (exceedsCap has its own banner)
   const reasonError = attempted && reasonInvalid;
@@ -329,6 +335,8 @@ export function CreditNoteForm({
       <textarea
         value={reasonNote}
         onChange={(e) => setReasonNote(e.target.value)}
+        onFocus={() => setKeyboardOpen(true)}
+        onBlur={() => setKeyboardOpen(false)}
         placeholder={`Add a note about this ${refund ? "refund" : "credit note"}`}
         rows={3}
         className="w-full rounded-[8px] border px-4 py-3 bg-white text-[14px] outline-none resize-none"
@@ -365,7 +373,7 @@ export function CreditNoteForm({
           />
         </PageAppHeader>
 
-        <div className={`px-4 flex flex-col gap-5 ${focusedLineId ? "pb-[340px]" : "pb-28"}`}>
+        <div className={`px-4 flex flex-col gap-5 ${focusedLineId ? "pb-[340px]" : keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
         {/* Beige zone (DES-719 UI) — details card + customer card + related invoice on #f9f5ea.
             No CN number while creating (decided 2026-07-15) — the real number is assigned on apply. */}
         <div className="-mx-4 px-4 pt-5 pb-5 bg-[var(--bg-beige-primary)] flex flex-col gap-4">
@@ -654,7 +662,8 @@ export function CreditNoteForm({
         }
         primaryLabel={isEdit ? (submitLabel ?? "Save changes") : "Create Credit Note"}
         onPrimary={handleCreate}
-        homeIndicator
+        homeIndicator={!keyboardOpen}
+        keyboard={keyboardOpen}
       />
 
       {/* Credit issue date picker */}

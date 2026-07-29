@@ -17,13 +17,17 @@ interface DiscountCardProps {
   mode: DiscountMode;
   /** Open the %/amount picker sheet. */
   onOpenMode?: () => void;
+  /** Focus/blur on the value field — the caller shows the on-screen keyboard mock while typing
+   *  (same convention as every other real text entry point, e.g. SendInvoiceSheet's fields). */
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 /**
  * Discounts card — a toggle (off by default). When on, reveals a value field
  * (in the invoice currency) plus a %/amount mode dropdown.
  */
-export function DiscountCard({ currency, enabled, onToggle, value, onChange, mode, onOpenMode }: DiscountCardProps) {
+export function DiscountCard({ currency, enabled, onToggle, value, onChange, mode, onOpenMode, onFocus, onBlur }: DiscountCardProps) {
   return (
     <div className={styles.root}>
       {/* Header */}
@@ -49,6 +53,8 @@ export function DiscountCard({ currency, enabled, onToggle, value, onChange, mod
               inputMode="decimal"
               value={value}
               onChange={onChange}
+              onFocus={onFocus}
+              onBlur={onBlur}
               iconRight={
                 <button type="button" onClick={onOpenMode} className={styles.modeButton}>
                   <span className={`${styles.modeLabel} body-sm`}>{mode === "percent" ? "%" : currency}</span>

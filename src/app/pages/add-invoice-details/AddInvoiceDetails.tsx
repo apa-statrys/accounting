@@ -436,6 +436,10 @@ export function AddInvoiceDetails({
     return () => observer.disconnect();
   }, [services.length > 0]);
 
+  // On-screen keyboard mock (Figma "IOS controls" = Keyboard) — shown while the Discount amount
+  // field is focused, same convention as every other real text entry point in the app.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
   // Items validation error (Send Invoice tapped with none added yet) — clears itself the moment
   // an item exists, not just on the next tap.
   const [itemsError, setItemsError] = useState(false);
@@ -543,7 +547,7 @@ export function AddInvoiceDetails({
         </PageAppHeader>
 
         <div
-          className="px-4 pt-5 pb-28 flex flex-col gap-4"
+          className={`px-4 pt-5 flex flex-col gap-4 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}
           // Locked-period demos: the only permitted in-page interaction is picking the Issue Date. A
           // capture-phase click guard swallows every click outside the Issue Date row (scrolling is a
           // separate event stream, so it stays fully usable).
@@ -836,6 +840,8 @@ export function AddInvoiceDetails({
                 onChange={setDiscount}
                 mode={discountMode}
                 onOpenMode={() => setDiscountModeSheetOpen(true)}
+                onFocus={() => setKeyboardOpen(true)}
+                onBlur={() => setKeyboardOpen(false)}
               />
             </motion.div>
           )}
@@ -940,7 +946,8 @@ export function AddInvoiceDetails({
                         : { ...recentSent, status: "Draft", recurring: true, meta: `— · Scheduled on ${format(recStart, "d MMM yyyy")}` }
                     )
             }
-            homeIndicator
+            homeIndicator={!keyboardOpen}
+            keyboard={keyboardOpen}
           />
         ) : isEditing ? (
           <ButtonDock
@@ -951,7 +958,8 @@ export function AddInvoiceDetails({
             // leave at any time). The limited edit-from-detail flow keeps the items gate.
             primaryDisabled={services.length === 0 && !editExitToList}
             onPrimary={onEditSave}
-            homeIndicator
+            homeIndicator={!keyboardOpen}
+            keyboard={keyboardOpen}
           />
         ) : isExtracted && existingInvoice ? (
           // Duplicate number (match by number only): creating a copy is hard-blocked — the only
@@ -961,7 +969,8 @@ export function AddInvoiceDetails({
             sticky
             primaryLabel={existingPrimaryLabel}
             onPrimary={() => onOpenExisting?.(existingInvoice)}
-            homeIndicator
+            homeIndicator={!keyboardOpen}
+            keyboard={keyboardOpen}
           />
         ) : isExtracted ? (
           <ButtonDock
@@ -975,7 +984,8 @@ export function AddInvoiceDetails({
             // Locked-period demo: an unset Issue Date shows the required-field error (guardIssueDate
             // scrolls + flags); once picked, lockActions keeps the CTA inert so it never lands.
             onPrimary={() => { if (!guardIssueDate() && !lockActions) onSend?.({ title: "Invoice created successfully" }, recentSent); }}
-            homeIndicator
+            homeIndicator={!keyboardOpen}
+            keyboard={keyboardOpen}
           />
         ) : (
           // Always enabled (Figma "Create Invoice", node 1387-18118) — an empty items list no
@@ -1001,7 +1011,8 @@ export function AddInvoiceDetails({
               }
               handleSendInvoiceClick();
             }}
-            homeIndicator
+            homeIndicator={!keyboardOpen}
+            keyboard={keyboardOpen}
           />
         )}
       </div>

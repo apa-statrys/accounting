@@ -192,6 +192,8 @@ export function RefundCreditNoteFlow({
                   inputMode="decimal"
                   value={mAmount}
                   onChange={(e) => setMAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+                  onFocus={() => setKeyboardOpen(true)}
+                  onBlur={() => setKeyboardOpen(false)}
                   className="flex-1 min-w-0 text-right outline-none text-[16px] bg-transparent"
                   style={{ ...FONT, color: INK }}
                 />
