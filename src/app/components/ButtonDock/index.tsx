@@ -215,15 +215,32 @@ export function ButtonDock({
         )}
       </div>
 
-      {keyboard ? (
-        <Keyboard />
-      ) : (
-        homeIndicator && (
-          <div className={styles.homeIndicator}>
-            <span className={styles.homeBar} />
-          </div>
-        )
-      )}
+      <AnimatePresence initial={false} mode="wait">
+        {keyboard ? (
+          <motion.div
+            key="keyboard"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
+          >
+            <Keyboard />
+          </motion.div>
+        ) : (
+          homeIndicator && (
+            <motion.div
+              key="home-indicator"
+              className={styles.homeIndicator}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+            >
+              <span className={styles.homeBar} />
+            </motion.div>
+          )
+        )}
+      </AnimatePresence>
     </div>
   );
 }
