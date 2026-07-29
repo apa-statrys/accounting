@@ -26,7 +26,7 @@ function Row({
   const isTotal = boldLabel && boldValue;
   return (
     <div className={`${styles.row} ${isTotal ? styles.rowTotal : ''} ${beige ? styles.rowBeige : ''} ${last ? styles.noBorder : ''}`}>
-      <span className={boldLabel ? styles.labelBold : `body-sm ${styles.label}`}>{label}</span>
+      <span className={boldLabel ? styles.labelBold : styles.label}>{label}</span>
       <span
         className={
           boldValue

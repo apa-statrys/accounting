@@ -833,7 +833,7 @@ export function AddInvoiceDetails({
                   card chrome, matching the Discount/Automatic reminders rows below. */}
               <div className="w-full flex items-center justify-between gap-3">
                 <span className="min-w-0 flex flex-col gap-1">
-                  <span className="body-md-bold text-[var(--text-primary)]" style={FONT}>Auto-send to customer</span>
+                  <span className="body-sm-bold text-[var(--text-primary)]" style={FONT}>Auto-send to customer</span>
                   <span className="text-[14px] text-[var(--text-secondary)]" style={FONT}>
                     {recAutoSend ? "Send invoices automatically" : "Saved as a draft to review"}
                   </span>
@@ -859,7 +859,7 @@ export function AddInvoiceDetails({
             >
               <div className="w-full flex items-center justify-between gap-3">
                 <span className="min-w-0 flex flex-col gap-1">
-                  <span className="body-md-bold text-[var(--text-primary)]" style={FONT}>Automatic reminders</span>
+                  <span className="body-sm-bold text-[var(--text-primary)]" style={FONT}>Automatic reminders</span>
                   <span className="text-[14px] text-[var(--text-secondary)]" style={FONT}>Email until invoice is paid</span>
                 </span>
                 <Toggle checked={chaser} onChange={setChaser} aria-label="Automatic reminders" />
@@ -959,7 +959,7 @@ export function AddInvoiceDetails({
           <ButtonDock
             type="single"
             sticky
-            primaryLabel="Send Invoice"
+            primaryLabel="Create Invoice"
             primaryLoading={sendPending}
             // Locked-period demo: the CTA stays visually enabled but tapping it goes nowhere.
             onPrimary={() => {

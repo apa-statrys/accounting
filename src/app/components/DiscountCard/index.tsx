@@ -28,7 +28,7 @@ export function DiscountCard({ currency, enabled, onToggle, value, onChange, mod
     <div className={styles.root}>
       {/* Header */}
       <div className={styles.header}>
-        <p className={`${styles.title} body-md-bold`}>Discount</p>
+        <p className={`${styles.title} body-sm-bold`}>Discount</p>
         <Toggle checked={enabled} onChange={onToggle} aria-label="Discount" />
       </div>
 
