@@ -307,7 +307,9 @@ export function SendInvoiceSheet({
                     }
                   />
                   <p className="text-[12px] leading-[1.3] text-[var(--text-secondary)]" style={FONT}>
-                    Anyone with this link can view and pay the invoice — no login needed. The link stays valid until the invoice is paid.
+                    {isCreditNote
+                      ? "Anyone with this link can view the credit note — no login needed."
+                      : "Anyone with this link can view and pay the invoice — no login needed. The link stays valid until the invoice is paid."}
                   </p>
                 </div>
 
