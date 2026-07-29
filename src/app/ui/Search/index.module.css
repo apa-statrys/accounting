@@ -5,7 +5,7 @@
    X clear button — pure CSS below. Colors from styles/theme.css. */
 
 .field {
-  composes: body-md from global;
+  composes: body-sm from global;
   box-sizing: border-box;
   display: flex;
   align-items: center;

@@ -314,7 +314,7 @@ export function CreditNoteForm({
         onChange={(e) => setReasonNote(e.target.value)}
         placeholder={`Add a note about this ${refund ? "refund" : "credit note"}`}
         rows={3}
-        className="w-full rounded-[8px] border px-4 py-3 bg-white text-[16px] outline-none resize-none"
+        className="w-full rounded-[8px] border px-4 py-3 bg-white text-[14px] outline-none resize-none"
         style={{ ...FONT, color: "#1b1b1b", borderColor: "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
       />
     </div>
@@ -410,7 +410,7 @@ export function CreditNoteForm({
             className="w-full flex items-center justify-between rounded-[8px] border px-4 h-[48px] bg-white text-left"
             style={{ borderColor: reasonError ? "#dc2626" : "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
           >
-            <span className="text-[16px] truncate" style={{ ...FONT, color: reason ? "var(--text-primary)" : "#9ca3af" }}>
+            <span className="text-[14px] truncate" style={{ ...FONT, color: reason ? "var(--text-primary)" : "#9ca3af" }}>
               {reason || "Select a reason"}
             </span>
             <KeyboardArrowDownIcon style={{ fontSize: 24, color: "var(--text-secondary)" }} />
