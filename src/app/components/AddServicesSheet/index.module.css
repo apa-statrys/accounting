@@ -1,9 +1,16 @@
-/* AddServicesSheet — Add/Edit Item form (Service Name / Description / Unit Price / Quantity) */
+/* AddServicesSheet — Add/Edit Item form (Service Name / Description / Unit Price / Quantity),
+   plus the "Select Unit" step pushed in place of it (same sheet, see index.tsx). */
 
 .fields {
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
+}
+
+.unitList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 /* ===== Unit Price — leading flag + currency code ===== */
@@ -18,11 +25,6 @@
   margin-left: -2px;
   margin-right: var(--space-2);
   white-space: nowrap;
-}
-
-.priceFlag {
-  font-size: var(--text-lg);
-  line-height: 1;
 }
 
 /* ===== Quantity — trailing "Unit" picker button ===== */

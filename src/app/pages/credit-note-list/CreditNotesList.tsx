@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { parse, format, addDays } from "date-fns";
-import { ArrowUpDown, Check, ChevronDown, Search } from "lucide-react";
+import { ArrowUpDown, Check, ChevronDown, Search as SearchIcon } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
-import { SearchField } from "../../components/SearchField";
+import { Search } from "../../ui/Search";
 import { FilterIcon } from "../../components/FilterIcon";
 import { BottomSheet } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
@@ -63,6 +63,24 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "amount-desc", label: "Amount: High to Low" },
   { key: "amount-asc", label: "Amount: Low to High" },
 ];
+
+/** Split a "Label: Value" sort option into its two parts — used everywhere a sort label renders
+ *  so the label always reads regular weight and the value medium (list header button AND the
+ *  Sort by sheet's Tile rows). Same convention as Sales Invoice List. */
+function splitSortLabel(label: string): [string, string] {
+  return label.includes(": ") ? (label.split(/: (.+)/) as [string, string]) : [label, ""];
+}
+
+/** "Label: Value" as a fragment with the value in medium weight — for Tile's `title` slot. */
+function sortLabelTitle(label: string): React.ReactNode {
+  const [lbl, val] = splitSortLabel(label);
+  if (!val) return lbl;
+  return (
+    <>
+      {lbl}: <span className="body-sm-medium">{val}</span>
+    </>
+  );
+}
 
 const CUSTOMERS = Array.from(new Set(CREDIT_NOTES.map((c) => c.customer)));
 
@@ -137,6 +155,11 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
 
   const toggleCustomer = (c: string) => setSelectedCustomers((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
 
+  // Split the "Label: Value" sort text so the label reads regular weight and the value medium
+  // (e.g. "Credit Issue Date: " regular, "Newest" medium) — same as Sales Invoice List.
+  const currentSortLabel = SORT_OPTIONS.find((o) => o.key === sortKey)?.label ?? "Sort by";
+  const [sortLabelText, sortValueText] = splitSortLabel(currentSortLabel);
+
   return (
     <div
       className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
@@ -155,38 +178,54 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          {/* DS PageHeader (center) — same style as the Sales Invoice List. */}
-          <PageHeader type="center" title="Credit Notes" onBack={onBack} showSearch={false} />
+          {/* Figma (node 1332-18605) stacks PageHeader/Tabs/Sort with NO gap between them — all the
+              spacing comes from each row's own padding. PageAppHeader's root flex-col has a 12px gap
+              for the StatusBar→content case, so this trio is wrapped in one gap-less block: the 12px
+              only fires once (StatusBar→block), not again between each row inside it. */}
+          <div className="flex flex-col">
+            {/* DS PageHeader (center) — same style as the Sales Invoice List. */}
+            <PageHeader type="center" title="Credit Notes" onBack={onBack} showSearch={false} />
 
-          {/* Status filter tabs — DS HorizontalTabs (button style), horizontally scrollable. Sits
-              directly in the header's beige→white gradient panel, no separate box/shadow. Right
-              padding is intentionally omitted (Figma node 1332-18605): the row bleeds to the frame's
-              edge so an overflowing tab clips flush against it, signalling more content to scroll to. */}
-          <div className="tabs-wrap shrink-0 pl-4 pt-4 pb-3 relative z-10">
-            <HorizontalTabs
-              variant="button"
-              tabs={FILTERS.map((f, i) => `${f.label} (${counts[i]})`)}
-              activeIndex={active}
-              onChange={setActive}
-            />
-          </div>
+            {/* Status filter tabs — DS HorizontalTabs (button style), horizontally scrollable. Sits
+                directly in the header's beige→white gradient panel, no separate box/shadow. Right
+                padding is intentionally omitted (Figma node 1332-18605): the row bleeds to the frame's
+                edge so an overflowing tab clips flush against it, signalling more content to scroll to.
+                Figma (node 4240-5598, re-synced 2026-07-28) specs pl-16px / py-16px — symmetric
+                top/bottom, matching the Sales Invoice List. */}
+            <div className="tabs-wrap shrink-0 pl-4 py-4 relative z-10">
+              <HorizontalTabs
+                variant="button"
+                tabs={FILTERS.map((f, i) => `${f.label} (${counts[i]})`)}
+                activeIndex={active}
+                onChange={setActive}
+              />
+            </div>
 
-          {/* Sort / Filter row — same style as the Sales Invoice List. The Sort button label
-              reflects the active sort (e.g. "Credit Issue Date: Newest") once one is applied. */}
-          <div className="shrink-0 flex items-center justify-between bg-white pb-2 px-4 border-b border-[var(--border-neutral-primary)]">
-            <button onClick={() => setSortOpen(true)} className="flex items-center gap-1" style={FONT}>
-              <ArrowUpDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
-              <span className="body-sm-medium text-[var(--text-primary)]">{SORT_OPTIONS.find((o) => o.key === sortKey)?.label ?? "Sort by"}</span>
-              <ChevronDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
-            </button>
-            <button onClick={() => setFilterOpen(true)} className="relative flex items-center justify-center p-1 -m-1" aria-label="Filters">
-              <FilterIcon size={20} color="var(--text-primary)" />
-              {activeFilterCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[var(--bg-brand-primary)] text-white text-[10px] font-bold flex items-center justify-center">
-                  {activeFilterCount}
+            {/* Sort / Filter row — same style as the Sales Invoice List. The Sort button always shows
+                the effective sort label (e.g. "Credit Issue Date: Newest") — a sort is always applied
+                (default "newest"), so a generic "Sort by" placeholder would be misleading. The Sort
+                sheet below shows the same effective sortKey as selected/checked, for the same reason. */}
+            {/* No bg-white here (matches Sales Invoice List) — this row sits inside the
+                transparent-at-rest PageAppHeader, so a solid fill would show as a hard white
+                rectangle cutting into the page's beige→white gradient instead of blending. */}
+            <div className="shrink-0 flex items-center justify-between pt-1 pb-2 px-4 border-b border-[var(--border-neutral-primary)]">
+              <button onClick={() => setSortOpen(true)} className="flex items-center gap-1" style={FONT}>
+                <ArrowUpDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
+                <span className="body-sm text-[var(--text-primary)]">
+                  {sortValueText ? `${sortLabelText}: ` : sortLabelText}
                 </span>
-              )}
-            </button>
+                {sortValueText && <span className="body-sm-medium text-[var(--text-primary)]">{sortValueText}</span>}
+                <ChevronDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
+              </button>
+              <button onClick={() => setFilterOpen(true)} className="relative flex items-center justify-center p-1 -m-1" aria-label="Filters">
+                <FilterIcon size={20} color="var(--text-primary)" />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[var(--bg-brand-primary)] text-white text-[10px] font-bold flex items-center justify-center">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </PageAppHeader>
 
@@ -221,7 +260,8 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
           {SORT_OPTIONS.map((o) => (
             <Tile
               key={o.key}
-              title={o.label}
+              size="sm"
+              title={sortLabelTitle(o.label)}
               selected={o.key === sortKey}
               trailing={o.key === sortKey ? "check" : "none"}
               onClick={() => { setSortKey(o.key); setSortOpen(false); }}
@@ -234,17 +274,20 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
           dock appears once any filter is active. */}
       <BottomSheet
         open={filterOpen}
-        title="Filters"
+        title="Filter Credit Notes"
         onClose={() => setFilterOpen(false)}
         footer={
-          activeFilterCount === 0 ? undefined : (
+          activeFilterCount === 0 && !customerSearchOpen ? undefined : (
             <ButtonDock
               type="double"
               secondaryLabel="Reset"
               primaryLabel={`Show ${list.length} ${list.length === 1 ? "credit note" : "credit notes"}`}
               onSecondary={() => { setSelectedCustomers([]); setIssueFrom(""); setIssueTo(""); setCustomerQuery(""); }}
               onPrimary={() => setFilterOpen(false)}
-              homeIndicator
+              // While the customer search field is focused, the keyboard replaces the
+              // home indicator (Figma "IOS controls" = Keyboard, same as CreateSalesInvoice).
+              homeIndicator={!customerSearchOpen}
+              keyboard={customerSearchOpen}
             />
           )
         }
@@ -290,21 +333,21 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
                 onClick={() => { if (customerSearchOpen) setCustomerQuery(""); setCustomerSearchOpen((v) => !v); }}
                 className="p-1 -m-1"
               >
-                <Search size={18} strokeWidth={1.67} color={customerSearchOpen ? "var(--text-brand)" : "var(--text-primary)"} />
+                <SearchIcon size={18} strokeWidth={1.67} color={customerSearchOpen ? "var(--text-brand)" : "var(--text-primary)"} />
               </button>
             )}
           </div>
           {customerSearchOpen && (
-            <SearchField
-              size="sm"
+            <Search
               autoFocus
               placeholder="Search by Customer name"
               value={customerQuery}
-              onChange={(e) => setCustomerQuery(e.target.value)}
+              onChange={setCustomerQuery}
+              showAction={false}
             />
           )}
           {visibleCustomers.length === 0 && (
-            <p className="text-[13px] text-[var(--text-placeholder)] py-3" style={FONT}>No customers found</p>
+            <p className="text-center text-[13px] text-[var(--text-placeholder)] py-3" style={FONT}>No customers found</p>
           )}
           {visibleCustomers.map((c) => {
             const on = selectedCustomers.includes(c);

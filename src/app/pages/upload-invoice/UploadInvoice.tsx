@@ -63,10 +63,17 @@ interface UploadInvoiceProps {
   initialFiles?: File[];
 }
 
-/** Add Existing Invoice — pick a source (camera / photos / files), with type/size guidance. */
+/**
+ * Add Existing Invoice — opens straight into the custom camera scanner (Figma/ticket: scan is
+ * the primary path now, not one of three picker rows). The scanner's own photo-library button
+ * covers "upload an existing file"; tapping the camera's own Close (X) exits the whole flow —
+ * it never reveals this sheet. The sheet only ever appears as a validation-failure fallback (e.g.
+ * an oversized capture), so the error banner + retry rows (Take Photo/Photos/Files) have somewhere
+ * to show.
+ */
 export function UploadInvoice({ onBack, onContinue, initialFiles = [] }: UploadInvoiceProps) {
   const [files, setFiles] = useState<File[]>(initialFiles);
-  const [scanOpen, setScanOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(true);
   // Validation-failure message — drives the (CTA-less) file-rules modal.
   const [error, setError] = useState<string | null>(null);
 
@@ -183,13 +190,20 @@ export function UploadInvoice({ onBack, onContinue, initialFiles = [] }: UploadI
         </div>
       </BottomSheet>
 
-      {/* Camera + scanner demo — capture returns an oversized photo → "file too large" error. */}
+      {/* Camera + scanner demo — the camera's own Close (X) exits the whole flow (never falls
+          back to the sheet). Capture returns an oversized photo → "file too large" error, which
+          DOES fall back to the sheet above so the error banner has somewhere to show. Import
+          goes straight to extraction, same as the sheet's other demo sources. */}
       <ScanDocument
         open={scanOpen}
-        onClose={() => setScanOpen(false)}
+        onClose={onBack}
         onCapture={() => {
           setScanOpen(false);
           addFile(makeDemoFile("invoice-photo.jpg", "image/jpeg", 12));
+        }}
+        onImport={() => {
+          setScanOpen(false);
+          pickAndContinue(makeDemoFile("invoice-scan.png", "image/png", 1.2));
         }}
       />
     </>

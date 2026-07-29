@@ -1,14 +1,15 @@
 import { useRef, useState } from "react";
-import { Trash2 } from "lucide-react";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { SHOW_CREDIT_NOTES } from "../../lib/flags";
-import { FONT } from "../../lib/theme";
 import type { Invoice } from "../../types";
 import { InvoiceRow } from "../../ui/InvoiceRow";
+import { SwipeActions } from "../../ui/SwipeActions";
 import type { BadgeColor } from "../../ui/Badge";
 import { effectiveStatus, metaLine, type EffectiveStatus } from "./filters";
 
-const REVEAL = 88;
+// Reveal = ui/SwipeActions' own delete-only width (Figma "Create Invoice", node 1826-15916 —
+// same swipe-to-delete recipe as ServiceItemCard).
+const REVEAL = 44;
 
 /** Status chip label + DS Badge colour for a list row (refund state wins when present). */
 function rowStatus(eff: EffectiveStatus, refundChip?: string): { label: string; color: BadgeColor } {
@@ -104,19 +105,14 @@ function DraftSwipeRow({ children, highlightBg, onDelete, onClick }: { children:
   const [dragging, setDragging] = useState(false);
   const press = useRef<{ x: number; base: number } | null>(null);
   const movedRef = useRef(false);
+  // Mirrors `tx` synchronously so onPointerUp can read the just-dragged position without
+  // waiting on React's setState batching.
+  const txRef = useRef(0);
 
   return (
     <div className="shrink-0 relative overflow-hidden rounded-lg">
-      <div className="absolute right-0 top-0 bottom-0 flex items-center justify-end py-1">
-        <button
-          type="button"
-          onClick={onDelete}
-          aria-label="Delete draft"
-          className="h-full w-[80px] rounded-xl bg-[#fb4d4d] flex flex-col items-center justify-center gap-0.5 text-white active:bg-[#e23d3d]"
-        >
-          <Trash2 size={20} strokeWidth={1.67} color="var(--text-on-color)" />
-          <span className="text-[12px] font-medium" style={FONT}>Delete</span>
-        </button>
+      <div className="absolute inset-0 flex items-center justify-end px-1">
+        <SwipeActions showMore={false} onDelete={onDelete} />
       </div>
 
       <div
@@ -130,18 +126,20 @@ function DraftSwipeRow({ children, highlightBg, onDelete, onClick }: { children:
           if (!press.current) return;
           const dx = e.clientX - press.current.x;
           if (Math.abs(dx) > 4) movedRef.current = true;
-          setTx(Math.max(-REVEAL, Math.min(0, press.current.base + dx)));
+          const next = Math.max(-REVEAL, Math.min(0, press.current.base + dx));
+          txRef.current = next;
+          setTx(next);
         }}
         onPointerUp={() => {
           if (!press.current) return;
           press.current = null;
           setDragging(false);
-          setTx((cur) => (cur < -REVEAL / 2 ? -REVEAL : 0));
+          setTx(txRef.current < -REVEAL / 2 ? -REVEAL : 0);
         }}
         onPointerCancel={() => {
           press.current = null;
           setDragging(false);
-          setTx((cur) => (cur < -REVEAL / 2 ? -REVEAL : 0));
+          setTx(txRef.current < -REVEAL / 2 ? -REVEAL : 0);
         }}
         onClick={() => {
           if (movedRef.current) { movedRef.current = false; return; }

@@ -12,7 +12,7 @@ interface IssueDateSheetProps {
 /** Issue Date picker — calendar view (choose day, month and year). */
 export function IssueDateSheet({ open, value, onClose, onSelect }: IssueDateSheetProps) {
   return (
-    <BottomSheet open={open} title="Issue Date" onClose={onClose}>
+    <BottomSheet open={open} title="Select Issue Date" onClose={onClose}>
       <motion.div variants={sheetItem}>
         <Calendar value={value} onChange={(d) => onSelect?.(d)} />
       </motion.div>

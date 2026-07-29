@@ -2,8 +2,8 @@ import { useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../BottomSheet";
-import { SearchField } from "../SearchField";
-import { SelectionCard } from "../SelectionCard";
+import { Search } from "../../ui/Search";
+import { Tile } from "../../ui/Tile";
 import { Button } from "../../ui/Button";
 import { CUSTOMERS } from "../../data/customers";
 import type { Customer } from "../../types";
@@ -31,15 +31,10 @@ export function CustomerSheet({ open, value, customers = CUSTOMERS, onClose, onS
   );
 
   return (
-    <BottomSheet open={open} title="Customer" onClose={onClose}>
+    <BottomSheet open={open} title="Select Customer" onClose={onClose}>
       <div className={styles.root}>
         <motion.div variants={sheetItem}>
-          <SearchField
-            size="md"
-            placeholder="Search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+          <Search placeholder="Search" value={query} onChange={setQuery} showAction={false} />
         </motion.div>
 
         <motion.div variants={sheetItem}>
@@ -49,10 +44,12 @@ export function CustomerSheet({ open, value, customers = CUSTOMERS, onClose, onS
         <div className={styles.list}>
           {filtered.map((c) => (
             <motion.div key={c.id} variants={sheetItem}>
-              <SelectionCard
+              <Tile
+                size="sm"
                 title={c.name}
-                description={c.email}
+                text={c.email}
                 selected={value === c.id}
+                trailing={value === c.id ? "check" : "none"}
                 onClick={() => onSelect?.(c)}
               />
             </motion.div>

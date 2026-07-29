@@ -1,0 +1,69 @@
+/* CheckboxBase — Figma "[APP] Design System" → CheckboxBase (node 4127-7977).
+   Visual box is 80% of the hit target (sm: 16px box / 20px target, md: 20.8px
+   box / 26px target) — a bigger tap area than the visible square. Radius
+   (2.667px / 3.467px) and the md selected border (1.95px) are Figma-literal
+   values with no matching token; sm's borders use Width/sm (1px) and
+   Width/md (1.5px), also not yet ported as CSS vars, so hardcoded here too.
+   Colors from styles/theme.css. */
+
+.root {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.root:disabled {
+  cursor: not-allowed;
+}
+.root.sm {
+  width: 20px;
+  height: 20px;
+}
+.root.md {
+  width: 26px;
+  height: 26px;
+}
+
+.box {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--icon-secondary);
+  background: transparent;
+  color: var(--icon-on-color);
+}
+.box.sm {
+  width: 16px;
+  height: 16px;
+  border-radius: 2.667px;
+}
+.box.md {
+  width: 20.8px;
+  height: 20.8px;
+  border-radius: 3.467px;
+}
+
+.box.checked {
+  background: var(--icon-brand);
+  border-color: var(--icon-brand);
+}
+.box.sm.checked {
+  border-width: 1.5px;
+}
+.box.md.checked {
+  border-width: 1.95px;
+}
+
+/* Disabled wins regardless of checked-ness — same grey fill/border either way,
+   only the glyph (or its absence) signals checked. Declared after .checked so
+   the equal-specificity compound selector overrides it in the cascade. */
+.box.disabled {
+  background: var(--bg-neutral-disabled);
+  border-color: var(--icon-disabled);
+  border-width: 1px;
+  color: var(--icon-disabled);
+}

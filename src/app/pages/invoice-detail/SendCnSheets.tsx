@@ -2,7 +2,8 @@
 // and the "which note to send" picker used when 2+ notes are unsent.
 import { BottomSheet } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
-import { SelectionCard } from "../../components/SelectionCard";
+import { Tile } from "../../ui/Tile";
+import { Badge } from "../../ui/Badge";
 import { money } from "../../lib/format";
 import { FONT, MUTED } from "../../lib/theme";
 import type { CreditNote } from "./creditNoteTypes";
@@ -34,8 +35,8 @@ export function ResendPromptSheet({ open, onClose, onNotNow, onSendUpdate }: { o
 }
 
 /** "Send credit note" picker — opened only when there are 2+ unsent notes (a single note sends
- *  directly). Choose which note's document to send; the latest is the default selection. Reuses
- *  the shared selection-card (`SelectionCard`) style. Rows are recent-first, matching the ledger. */
+ *  directly). Choose which note's document to send; the latest is the default selection. Rows are
+ *  recent-first, matching the ledger. */
 export function SendPickerSheet({ open, onClose, creditNotes, currency, selectedIndex, onSelect, onSend }: { open: boolean; onClose: () => void; creditNotes: CreditNote[]; currency: string; selectedIndex: number; onSelect: (i: number) => void; onSend: () => void }) {
   return (
     <BottomSheet
@@ -56,13 +57,14 @@ export function SendPickerSheet({ open, onClose, creditNotes, currency, selected
       </p>
       <div className="flex flex-col gap-2">
         {creditNotes.map((cn, i) => ({ cn, i })).reverse().map(({ cn, i }) => (
-          <SelectionCard
+          <Tile
             key={cn.no}
+            size="sm"
             title={cn.no}
-            description={`−${money(cn.amount, currency)}${cn.sent ? ` · Sent on ${cn.sentDate}` : " · Not sent yet"}`}
-            showStatus={cn.sent}
-            status="SENT"
+            text={`−${money(cn.amount, currency)}${cn.sent ? ` · Sent on ${cn.sentDate}` : " · Not sent yet"}`}
+            cornerBadge={cn.sent ? <Badge label="Sent" size="sm" variant="bold" color="custom" /> : undefined}
             selected={selectedIndex === i}
+            trailing={selectedIndex === i ? "check" : "none"}
             onClick={() => onSelect(i)}
           />
         ))}

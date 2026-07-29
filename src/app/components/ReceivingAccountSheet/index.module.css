@@ -26,11 +26,6 @@
   gap: var(--space-4); /* gap-2 */
 }
 
-.flag {
-  font-size: var(--text-2xl);
-  line-height: 1;
-}
-
 /* Separator + other-bank option (hidden when the source must be a Statrys account, e.g. a refund). */
 .externalGroup {
   display: flex;

@@ -1,8 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { PageAppHeader } from "../../components/PageAppHeader";
-import { SheetHeader, HeaderIconButton } from "../../components/SheetHeader";
+import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
 
 import { FONT } from "../../lib/theme";
@@ -123,17 +122,7 @@ export function CreditNotePreviewPage(props: CreditNotePreviewPageProps) {
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          <SheetHeader
-            title={isView ? "Credit Note" : "Credit Note Preview"}
-            type="inside-page"
-            state="fixed"
-            leading={
-              <HeaderIconButton aria-label="Back" onClick={onBack}>
-                <ChevronLeftIcon />
-              </HeaderIconButton>
-            }
-            trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
-          />
+          <PageHeader type="center" title={isView ? "Credit Note" : "Credit Note Preview"} onBack={onBack} showSearch={false} />
         </PageAppHeader>
 
         <div className="p-3 pb-28">

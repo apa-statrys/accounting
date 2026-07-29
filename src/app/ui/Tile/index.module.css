@@ -1,9 +1,9 @@
 /* Tile — Figma "[APP] Design System" → Tile (node 4222-8331).
-   65px row, radius 2xl, 12/16 padding, 10px gap. Neutral layer = white with
-   the neutral border; Beige layer = borderless (tile sits on the beige page
-   bg). Selected = warm hover surface + brand border. Disabled greys surface,
-   text, icons; the flag fades via opacity (Figma ships a faded flag asset).
-   Colors from styles/theme.css. */
+   65px row (54px at size="sm" — see .sm below), radius 2xl, 12/16 padding,
+   10px gap. Neutral layer = white with the neutral border; Beige layer =
+   borderless (tile sits on the beige page bg). Selected = warm hover surface
+   + brand border. Disabled greys surface, text, icons; the flag fades via
+   opacity (Figma ships a faded flag asset). Colors from styles/theme.css. */
 
 .tile {
   box-sizing: border-box;
@@ -23,6 +23,10 @@
 button.tile {
   cursor: pointer;
 }
+/* size="sm" — same padding/gap/typography as the default 65px row, just a tighter height. */
+.sm {
+  height: 54px;
+}
 .beige {
   border-color: transparent;
 }
@@ -30,6 +34,15 @@ button.tile {
 .beige.selected {
   background: var(--bg-neutral-primary-hover);
   border-color: var(--bg-brand-primary); /* brand #ff4a15 border on selection */
+}
+/* Momentary press feedback (Figma "Pressed" state) — same warm surface as .selected, but a
+   plain darker-neutral border on the neutral layer; beige stays borderless like its default. */
+.pressed {
+  background: var(--bg-neutral-primary-hover);
+  border-color: var(--border-neutral-primary-hover);
+}
+.beige.pressed {
+  border-color: transparent;
 }
 .disabled,
 .beige.disabled {
@@ -39,16 +52,27 @@ button.tile {
   border-color: transparent;
 }
 
+/* Validation error (e.g. a required Tile left empty on submit) — border only, same recipe as
+   .selected's brand border swap; not a Figma-defined axis, just this token in place of the
+   brand one. */
+.error,
+.beige.error {
+  border-color: var(--border-error-bold);
+}
+
 /* Leading visuals */
 .icon {
   display: flex;
   flex-shrink: 0;
-  color: var(--text-secondary);
+  color: var(--icon-primary);
 }
 /* Figma spec is 1px stroke for every icon in a Tile row (leading + trailing) — force it
    here so a consumer-supplied leading icon (e.g. a lucide icon with its own strokeWidth)
-   can't drift from the check/chevron weight. */
-.icon svg {
+   can't drift from the check/chevron weight. Targets descendants too, not just the root
+   <svg> — some icons set stroke-width on their inner <path>/<circle> instead, which an
+   `.icon svg` rule alone doesn't override (a child's own attribute beats a parent's). */
+.icon svg,
+.icon svg * {
   stroke-width: 1;
 }
 .disabled .icon {
@@ -61,26 +85,6 @@ button.tile {
 .disabled .flag {
   opacity: 0.4;
 }
-.avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: var(--bg-beige-primary);
-  font-size: 17.647px;
-  font-weight: var(--fw-medium);
-  letter-spacing: -0.88px;
-  line-height: 1;
-  color: var(--text-primary);
-}
-.disabled .avatar {
-  background: var(--bg-neutral-disabled);
-  color: var(--text-neutral-inverse-disabled);
-}
-
 /* Title + text */
 .textBlock {
   flex: 1;
@@ -92,8 +96,7 @@ button.tile {
   line-height: 1.3;
 }
 .title {
-  font-size: var(--text-base);
-  font-weight: var(--fw-medium);
+  composes: body-sm from global;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -103,12 +106,12 @@ button.tile {
    The badge's radii are reshaped so it hugs the card corner. */
 .cornerBadge {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: -1px;
+  right: -1px;
   display: flex; /* kills the inline-baseline gap under the badge */
 }
 .cornerBadge > * {
-  border-radius: 0 var(--radius-2xl) 0 var(--radius-2xl);
+  border-radius: 0 var(--radius-2xl) 0 var(--radius-md);
 }
 
 /* Title + inline badge (e.g. "Primary" on a receiving account) */
@@ -123,7 +126,7 @@ button.tile {
   min-width: 0;
 }
 .text {
-  composes: body-sm from global;
+  composes: caption from global;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;

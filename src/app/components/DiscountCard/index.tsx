@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import { TextInput } from "../TextInput";
+import { TextField } from "../../ui/TextField";
 import { Toggle } from "../../ui/Toggle";
 import styles from "./index.module.css";
 
@@ -28,8 +28,8 @@ export function DiscountCard({ currency, enabled, onToggle, value, onChange, mod
     <div className={styles.root}>
       {/* Header */}
       <div className={styles.header}>
-        <p className={`${styles.title} card-title-sm`}>Discounts</p>
-        <Toggle checked={enabled} onChange={onToggle} aria-label="Discounts" />
+        <p className={`${styles.title} body-md-bold`}>Discount</p>
+        <Toggle checked={enabled} onChange={onToggle} aria-label="Discount" />
       </div>
 
       {/* Body */}
@@ -42,25 +42,20 @@ export function DiscountCard({ currency, enabled, onToggle, value, onChange, mod
             transition={{ duration: 0.25 }}
             className={styles.body}
           >
-            <div className={styles.row}>
-              <div className={styles.fieldWrap}>
-                <TextInput
-                  size="md"
-                  showHint={false}
-                  placeholder="e.g. 10.00"
-                  inputMode="decimal"
-                  iconRight={<span className={`${styles.suffix} card-title-sm`}>{mode === "percent" ? "%" : currency}</span>}
-                  value={value}
-                  onChange={(e) => onChange(e.target.value)}
-                />
-              </div>
-
-              {/* Mode picker — opens a bottom sheet */}
-              <button type="button" onClick={onOpenMode} className={styles.modeButton}>
-                <span className={`${styles.modeLabel} body-md`}>{mode === "percent" ? "%" : currency}</span>
-                <KeyboardArrowDownIcon className={styles.chevron} />
-              </button>
-            </div>
+            {/* One field (Figma node 1826-15916) — value input + %/amount mode trigger share the
+                same bordered box, not two side-by-side fields. */}
+            <TextField
+              placeholder="e.g. 10.00"
+              inputMode="decimal"
+              value={value}
+              onChange={onChange}
+              iconRight={
+                <button type="button" onClick={onOpenMode} className={styles.modeButton}>
+                  <span className={`${styles.modeLabel} body-sm`}>{mode === "percent" ? "%" : currency}</span>
+                  <KeyboardArrowDownIcon className={styles.chevron} />
+                </button>
+              }
+            />
           </motion.div>
         )}
       </AnimatePresence>

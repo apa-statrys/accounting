@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../BottomSheet";
 import { Tile } from "../../ui/Tile";
 import { Badge } from "../../ui/Badge";
+import { CountryFlag } from "../CountryFlag";
 import { RECEIVING_ACCOUNTS } from "../../data/receivingAccounts";
 import styles from "./index.module.css";
 
@@ -38,10 +39,11 @@ export function ReceivingAccountSheet({
           {RECEIVING_ACCOUNTS.map((a) => (
             <motion.div key={a.id} variants={sheetItem}>
               <Tile
+                size="sm"
                 title={a.name}
                 text={a.number}
-                flag={<span className={styles.flag}>{a.flag}</span>}
-                cornerBadge={a.primary ? <Badge label="Primary" size="md" variant="bold" color="custom" /> : undefined}
+                flag={<CountryFlag name={a.country} size={30} />}
+                cornerBadge={a.primary ? <Badge label="Primary" size="sm" variant="bold" color="custom" /> : undefined}
                 selected={value === a.id}
                 trailing={value === a.id ? "check" : "none"}
                 onClick={() => onSelect?.(a.id)}
@@ -53,7 +55,7 @@ export function ReceivingAccountSheet({
         {!hideExternal && (
           <motion.div variants={sheetItem} className={styles.externalGroup}>
             <div className={styles.divider} />
-            <Tile title="Use Other Bank Accounts" trailing="chevron" onClick={onUseExternal} />
+            <Tile size="sm" title="Use Other Bank Accounts" trailing="chevron" onClick={onUseExternal} />
           </motion.div>
         )}
       </div>

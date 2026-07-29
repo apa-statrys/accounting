@@ -1,7 +1,6 @@
 import { useState } from "react";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import { PageAppHeader } from "../components/PageAppHeader";
-import { SheetHeader, HeaderIconButton } from "../components/SheetHeader";
+import { PageHeader } from "../ui/PageHeader";
 import { ButtonDock } from "../components/ButtonDock";
 import { SendSuccessToast } from "../components/SendSuccessToast";
 import type { Customer } from "../types";
@@ -86,13 +85,7 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          <SheetHeader
-            title={record.name}
-            type="inside-page"
-            state="fixed"
-            leading={<HeaderIconButton aria-label="Back" onClick={onBack}><ChevronLeftIcon /></HeaderIconButton>}
-            trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
-          />
+          <PageHeader type="center" title={record.name} onBack={onBack} showSearch={false} />
         </PageAppHeader>
 
         <div className="px-4 pt-4 pb-28 flex flex-col gap-4">
@@ -102,7 +95,7 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
               className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
               style={{ background: "var(--bg-beige-secondary)", color: INK, fontFamily: FONT.fontFamily }}
             >
-              <span className="font-medium" style={{ fontSize: 17.6, letterSpacing: -0.88 }}>{initials(record.name)}</span>
+              <span className="font-medium" style={{ fontSize: 13, letterSpacing: -0.65 }}>{initials(record.name)}</span>
             </span>
             <span className="min-w-0">
               <span className="block text-[16px] font-bold leading-none tracking-[-0.8px] truncate" style={{ ...FONT, color: "#101828" }}>{record.name}</span>

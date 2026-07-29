@@ -1,6 +1,6 @@
 import { BottomSheet } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
-import { TextInput } from "../../components/TextInput";
+import { TextField } from "../../ui/TextField";
 
 interface ClientEditSheetProps {
   open: boolean;
@@ -32,8 +32,8 @@ export function ClientEditSheet({ open, onClose, draftName, draftEmail, setDraft
       }
     >
       <div className="flex flex-col gap-3">
-        <TextInput label="Customer name" value={draftName} onChange={(e) => setDraftName(e.target.value)} required showHint={false} />
-        <TextInput label="Email address" type="email" value={draftEmail} onChange={(e) => setDraftEmail(e.target.value)} required showHint={false} />
+        <TextField label="Customer name" value={draftName} onChange={setDraftName} mandatory />
+        <TextField label="Email address" inputType="email" value={draftEmail} onChange={setDraftEmail} mandatory />
       </div>
     </BottomSheet>
   );

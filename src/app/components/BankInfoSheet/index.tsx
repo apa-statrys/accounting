@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../BottomSheet";
-import { TextInput } from "../TextInput";
+import { TextField } from "../../ui/TextField";
 import { ButtonDock } from "../ButtonDock";
 import styles from "./index.module.css";
 
@@ -56,57 +56,57 @@ export function BankInfoSheet({ open, onBack, onClose, onConfirm }: BankInfoShee
     >
       <div className={styles.fields}>
         <motion.div variants={sheetItem}>
-          <TextInput
+          <TextField
             id="bank-field-card"
             label="Card Number"
+            mandatory
             placeholder="1234 5678 9012 3456"
             inputMode="numeric"
-            size="md"
-            required
             value={cardNumber}
-            error={errors.card}
-            onChange={(e) => { setCardNumber(e.target.value); if (errors.card) setErrors((p) => ({ ...p, card: undefined })); }}
+            error={!!errors.card}
+            caption={errors.card}
+            onChange={(v) => { setCardNumber(v); if (errors.card) setErrors((p) => ({ ...p, card: undefined })); }}
           />
         </motion.div>
 
         <motion.div variants={sheetItem} className={styles.row}>
-          <TextInput
+          <TextField
             id="bank-field-expiry"
             label="Expiration Date"
+            mandatory
             placeholder="MM/YY"
             inputMode="numeric"
-            size="md"
-            required
             className={styles.half}
             value={expiry}
-            error={errors.expiry}
-            onChange={(e) => { setExpiry(e.target.value); if (errors.expiry) setErrors((p) => ({ ...p, expiry: undefined })); }}
+            error={!!errors.expiry}
+            caption={errors.expiry}
+            onChange={(v) => { setExpiry(v); if (errors.expiry) setErrors((p) => ({ ...p, expiry: undefined })); }}
           />
-          <TextInput
+          <TextField
             id="bank-field-cvv"
             label="CVV"
+            mandatory
             placeholder="123"
             inputMode="numeric"
-            type="password"
-            size="md"
-            required
+            inputType="password"
             className={styles.half}
             value={cvv}
-            error={errors.cvv}
-            onChange={(e) => { setCvv(e.target.value); if (errors.cvv) setErrors((p) => ({ ...p, cvv: undefined })); }}
+            error={!!errors.cvv}
+            caption={errors.cvv}
+            onChange={(v) => { setCvv(v); if (errors.cvv) setErrors((p) => ({ ...p, cvv: undefined })); }}
           />
         </motion.div>
 
         <motion.div variants={sheetItem}>
-          <TextInput
+          <TextField
             id="bank-field-holder"
             label="Cardholder Name"
+            mandatory
             placeholder="Name as shown on card"
-            size="md"
-            required
             value={holder}
-            error={errors.holder}
-            onChange={(e) => { setHolder(e.target.value); if (errors.holder) setErrors((p) => ({ ...p, holder: undefined })); }}
+            error={!!errors.holder}
+            caption={errors.holder}
+            onChange={(v) => { setHolder(v); if (errors.holder) setErrors((p) => ({ ...p, holder: undefined })); }}
           />
         </motion.div>
       </div>

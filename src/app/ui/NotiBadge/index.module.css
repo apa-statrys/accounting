@@ -1,0 +1,32 @@
+/* NotiBadge — Figma "[APP] Design System" → NotiBadge (node 4532-223).
+   A small rounded-full count pill: `solid` (brand bg, white text) is the
+   default; `inverse` (white bg, brand border + text) is used when the badge
+   sits on a brand-colored surface, e.g. an active button-style TabsBase. */
+
+.badge {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 14px;
+  min-width: 14px;
+  padding: 2px 4px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-primary);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-caption);
+  line-height: 1.3;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.solid {
+  background: var(--bg-brand-primary);
+  color: var(--text-on-color);
+}
+
+.inverse {
+  background: var(--bg-neutral-primary);
+  border: 1px solid var(--border-brand-primary);
+  color: var(--text-brand);
+}

@@ -239,7 +239,9 @@ export interface ReceivingAccount {
   id: string;
   name: string;
   number: string;
-  flag: string;
+  /** The bank's home country (components/CountryFlag lookup) — not always the same as `currency`
+   *  (e.g. a Eurozone account's country is a specific member state, not "European Union"). */
+  country: string;
   primary?: boolean;
   /** Account holder (the sender's business). */
   holder: string;

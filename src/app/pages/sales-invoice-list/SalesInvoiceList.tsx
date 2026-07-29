@@ -1,22 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { parse, format, addDays } from "date-fns";
-import { ArrowUpDown, Check, ChevronDown, FilePlus, Search } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { parse, parseISO, format, addDays } from "date-fns";
+import { ArrowUpDown, ChevronDown, FilePlus, Search, X } from "lucide-react";
 import { FAB } from "../../ui/FAB";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { HorizontalTabs } from "../../ui/HorizontalTabs";
 import { Tile } from "../../ui/Tile";
+import { Avatar } from "../../ui/Avatar";
+import { Chips } from "../../ui/Chips";
+import { Checkbox } from "../../ui/Checkbox";
 import { SendSuccessToast } from "../../components/SendSuccessToast";
 import { CreateInvoiceSheet } from "../../components/CreateInvoiceSheet";
 import { BottomSheet } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
-import { SearchField } from "../../components/SearchField";
+import { Keyboard } from "../../components/Keyboard";
 import { FilterIcon } from "../../components/FilterIcon";
+import { TextField } from "../../ui/TextField";
+import { Calendar } from "../../components/Calendar";
 import { CreditNoteDetailPage } from "../credit-note-list/CreditNoteDetailPage";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { INVOICES } from "../../data/invoices";
 import { SHOW_RECURRING } from "../../lib/flags";
-import { FONT } from "../../lib/theme";
+import { FONT, avatarTint } from "../../lib/theme";
 import type { CreditNote, DetailStatus, Invoice, Status } from "../../types";
 import { InvoiceCard } from "./InvoiceCard";
 import {
@@ -41,6 +47,60 @@ import {
   type StatusMatch,
 } from "./filters";
 
+/** Two-letter initials from a customer name (skips symbols like "&"), for the Customer search's Avatar. */
+function initials(name: string): string {
+  const words = name.split(/\s+/).filter((w) => /[a-z0-9]/i.test(w[0] ?? ""));
+  return ((words[0]?.[0] ?? "") + (words[1]?.[0] ?? "")).toUpperCase();
+}
+
+/** Split a "Label: Value" sort option into its two parts — used everywhere a sort label renders
+ *  so the label always reads regular weight and the value medium (list header button AND the
+ *  Sort by sheet's Tile rows). */
+function splitSortLabel(label: string): [string, string] {
+  return label.includes(": ") ? (label.split(/: (.+)/) as [string, string]) : [label, ""];
+}
+
+/** "Label: Value" as a fragment with the value in medium weight — for Tile's `title` slot. */
+function sortLabelTitle(label: string): React.ReactNode {
+  const [lbl, val] = splitSortLabel(label);
+  if (!val) return lbl;
+  return (
+    <>
+      {lbl}: <span className="body-sm-medium">{val}</span>
+    </>
+  );
+}
+
+/** Horizontal scroller of picked customers — avatar + name stacked, with a remove "x" badge
+ *  overlaid on the avatar's corner. Shown above the customer list (Filters step) or below the
+ *  search field (search step) so a selection stays visible/removable without scrolling the list. */
+function SelectedCustomers({ clients, onRemove }: { clients: string[]; onRemove: (c: string) => void }) {
+  if (clients.length === 0) return null;
+  return (
+    // pt-2 (the "x" badge pokes ~6px above the avatar via -top-1 + its ring-2) — without it,
+    // overflow-x:auto forces overflow-y:auto too (per spec, since it can't stay "visible"
+    // alongside a non-visible x-axis), clipping the badge's top edge off entirely.
+    <div className="flex gap-4 overflow-x-auto -mx-6 px-6 pt-2 pb-1 thin-scrollbar">
+      {clients.map((c) => (
+        <div key={c} className="flex flex-col items-center gap-1 shrink-0 w-16">
+          <div className="relative">
+            <Avatar size="lg" initials={initials(c)} color={avatarTint(c)} />
+            <button
+              type="button"
+              aria-label={`Remove ${c}`}
+              onClick={() => onRemove(c)}
+              className="absolute -top-1 -right-1 flex items-center justify-center size-4 rounded-full bg-[var(--text-primary)] ring-2 ring-white"
+            >
+              <X size={10} strokeWidth={2.5} color="var(--text-on-color)" />
+            </button>
+          </div>
+          <span className="w-full text-center text-[11px] leading-tight truncate" style={FONT}>{c}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 interface SalesInvoiceListProps {
   showSuccess?: boolean;
   /** Toast title — short, varies by action. */
@@ -50,6 +110,13 @@ interface SalesInvoiceListProps {
   onSuccessDone?: () => void;
   /** A just-created/saved invoice to surface + temporarily highlight at the top of the list. */
   recent?: { client: string; amount: string; status: Status; meta: string; recurring?: boolean } | null;
+  /** Whether `recent`'s arrival highlight has already played once — `recent` itself stays set (the
+   *  card keeps showing) well past that, so without this the highlight replays on every later
+   *  remount of this list (e.g. open the invoice, then Back). */
+  recentHighlighted?: boolean;
+  /** Fires once the highlight has run its course — the caller should flip `recentHighlighted` to
+   *  true (never clear `recent`; the card is meant to keep showing). */
+  onRecentShown?: () => void;
   onBack?: () => void;
   /** Open an invoice's detail page. */
   onOpenInvoice?: (inv: { number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; recurring?: boolean }) => void;
@@ -65,7 +132,7 @@ interface SalesInvoiceListProps {
   refundState?: Record<string, "partial" | "full">;
 }
 
-export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, onSuccessDone, recent, onBack, onOpenInvoice, onManual, onUpload, onRecurring, initialStatus, initialDue, refundState }: SalesInvoiceListProps) {
+export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, onSuccessDone, recent, recentHighlighted, onRecentShown, onBack, onOpenInvoice, onManual, onUpload, onRecurring, initialStatus, initialDue, refundState }: SalesInvoiceListProps) {
   const initialActive = initialStatus ? Math.max(0, FILTERS.findIndex((f) => f.match === initialStatus)) : 0;
   const [active, setActive] = useState(initialActive);
   // Keep the selected status tab scrolled into view (e.g. when opened pre-filtered from the hero).
@@ -77,8 +144,8 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
   }, [active]);
   const [sortKey, setSortKey] = useState<SortKey>(defaultSortFor(FILTERS[initialActive].match));
 
-  // Switching status chips resets the sort to that chip's natural default:
-  // unpaid (Awaiting/Overdue) → chase by due date; everything else → newest issued.
+  // Switching status chips resets the sort to that chip's natural default: unpaid
+  // (Awaiting/Overdue) → chase by due date; everything else → newest issued.
   const selectChip = (i: number) => {
     const m = FILTERS[i].match;
     setActive(i);
@@ -95,10 +162,37 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
   const [refundFilters, setRefundFilters] = useState<Array<Exclude<RefundFilter, "all">>>([]);
   const [issueFrom, setIssueFrom] = useState("");
   const [issueTo, setIssueTo] = useState("");
+  // Which "level" of the Filters sheet is showing — null = the filters form itself; "search"
+  // pushes the Customer search (Figma "Sales Invoice — Client", node 1333-38370 for the search
+  // header/back-button pattern — its "tile card" results aren't used, just the header + next-level
+  // behavior). One BottomSheet, one scrim, content pushes/pops in place — never a second sheet
+  // stacked on top. The date pickers, unlike search, don't push a level — they drop open inline
+  // right below the Start/End date fields instead (see `openCalendar`).
+  const [filterStep, setFilterStep] = useState<"search" | null>(null);
+  // Which inline date-picker (if any) is expanded below the Issue Date row.
+  const [openCalendar, setOpenCalendar] = useState<"start" | "end" | null>(null);
+  // The height-animation wrapper needs overflow:hidden while actually transitioning (so a
+  // still-growing/shrinking box doesn't let content spill out unclipped) but that same
+  // overflow:hidden clips Calendar's own box-shadow once fully open — no amount of padding fully
+  // fixes that without visually insetting the calendar from the fields above it. So: hidden only
+  // until the enter animation completes, then switched to visible for the settled state.
+  const [calendarSettled, setCalendarSettled] = useState(false);
+  useEffect(() => {
+    setCalendarSettled(false);
+  }, [openCalendar]);
+  // Tapping outside the Issue Date fields/calendar closes it, same as any other inline dropdown.
+  const issueDateRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!openCalendar) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (issueDateRef.current && !issueDateRef.current.contains(e.target as Node)) {
+        setOpenCalendar(null);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [openCalendar]);
   const [clientQuery, setClientQuery] = useState("");
-  // Customer search is revealed inline by tapping the search icon; the header stays sticky while the
-  // list scrolls. Tap the icon again to hide + clear. Clearing text uses the ✕ inside the field.
-  const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -111,6 +205,10 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
   // Sort options available on the current chip (per the IA).
   const allowedSorts = new Set(sortKeysFor(activeMatch));
   const visibleSortOptions = SORT_OPTIONS.filter((o) => allowedSorts.has(o.key));
+  // Split the "Label: Value" sort text so the label reads regular weight and the value medium
+  // (e.g. "Issue Date: " regular, "Newest" medium) — Figma spec for the list header's sort button.
+  const currentSortLabel = SORT_OPTIONS.find((o) => o.key === sortKey)?.label ?? "Sort by";
+  const [sortLabelText, sortValueText] = splitSortLabel(currentSortLabel);
 
   // Qonto-style: only surface a search once the client list is long enough to need it.
   const visibleClients = CLIENTS.filter((c) => c.toLowerCase().includes(clientQuery.toLowerCase()));
@@ -146,11 +244,15 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
   // Highlight the recent card on arrival, then let it settle after a moment.
   const [highlightRecent, setHighlightRecent] = useState(false);
   useEffect(() => {
-    if (!recent) return;
+    if (!recent || recentHighlighted) return;
     setHighlightRecent(true);
-    const t = setTimeout(() => setHighlightRecent(false), 2600);
+    const t = setTimeout(() => {
+      setHighlightRecent(false);
+      onRecentShown?.();
+    }, 2600);
     return () => clearTimeout(t);
-  }, [recent?.client, recent?.amount, recent?.status]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recent?.client, recent?.amount, recent?.status, recentHighlighted]);
 
   // Live count per chip, derived from the data.
   const counts = useMemo(
@@ -171,8 +273,6 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
     });
     return sortInvoices(visible, sortKey);
   }, [active, selectedClients, dueFilter, refundFilters, issueFrom, issueTo, sortKey, allInvoices, refundState]);
-
-  const resultCount = list.length;
 
   const toggleClient = (c: string) =>
     setSelectedClients((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
@@ -195,43 +295,57 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          {/* DS PageHeader (center) — back chevron only, title optically centered by the spacer. */}
-          <PageHeader type="center" title="All Invoices" onBack={onBack} showSearch={false} />
+          {/* Figma (node 1332-18605) stacks PageHeader/Tabs/Sort with NO gap between them — all the
+              spacing comes from each row's own padding. PageAppHeader's root flex-col has a 12px gap
+              for the StatusBar→content case, so this trio is wrapped in one gap-less block: the 12px
+              only fires once (StatusBar→block), not again between each row inside it. */}
+          <div className="flex flex-col">
+            {/* DS PageHeader (center) — back chevron only, title optically centered by the spacer. */}
+            <PageHeader type="center" title="All Invoices" onBack={onBack} showSearch={false} />
 
-          {/* Status filter tabs — DS HorizontalTabs (button style), horizontally scrollable. Sits
-              directly in the header's beige→white gradient panel, no separate box/shadow. Right
-              padding is intentionally omitted (Figma node 1332-18605): the row bleeds to the frame's
-              edge so an overflowing tab clips flush against it, signalling more content to scroll to. */}
-          <div ref={tabsWrapRef} className="tabs-wrap shrink-0 pl-4 pt-4 pb-3 relative z-10">
-            <HorizontalTabs
-              variant="button"
-              tabs={FILTERS.map((f, i) => `${f.label} (${counts[i]})`)}
-              activeIndex={active}
-              onChange={selectChip}
-            />
-          </div>
+            {/* Status filter tabs — DS HorizontalTabs (button style), horizontally scrollable. Sits
+                directly in the header's beige→white gradient panel, no separate box/shadow. Right
+                padding is intentionally omitted (Figma node 1332-18605): the row bleeds to the frame's
+                edge so an overflowing tab clips flush against it, signalling more content to scroll to.
+                Figma (node 4240-5598, re-synced 2026-07-28) specs pl-16px / py-16px — symmetric
+                top/bottom, not the pt-4px/pb-8px an earlier sync had recorded. */}
+            <div ref={tabsWrapRef} className="tabs-wrap shrink-0 pl-4 py-4 relative z-10">
+              <HorizontalTabs
+                variant="button"
+                tabs={FILTERS.map((f, i) => `${f.label} (${counts[i]})`)}
+                activeIndex={active}
+                onChange={selectChip}
+              />
+            </div>
 
-          {/* Sort / Filter row — Figma "Sales Invoice · List" (node 1332-18479). The Sort button
-              label reflects the active sort (e.g. "Issue Date: Newest") once one is applied. */}
-          <div className="shrink-0 flex items-center justify-between pb-2 px-4 border-b border-[var(--border-neutral-primary)]">
-            <button onClick={() => setSortOpen(true)} className="flex items-center gap-1" style={FONT}>
-              <ArrowUpDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
-              <span className="body-sm-medium text-[var(--text-primary)]">{SORT_OPTIONS.find((o) => o.key === sortKey)?.label ?? "Sort by"}</span>
-              <ChevronDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
-            </button>
-            <button onClick={() => setFilterOpen(true)} className="relative flex items-center justify-center p-1 -m-1" aria-label="Filters">
-              <FilterIcon size={20} color="var(--text-primary)" />
-              {filterCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[var(--bg-brand-primary)] text-white text-[10px] font-bold flex items-center justify-center">
-                  {filterCount}
+            {/* Sort / Filter row — Figma "Sales Invoice · List" (node 4469-466): pt-1/pb-2/px-4
+                (4/8/16px). The Sort button always shows the effective sort label (e.g. "Issue
+                Date: Newest") — a sort is always applied (see defaultSortFor), so a generic
+                "Sort by" placeholder would be misleading. The Sort sheet below shows the same
+                effective sortKey as selected/checked, for the same reason. */}
+            <div className="shrink-0 flex items-center justify-between pt-1 pb-2 px-4 border-b border-[var(--border-neutral-primary)]">
+              <button onClick={() => setSortOpen(true)} className="flex items-center gap-1" style={FONT}>
+                <ArrowUpDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
+                <span className="body-sm text-[var(--text-primary)]">
+                  {sortValueText ? `${sortLabelText}: ` : sortLabelText}
                 </span>
-              )}
-            </button>
+                {sortValueText && <span className="body-sm-medium text-[var(--text-primary)]">{sortValueText}</span>}
+                <ChevronDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
+              </button>
+              <button onClick={() => setFilterOpen(true)} className="relative flex items-center justify-center p-1 -m-1" aria-label="Filters">
+                <FilterIcon size={20} color="var(--text-primary)" />
+                {filterCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[var(--bg-brand-primary)] text-white text-[10px] font-bold flex items-center justify-center">
+                    {filterCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </PageAppHeader>
 
         {/* Invoice list — DS InvoiceRows as a flat list on the white page (divider between rows). */}
-        <div className="bg-white px-4 pb-28 flex flex-col">
+        <div className="bg-white px-4 pb-4 flex flex-col">
         {list.length === 0 ? (
           <p className="text-center text-[13px] text-[var(--text-placeholder)] pt-16" style={FONT}>No invoices found</p>
         ) : (
@@ -252,7 +366,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
       </div>
 
       {/* Create invoice FAB */}
-      <FAB circle icon={<FilePlus size={20} />} aria-label="Create invoice" className="absolute z-20 bottom-8 right-8" onClick={() => setSheetOpen(true)} />
+      <FAB circle icon={<FilePlus size={20} />} aria-label="Create invoice" className="absolute z-20 bottom-4 right-4" onClick={() => setSheetOpen(true)} />
 
       {/* Create bottom sheet */}
       <CreateInvoiceSheet
@@ -312,7 +426,8 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
           {visibleSortOptions.map((o) => (
             <Tile
               key={o.key}
-              title={o.label}
+              size="sm"
+              title={sortLabelTitle(o.label)}
               selected={o.key === sortKey}
               trailing={o.key === sortKey ? "check" : "none"}
               onClick={() => {
@@ -324,17 +439,69 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
         </div>
       </BottomSheet>
 
-      {/* Filters bottom sheet */}
+      {/* Filters bottom sheet — Customer search pushes the next level of this SAME sheet (Figma
+          "Sales Invoice — Client", node 1333-38370 for the search header/back-button behavior —
+          its "tile card" results aren't used, just that header/behavior). The Issue Date fields
+          don't push a level; their calendar drops open inline right below them instead (simpler
+          than a sub-page for a single field). One BottomSheet instance, title/back/searchValue/
+          footer swap with `filterStep`, content slides in/out instead of stacking a second
+          sheet+scrim on top of this one. */}
       <BottomSheet
         open={filterOpen}
-        title="Filters"
-        onClose={() => setFilterOpen(false)}
+        title="Filter Invoices"
+        // Almost-full-page drawer (below the phone frame's status bar, not overlapping it) — fixed,
+        // not hugging content, so a short result list doesn't shrink the sheet.
+        fullPage
+        onBack={
+          filterStep === "search"
+            ? () => {
+                // Leaving the search step drops its query — otherwise the base Filters step's own
+                // customer list (which reuses the same `visibleClients`) would stay filtered too.
+                setClientQuery("");
+                setFilterStep(null);
+              }
+            : undefined
+        }
+        onClose={() => {
+          setFilterOpen(false);
+          setFilterStep(null);
+          setClientQuery("");
+          setOpenCalendar(null);
+        }}
+        searchValue={filterStep === "search" ? clientQuery : undefined}
+        onSearchChange={filterStep === "search" ? setClientQuery : undefined}
+        searchPlaceholder="Search by Customer name"
+        autoFocusSearch
+        // Lives inside the SAME sticky/frosted header as the search pill (not a second
+        // independent sticky sibling below it) — see BottomSheet's headerExtra doc comment.
+        headerExtra={filterStep === "search" ? <SelectedCustomers clients={selectedClients} onRemove={toggleClient} /> : undefined}
         footer={
+          // Search step (Figma "Sales Invoice — Client", node 1333-38370): a decorative on-screen
+          // keyboard fills the space below the focused search field — same stand-in as elsewhere,
+          // components/Keyboard, since a desktop web view never shows the real OS keyboard. Once
+          // something's picked, the same ButtonDock "keyboard" variant CreditNotesList already
+          // uses adds a confirm button above the keyboard instead of a bare one.
+          filterStep === "search" ? (
+            selectedClients.length > 0 ? (
+              <ButtonDock
+                type="single"
+                keyboard
+                primaryLabel={`Select ${selectedClients.length}`}
+                onPrimary={() => {
+                  setFilterStep(null);
+                  setClientQuery("");
+                }}
+              />
+            ) : (
+              <Keyboard />
+            )
+          ) :
           filterCount === 0 ? undefined : (
             <ButtonDock
-              type="double"
+              type="ghost"
+              stack="horizontal"
               secondaryLabel="Reset"
-              primaryLabel={`Show ${resultCount} ${resultCount === 1 ? "invoice" : "invoices"}`}
+              primaryLabel="Apply"
               onSecondary={() => {
                 setSelectedClients([]);
                 setDueFilter("all");
@@ -342,6 +509,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
                 setIssueFrom("");
                 setIssueTo("");
                 setClientQuery("");
+                setOpenCalendar(null);
               }}
               onPrimary={() => setFilterOpen(false)}
               homeIndicator
@@ -349,143 +517,185 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
           )
         }
       >
-        {showDueFilter && (
-          <>
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[var(--text-placeholder)] mb-2" style={FONT}>Due date</p>
-            <div className="flex flex-wrap gap-2 mb-6">
-              {DUE_FILTERS.map((r) => {
-                const isOn = dueFilter === r.key;
-                return (
-                  <button
-                    key={r.key}
-                    onClick={() => setDueFilter((prev) => (prev === r.key ? "all" : r.key))}
-                    className="h-9 px-3.5 rounded-full border text-[13px] font-medium transition-colors"
-                    style={{
-                      ...FONT,
-                      borderColor: isOn ? "var(--text-brand)" : "rgba(160,160,160,0.4)",
-                      background: isOn ? "#fff4f0" : "transparent",
-                      color: isOn ? "var(--text-brand)" : "var(--text-primary)",
-                    }}
-                  >
-                    {r.label}
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
+        <AnimatePresence mode="wait" initial={false}>
+          {filterStep === "search" ? (
+            <motion.div
+              key="search"
+              initial={{ x: 24, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 24, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+            >
+              <div className="flex flex-col">
+                {/* Selection itself now renders in the sheet's own sticky header (via
+                    headerExtra) — a back-tap here doesn't undo it either; it just returns to the
+                    base Filters step with it intact. */}
+                {/* Before a query: the same default suggestion list as the base Filters step, with
+                    no label of its own — same rationale as the base step's Customer list (the
+                    search field above already frames what it is). Once typing, this becomes a
+                    result count (Figma "Sales Invoice — Client", node 1333-38370: "Result 1"). */}
+                {clientQuery && (
+                  visibleClients.length === 0 ? (
+                    <p className="text-center text-[13px] text-[var(--text-placeholder)] py-3.5" style={FONT}>No customers found</p>
+                  ) : (
+                    <p className="body-sm text-[var(--text-secondary)] pt-3.5 pb-2">
+                      {visibleClients.length === 1 ? "Result 1" : `Results ${visibleClients.length}`}
+                    </p>
+                  )
+                )}
+                {visibleClients.map((c) => (
+                  <div key={c} className="py-4 flex items-center gap-3">
+                    <Avatar size="sm" initials={initials(c)} color={avatarTint(c)} />
+                    <div className="flex-1">
+                      <Checkbox reverse label={c} checked={selectedClients.includes(c)} onChange={() => toggleClient(c)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="filters"
+              initial={{ x: -24, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -24, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+            >
+              {showDueFilter && (
+                <div className="flex flex-col">
+                  <p className="body-sm text-[var(--text-secondary)] pb-4">Due Date</p>
+                  <div className="flex flex-wrap gap-2">
+                    {DUE_FILTERS.map((r) => (
+                      <Chips
+                        key={r.key}
+                        label={r.label}
+                        active={dueFilter === r.key}
+                        onClick={() => setDueFilter((prev) => (prev === r.key ? "all" : r.key))}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
-        <p className="text-[12px] font-bold uppercase tracking-wide text-[var(--text-placeholder)] mb-2" style={FONT}>Issue date</p>
-        <div className="flex items-center gap-3 mb-6">
-          <div className="relative flex-1">
-            {!issueFrom && (
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[var(--text-placeholder)]" style={FONT}>Start date</span>
-            )}
-            <input
-              type="date"
-              value={issueFrom}
-              max={issueTo || undefined}
-              onChange={(e) => setIssueFrom(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-[rgba(160,160,160,0.4)] text-[14px] bg-white"
-              style={{ ...FONT, color: issueFrom ? "var(--text-primary)" : "transparent" }}
-            />
-          </div>
-          <div className="relative flex-1">
-            {!issueTo && (
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[var(--text-placeholder)]" style={FONT}>End date</span>
-            )}
-            <input
-              type="date"
-              value={issueTo}
-              min={issueFrom || undefined}
-              onChange={(e) => setIssueTo(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-[rgba(160,160,160,0.4)] text-[14px] bg-white"
-              style={{ ...FONT, color: issueTo ? "var(--text-primary)" : "transparent" }}
-            />
-          </div>
-        </div>
-
-        {/* Refund status — a refunded invoice is still Paid, so it's a filter here (only on All / Paid). */}
-        {showRefundFilter && (
-          <>
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[var(--text-placeholder)] mb-2" style={FONT}>Refund Status</p>
-            <div className="flex flex-col mb-6">
-              {REFUND_FILTERS.map((r, i) => {
-                const isOn = refundFilters.includes(r.key);
-                return (
-                  <button
-                    key={r.key}
-                    onClick={() => setRefundFilters((prev) => (prev.includes(r.key) ? prev.filter((k) => k !== r.key) : [...prev, r.key]))}
-                    className={`w-full flex items-center justify-between py-3.5 text-left ${i === REFUND_FILTERS.length - 1 ? "" : "border-b border-[#f1f1f1]"}`}
-                  >
-                    <span className="text-[15px] text-[var(--text-primary)]" style={FONT}>{r.label}</span>
-                    <span
-                      className="size-6 rounded-md border flex items-center justify-center"
-                      style={{ borderColor: isOn ? "var(--text-brand)" : "rgba(160,160,160,0.5)", background: isOn ? "var(--bg-brand-primary)" : "transparent" }}
+              <div ref={issueDateRef} className="flex flex-col">
+                <p className="body-sm text-[var(--text-secondary)] pt-6 pb-4">Issue Date</p>
+                <div className="flex items-start gap-3">
+                  <TextField
+                    type="date-picker"
+                    placeholder="Start date"
+                    value={issueFrom ? format(parseISO(issueFrom), "d MMM yyyy") : ""}
+                    onClick={() => setOpenCalendar((prev) => (prev === "start" ? null : "start"))}
+                  />
+                  <TextField
+                    type="date-picker"
+                    placeholder="End date"
+                    value={issueTo ? format(parseISO(issueTo), "d MMM yyyy") : ""}
+                    onClick={() => setOpenCalendar((prev) => (prev === "end" ? null : "end"))}
+                  />
+                </div>
+                {/* Drops open inline right below the fields — not a sub-page push (that's overkill
+                    for a single field), unlike the Customer search step above. Animated open/close
+                    (height+opacity) instead of an instant show/hide, and closes on an outside tap
+                    (see the pointerdown listener on issueDateRef above). Overflow stays hidden only
+                    while actually transitioning (so a still-growing/shrinking box doesn't let
+                    content spill out unclipped) — Calendar's own box-shadow needs far more bleed
+                    room (10px y-offset + 30px blur, on every side) than padding could reserve
+                    without visibly insetting it from the fields above, so once settled/fully open
+                    it switches to visible instead (see `calendarSettled`). */}
+                <AnimatePresence initial={false} mode="wait">
+                  {openCalendar && (
+                    <motion.div
+                      key={openCalendar}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      onAnimationComplete={() => {
+                        if (openCalendar) setCalendarSettled(true);
+                      }}
+                      style={{ overflow: calendarSettled ? "visible" : "hidden" }}
                     >
-                      {isOn && <Check size={16} strokeWidth={1.67} color="white" />}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
+                      <div className="pt-3">
+                        <Calendar
+                          value={
+                            openCalendar === "start"
+                              ? issueFrom ? parseISO(issueFrom) : undefined
+                              : issueTo ? parseISO(issueTo) : undefined
+                          }
+                          maxDate={openCalendar === "start" && issueTo ? parseISO(issueTo) : undefined}
+                          onChange={(d) => {
+                            if (openCalendar === "start") setIssueFrom(format(d, "yyyy-MM-dd"));
+                            else setIssueTo(format(d, "yyyy-MM-dd"));
+                            setOpenCalendar(null);
+                          }}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-        {/* Customer — title + count + search toggle stay sticky while the list scrolls beneath. */}
-        <div className="sticky top-0 z-10 bg-white -mx-6 px-6 pb-2 border-b border-[#f1f1f1]">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[var(--text-placeholder)]" style={FONT}>Customer ({CLIENTS.length})</p>
-            {CLIENTS.length >= 5 && (
-              <button
-                type="button"
-                aria-label={customerSearchOpen ? "Hide customer search" : "Search customers"}
-                onClick={() => { if (customerSearchOpen) setClientQuery(""); setCustomerSearchOpen((v) => !v); }}
-                className="p-1 -m-1"
-              >
-                <Search size={18} strokeWidth={1.67} color={customerSearchOpen ? "var(--text-brand)" : "var(--text-primary)"} />
-              </button>
-            )}
-          </div>
-          {customerSearchOpen && CLIENTS.length >= 5 && (
-            <SearchField
-              size="sm"
-              autoFocus
-              placeholder="Search by Customer name"
-              value={clientQuery}
-              onChange={(e) => setClientQuery(e.target.value)}
-            />
+              {/* Refund status — a refunded invoice is still Paid, so it's a filter here (only on All / Paid). */}
+              {showRefundFilter && (
+                <div className="flex flex-col">
+                  <p className="body-sm text-[var(--text-secondary)] pt-6">Refund Status</p>
+                  {REFUND_FILTERS.map((r) => (
+                    <div key={r.key} className="py-4">
+                      <Checkbox
+                        reverse
+                        label={r.label}
+                        checked={refundFilters.includes(r.key)}
+                        onChange={() => setRefundFilters((prev) => (prev.includes(r.key) ? prev.filter((k) => k !== r.key) : [...prev, r.key]))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Customer — title + search toggle. Not sticky: it's a sibling of this SAME sheet's
+                  own sticky header, and two top:0 stickies in one scroll container fight over the
+                  same position once both are stuck (see BottomSheet's headerExtra doc comment).
+                  Tapping search pushes the "search" step (this SAME sheet's header swaps to a
+                  search pill) instead of revealing a field inline. Selected picks surface as a
+                  removable chip row right below the title; the list itself (all/"suggested"
+                  customers) needs no further label — the title + chips above it already frame
+                  what it is. */}
+              <div className="pb-2">
+                <div className="flex items-center justify-between pt-2">
+                  <p className="body-sm text-[var(--text-secondary)]">Customer</p>
+                  {CLIENTS.length >= 5 && (
+                    <button
+                      type="button"
+                      aria-label="Search customers"
+                      onClick={() => setFilterStep("search")}
+                      className="p-1 -m-1"
+                    >
+                      <Search size={20} strokeWidth={1} color="var(--text-primary)" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <SelectedCustomers clients={selectedClients} onRemove={toggleClient} />
+              <div className="flex flex-col">
+                {visibleClients.length === 0 && (
+                  <p className="text-center text-[13px] text-[var(--text-placeholder)] py-3.5" style={FONT}>No customers found</p>
+                )}
+                {visibleClients.map((c) => (
+                  <div key={c} className="py-4 flex items-center gap-3">
+                    <Avatar size="sm" initials={initials(c)} color={avatarTint(c)} />
+                    <div className="flex-1">
+                      <Checkbox reverse label={c} checked={selectedClients.includes(c)} onChange={() => toggleClient(c)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
           )}
-        </div>
-        <div className="flex flex-col">
-          {visibleClients.length === 0 && (
-            <p className="text-[13px] text-[var(--text-placeholder)] py-3.5" style={FONT}>No customers found</p>
-          )}
-          {visibleClients.map((c, i) => {
-            const checked = selectedClients.includes(c);
-            return (
-              <button
-                key={c}
-                onClick={() => toggleClient(c)}
-                className={`w-full flex items-center justify-between py-3.5 text-left ${
-                  i === visibleClients.length - 1 ? "" : "border-b border-[#f1f1f1]"
-                }`}
-              >
-                <span className="text-[15px] text-[var(--text-primary)]" style={FONT}>{c}</span>
-                <span
-                  className="size-6 rounded-md border flex items-center justify-center"
-                  style={{ borderColor: checked ? "var(--text-brand)" : "rgba(160,160,160,0.5)", background: checked ? "var(--bg-brand-primary)" : "transparent" }}
-                >
-                  {checked && <Check size={16} strokeWidth={1.67} color="white" />}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        </AnimatePresence>
       </BottomSheet>
 
-      {/* Delete-draft confirmation. Safe action (Cancel) is the filled primary; destructive Delete
-          is the outline secondary (see memory: confirm-dialog-pattern). */}
+      {/* Delete-draft confirmation. Safe action (Keep Draft) is the filled primary; destructive
+          Delete Draft is the outline secondary (see memory: confirm-dialog-pattern). */}
       <BottomSheet
         open={!!confirmDeleteId}
         title="Delete Draft Invoice?"
@@ -494,8 +704,8 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
         footer={
           <ButtonDock
             type="double"
-            primaryLabel="Cancel"
-            secondaryLabel="Delete"
+            primaryLabel="Keep Draft"
+            secondaryLabel="Delete Draft"
             onPrimary={() => setConfirmDeleteId(null)}
             onSecondary={() => {
               if (confirmDeleteId) setDeletedIds((prev) => [...prev, confirmDeleteId]);
@@ -506,7 +716,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
         }
       >
         <p className="text-[16px] leading-[1.45] text-[var(--text-secondary)]" style={FONT}>
-          This draft invoice will be permanently deleted and cannot be recovered.
+          Are you sure you want to delete this draft invoice? This action cannot be undone.
         </p>
       </BottomSheet>
 

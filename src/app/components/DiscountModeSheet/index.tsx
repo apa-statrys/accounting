@@ -21,7 +21,7 @@ export function DiscountModeSheet({ open, value, currency, onClose, onSelect }: 
   ];
 
   return (
-    <BottomSheet open={open} title="Discount Type" onClose={onClose}>
+    <BottomSheet open={open} title="Select Discount Type" onClose={onClose}>
       <div className={styles.list}>
         {options.map((o) => (
           <motion.div key={o.mode} variants={sheetItem}>

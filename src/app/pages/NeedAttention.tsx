@@ -1,7 +1,6 @@
 import { useState } from "react";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import { PageAppHeader } from "../components/PageAppHeader";
-import { SheetHeader, HeaderIconButton } from "../components/SheetHeader";
+import { PageHeader } from "../ui/PageHeader";
 import { ATTENTION_TASKS } from "../data/attentionTasks";
 import type { AttentionTask } from "../types";
 
@@ -45,17 +44,7 @@ export function NeedAttention({ onBack, onOpenInvoice }: NeedAttentionProps) {
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          <SheetHeader
-            title="Needs Attention"
-            type="inside-page"
-            state="fixed"
-            leading={
-              <HeaderIconButton aria-label="Back" onClick={onBack}>
-                <ChevronLeftIcon />
-              </HeaderIconButton>
-            }
-            trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
-          />
+          <PageHeader type="center" title="Needs Attention" onBack={onBack} showSearch={false} />
         </PageAppHeader>
 
         <div className="px-4 pt-5 pb-10 flex flex-col gap-4">

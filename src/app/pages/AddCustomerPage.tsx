@@ -1,31 +1,26 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
-import { TextInput } from "../components/TextInput";
+import { TextField } from "../ui/TextField";
 import { ButtonDock } from "../components/ButtonDock";
 import { BottomSheet } from "../components/BottomSheet";
 import { CurrencySheet } from "../components/CurrencySheet";
 import { CountrySheet } from "../components/CountrySheet";
+import { CountryCodeSheet } from "../components/CountryCodeSheet";
+import { CountryFlag } from "../components/CountryFlag";
+import { DEFAULT_COUNTRY_CODE } from "../data/countryCodes";
 import type { Customer } from "../types";
 
 import { FONT } from "../lib/theme";
-const chevron = <ExpandMoreIcon style={{ fontSize: 20, color: "var(--text-secondary)" }} />;
+// "Details" / "Address" / "Invoice" section headers (Figma "Sales Invoice - Client" node 1333-30838).
+const SECTION_TITLE_STYLE = { ...FONT, fontWeight: 700, fontSize: 16, lineHeight: 1.3, color: "var(--text-primary)" } as const;
 
 /** Two-letter initials from a name (skips symbols like "&") — for the duplicate-warning avatar. */
 function initials(name: string): string {
   const words = name.split(/\s+/).filter((w) => /[a-z0-9]/i.test(w[0] ?? ""));
   return ((words[0]?.[0] ?? "") + (words[1]?.[0] ?? "")).toUpperCase();
 }
-
-// Static country-code prefix shown inside the Phone field (visual only, matching the Figma).
-const phonePrefix = (
-  <span className="flex items-center gap-1" style={{ ...FONT, color: "var(--text-primary)" }}>
-    <span style={{ fontSize: 16, lineHeight: 1 }}>🇺🇸</span>
-    <span className="body-md">+1</span>
-    <ExpandMoreIcon style={{ fontSize: 16, color: "var(--text-secondary)" }} />
-  </span>
-);
 
 import { EMAIL_RE } from "../lib/format";
 const PHONE_RE = /^[+()\d][\d\s()-]{5,}$/;
@@ -80,7 +75,13 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
   const [discardOpen, setDiscardOpen] = useState(false);
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
+  const [phoneCountry, setPhoneCountry] = useState(DEFAULT_COUNTRY_CODE);
+  const [phoneCodeOpen, setPhoneCodeOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    setScrolled(e.currentTarget.scrollTop > 4);
+  };
 
   // Dirty = any field differs from the seeded state (edit) / from empty (add). Drives the discard warning
   // (714 AC1) and dirty-gates the Save Changes CTA in edit mode.
@@ -189,11 +190,11 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
   return (
     <div
       className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
-      style={{ width: 375, height: 812, background: "var(--ds-bg-beige-primary)" }}
+      style={{ width: 375, height: 812, background: "var(--bg-beige-primary)" }}
     >
       <div
         className="flex-1 overflow-y-auto thin-scrollbar"
-        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+        onScroll={handleScroll}
       >
         <PageAppHeader scrolled={scrolled}>
           <PageHeader
@@ -205,49 +206,76 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         </PageAppHeader>
 
         <div className="px-4 pt-5 pb-28">
-        <div className="flex flex-col gap-4">
-          <TextInput id="client-field-company" label="Company Name" placeholder="e.g. Atlas Logistics" size="md" required
-            error={err("company")} value={company} onChange={(e) => setCompany(e.target.value)} />
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
+            <p style={SECTION_TITLE_STYLE}>Details</p>
+            <div className="flex flex-col gap-3">
+              <TextField id="client-field-company" label="Company Name" mandatory placeholder="e.g. Atlas Logistics"
+                error={!!err("company")} caption={err("company") || undefined} value={company} onChange={setCompany} />
 
-          <div className="flex gap-4">
-            <TextInput label="First Name" placeholder="Enter first name" size="md" showHint={false} className="flex-1"
-              value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-            <TextInput label="Last Name" placeholder="Enter last name" size="md" showHint={false} className="flex-1"
-              value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              <div className="flex gap-4">
+                <TextField label="First Name" placeholder="Enter first name" className="flex-1"
+                  value={firstName} onChange={setFirstName} />
+                <TextField label="Last Name" placeholder="Enter last name" className="flex-1"
+                  value={lastName} onChange={setLastName} />
+              </div>
+
+              <TextField label="Company Registration Number" placeholder="Enter registration number"
+                value={regNo} onChange={setRegNo} />
+
+              <TextField id="client-field-email" label="Email Address" inputType="email" placeholder="e.g. abc@gmail.com" mandatory
+                error={!!err("email")} caption={err("email") || undefined} value={email} onChange={setEmail} />
+
+              <TextField type="left-icon" id="client-field-phone" label="Phone Number" inputType="tel" placeholder="Enter contact phone number"
+                icon={
+                  <button
+                    type="button"
+                    className="flex items-center gap-1"
+                    style={{ ...FONT, color: "var(--text-primary)" }}
+                    onClick={(e) => { e.stopPropagation(); setPhoneCodeOpen(true); }}
+                  >
+                    <CountryFlag name={phoneCountry.name} size={20} />
+                    <span className="body-md">{phoneCountry.dialCode}</span>
+                    <ExpandMoreIcon style={{ fontSize: 16, color: "var(--text-secondary)" }} />
+                  </button>
+                }
+                error={!!err("phone")} caption={err("phone") || undefined} value={phone} onChange={setPhone} />
+
+              <TextField id="client-field-website" label="Website" placeholder="Enter company website"
+                error={!!err("website")} caption={err("website") || undefined} value={website} onChange={setWebsite} />
+            </div>
           </div>
 
-          <TextInput label="Company Registration Number" placeholder="Enter registration number" size="md" showHint={false}
-            value={regNo} onChange={(e) => setRegNo(e.target.value)} />
+          <div className="flex flex-col gap-4">
+            <p style={SECTION_TITLE_STYLE}>Address</p>
+            <div className="flex flex-col gap-3">
+              <TextField type="dropdown" id="client-field-country" label="Country" mandatory placeholder="Select country"
+                error={!!err("country")} caption={err("country") || undefined} value={country} onClick={() => setCountryOpen(true)} />
 
-          <TextInput id="client-field-email" label="Email Address" type="email" placeholder="e.g. abc@gmail.com" size="md" required
-            error={err("email")} value={email} onChange={(e) => setEmail(e.target.value)} />
+              <TextField id="client-field-address" label="Address" mandatory placeholder="Enter company address"
+                error={!!err("address")} caption={err("address") || undefined} value={address} onChange={setAddress} />
 
-          <TextInput id="client-field-phone" label="Phone Number" type="tel" placeholder="Enter contact phone number" size="md"
-            iconLeft={phonePrefix} error={err("phone")} value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <div className="flex gap-4">
+                <TextField id="client-field-city" label="City" mandatory placeholder="Enter city"
+                  error={!!err("city")} caption={err("city") || undefined} className="flex-1" value={city} onChange={setCity} />
+                {!noPostal && (
+                  <TextField id="client-field-zip" label="Zip / Postal" mandatory placeholder="e.g. 11102"
+                    error={!!err("zip")} caption={err("zip") || undefined} className="flex-1" value={zip} onChange={setZip} />
+                )}
+              </div>
 
-          <TextInput id="client-field-website" label="Website" placeholder="Enter company website" size="md"
-            error={err("website")} value={website} onChange={(e) => setWebsite(e.target.value)} />
-
-          <TextInput id="client-field-country" label="Country" placeholder="Select country" size="md" required
-            error={err("country")} readOnly iconRight={chevron} value={country} onClick={() => setCountryOpen(true)} />
-
-          <TextInput id="client-field-address" label="Address" placeholder="Enter company address" size="md" required
-            error={err("address")} value={address} onChange={(e) => setAddress(e.target.value)} />
-
-          <div className="flex gap-4">
-            <TextInput id="client-field-city" label="City" placeholder="Enter city" size="md" required
-              error={err("city")} className="flex-1" value={city} onChange={(e) => setCity(e.target.value)} />
-            {!noPostal && (
-              <TextInput id="client-field-zip" label="Zip / Postal" placeholder="e.g. 11102" size="md" required
-                error={err("zip")} className="flex-1" value={zip} onChange={(e) => setZip(e.target.value)} />
-            )}
+              <TextField label="State" placeholder="Enter state or province"
+                value={stateVal} onChange={setStateVal} />
+            </div>
           </div>
 
-          <TextInput label="State" placeholder="Enter state or province" size="md" showHint={false}
-            value={stateVal} onChange={(e) => setStateVal(e.target.value)} />
-
-          <TextInput label="Currency" placeholder="Select default invoice currency" size="md" showHint={false} readOnly
-            iconRight={chevron} value={currency} onClick={() => setCurrencyOpen(true)} />
+          <div className="flex flex-col gap-4">
+            <p style={SECTION_TITLE_STYLE}>Invoice</p>
+            <div className="flex flex-col gap-3">
+              <TextField type="dropdown" label="Currency" placeholder="Select default invoice currency"
+                value={currency} onClick={() => setCurrencyOpen(true)} />
+            </div>
+          </div>
         </div>
         </div>
       </div>
@@ -273,6 +301,13 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         value={currency}
         onClose={() => setCurrencyOpen(false)}
         onSelect={(code) => { setCurrency(code); setCurrencyOpen(false); }}
+      />
+
+      <CountryCodeSheet
+        open={phoneCodeOpen}
+        value={phoneCountry.name}
+        onClose={() => setPhoneCodeOpen(false)}
+        onSelect={(c) => { setPhoneCountry(c); setPhoneCodeOpen(false); }}
       />
 
       {/* Unsaved-changes discard warning (DES-714 AC1). Safe action (Keep Editing) is the

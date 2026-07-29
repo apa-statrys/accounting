@@ -1,8 +1,7 @@
 import { useState } from "react";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { PageAppHeader } from "../components/PageAppHeader";
-import { SheetHeader, HeaderIconButton } from "../components/SheetHeader";
+import { PageHeader } from "../ui/PageHeader";
 import { ButtonDock } from "../components/ButtonDock";
 import { UploadedFileCard, FilePreviewOverlay, type UploadedFileInfo } from "../components/UploadedFile";
 import type { ExistingInvoice } from "../types";
@@ -67,17 +66,7 @@ export function DuplicateDecision({ existing, file, onBack, onEditExisting, onVi
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          <SheetHeader
-            title="Duplicate found"
-            type="inside-page"
-            state="fixed"
-            leading={
-              <HeaderIconButton aria-label="Back" onClick={onBack}>
-                <ChevronLeftIcon />
-              </HeaderIconButton>
-            }
-            trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
-          />
+          <PageHeader type="center" title="Duplicate found" onBack={onBack} showSearch={false} />
         </PageAppHeader>
 
         <div className="px-4 pt-6 pb-44 flex flex-col gap-5">

@@ -40,7 +40,7 @@
 
 /* Colors — variables consumed by the style classes below */
 .neutral {
-  --badge-primary: var(--text-secondary);
+  --badge-primary: var(--text-primary);
   --badge-bold-bg: var(--bg-neutral-inverse-tertiary);
   --badge-bold-text: var(--text-on-color);
 }

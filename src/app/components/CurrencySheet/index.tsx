@@ -1,39 +1,45 @@
-import { useState } from "react";
 import { motion } from "motion/react";
-import { BottomSheet, sheetItem, SERVICE_SHEET_HEIGHT } from "../BottomSheet";
+import { BottomSheet, sheetItem } from "../BottomSheet";
 import { Tile } from "../../ui/Tile";
-import { Search } from "../../ui/Search";
+import { CountryFlag } from "../CountryFlag";
 import styles from "./index.module.css";
 
 export interface Currency {
   code: string;
   name: string;
-  flag: string;
 }
 
+/** The 11 currencies the app supports, for now (decided 2026-07-28) — don't add more without asking. */
 export const CURRENCIES: Currency[] = [
-  { code: "SGD", name: "Singapore Dollar", flag: "🇸🇬" },
-  { code: "HKD", name: "Hong Kong Dollar", flag: "🇭🇰" },
-  { code: "USD", name: "US Dollar", flag: "🇺🇸" },
-  { code: "EUR", name: "Euro", flag: "🇪🇺" },
-  { code: "GBP", name: "British Pound", flag: "🇬🇧" },
-  { code: "AUD", name: "Australian Dollar", flag: "🇦🇺" },
-  { code: "JPY", name: "Japanese Yen", flag: "🇯🇵" },
+  { code: "EUR", name: "Euro" },
+  { code: "HKD", name: "Hong Kong Dollar" },
+  { code: "USD", name: "US Dollar" },
+  { code: "CNH", name: "Chinese Yuan" },
+  { code: "JPY", name: "Japanese Yen" },
+  { code: "GBP", name: "British Pound" },
+  { code: "SGD", name: "Singapore Dollar" },
+  { code: "CHF", name: "Swiss Franc" },
+  { code: "AUD", name: "Australian Dollar" },
+  { code: "CAD", name: "Canadian Dollar" },
+  { code: "NZD", name: "New Zealand Dollar" },
 ];
 
-function SearchGlyph() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path
-        d="M17.4999 17.5001L13.8833 13.8835M15.8333 9.16667C15.8333 12.8486 12.8486 15.8333 9.16667 15.8333C5.48477 15.8333 2.5 12.8486 2.5 9.16667C2.5 5.48477 5.48477 2.5 9.16667 2.5C12.8486 2.5 15.8333 5.48477 15.8333 9.16667Z"
-        stroke="currentColor"
-        strokeWidth="1.66667"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+/** Currency code → the country whose flag represents it (components/CountryFlag lookup) — never
+ *  emoji. EUR maps to "European Union" (not a single member state); CNH (offshore yuan) maps to
+ *  China, same flag as onshore CNY. */
+export const CURRENCY_COUNTRY: Record<string, string> = {
+  EUR: "European Union",
+  HKD: "Hong Kong",
+  USD: "United States",
+  CNH: "China",
+  JPY: "Japan",
+  GBP: "United Kingdom",
+  SGD: "Singapore",
+  CHF: "Switzerland",
+  AUD: "Australia",
+  CAD: "Canada",
+  NZD: "New Zealand",
+};
 
 interface CurrencySheetProps {
   open: boolean;
@@ -47,56 +53,24 @@ interface CurrencySheetProps {
  * Currency picker — per-invoice override.
  * Seeded from the Settings default; choosing here does NOT change Settings.
  * See memory: invoice-currency-default.
- * DS Bottomsheets header (grabber, no ✕) with the search icon next to the
- * "Select Currency" title; tapping it reveals/hides the DS Search field.
- * Rows are the DS Tile country variant (flag + title, check when selected).
+ * DS Bottomsheets header (grabber, no ✕) — no search: `fullPage` (+ `compact` to reclaim
+ * the empty no-footer spacer) gives just enough room for all 11 rows to show at once with
+ * no scrolling — see memory: bottomsheet-use-available-height.
+ * Rows are the DS Tile country variant (flag + code as title, full name as
+ * the second line, check when selected) — matches Figma's two-line row.
  */
 export function CurrencySheet({ open, value, onClose, onSelect }: CurrencySheetProps) {
-  const [query, setQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
-
-  const filtered = CURRENCIES.filter(
-    (c) =>
-      c.name.toLowerCase().includes(query.toLowerCase()) ||
-      c.code.toLowerCase().includes(query.toLowerCase())
-  );
-
-  const toggleSearch = () => {
-    setSearchOpen((prev) => {
-      if (prev) setQuery(""); // closing the search resets the filter
-      return !prev;
-    });
-  };
-
   return (
-    <BottomSheet
-      open={open}
-      title="Select Currency"
-      onClose={onClose}
-      heightClass={SERVICE_SHEET_HEIGHT}
-      action={<SearchGlyph />}
-      onAction={toggleSearch}
-      actionLabel="Search currency"
-    >
+    <BottomSheet open={open} title="Select Currency" onClose={onClose} fullPage compact>
       <div className={styles.root}>
-        {searchOpen && (
-          <motion.div variants={sheetItem} initial="closed" animate="open">
-            <Search
-              placeholder="Search Currency"
-              value={query}
-              onChange={setQuery}
-              showAction={false}
-              aria-label="Search currency"
-            />
-          </motion.div>
-        )}
-
         <div className={styles.rows}>
-          {filtered.map((c) => (
+          {CURRENCIES.map((c) => (
             <motion.div key={c.code} variants={sheetItem}>
               <Tile
-                title={`${c.name} ( ${c.code} )`}
-                flag={<span className={styles.flag}>{c.flag}</span>}
+                size="sm"
+                title={c.code}
+                text={c.name}
+                flag={<CountryFlag name={CURRENCY_COUNTRY[c.code]} size={30} />}
                 trailing={value === c.code ? "check" : "none"}
                 selected={value === c.code}
                 onClick={() => onSelect?.(c.code)}

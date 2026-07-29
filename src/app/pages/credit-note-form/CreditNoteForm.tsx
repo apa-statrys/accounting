@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, format } from "date-fns";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { PageAppHeader } from "../../components/PageAppHeader";
-import { SheetHeader, HeaderIconButton } from "../../components/SheetHeader";
+import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
 import { IssueDateSheet } from "../../components/IssueDateSheet";
 import { NumericKeypad } from "../../components/NumericKeypad";
@@ -300,16 +299,12 @@ export function CreditNoteForm({
         onTouchMove={() => { if (focusedLineId) closeKeypad(); }}
       >
         <PageAppHeader scrolled={scrolled}>
-          <SheetHeader
+          <PageHeader
+            type="center"
             title={isEdit ? "Edit Credit Note" : refund ? "New Refund" : "New Credit Note"}
-            type="inside-page"
-            state="fixed"
-            leading={
-              <HeaderIconButton aria-label="Back" onClick={handleBack}>
-                <ChevronLeftIcon />
-              </HeaderIconButton>
-            }
-            trailing={
+            onBack={handleBack}
+            showSearch={false}
+            right={
               !isEdit ? (
                 <span className="flex items-center gap-1.5 pr-1 text-[12px]" style={{ ...FONT, color: MUTED }}>
                   {saveState === "saving"
@@ -317,9 +312,7 @@ export function CreditNoteForm({
                     : <span style={{ color: "#0f9d58" }}>✓</span>}
                   {saveState === "saving" ? "Saving" : "Saved"}
                 </span>
-              ) : (
-                <span className="w-[30px] h-[30px] block" aria-hidden />
-              )
+              ) : undefined
             }
           />
         </PageAppHeader>

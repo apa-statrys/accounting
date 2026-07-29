@@ -7,10 +7,11 @@ import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
 import { Item } from "../../components/Item";
-import { TextInput } from "../../components/TextInput";
+import { TextField } from "../../ui/TextField";
 import { Calendar } from "../../components/Calendar";
 import { ReceivingAccountSheet } from "../../components/ReceivingAccountSheet";
-import { CURRENCIES } from "../../components/CurrencySheet";
+import { CURRENCY_COUNTRY } from "../../components/CurrencySheet";
+import { CountryFlag } from "../../components/CountryFlag";
 import { money } from "../../lib/format";
 import { formatAccount } from "../../data/receivingAccounts";
 import { FONT, MUTED } from "../../lib/theme";
@@ -37,7 +38,7 @@ export function RecordPaymentSheet({
 }: RecordPaymentSheetProps) {
   const [accountOpen, setAccountOpen] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
-  const currencyFlag = CURRENCIES.find((c) => c.code === currency)?.flag;
+  const currencyCountry = CURRENCY_COUNTRY[currency];
 
   return (
     <>
@@ -61,20 +62,20 @@ export function RecordPaymentSheet({
             <p className="body-md leading-[1.45]" style={{ ...FONT, color: MUTED }}>
               Record a payment received for this invoice.
             </p>
-            <TextInput
+            <TextField
+              type="left-icon"
               label="Amount received"
               inputMode="decimal"
-              size="md"
               // Locked currency prefix (flag + code) — the currency is fixed per invoice, not chosen here.
-              iconLeft={
+              icon={
                 <span className="flex items-center gap-1.5 text-[15px] font-medium text-[var(--text-primary)] -ml-0.5 mr-1 whitespace-nowrap">
-                  {currencyFlag && <span className="text-[18px] leading-none">{currencyFlag}</span>}
+                  {currencyCountry && <CountryFlag name={currencyCountry} size={18} />}
                   {currency}
                 </span>
               }
               value={value}
-              hintText={`Invoice total: ${money(total, currency)}`}
-              onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ""))}
+              caption={`Invoice total: ${money(total, currency)}`}
+              onChange={(v) => onChange(v.replace(/[^0-9.]/g, ""))}
             />
           </motion.div>
 
@@ -100,7 +101,7 @@ export function RecordPaymentSheet({
       />
 
       {/* Optional payment date. */}
-      <BottomSheet open={dateOpen} title="Payment date" onClose={() => setDateOpen(false)}>
+      <BottomSheet open={dateOpen} title="Select Payment Date" onClose={() => setDateOpen(false)}>
         <Calendar value={date ?? undefined} onChange={(d) => { onDateChange(d); setDateOpen(false); }} />
         {date && (
           <button

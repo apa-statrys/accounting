@@ -1,13 +1,16 @@
 import { useState } from "react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { motion } from "motion/react";
-import { BottomSheet, sheetItem, SERVICE_SHEET_HEIGHT } from "../BottomSheet";
-import { TextInput } from "../TextInput";
+import { AnimatePresence, motion } from "motion/react";
+import { BottomSheet, SERVICE_SHEET_HEIGHT } from "../BottomSheet";
+import { TextField } from "../../ui/TextField";
 import { ButtonDock } from "../ButtonDock";
-import { UnitSheet } from "../UnitSheet";
-import { CURRENCIES } from "../CurrencySheet";
+import { Tile } from "../../ui/Tile";
+import { CountryFlag } from "../CountryFlag";
+import { CURRENCY_COUNTRY } from "../CurrencySheet";
 import type { ServiceLine } from "../../types";
 import styles from "./index.module.css";
+
+const UNITS = ["Unit", "Hour", "Day", "Month", "Session", "Pair"];
 
 interface AddServicesSheetProps {
   open: boolean;
@@ -24,6 +27,9 @@ interface AddServicesSheetProps {
  * DS header, Service Name / Description / Unit Price (flag + currency prefix) / Quantity with
  * the Unit picker inline in the field. CTA always enabled — a failed click scrolls to the
  * first invalid field and shows its inline error (form-cta-validation pattern).
+ *
+ * The Unit picker is a "next level" of this SAME sheet (title/back swap with `step`, content
+ * slides in/out), not a second BottomSheet stacked on top — see memory: sub-level-drawer-same-sheet.
  */
 export function AddServicesSheet({
   open,
@@ -40,11 +46,11 @@ export function AddServicesSheet({
   // Field errors appear only after a failed CTA click; editing a field clears its error.
   const [errors, setErrors] = useState<{ name?: string; description?: string; price?: string; qty?: string }>({});
 
-  const [unitSheetOpen, setUnitSheetOpen] = useState(false);
+  const [step, setStep] = useState<"form" | "unit">("form");
 
   // Every line uses the invoice currency — it's shown (read-only) here, not chosen per line.
   const currency = invoiceCurrency;
-  const currencyFlag = CURRENCIES.find((c) => c.code === currency)?.flag;
+  const currencyCountry = CURRENCY_COUNTRY[currency];
 
   // DES-817: every line field is required (Item Name, Description, Quantity, Unit, Unit Price).
   const handleAdd = () => {
@@ -78,13 +84,19 @@ export function AddServicesSheet({
   };
 
   return (
-    <>
-      <BottomSheet
-        open={open}
-        title={initial ? "Edit Item" : "Add Item"}
-        onClose={onClose}
-        heightClass={SERVICE_SHEET_HEIGHT}
-        footer={
+    <BottomSheet
+      open={open}
+      title={step === "unit" ? "Select Unit" : initial ? "Edit Item" : "Add Item"}
+      centerTitle={step === "unit"}
+      onBack={step === "unit" ? () => setStep("form") : undefined}
+      backLabel="Back to item"
+      onClose={() => {
+        onClose?.();
+        setStep("form");
+      }}
+      heightClass={SERVICE_SHEET_HEIGHT}
+      footer={
+        step === "unit" ? undefined : (
           // Editing an item: single "Save Changes" CTA — removal is done by swiping the line left.
           <ButtonDock
             type="single"
@@ -92,99 +104,115 @@ export function AddServicesSheet({
             onPrimary={handleAdd}
             homeIndicator
           />
-        }
-      >
-        <div className={styles.fields}>
-          <motion.div variants={sheetItem}>
-            <TextInput
-              id="svc-field-name"
-              label="Service Name"
-              required
-              placeholder="e.g. Brand Identity Design"
-              size="md"
-              value={serviceName}
-              error={errors.name}
-              showHint={!!errors.name}
-              onChange={(e) => { setServiceName(e.target.value); if (errors.name) setErrors((p) => ({ ...p, name: undefined })); }}
-            />
+        )
+      }
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {step === "unit" ? (
+          <motion.div
+            key="unit"
+            initial={{ x: 24, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 24, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+          >
+            <div className={styles.unitList}>
+              {UNITS.map((u) => (
+                <Tile
+                  key={u}
+                  size="sm"
+                  title={u}
+                  selected={unit === u}
+                  trailing={unit === u ? "check" : "none"}
+                  onClick={() => {
+                    setUnit(u);
+                    if (errors.qty === "Choose a unit") setErrors((p) => ({ ...p, qty: undefined }));
+                    setStep("form");
+                  }}
+                />
+              ))}
+            </div>
           </motion.div>
+        ) : (
+          <motion.div
+            key="form"
+            initial={{ x: -24, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -24, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+          >
+            <div className={styles.fields}>
+              <TextField
+                id="svc-field-name"
+                label="Service Name"
+                mandatory
+                placeholder="e.g. Brand Identity Design"
+                value={serviceName}
+                error={!!errors.name}
+                caption={errors.name}
+                onChange={(v) => { setServiceName(v); if (errors.name) setErrors((p) => ({ ...p, name: undefined })); }}
+              />
 
-          <motion.div variants={sheetItem}>
-            <TextInput
-              id="svc-field-description"
-              label="Description"
-              required
-              placeholder="e.g. About Service"
-              size="md"
-              value={description}
-              error={errors.description}
-              showHint={!!errors.description}
-              onChange={(e) => { setDescription(e.target.value); if (errors.description) setErrors((p) => ({ ...p, description: undefined })); }}
-            />
+              <TextField
+                id="svc-field-description"
+                label="Description"
+                mandatory
+                placeholder="e.g. About Service"
+                value={description}
+                error={!!errors.description}
+                caption={errors.description}
+                onChange={(v) => { setDescription(v); if (errors.description) setErrors((p) => ({ ...p, description: undefined })); }}
+              />
+
+              <TextField
+                type="left-icon"
+                id="svc-field-price"
+                label="Unit Price"
+                mandatory
+                placeholder="e.g. 10.00"
+                inputMode="decimal"
+                value={unitPrice}
+                error={!!errors.price}
+                caption={errors.price}
+                onChange={(v) => { setUnitPrice(v); if (errors.price) setErrors((p) => ({ ...p, price: undefined })); }}
+                icon={
+                  <span className={styles.priceCurrency}>
+                    {currencyCountry && <CountryFlag name={currencyCountry} size={18} />}
+                    {currency || "—"}
+                  </span>
+                }
+              />
+
+              {/* Quantity with the Unit picker inline (Figma) — the trailing "Unit ⌄" pushes the
+                  "unit" step of this same sheet. */}
+              <TextField
+                id="svc-field-qty"
+                label="Quantity"
+                mandatory
+                placeholder="e.g. 3"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={quantity}
+                error={!!errors.qty}
+                caption={errors.qty}
+                onChange={(v) => { setQuantity(v.replace(/[^0-9]/g, "")); if (errors.qty) setErrors((p) => ({ ...p, qty: undefined })); }}
+                iconRight={
+                  <button
+                    type="button"
+                    onClick={() => setStep("unit")}
+                    aria-label="Choose unit"
+                    className={[styles.unitButton, unit ? styles.unitButtonFilled : styles.unitButtonEmpty].join(" ")}
+                  >
+                    {unit || "Unit"}
+                    <ExpandMoreIcon className={styles.unitIcon} />
+                  </button>
+                }
+              />
+            </div>
           </motion.div>
-
-          <motion.div variants={sheetItem}>
-            <TextInput
-              id="svc-field-price"
-              label="Unit Price"
-              required
-              placeholder="e.g. 10.00"
-              size="md"
-              inputMode="decimal"
-              value={unitPrice}
-              error={errors.price}
-              showHint={!!errors.price}
-              onChange={(e) => { setUnitPrice(e.target.value); if (errors.price) setErrors((p) => ({ ...p, price: undefined })); }}
-              iconLeft={
-                <span className={styles.priceCurrency}>
-                  {currencyFlag && <span className={styles.priceFlag}>{currencyFlag}</span>}
-                  {currency || "—"}
-                </span>
-              }
-            />
-          </motion.div>
-
-          <motion.div variants={sheetItem}>
-            {/* Quantity with the Unit picker inline (Figma) — the trailing "Unit ⌄" opens the unit sheet. */}
-            <TextInput
-              id="svc-field-qty"
-              label="Quantity"
-              required
-              placeholder="e.g. 3"
-              size="md"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={quantity}
-              error={errors.qty}
-              showHint={!!errors.qty}
-              onChange={(e) => { setQuantity(e.target.value.replace(/[^0-9]/g, "")); if (errors.qty) setErrors((p) => ({ ...p, qty: undefined })); }}
-              iconRight={
-                <button
-                  type="button"
-                  onClick={() => setUnitSheetOpen(true)}
-                  aria-label="Choose unit"
-                  className={[styles.unitButton, unit ? styles.unitButtonFilled : styles.unitButtonEmpty].join(" ")}
-                >
-                  {unit || "Unit"}
-                  <ExpandMoreIcon className={styles.unitIcon} />
-                </button>
-              }
-            />
-          </motion.div>
-        </div>
-      </BottomSheet>
-
-      <UnitSheet
-        open={unitSheetOpen}
-        value={unit}
-        onClose={() => setUnitSheetOpen(false)}
-        onSelect={(u) => {
-          setUnit(u);
-          if (errors.qty === "Choose a unit") setErrors((p) => ({ ...p, qty: undefined }));
-          setUnitSheetOpen(false);
-        }}
-      />
-    </>
+        )}
+      </AnimatePresence>
+    </BottomSheet>
   );
 }
 

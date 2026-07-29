@@ -1,0 +1,13 @@
+/* CountryCodeSheet — same list shell as CountrySheet. */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}

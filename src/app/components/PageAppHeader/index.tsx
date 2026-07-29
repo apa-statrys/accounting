@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { forwardRef, type ReactNode } from "react";
 import { StatusBar } from "../StatusBar";
 import styles from "./index.module.css";
 
@@ -22,6 +22,10 @@ import styles from "./index.module.css";
  *
  * Styling lives in index.module.css — reuse this instead of re-deriving the
  * frost/blur/mask inline so every scrolling screen stays consistent.
+ *
+ * Forwards a ref to the sticky root — pages that need to compare a section's
+ * scroll position against the pinned header's live bottom edge (e.g. a
+ * scroll-driven subtitle) can read `ref.current.getBoundingClientRect()`.
  */
 
 interface PageAppHeaderProps {
@@ -31,14 +35,17 @@ interface PageAppHeaderProps {
   children: ReactNode;
 }
 
-export function PageAppHeader({ scrolled = false, children }: PageAppHeaderProps) {
+export const PageAppHeader = forwardRef<HTMLDivElement, PageAppHeaderProps>(function PageAppHeader(
+  { scrolled = false, children },
+  ref
+) {
   return (
-    <div className={`${styles.root} ${scrolled ? styles.scrolled : ""}`}>
+    <div ref={ref} className={`${styles.root} ${scrolled ? styles.scrolled : ""}`}>
       <div className={styles.frost} aria-hidden />
       <StatusBar />
       {children}
     </div>
   );
-}
+});
 
 export default PageAppHeader;

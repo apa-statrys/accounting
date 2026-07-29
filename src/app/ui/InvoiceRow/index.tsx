@@ -1,12 +1,22 @@
 import styles from "./index.module.css";
 import { Badge, BadgeColor } from "../Badge";
+import { InvoiceStatus } from "../InvoiceStatus";
 
 /**
  * InvoiceRow — design-system invoice list row (Figma "[APP] Design System" →
- * InvoiceRow, node 4250-544). Title + invoice number (with optional Recurring
- * chip), a status line (DS Badge text variant + caption), the amount on the
- * right, and an optional "Credited amount" strip. size sm = 14px title/amount
- * (list density), md = 16px. Rows draw their own bottom divider — set
+ * InvoiceRow, node 4250-544 — restructured 2026-07-24: status moved to its own
+ * full-width InvoiceStatus row at the top (2px gap to the title/amount row,
+ * re-synced same day — was 8px, title was briefly Bold; both corrected to
+ * match a Figma update: 4px outer gap, title back to Medium); the Recurring
+ * chip moved from beside the invoice number to under the amount, switched
+ * from Badge's info/text style to neutral/subtle with no icon; the credited-
+ * amount strip has no trailing chevron per Figma, even when tappable, and
+ * hugs its content — Figma "CreditedAmount", node 4250-486 — rather than
+ * stretching the row's full width).
+ * Title + invoice number, the amount and an optional Recurring chip on the
+ * right, and an optional "Credited amount" strip. One size only (12px
+ * vertical padding, 14px title/amount) — the earlier sm/md size variant was
+ * removed from the Figma component. Rows draw their own bottom divider — set
  * lastItem on the final row to drop it. Styling in index.module.css.
  */
 
@@ -14,12 +24,12 @@ interface InvoiceRowProps {
   title: string;
   /** Hidden when omitted (Figma showInvoiceNo). */
   invoiceNo?: string;
-  /** Adds the blue "Recurring" chip after the invoice number. */
+  /** Adds the "Recurring" chip under the amount. */
   recurring?: boolean;
-  /** Status chip label, e.g. "Paid" — colored via the Badge palette. */
+  /** Status label, e.g. "Paid" — colored via the Badge palette (InvoiceStatus). */
   status?: string;
   statusColor?: BadgeColor;
-  /** Plain text after the status chip, e.g. "on 12 Jun 2026". */
+  /** Plain text after the status label, e.g. "on 12 Jun 2026". */
   statusCaption?: string;
   /** Preformatted, e.g. "USD 6,430.05". */
   amount: string;
@@ -28,25 +38,10 @@ interface InvoiceRowProps {
   /** Leading label on the credited strip (Figma "Credited amount"); e.g. "Refund amount". */
   creditedLabel?: string;
   onCreditedClick?: () => void;
-  size?: "sm" | "md";
   /** Last row of the list — no bottom divider. */
   lastItem?: boolean;
   /** Tap on the row itself. */
   onClick?: () => void;
-}
-
-function RepeatIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-      <path
-        d="M8.5 5L10.5 3L8.5 1M10.5 3H3.5C2.96957 3 2.46086 3.21071 2.08579 3.58579C1.71071 3.96086 1.5 4.46957 1.5 5V5.5M3.5 7L1.5 9L3.5 11M1.5 9H8.5C9.03043 9 9.53914 8.78929 9.91421 8.41421C10.2893 8.03914 10.5 7.53043 10.5 7V6.5"
-        stroke="currentColor"
-        strokeWidth="0.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
 }
 
 function FileTextIcon() {
@@ -62,14 +57,6 @@ function FileTextIcon() {
   );
 }
 
-function ChevronRightIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 export function InvoiceRow({
   title,
   invoiceNo,
@@ -81,11 +68,10 @@ export function InvoiceRow({
   creditedAmount,
   creditedLabel = "Credited amount",
   onCreditedClick,
-  size = "sm",
   lastItem = false,
   onClick,
 }: InvoiceRowProps) {
-  const classes = [styles.row, size === "md" ? styles.md : "", lastItem ? styles.lastItem : "", onClick ? styles.clickable : ""]
+  const classes = [styles.row, lastItem ? styles.lastItem : "", onClick ? styles.clickable : ""]
     .filter(Boolean)
     .join(" ");
   const credited = creditedAmount && (
@@ -94,35 +80,22 @@ export function InvoiceRow({
         <FileTextIcon />
       </span>
       <span className={styles.creditedText}>{creditedLabel}: {creditedAmount}</span>
-      <span className={styles.chevron}>
-        <ChevronRightIcon />
-      </span>
     </>
   );
   return (
     <div className={classes} onClick={onClick}>
-      <div className={styles.main}>
-        <div className={styles.info}>
-          <p className={styles.title}>{title}</p>
-          {invoiceNo && (
-            <div className={styles.metaLine}>
-              <span className={styles.invoiceNo}>{invoiceNo}</span>
-              {recurring && (
-                <>
-                  <span className={styles.dot}>•</span>
-                  <Badge label="Recurring" color="info" variant="text" size="sm" icon={<RepeatIcon />} />
-                </>
-              )}
-            </div>
-          )}
-          {status && (
-            <div className={styles.statusLine}>
-              <Badge label={status} color={statusColor} variant="text" size="sm" />
-              {statusCaption && <span className={styles.statusCaption}>{statusCaption}</span>}
-            </div>
-          )}
+      <div className={styles.topGroup}>
+        {status && <InvoiceStatus label={status} color={statusColor} caption={statusCaption} />}
+        <div className={styles.main}>
+          <div className={styles.info}>
+            <p className={styles.title}>{title}</p>
+            {invoiceNo && <p className={styles.invoiceNo}>{invoiceNo}</p>}
+          </div>
+          <div className={styles.amountCol}>
+            <p className={styles.amount}>{amount}</p>
+            {recurring && <Badge label="Recurring" color="neutral" variant="subtle" size="sm" />}
+          </div>
         </div>
-        <p className={styles.amount}>{amount}</p>
       </div>
       {creditedAmount &&
         (onCreditedClick ? (

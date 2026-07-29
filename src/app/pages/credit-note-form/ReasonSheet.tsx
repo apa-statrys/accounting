@@ -2,7 +2,7 @@ import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
 import { Tile } from "../../ui/Tile";
-import { TextInput } from "../../components/TextInput";
+import { TextField } from "../../ui/TextField";
 
 /** Required reason for raising a credit note (DES-719) — fixed enum + "Other" (reveals a free-text
  *  Description inside this sheet, matching the ticket's "dropdown + optional free text"). */
@@ -27,7 +27,7 @@ export function ReasonSheet({ open, onClose, reason, setReason, reasonNote, setR
   return (
     <BottomSheet
       open={open}
-      title="Reason for credit"
+      title="Select Reason for Credit"
       onClose={onClose}
       footer={
         <ButtonDock
@@ -43,6 +43,7 @@ export function ReasonSheet({ open, onClose, reason, setReason, reasonNote, setR
         {CREDIT_REASONS.map((r) => (
           <motion.div key={r} variants={sheetItem}>
             <Tile
+              size="sm"
               title={r}
               selected={reason === r}
               trailing={reason === r ? "check" : "none"}
@@ -54,14 +55,12 @@ export function ReasonSheet({ open, onClose, reason, setReason, reasonNote, setR
         {/* Free-text description — shown only for "Other", required so the custom reason is explained. */}
         {needsNote && (
           <div className="pt-1">
-            <TextInput
+            <TextField
               label="Enter reason of credit note"
-              required
-              size="md"
-              showHint={false}
+              mandatory
               placeholder="Enter description of your credit reason"
               value={reasonNote}
-              onChange={(e) => setReasonNote(e.target.value)}
+              onChange={setReasonNote}
             />
           </div>
         )}

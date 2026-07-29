@@ -3,30 +3,27 @@ import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../BottomSheet";
 import { Tile } from "../../ui/Tile";
 import { Search } from "../../ui/Search";
+import { CountryFlag } from "../CountryFlag";
 import styles from "./index.module.css";
 
-interface Country {
-  name: string;
-  flag: string;
-}
-
-/** Curated country list (prototype). */
-const COUNTRIES: Country[] = [
-  { name: "Singapore", flag: "🇸🇬" },
-  { name: "Hong Kong", flag: "🇭🇰" },
-  { name: "United States", flag: "🇺🇸" },
-  { name: "United Kingdom", flag: "🇬🇧" },
-  { name: "Australia", flag: "🇦🇺" },
-  { name: "Canada", flag: "🇨🇦" },
-  { name: "Germany", flag: "🇩🇪" },
-  { name: "France", flag: "🇫🇷" },
-  { name: "Netherlands", flag: "🇳🇱" },
-  { name: "India", flag: "🇮🇳" },
-  { name: "Japan", flag: "🇯🇵" },
-  { name: "China", flag: "🇨🇳" },
-  { name: "Malaysia", flag: "🇲🇾" },
-  { name: "Indonesia", flag: "🇮🇩" },
-  { name: "United Arab Emirates", flag: "🇦🇪" },
+/** Curated country list (prototype) — flag icons looked up by name via components/CountryFlag,
+ *  never emoji (design rule, no emoji anywhere). Same set as data/countryCodes.ts. */
+const COUNTRIES: string[] = [
+  "Singapore",
+  "Hong Kong",
+  "United States",
+  "United Kingdom",
+  "Australia",
+  "Canada",
+  "Germany",
+  "France",
+  "Netherlands",
+  "India",
+  "Japan",
+  "China",
+  "Malaysia",
+  "Indonesia",
+  "United Arab Emirates",
 ];
 
 function SearchGlyph() {
@@ -58,7 +55,7 @@ interface CountrySheetProps {
 export function CountrySheet({ open, value, onClose, onSelect }: CountrySheetProps) {
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const filtered = COUNTRIES.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()));
+  const filtered = COUNTRIES.filter((c) => c.toLowerCase().includes(query.toLowerCase()));
 
   const toggleSearch = () => {
     setSearchOpen((prev) => {
@@ -92,13 +89,14 @@ export function CountrySheet({ open, value, onClose, onSelect }: CountrySheetPro
 
         <div className={styles.list}>
           {filtered.map((c) => (
-            <motion.div key={c.name} variants={sheetItem}>
+            <motion.div key={c} variants={sheetItem}>
               <Tile
-                title={c.name}
-                flag={<span className={styles.flag}>{c.flag}</span>}
-                trailing={value === c.name ? "check" : "none"}
-                selected={value === c.name}
-                onClick={() => onSelect?.(c.name)}
+                size="sm"
+                title={c}
+                flag={<CountryFlag name={c} size={30} />}
+                trailing={value === c ? "check" : "none"}
+                selected={value === c}
+                onClick={() => onSelect?.(c)}
               />
             </motion.div>
           ))}

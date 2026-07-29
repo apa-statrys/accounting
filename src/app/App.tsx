@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Menu, X, ChevronRight } from "lucide-react";
 import { QuickNavSidebar, type SidebarGroup } from "./components/QuickNavSidebar";
@@ -74,6 +74,35 @@ const CREDIT_NOTE_TOTAL = 6450;
 
 /** Demo customer + line items for previewing the Send (Delivery method) sheet directly. */
 const DEMO_CUSTOMER: Customer = { id: "marlow", name: "Marlow & Finch Studio", email: "finch@studio.com" };
+
+const SLIDE_TRANSITION = { type: "tween" as const, duration: 0.32, ease: [0.4, 0, 0.2, 1] as const };
+
+/**
+ * Push/pop screen-transition slide (direction-aware — see `navDirection`/`navDepth` in App).
+ * Only the screen "on top" of the stack moves; the one underneath sits still and just gets
+ * covered/revealed — a real stacked push/pop (like iOS), not two screens sliding past each other.
+ * `zIndex` (set per-screen from the visited-screen stack depth, not from these variants) is what
+ * keeps the right one on top: forward pushes a higher zIndex in on top of the current one, back
+ * pops down to a screen whose zIndex was already lower than the one sliding away.
+ *  - forward (push): the incoming (higher-zIndex) screen slides in from the right over a static
+ *    outgoing screen underneath, which holds still until it's fully covered, then unmounts.
+ *  - back (pop): the outgoing (higher-zIndex) screen — the one being left — slides out to the
+ *    right, uncovering a static screen underneath that was there the whole time (no slide-in).
+ */
+const SCREEN_SLIDE = {
+  enter: (direction: "forward" | "back") => ({ x: direction === "back" ? 0 : "100%" }),
+  center: { x: 0, transition: SLIDE_TRANSITION },
+  exit: (direction: "forward" | "back") => ({
+    // The covered screen (forward) is meant to just sit still while the incoming one slides over
+    // it, staying mounted+visible for the full transition instead of disappearing right away — but
+    // an exit target IDENTICAL to `center`'s x:0 has no value to animate, so Motion resolves it
+    // (and unmounts the screen) on the very next tick regardless of `transition.duration`. A
+    // fraction-of-a-pixel offset keeps it a real animation (and the screen mounted + visible) for
+    // the intended duration, while staying visually indistinguishable from "not moving at all."
+    x: direction === "back" ? "100%" : "-0.01%",
+    transition: SLIDE_TRANSITION,
+  }),
+};
 
 /** Map a screen to its top-level nav section (customer + details = the create flow). */
 function navFor(screen: Screen): Screen {
@@ -182,6 +211,37 @@ function QuickNav({ current, onChange, scenario, onScenario }: { current: Screen
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("dashboard");
+
+  // Slide-transition direction (native-app push/pop feel): forward navigation slides the new
+  // screen in from the right, back navigation slides it in from the left. There's no single
+  // `navigate`/`goBack` call site to read this off directly (every screen wires its own onSelect/
+  // onBack straight to `setScreen`), so it's inferred from a simple visited-screen stack — if the
+  // incoming screen is already in the stack, it's a "pop" back to that point; otherwise it's a
+  // "push". Computed inline during render (not an effect) so the direction is known in time for
+  // the very same transition it describes.
+  const screenHistoryRef = useRef<Screen[]>(["dashboard"]);
+  const prevScreenRef = useRef<Screen>("dashboard");
+  const navDirectionRef = useRef<"forward" | "back">("forward");
+  if (screen !== prevScreenRef.current) {
+    const stack = screenHistoryRef.current;
+    const idx = stack.lastIndexOf(screen);
+    if (idx !== -1 && idx < stack.length - 1) {
+      navDirectionRef.current = "back";
+      screenHistoryRef.current = stack.slice(0, idx + 1);
+    } else {
+      navDirectionRef.current = "forward";
+      screenHistoryRef.current = [...stack, screen];
+    }
+    prevScreenRef.current = screen;
+  }
+  const navDirection = navDirectionRef.current;
+  // Stacking order for the slide: each screen's zIndex is its depth in the visited-screen stack
+  // at the time it became current. A push always grows the stack (higher zIndex than whatever was
+  // current before), so the newly-entering screen naturally lands above the one it's covering. A
+  // pop truncates the stack back down to an earlier, already-lower zIndex, so the screen being left
+  // (frozen at its own higher zIndex from when IT was current) stays on top while it slides away.
+  const navDepth = screenHistoryRef.current.length;
+
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [extracted, setExtracted] = useState<ExtractedInvoice | null>(null);
   // Dev-only: QuickNav "Create Invoice" seeds demo items so the editor lands fully pre-filled.
@@ -193,6 +253,11 @@ export default function App() {
   const [toast, setToast] = useState<{ title: string; subtext?: string } | null>(null);
   // Freshly created/saved invoice to surface + highlight at the top of the list.
   const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string; recurring?: boolean } | null>(null);
+  // Whether `recent`'s one-time arrival highlight has already played — `recent` itself stays set
+  // (the card keeps showing) long after that, so without this the highlight would replay every
+  // time the list remounts (e.g. open the invoice, then Back). Reset to false only where a NEW
+  // `recent` is assigned below, never where it's cleared.
+  const [recentHighlighted, setRecentHighlighted] = useState(false);
   // The invoice opened into the detail page (status drives the lifecycle UI).
   const [openInvoice, setOpenInvoice] = useState<{ number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean; cnAwaiting?: boolean; recurring?: boolean; viewCn?: boolean }>({
     number: "INV-2026-000042",
@@ -273,6 +338,22 @@ export default function App() {
   // the invoice number/status don't change. In-page actions never bump it.
   const [detailNavNonce, setDetailNavNonce] = useState(0);
 
+  // QuickNav jumps straight to a deep screen, skipping whatever it would normally take to get
+  // there — so a screen's own Back button (hardcoded to a specific target elsewhere in this file)
+  // can find its target missing from the visited-screen stack and misread a real "back" tap as a
+  // "forward" push (slide-in instead of slide-out). Call this with the chain of screens between
+  // dashboard (always safely on the stack already) and the jump target, in order, before setScreen
+  // — e.g. seedHistory("hub", "customers") before jumping straight to "customerDetail", whose own
+  // Back targets "customers", whose own Back targets "hub". Skip a link already safe on its own
+  // (its target is "dashboard", the permanent stack root) — that's most of them.
+  const seedHistory = (...path: Screen[]) => {
+    let stack = screenHistoryRef.current;
+    for (const s of path) {
+      if (stack[stack.length - 1] !== s) stack = [...stack, s];
+    }
+    screenHistoryRef.current = stack;
+  };
+
   // Sidebar deep link: open the invoice detail seeded with a register demo invoice.
   const jumpDetail = (
     inv: { number: string; client: string; status: DetailStatus; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean; cnAwaiting?: boolean },
@@ -282,6 +363,9 @@ export default function App() {
     setDetailFlash(null);
     setEditFromDuplicate(false);
     setDetailReturn("list");
+    // InvoiceDetailPage's own Back always targets "list", which itself targets "dashboard" (the
+    // permanent stack root) — one link is enough here.
+    seedHistory("list");
     setDetailNavNonce((n) => n + 1);
     setScreen("invoiceDetail");
   };
@@ -299,9 +383,9 @@ export default function App() {
     {
       title: "Customer",
       items: [
-        { label: "Customer List", active: screen === "customers", onSelect: () => setScreen("customers") },
-        { label: "Add New Customer", active: screen === "addCustomer", onSelect: () => { setAddCustomerReturn("customers"); setScreen("addCustomer"); } },
-        { label: "Customer Details", active: screen === "customerDetail", onSelect: () => { setSelectedCustomer(customers[0]); setCustomerFlash(null); setScreen("customerDetail"); } },
+        { label: "Customer List", active: screen === "customers", onSelect: () => { seedHistory("hub"); setScreen("customers"); } },
+        { label: "Add New Customer", active: screen === "addCustomer", onSelect: () => { setAddCustomerReturn("customers"); seedHistory("hub", "customers"); setScreen("addCustomer"); } },
+        { label: "Customer Details", active: screen === "customerDetail", onSelect: () => { setSelectedCustomer(customers[0]); setCustomerFlash(null); seedHistory("hub", "customers"); setScreen("customerDetail"); } },
       ],
     },
     {
@@ -343,16 +427,16 @@ export default function App() {
       title: "Credit Note",
       items: [
         // Opens the Credit Notes register with no preview overlaid (null clears any prior deep link).
-        { label: "Credit Note List", active: screen === "creditNotes" && cnPreview === null, onSelect: () => { setCnPreview(null); setScreen("creditNotes"); } },
+        { label: "Credit Note List", active: screen === "creditNotes" && cnPreview === null, onSelect: () => { setCnPreview(null); seedHistory("hub"); setScreen("creditNotes"); } },
       ],
       sections: [
         {
           heading: "Unpaid Invoice",
           items: [
             { label: "Create Credit Note", active: screen === "creditNote", onSelect: () => setScreen("creditNote") },
-            { label: "CN Detail — Draft", active: screen === "creditNotes" && cnPreview === "CN-2026-000005", onSelect: () => { setCnPreview("CN-2026-000005"); setScreen("creditNotes"); } },
-            { label: "CN Detail — Applied", active: screen === "creditNotes" && cnPreview === "CN-2026-000003", onSelect: () => { setCnPreview("CN-2026-000003"); setScreen("creditNotes"); } },
-            { label: "CN Detail — Cancelled", active: screen === "creditNotes" && cnPreview === "CN-2026-000009", onSelect: () => { setCnPreview("CN-2026-000009"); setScreen("creditNotes"); } },
+            { label: "CN Detail — Draft", active: screen === "creditNotes" && cnPreview === "CN-2026-000005", onSelect: () => { setCnPreview("CN-2026-000005"); seedHistory("hub"); setScreen("creditNotes"); } },
+            { label: "CN Detail — Applied", active: screen === "creditNotes" && cnPreview === "CN-2026-000003", onSelect: () => { setCnPreview("CN-2026-000003"); seedHistory("hub"); setScreen("creditNotes"); } },
+            { label: "CN Detail — Cancelled", active: screen === "creditNotes" && cnPreview === "CN-2026-000009", onSelect: () => { setCnPreview("CN-2026-000009"); seedHistory("hub"); setScreen("creditNotes"); } },
           ],
         },
         {
@@ -393,6 +477,21 @@ export default function App() {
 
   return (
     <div className="mobile-mode min-h-screen bg-[#EDEDED] flex flex-col items-center justify-center gap-4 p-4">
+      {/* Phone-frame-sized clipping box for the push/pop slide — each screen below already renders
+          its own 375x812 rounded frame, so this just gives AnimatePresence somewhere to stack the
+          outgoing (covered/revealed) screen underneath the incoming (moving) one. */}
+      <div className="relative overflow-hidden" style={{ width: 375, height: 812 }}>
+        <AnimatePresence initial={false} custom={navDirection}>
+          <motion.div
+            key={screen}
+            custom={navDirection}
+            variants={SCREEN_SLIDE}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="absolute inset-0"
+            style={{ zIndex: navDepth }}
+          >
       {screen === "dashboard" && (
         <Dashboard
           tab="dashboard"
@@ -610,6 +709,8 @@ export default function App() {
           successSubtext={toast?.subtext}
           onSuccessDone={() => setToast(null)}
           recent={recent}
+          recentHighlighted={recentHighlighted}
+          onRecentShown={() => setRecentHighlighted(true)}
           initialStatus={listPreset?.status}
           refundState={refundState}
           onBack={() => setScreen("dashboard")}
@@ -895,6 +996,7 @@ export default function App() {
           onChangeCustomer={() => setScreen("customer")}
           onSend={(t, r) => {
             setRecent(r ?? null);
+            setRecentHighlighted(false);
             setEditingSeries(false);
             if (extracted) {
               // Any upload create (OCR-missing, create-new, etc.) → land on the new invoice's
@@ -915,6 +1017,7 @@ export default function App() {
           onSaveDraft={(draft) => {
             setToast({ title: "Saved as draft" });
             setRecent(draft ? { ...draft, status: "Draft" } : null);
+            setRecentHighlighted(false);
             setScreen("list");
           }}
         />
@@ -937,12 +1040,14 @@ export default function App() {
           onSend={(t, r) => {
             setToast(t ?? { title: "Invoice marked as sent" });
             setRecent(r ?? null);
+            setRecentHighlighted(false);
             setScreen("list");
           }}
           onSendLater={() => setScreen("list")}
           onSaveDraft={(draft) => {
             setToast({ title: "Saved as draft" });
             setRecent(draft ? { ...draft, status: "Draft" } : null);
+            setRecentHighlighted(false);
             setScreen("list");
           }}
         />
@@ -986,9 +1091,14 @@ export default function App() {
           }}
         />
       )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
       {/* Scenario annotation — shown in the white space to the right of the phone frame, only on the
-          voided demo invoice (INV-…008), explaining how it reached the Void state. */}
+          voided demo invoice (INV-…008), explaining how it reached the Void state. Deliberately
+          OUTSIDE the sliding wrapper above: it's `fixed`-positioned relative to the viewport, and a
+          `transform`'d ancestor (the slide animation) would re-anchor it and drag it along mid-slide. */}
       {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000008" && (
         <div
           className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"

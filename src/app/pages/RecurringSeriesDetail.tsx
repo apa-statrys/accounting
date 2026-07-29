@@ -1,10 +1,9 @@
 import { useState } from "react";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import MenuIcon from "@mui/icons-material/Menu";
 import { Repeat, XCircle } from "lucide-react";
 import { PageAppHeader } from "../components/PageAppHeader";
-import { SheetHeader, HeaderIconButton } from "../components/SheetHeader";
+import { PageHeader } from "../ui/PageHeader";
 import { ButtonDock } from "../components/ButtonDock";
 import { BottomSheet } from "../components/BottomSheet";
 import { FONT } from "../lib/theme";
@@ -77,9 +76,9 @@ export function RecurringSeriesDetail({
   // Rows only ever show invoice-lifecycle statuses. The series' Active/Paused/Completed state lives on
   // the top status card — never as a per-invoice "Paused" (that would leak series scope onto an invoice).
   const kindMeta = {
-    paid: { label: "Paid", bg: "#ebfcef", text: "#006a1d" },
-    await: { label: "Awaiting Payment", bg: "#fef9c2", text: "#d08700" },
-    scheduled: { label: "Scheduled", bg: "#f5f4f1", text: "#808080" },
+    paid: { label: "Paid", bg: "var(--bg-success-subtle)", text: "var(--text-success-primary)" },
+    await: { label: "Awaiting Payment", bg: "var(--bg-warning-subtle)", text: "var(--text-warning-primary)" },
+    scheduled: { label: "Scheduled", bg: "var(--bg-neutral-tertiary)", text: "var(--text-secondary)" },
   } as const;
   const visible = readOnly ? invoices.filter((r) => r.kind !== "scheduled") : invoices;
   const shown = visible.length > 3 && !expanded ? visible.slice(0, 3) : visible;
@@ -91,16 +90,14 @@ export function RecurringSeriesDetail({
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          <SheetHeader
+          <PageHeader
+            type="center"
             title="Recurring Schedule"
-            type="inside-page"
-            state="fixed"
-            leading={<HeaderIconButton aria-label="Back" onClick={onBack}><ChevronLeftIcon /></HeaderIconButton>}
-            trailing={
-              readOnly
-                ? <span className="w-[30px] h-[30px] block" aria-hidden />
-                : <HeaderIconButton aria-label="Actions" onClick={() => setMenuOpen(true)}><MenuIcon /></HeaderIconButton>
-            }
+            onBack={onBack}
+            showSearch={!readOnly}
+            rightIcon={<MenuIcon style={{ fontSize: 20 }} />}
+            rightLabel="Actions"
+            onRightClick={() => setMenuOpen(true)}
           />
         </PageAppHeader>
 

@@ -13,13 +13,10 @@ import {
   setYear,
   format,
 } from "date-fns";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 import styles from "./index.module.css";
 
-const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 interface CalendarProps {
@@ -29,6 +26,23 @@ interface CalendarProps {
   disablePast?: boolean;
   /** Disable (grey out) any date after this day — e.g. the 6-month due-date cap. */
   maxDate?: Date;
+}
+
+/* Thin-stroke chevrons matching the DS convention (e.g. ui/PageHeader's ChevronLeftIcon) —
+   not lucide/MUI, since this component mimics native iOS chrome rather than the app's own DS. */
+function ChevronLeft() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function ChevronRight() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 function MonthYearPicker({ view, onPick }: { view: Date; onPick: (d: Date) => void }) {
@@ -41,15 +55,15 @@ function MonthYearPicker({ view, onPick }: { view: Date; onPick: (d: Date) => vo
           className={styles.navBtn}
           aria-label="Previous year"
         >
-          <ChevronLeftIcon />
+          <ChevronLeft />
         </button>
-        <span className={styles.title18Bold}>{year}</span>
+        <span className={styles.title17}>{year}</span>
         <button
           onClick={() => setYearState((y) => y + 1)}
           className={styles.navBtn}
           aria-label="Next year"
         >
-          <ChevronRightIcon />
+          <ChevronRight />
         </button>
       </div>
       <div className={styles.monthGrid}>
@@ -87,17 +101,17 @@ export function Calendar({ value, onChange, disablePast = false, maxDate }: Cale
 
   return (
     <div className={styles.root}>
-      {/* Header — month/year (with dropdown) on the left, arrows on the right */}
+      {/* Header — month/year (with dropdown) on the left, prev/next arrows on the right */}
       <div className={styles.header}>
         <button
           onClick={() => setPicking((p) => !p)}
-          className={[styles.monthYearBtn, styles.title18Bold].join(" ")}
+          className={[styles.monthYearBtn, styles.title17].join(" ")}
           aria-expanded={picking}
         >
           {format(view, "MMMM yyyy")}
-          <ExpandMoreIcon
-            className={[styles.chevronIcon, picking ? styles.chevronOpen : ""].filter(Boolean).join(" ")}
-          />
+          <span className={[styles.chevronIcon, picking ? styles.chevronOpen : ""].filter(Boolean).join(" ")}>
+            <ChevronRight />
+          </span>
         </button>
 
         <div className={styles.navRow}>
@@ -106,14 +120,14 @@ export function Calendar({ value, onChange, disablePast = false, maxDate }: Cale
             className={styles.navBtn}
             aria-label="Previous month"
           >
-            <ChevronLeftIcon />
+            <ChevronLeft />
           </button>
           <button
             onClick={() => setView(addMonths(view, 1))}
             className={styles.navBtn}
             aria-label="Next month"
           >
-            <ChevronRightIcon />
+            <ChevronRight />
           </button>
         </div>
       </div>
@@ -131,7 +145,7 @@ export function Calendar({ value, onChange, disablePast = false, maxDate }: Cale
           {/* Weekday labels */}
           <div className={styles.weekdayGrid}>
             {WEEKDAYS.map((w) => (
-              <div key={w} className={`${styles.weekdayCell} body-sm`}>
+              <div key={w} className={styles.weekdayCell}>
                 {w}
               </div>
             ))}

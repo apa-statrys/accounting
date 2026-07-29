@@ -1,13 +1,13 @@
-import { useState } from "react";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import { useEffect, useRef, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { PageAppHeader } from "../../components/PageAppHeader";
-import { SheetHeader, HeaderIconButton } from "../../components/SheetHeader";
+import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
 import { BottomSheet } from "../../components/BottomSheet";
-import { SelectionCard } from "../../components/SelectionCard";
 import { Tile } from "../../ui/Tile";
+import { Badge } from "../../ui/Badge";
+import { CountryFlag } from "../../components/CountryFlag";
 import { RECEIVING_ACCOUNTS, getAccount } from "../../data/receivingAccounts";
 import { money } from "../../lib/format";
 
@@ -79,6 +79,15 @@ export function RefundCreditNoteFlow({
   // "What is a reference number?" inline accordion — expands to reveal the explainer.
   const [refInfo, setRefInfo] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  // "Reference number" (manual step) focused → the dock swaps its home indicator for the
+  // on-screen keyboard (Figma "IOS controls" = Keyboard, same idea as CreateSalesInvoice).
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  // All steps share one scroll container (below) — advancing/going back a step must land on
+  // top of the new step's content, not wherever the previous step happened to be scrolled to.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [step]);
 
   const title =
     step === "method" ? "Choose Refund Method"
@@ -108,24 +117,24 @@ export function RefundCreditNoteFlow({
   return (
     <div className="absolute inset-0 z-50 bg-white rounded-[48px] overflow-hidden flex flex-col" style={{ width: 375, height: 812 }}>
       <div
+        ref={scrollRef}
         className="flex-1 overflow-y-auto thin-scrollbar bg-white"
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
       <PageAppHeader scrolled={scrolled}>
-      <SheetHeader
+      <PageHeader
+        type="center"
         title={title}
-        type="inside-page"
-        state="fixed"
-        leading={
-          <HeaderIconButton aria-label={step === "method" ? "Close" : "Back"} onClick={onLeading}>
-            {step === "method" ? <CloseIcon /> : <ChevronLeftIcon />}
-          </HeaderIconButton>
-        }
-        trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
+        onBack={onLeading}
+        backIcon={step === "method" ? <CloseIcon style={{ fontSize: 20 }} /> : undefined}
+        backLabel={step === "method" ? "Close" : "Back"}
+        showSearch={false}
       />
       </PageAppHeader>
 
-      <div className="px-4 pt-5 pb-28 flex flex-col gap-4">
+      {/* Extra bottom padding while the reference-number field is focused clears the taller
+          dock+keyboard overlay. */}
+      <div className={`px-4 pt-5 flex flex-col gap-4 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
         {step === "method" && (
           <>
             <div className="flex flex-col gap-2">
@@ -139,15 +148,15 @@ export function RefundCreditNoteFlow({
           <>
             <div className="flex flex-col gap-2">
               {RECEIVING_ACCOUNTS.map((a) => (
-                <SelectionCard
+                <Tile
                   key={a.id}
+                  size="sm"
                   title={a.name}
-                  description={a.number}
-                  showIcon
-                  icon={<span className="text-[16px] leading-none">{a.flag}</span>}
-                  showStatus={a.primary}
-                  status="PRIMARY"
+                  text={a.number}
+                  flag={<CountryFlag name={a.country} size={30} />}
+                  cornerBadge={a.primary ? <Badge label="Primary" size="sm" variant="bold" color="custom" /> : undefined}
                   selected={fromAccount === a.id}
+                  trailing={fromAccount === a.id ? "check" : "none"}
                   onClick={() => setFromAccount(a.id)}
                 />
               ))}
@@ -186,7 +195,7 @@ export function RefundCreditNoteFlow({
                   inputMode="decimal"
                   value={mAmount}
                   onChange={(e) => setMAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                  className="flex-1 min-w-0 text-right outline-none text-[16px] font-bold bg-transparent"
+                  className="flex-1 min-w-0 text-right outline-none text-[16px] bg-transparent"
                   style={{ ...FONT, color: INK }}
                 />
               </div>
@@ -230,6 +239,8 @@ export function RefundCreditNoteFlow({
               <input
                 value={mRef}
                 onChange={(e) => setMRef(e.target.value)}
+                onFocus={() => setKeyboardOpen(true)}
+                onBlur={() => setKeyboardOpen(false)}
                 placeholder="Reference number"
                 className="w-full h-12 px-3.5 rounded-xl border border-[rgba(160,160,160,0.4)] text-[15px] bg-white outline-none"
                 style={{ ...FONT, color: INK }}
@@ -257,7 +268,8 @@ export function RefundCreditNoteFlow({
         primaryLabel={step === "confirm" ? "Confirm transfer" : step === "manual" ? "Record refund" : "Continue"}
         primaryDisabled={step === "manual" && !manualValid}
         onPrimary={onContinue}
-        homeIndicator
+        homeIndicator={!keyboardOpen}
+        keyboard={keyboardOpen}
       />
 
       {/* Bank account used picker (DES-720) — Statrys accounts + registered external accounts. */}
@@ -267,7 +279,7 @@ export function RefundCreditNoteFlow({
           {RECEIVING_ACCOUNTS.map((a) => {
             const label = `${a.name} (${a.number})`;
             return (
-              <Tile key={a.id} title={a.name} text={a.number} flag={<span className="text-[20px] leading-none">{a.flag}</span>} selected={mAccount === label} trailing={mAccount === label ? "check" : "none"} onClick={() => { setMAccount(label); setAcctOpen(false); }} />
+              <Tile key={a.id} size="sm" title={a.name} text={a.number} flag={<CountryFlag name={a.country} size={30} />} selected={mAccount === label} trailing={mAccount === label ? "check" : "none"} onClick={() => { setMAccount(label); setAcctOpen(false); }} />
             );
           })}
           {/* Refunds pay out from a Statrys account only — external "Other accounts" are hidden. */}

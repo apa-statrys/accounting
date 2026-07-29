@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import { PageAppHeader } from "../../components/PageAppHeader";
-import { SheetHeader, HeaderIconButton } from "../../components/SheetHeader";
+import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
 import type { InvoiceLine } from "../../types";
 
@@ -124,17 +123,7 @@ export function InvoicePreviewPage(props: InvoicePreviewPageProps) {
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          <SheetHeader
-            title="Invoice Preview"
-            type="inside-page"
-            state="fixed"
-            leading={
-              <HeaderIconButton aria-label="Back" onClick={onBack}>
-                <ChevronLeftIcon />
-              </HeaderIconButton>
-            }
-            trailing={<span className="w-[30px] h-[30px] block" aria-hidden />}
-          />
+          <PageHeader type="center" title="Invoice Preview" onBack={onBack} showSearch={false} />
         </PageAppHeader>
 
         <div className="p-3 pb-28">

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowUpRight, ChevronRight, Plus, Settings } from "lucide-react";
+import { ArrowUpRight, Bell, ChevronRight, Plus, Settings } from "lucide-react";
 import { ATTENTION_TASKS } from "../data/attentionTasks";
 import { HERO_SCENARIOS } from "../data/heroScenarios";
 import { NeedAttentionStack } from "../components/NeedAttentionStack";
@@ -28,6 +28,8 @@ interface DashboardProps {
   onMenu?: () => void;
   /** Open invoice settings (gear icon beside notifications). */
   onSettings?: () => void;
+  /** Open notifications (bell icon, Figma "Sales Invoice - Client" node 1769-22999). */
+  onNotifications?: () => void;
   /** Open the dedicated "Need attention" screen (NEED ATTENTION → View All). */
   onOpenNeedAttention?: () => void;
   /** Open an invoice's detail page (from a recent-invoice row). */
@@ -82,7 +84,7 @@ function SectionHead({ title, subtitle, badge, onViewAll }: { title: string; sub
 }
 
 
-export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, onSettings, onOpenNeedAttention, onOpenInvoice, onCreate, onUpload, onRecurring, onOpenPaid, onOpenOutstanding, scenario = 0 }: DashboardProps) {
+export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, onSettings, onNotifications, onOpenNeedAttention, onOpenInvoice, onCreate, onUpload, onRecurring, onOpenPaid, onOpenOutstanding, scenario = 0 }: DashboardProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   // Scroll interactions: past the big header, the PageHeader collapses to its
   // "left-on-scroll" state (pinned bar) and the pill FAB shrinks to a circle;
@@ -95,7 +97,7 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
   const nothingCollected = hero.collectedCount === 0;
 
   return (
-    <div className="relative rounded-[48px] overflow-hidden shadow-2xl" style={{ width: 375, height: 812, background: "var(--bg-beige-secondary)" }}>
+    <div className="relative rounded-[48px] overflow-hidden shadow-2xl" style={{ width: 375, height: 812, background: "var(--bg-beige-primary)" }}>
       {/* Hide the scrollbar but keep scrolling */}
       <style>{`.dash-scroll{-ms-overflow-style:none;scrollbar-width:none;}.dash-scroll::-webkit-scrollbar{display:none;}`}</style>
 
@@ -105,7 +107,7 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
           (node 1323-15895); white cards sit on top of it. */}
       <div
         className="dash-scroll h-full overflow-y-auto"
-        style={{ background: "var(--bg-beige-secondary)" }}
+        style={{ background: "var(--bg-beige-primary)" }}
         onScroll={(e) => {
           // Hysteresis: collapse past 120px, expand back under 80px — no
           // flickering while hovering around a single threshold.
@@ -120,30 +122,41 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
           frosted state via the shared `scrolled` flag. */}
       <PageAppHeader scrolled={scrolled}>
         {/* Sheet header — DS PageHeader "Left align" (frosted buttons + 32px title).
-            Back returns to the Accounting Hub menu; the right slot carries the
-            settings gear instead of the DS default search icon. */}
+            Back returns to the Accounting Hub menu; the right side is a single
+            frosted pill holding both the notification bell and the settings gear
+            (Figma "Sales Invoice - Client" MenuPageHeader, node 1769-22999 — two
+            20px icons, 16px apart, sharing one Slot-type pill, not two separate
+            buttons). */}
         <PageHeader
           type="left"
           collapsed={scrolled}
           title="Sales Invoices"
           showBack={Boolean(onMenu || onBack)}
           onBack={onMenu ?? onBack}
-          rightIcon={<Settings size={20} />}
-          rightLabel="Invoice settings"
-          onRightClick={onSettings}
+          rightSlot={
+            <div className="flex items-center gap-4">
+              <button type="button" className="flex" aria-label="Notifications" onClick={onNotifications}>
+                <Bell size={20} strokeWidth={1} />
+              </button>
+              <button type="button" className="flex" aria-label="Invoice settings" onClick={onSettings}>
+                <Settings size={20} strokeWidth={1} />
+              </button>
+            </div>
+          }
         />
       </PageAppHeader>
 
       {/* Hero section wash — Figma "Sales Invoice — Client" hero Section
-          (node 1323-15897): a vertical Bg/Beige/secondary (#f3ecda) → white
-          gradient. Beige at the top matches the frame behind the header;
-          white at the bottom blends into the white body sections below. */}
+          (node 1323-15897): a vertical Bg/Beige/primary (#f9f5ea) → white
+          gradient, px-4 py-2 gap-2.5 section padding. Beige at the top matches
+          the frame behind the header; white at the bottom blends into the
+          white body sections below. */}
       <div
-        className="flex flex-col items-center gap-3 pb-6"
-        style={{ background: "linear-gradient(180deg, var(--bg-beige-secondary) 0%, #FFFFFF 100%)" }}
+        className="flex flex-col items-center gap-2.5 px-4 py-2"
+        style={{ background: "linear-gradient(180deg, var(--bg-beige-primary) 0%, var(--bg-neutral-primary) 100%)" }}
       >
         {/* Dark hero card — DS ui/OutstandingCard (Figma node 4141-8627). */}
-        <div className="w-full px-4">
+        <div className="w-full">
           <OutstandingCard
             expected={hero.expected}
             collected={hero.collected}
@@ -169,7 +182,7 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
       {/* Action Required — count badge + "View All" (dedicated list only when there are more than 2 items).
           White section (Figma Bg/Neutral/primary) — the beige frame only shows at the top behind
           the header; the body below the hero is white, cards separated by shadow. */}
-      <div className="px-4 pt-5 flex flex-col gap-4 bg-white">
+      <div className="p-4 flex flex-col gap-2.5 bg-white">
         <SectionHead
           title="Action Required"
           badge={ATTENTION_TASKS.length}
@@ -180,8 +193,11 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
 
       {/* Recent Invoices — white elevated card of exactly 5 DS InvoiceRows with a
           "View All ↗" link in the card footer (Figma "Sales Invoice - Client"
-          RecentInvoicesCard, node 1332-17797). Drafts show no invoice number. */}
-      <div className="px-4 pt-6 pb-20 flex flex-col gap-4 bg-white">
+          RecentInvoicesCard, node 1332-17797). Drafts show no invoice number,
+          and their status caption is a plain date — no "Created on" prefix
+          (Figma DS InvoiceStatus, node 4250-477). Section padding: p-4
+          gap-2.5, matching Figma's Section (node 1323-15909). */}
+      <div className="p-4 flex flex-col gap-2.5 bg-white">
         <SectionHead title="Recent Invoices" subtitle="last 5 invoices" onViewAll={onOpenInvoices} />
         <div className="w-full bg-white rounded-[12px] px-4 pb-4 flex flex-col items-center gap-2" style={{ boxShadow: "var(--shadow-card)" }}>
           <div className="w-full flex flex-col">
@@ -201,12 +217,12 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
             />
             <InvoiceRow
               title="Bright Harbor Co." amount="USD 283.23"
-              status="Draft" statusColor="neutral" statusCaption="Created on 20 Jun 2026"
+              status="Draft" statusColor="neutral" statusCaption="20 Jun 2026"
               onClick={() => onOpenInvoice?.({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Awaiting", origin: "created" })}
             />
             <InvoiceRow
               title="Otto Reyes" amount="USD 100,034.00"
-              status="Draft" statusColor="neutral" statusCaption="Created on 18 Jun 2026"
+              status="Draft" statusColor="neutral" statusCaption="18 Jun 2026"
               onClick={() => onOpenInvoice?.({ number: "INV-2026-000002", client: "Otto Reyes", status: "Awaiting", origin: "created" })}
             />
             <InvoiceRow
@@ -232,7 +248,7 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
         iconLeft={<Plus size={20} />}
         label="Create Invoice"
         aria-label="Create invoice"
-        className="absolute z-20 bottom-8 right-8"
+        className="absolute z-20 bottom-4 right-4"
         onClick={() => setSheetOpen(true)}
       />
 

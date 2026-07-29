@@ -1,10 +1,12 @@
 /* BottomSheet — Figma "[APP] Design System" → Bottomsheets (node 4038-3018).
    White panel, 32px top radius, Shadow/Bottomsheets. Header sticks to the top
    with a white→transparent fade for when the sheet's content scrolls under
-   it; grabber is 48×5 ink at 30%. Title composes .card-title-lg so its size
-   tracks --fs-card-lg through .mobile-mode (22px on the app's real
-   phone-frame screens, 28px desktop-default — see CLAUDE.md "Mobile-mode
-   typography"). Colors from styles/theme.css. */
+   it; grabber is 48×5 ink at 30%. Title composes .card-title-md — the
+   Bottomsheets header is literally an embedded instance of PageHeader's
+   "left-on-scroll" variant (confirmed via matching Figma node ids), which is
+   bound to Card title/md (18px on the app's real phone-frame screens), not
+   lg — see CLAUDE.md "Mobile-mode typography" and components/BottomSheet's
+   same fix. Colors from styles/theme.css. */
 
 .sheet {
   display: flex;
@@ -48,7 +50,7 @@
   padding: 0 16px;
 }
 .title {
-  composes: card-title-lg from global;
+  composes: card-title-md from global;
   flex: 1;
   min-width: 0;
   margin: 0;

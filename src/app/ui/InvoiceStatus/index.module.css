@@ -1,0 +1,49 @@
+/* InvoiceStatus — Figma "[APP] Design System" → InvoiceStatus (node 4250-477).
+   Caption/Medium label (transparent, no pill) + a text-secondary caption,
+   space-between across the full width. Colors from styles/theme.css. */
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  width: 100%;
+}
+
+.label {
+  font-family: var(--font-primary);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-caption);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.neutral {
+  color: var(--text-secondary);
+}
+.success {
+  color: var(--text-success-primary);
+}
+.warning {
+  color: var(--text-warning-primary);
+}
+.error {
+  color: var(--text-error-primary);
+}
+.info {
+  color: var(--text-info-primary);
+}
+.custom {
+  background: var(--gradient-badge-custom);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.caption {
+  composes: caption from global;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

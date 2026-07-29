@@ -1,0 +1,109 @@
+/* Avatar — Figma "[APP] Design System" → Avatar (node 1942-6704).
+   Square = rounded-square initials chip (beige bg by default); photo = full
+   circle image. Size ramp (box / radius / initials font+tracking):
+   xs 16/4/7.059px·-0.3529px · sm 24/6/8px·-0.4px · md 32/8/12px·-0.6px ·
+   lg 40/10/13px·-0.65px · xl 48/12/16px·-0.8px · 2xl 56/14/20px·-1px ·
+   3xl 64/16/24px·-1.2px. Colors from styles/theme.css. */
+
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  font-family: var(--font-primary);
+}
+
+.square {
+  background: var(--bg-beige-primary);
+}
+
+/* Higher specificity than the size classes' border-radius (.root.photo beats .lg etc.
+   regardless of source order), so every photo size renders a full circle. */
+.root.photo {
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.initials {
+  font-weight: var(--fw-regular);
+  line-height: 1;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.xs {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-md);
+}
+.xs .initials {
+  font-size: 7.059px;
+  letter-spacing: -0.3529px;
+}
+
+.sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+.sm .initials {
+  font-size: 8px;
+  letter-spacing: -0.4px;
+}
+
+.md {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+.md .initials {
+  font-size: 12px;
+  letter-spacing: -0.6px;
+}
+
+.lg {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+.lg .initials {
+  font-size: 13px;
+  letter-spacing: -0.65px;
+}
+
+.xl {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+.xl .initials {
+  font-size: 16px;
+  letter-spacing: -0.8px;
+}
+
+.twoXl {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+}
+.twoXl .initials {
+  font-size: 20px;
+  letter-spacing: -1px;
+}
+
+.threeXl {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+}
+.threeXl .initials {
+  font-size: 24px;
+  letter-spacing: -1.2px;
+}

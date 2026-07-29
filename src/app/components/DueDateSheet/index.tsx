@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { addMonths, startOfDay, format } from "date-fns";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../BottomSheet";
 import { Tile } from "../../ui/Tile";
-import { TextInput } from "../TextInput";
 import { Calendar } from "../Calendar";
 import styles from "./index.module.css";
 
@@ -24,7 +22,10 @@ interface DueDateSheetProps {
 }
 
 export function DueDateSheet({ open, value, onClose, onSelect }: DueDateSheetProps) {
-  const [calendarOpen, setCalendarOpen] = useState(false);
+  // The custom-date calendar is a "next level" of this SAME sheet (title/back swap with
+  // `step`, content slides in/out), not a second BottomSheet stacked on top — see
+  // memory: sub-level-drawer-same-sheet.
+  const [step, setStep] = useState<"list" | "calendar">("list");
 
   // Custom due dates are capped at 6 months out — dates beyond that are disabled on the calendar.
   const today = startOfDay(new Date());
@@ -34,50 +35,61 @@ export function DueDateSheet({ open, value, onClose, onSelect }: DueDateSheetPro
   const isCustom = !!value && !DUE_OPTIONS.some((o) => o.title === value);
 
   return (
-    <>
-      <BottomSheet open={open} title="Select Due Date" onClose={onClose}>
-        <div className={styles.root}>
-          <div className={styles.optionsList}>
-            {DUE_OPTIONS.map((o) => (
-              <motion.div key={o.id} variants={sheetItem}>
-                <Tile
-                  title={o.title}
-                  text={o.description}
-                  selected={value === o.title}
-                  trailing={value === o.title ? "check" : "none"}
-                  onClick={() => onSelect?.(o.title)}
-                />
-              </motion.div>
-            ))}
-          </div>
-
-          <motion.div variants={sheetItem}>
-            <TextInput
-              label="Custom Date"
-              placeholder="dd/mm/yy"
-              readOnly
-              value={isCustom ? value : ""}
-              iconRight={<CalendarTodayIcon className={styles.calendarIcon} />}
-              onClick={() => setCalendarOpen(true)}
+    <BottomSheet
+      open={open}
+      title={step === "calendar" ? "Custom Due Date" : "Select Due Date"}
+      onBack={step === "calendar" ? () => setStep("list") : undefined}
+      onClose={() => {
+        onClose?.();
+        setStep("list");
+      }}
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {step === "calendar" ? (
+          <motion.div
+            key="calendar"
+            initial={{ x: 24, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 24, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+          >
+            <Calendar
+              disablePast
+              maxDate={maxDate}
+              onChange={(d) => {
+                onSelect?.(format(d, "d MMM yyyy"));
+                setStep("list");
+              }}
             />
           </motion.div>
-        </div>
-      </BottomSheet>
-
-      {/* Custom due-date calendar — past dates and anything more than 6 months out are disabled. */}
-      <BottomSheet open={calendarOpen} title="Custom Due Date" onClose={() => setCalendarOpen(false)}>
-        <motion.div variants={sheetItem}>
-          <Calendar
-            disablePast
-            maxDate={maxDate}
-            onChange={(d) => {
-              onSelect?.(format(d, "d MMM yyyy"));
-              setCalendarOpen(false);
-            }}
-          />
-        </motion.div>
-      </BottomSheet>
-    </>
+        ) : (
+          <motion.div
+            key="list"
+            initial={{ x: -24, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -24, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+          >
+            <div className={styles.optionsList}>
+              {DUE_OPTIONS.map((o) => (
+                <motion.div key={o.id} variants={sheetItem}>
+                  <Tile
+                    title={o.title}
+                    text={o.description}
+                    selected={value === o.title}
+                    trailing={value === o.title ? "check" : "none"}
+                    onClick={() => onSelect?.(o.title)}
+                  />
+                </motion.div>
+              ))}
+              <motion.div variants={sheetItem}>
+                <Tile title="Custom Date" selected={isCustom} trailing="chevron" onClick={() => setStep("calendar")} />
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </BottomSheet>
   );
 }
 

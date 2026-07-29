@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import CloseIcon from "@mui/icons-material/Close";
 import FlashOnOutlinedIcon from "@mui/icons-material/FlashOnOutlined";
+import PhotoLibraryOutlinedIcon from "@mui/icons-material/PhotoLibraryOutlined";
 import StatusBar from "../../components/StatusBar";
 
 import { FONT } from "../../lib/theme";
@@ -22,9 +23,22 @@ function Corner({ pos }: { pos: "tl" | "tr" | "bl" | "br" }) {
 /**
  * Camera + document-scanner demo. In a published build the shutter opens the native
  * scanner (iOS VisionKit / Android ML Kit); here it plays a framing → scanning sequence,
- * then hands a captured file back via `onCapture`. Render at the PAGE ROOT.
+ * then hands a captured file back via `onCapture`. The bottom bar also has a photo-library
+ * import button (`onImport`) — same spot as iOS Camera's last-shot thumbnail — so upload
+ * isn't camera-only. Render at the PAGE ROOT.
  */
-export function ScanDocument({ open, onClose, onCapture }: { open: boolean; onClose?: () => void; onCapture?: () => void }) {
+export function ScanDocument({
+  open,
+  onClose,
+  onCapture,
+  onImport,
+}: {
+  open: boolean;
+  onClose?: () => void;
+  onCapture?: () => void;
+  /** Bottom-bar photo-library button — bypasses the scan sequence, picks an existing file. */
+  onImport?: () => void;
+}) {
   const [phase, setPhase] = useState<"frame" | "scanning">("frame");
   // Latest onCapture without retriggering the timer (it's a fresh closure each parent render).
   const onCaptureRef = useRef(onCapture);
@@ -126,8 +140,23 @@ export function ScanDocument({ open, onClose, onCapture }: { open: boolean; onCl
             </p>
           </div>
 
-          {/* Shutter */}
-          <div className="shrink-0 flex items-center justify-center pb-10 pt-4">
+          {/* Shutter + photo-library import (same spot as iOS Camera's last-shot thumbnail) —
+              upload isn't camera-only. Balanced with an equal-width spacer on the right so the
+              shutter stays visually centered. */}
+          <div className="shrink-0 flex items-center justify-between px-8 pb-10 pt-4">
+            <div className="w-11 h-11 flex items-center justify-center">
+              {phase === "frame" && (
+                <button
+                  type="button"
+                  aria-label="Upload from library"
+                  onClick={onImport}
+                  className="w-11 h-11 rounded-lg bg-white/15 flex items-center justify-center text-white active:scale-95 transition-transform"
+                >
+                  <PhotoLibraryOutlinedIcon style={{ fontSize: 20 }} />
+                </button>
+              )}
+            </div>
+
             {phase === "frame" ? (
               <button
                 type="button"
@@ -145,6 +174,8 @@ export function ScanDocument({ open, onClose, onCapture }: { open: boolean; onCl
                 />
               </div>
             )}
+
+            <span className="w-11 h-11" aria-hidden />
           </div>
         </motion.div>
       )}
