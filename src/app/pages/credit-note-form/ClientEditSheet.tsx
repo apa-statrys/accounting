@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { BottomSheet } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
 import { TextField } from "../../ui/TextField";
+import { EMAIL_RE } from "../../lib/format";
 
 interface ClientEditSheetProps {
   open: boolean;
@@ -9,13 +11,24 @@ interface ClientEditSheetProps {
   draftEmail: string;
   setDraftName: (v: string) => void;
   setDraftEmail: (v: string) => void;
-  dirty: boolean;
-  valid: boolean;
   onSave: () => void;
 }
 
 /** Edit client details — applies to this credit note only (not the invoice or client record). */
-export function ClientEditSheet({ open, onClose, draftName, draftEmail, setDraftName, setDraftEmail, dirty, valid, onSave }: ClientEditSheetProps) {
+export function ClientEditSheet({ open, onClose, draftName, draftEmail, setDraftName, setDraftEmail, onSave }: ClientEditSheetProps) {
+  // CTA stays enabled (app-wide pattern, see memory form-cta-validation); a failed Save reveals
+  // inline errors on the offending field instead of greying the button out.
+  const [showErrors, setShowErrors] = useState(false);
+  useEffect(() => { if (open) setShowErrors(false); }, [open]);
+
+  const nameErr = draftName.trim().length === 0 ? "Enter a customer name" : undefined;
+  const emailErr = !EMAIL_RE.test(draftEmail.trim()) ? "Enter a valid email address" : undefined;
+
+  const handleSave = () => {
+    if (nameErr || emailErr) { setShowErrors(true); return; }
+    onSave();
+  };
+
   return (
     <BottomSheet
       open={open}
@@ -25,15 +38,14 @@ export function ClientEditSheet({ open, onClose, draftName, draftEmail, setDraft
         <ButtonDock
           type="single"
           primaryLabel="Save"
-          primaryDisabled={!dirty || !valid}
-          onPrimary={onSave}
+          onPrimary={handleSave}
           homeIndicator
         />
       }
     >
       <div className="flex flex-col gap-3">
-        <TextField label="Customer name" value={draftName} onChange={setDraftName} mandatory />
-        <TextField label="Email address" inputType="email" value={draftEmail} onChange={setDraftEmail} mandatory />
+        <TextField label="Customer name" value={draftName} onChange={setDraftName} mandatory error={showErrors && !!nameErr} caption={showErrors ? nameErr : undefined} />
+        <TextField label="Email address" inputType="email" value={draftEmail} onChange={setDraftEmail} mandatory error={showErrors && !!emailErr} caption={showErrors ? emailErr : undefined} />
       </div>
     </BottomSheet>
   );

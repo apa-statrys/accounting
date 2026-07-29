@@ -81,6 +81,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Not a Figma axis — an inline error message below the row (e.g. a required field left unset). */
+.captionError {
+  color: var(--text-error-primary);
+  white-space: normal;
+}
 
 .trailingGroup {
   display: flex;

@@ -1,11 +1,16 @@
 import { useRef, useState } from "react";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { SHOW_CREDIT_NOTES } from "../../lib/flags";
+import { money } from "../../lib/format";
 import type { Invoice } from "../../types";
 import { InvoiceRow } from "../../ui/InvoiceRow";
 import { SwipeActions } from "../../ui/SwipeActions";
 import type { BadgeColor } from "../../ui/Badge";
 import { effectiveStatus, metaLine, type EffectiveStatus } from "./filters";
+// Prototype: every invoice's detail page shows the same shared demo total (demoInvoice.TOTAL =
+// $6,450). The list card's big amount mirrors it so each row's "original full amount" matches what
+// the detail shows (user, 22/Jul) — the varied per-invoice `inv.amount` is no longer displayed here.
+import { TOTAL } from "../invoice-detail/demoInvoice";
 
 // Reveal = ui/SwipeActions' own delete-only width (Figma "Create Invoice", node 1826-15916 —
 // same swipe-to-delete recipe as ServiceItemCard).
@@ -52,25 +57,24 @@ export function InvoiceCard({ inv, highlighted, lastItem, onClick, onDelete, onO
   let caption = meta.rest;
   if (status.label === "Paid") caption = caption.replace(/^Paid /, "");
   if (status.label === "Void") caption = caption.replace(/^Void /, "");
+  // Refund states (Pending Refund / Refunded / Partially Refunded) and Void show no date caption —
+  // just the badge (the CN-number strip carries the link).
+  if (refundChip || status.label === "Void") caption = "";
 
-  // Credit-note strip (DES-763 AC6): amount + label, opening the linked CN. Refund CNs read "Refund amount".
+  // Credit-note strip (DES-763 AC6): shows the linked CN NUMBER (no amount) and opens that credit note.
   const hasCn = SHOW_CREDIT_NOTES && Boolean(inv.cnNo);
-  const cnAmountStr = linkedCn
-    ? `USD ${linkedCn.original.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    : inv.amount;
 
   const row = (
     <InvoiceRow
-      size="md"
       title={inv.client}
       invoiceNo={meta.number || undefined}
       recurring={inv.recurring}
       status={status.label}
       statusColor={status.color}
       statusCaption={caption || undefined}
-      amount={inv.amount}
-      creditedAmount={hasCn ? cnAmountStr : undefined}
-      creditedLabel={refundChip ? "Refund amount" : "Credited amount"}
+      amount={money(TOTAL)}
+      creditedAmount={hasCn ? inv.cnNo : undefined}
+      creditedLabel=""
       onCreditedClick={hasCn ? () => onOpenCN?.(inv) : undefined}
       lastItem={lastItem}
       onClick={onClick}

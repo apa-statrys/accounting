@@ -7,12 +7,12 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
+import { HorizontalTabs } from "../../ui/HorizontalTabs";
 import { ButtonDock } from "../../components/ButtonDock";
 import { IssueDateSheet } from "../../components/IssueDateSheet";
 import { NumericKeypad } from "../../components/NumericKeypad";
 import { FONT, INK, MUTED } from "../../lib/theme";
 import type { CreditNoteEditSeed, CreditNotePayload, DraftLine, InvoiceLine } from "../../types";
-import { EMAIL_RE } from "../../lib/format";
 import { fmtAmount, formatDMY, lineAmount } from "./lineMath";
 import { ReasonSheet } from "./ReasonSheet";
 import { ClientEditSheet } from "./ClientEditSheet";
@@ -122,6 +122,9 @@ export function CreditNoteForm({
   // Both modes carry a real per-unit price + quantity, seeded at the full invoiced qty: credit starts
   // with nothing credited (corrected = original), refund starts at the full line refundable (reduce qty
   // or unit price for a partial refund).
+  // Seed each line at the original per-unit price. For refund that's a FULL refund (its default); for
+  // credit that's the un-corrected invoice = nothing credited yet (its Partial default). applyFull /
+  // applyPartial adjust from here when the user switches tabs.
   const initLines = (): DraftLine[] =>
     items.map((it, i) => ({ id: `cn-${i}`, name: it.name, unit: it.unit, qty: it.qty, unitPrice: String(it.unitPrice), maxQty: it.qty, origAmount: it.amount }));
   // Which refund input is focused (raw while editing; comma/2dp formatted when blurred).
@@ -135,6 +138,9 @@ export function CreditNoteForm({
     setScrollLocked(false);
   };
   const [lines, setLines] = useState<DraftLine[]>(initial?.lines ?? initLines);
+  // Refund only: Full (read-only lines, default on create) vs Partial (editable). Editing a refund CN
+  // opens Partial so its saved lines stay editable. Ignored by the credit-note flow.
+  const [fpMode, setFpMode] = useState<"full" | "partial">(isEdit ? "partial" : "full");
 
   // Autosave indicator (DES-719 — the CN is a saved draft): "Saving" on any edit, "Saved" once it settles.
   const [saveState, setSaveState] = useState<"saved" | "saving">("saved");
@@ -162,18 +168,15 @@ export function CreditNoteForm({
   const amountDue = Math.max(0, originalTotal - credited);
   const exceedsCap = credited > outstanding + 0.001;
   const isFull = Math.abs(credited - outstanding) < 0.001;
-  // A reason is always required; the free-text Description is required only when the reason is "Other"
-  // (DES-719 — dropdown + optional free text; "Other" needs a description to be meaningful).
-  const needsNote = reason === "Other";
-  const canCreate =
-    credited > 0 && !exceedsCap && reason !== "" && (!needsNote || reasonNote.trim() !== "");
+  // A reason is always required; the free-text Description below it is always OPTIONAL.
+  const canCreate = credited > 0 && !exceedsCap && reason !== "";
 
   // form-cta-validation: the CTA is always enabled; a failed click scrolls to the first invalid field
   // and reveals its inline error. `attempted` flips on the first failed submit (errors clear as fixed).
   const [attempted, setAttempted] = useState(false);
   const reasonRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<HTMLDivElement>(null);
-  const reasonInvalid = reason === "" || (needsNote && reasonNote.trim() === "");
+  const reasonInvalid = reason === "";
   const amountInvalid = credited <= 0.001; // nothing credited yet (exceedsCap has its own banner)
   const reasonError = attempted && reasonInvalid;
   const amountError = attempted && amountInvalid;
@@ -184,6 +187,18 @@ export function CreditNoteForm({
   const unitCap = (l: DraftLine) => lineOriginal(l) / (l.maxQty || 1);
   const capStr = (cap: number) => (Number.isInteger(cap) ? String(cap) : cap.toFixed(2));
   const clampUnit = (l: DraftLine, v: string) => ((Number(v) || 0) > unitCap(l) + 0.001 ? capStr(unitCap(l)) : v);
+
+  const origUnitStr = (l: DraftLine) => capStr(lineOriginal(l) / (l.maxQty || 1));
+  // Full: max credit for the mode — refund gives back the full per-unit price; credit corrects to 0.
+  const applyFull = () => {
+    setFpMode("full");
+    setLines((prev) => prev.map((l) => ({ ...l, qty: l.maxQty, unitPrice: refund ? origUnitStr(l) : "0" })));
+  };
+  // Partial: start from the original line values (refund = full, edit down; credit = nothing credited yet).
+  const applyPartial = () => {
+    setFpMode("partial");
+    setLines((prev) => prev.map((l) => ({ ...l, qty: l.maxQty, unitPrice: origUnitStr(l) })));
+  };
 
   const setUnitPrice = (id: string, raw: string) =>
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, unitPrice: clampUnit(l, raw.replace(/[^0-9.]/g, "")) } : l)));
@@ -226,8 +241,6 @@ export function CreditNoteForm({
     setDraftEmail(email);
     setClientSheetOpen(true);
   };
-  const clientDirty = draftName !== name || draftEmail !== email;
-  const clientValid = draftName.trim().length > 0 && EMAIL_RE.test(draftEmail.trim());
   const saveClient = () => {
     setName(draftName.trim());
     setEmail(draftEmail.trim());
@@ -273,8 +286,8 @@ export function CreditNoteForm({
     issueDate,
     dueDateLabel,
     reason,
-    // Only a free-text reason ("Other") carries a note; presets store none.
-    reasonNote: needsNote ? reasonNote.trim() : "",
+    // Optional free-text description (any reason).
+    reasonNote: reasonNote.trim(),
     draftLines: lines,
     accountId,
   });
@@ -289,6 +302,23 @@ export function CreditNoteForm({
 
   // Back — save a Draft (DES-719) when the parent provides onSaveDraft (the create flow); else just leave.
   const handleBack = () => (onSaveDraft ? onSaveDraft(buildPayload()) : onBack());
+
+  // Optional free-text description (any reason) — rendered below the summary in both flows.
+  const descriptionBlock = (
+    <div className="flex flex-col gap-[7px]">
+      <label className="text-[16px] font-medium leading-[1.3]" style={{ ...FONT, color: "#090a0a" }}>
+        Description
+      </label>
+      <textarea
+        value={reasonNote}
+        onChange={(e) => setReasonNote(e.target.value)}
+        placeholder={`Add a note about this ${refund ? "refund" : "credit note"}`}
+        rows={3}
+        className="w-full rounded-[8px] border px-4 py-3 bg-white text-[16px] outline-none resize-none"
+        style={{ ...FONT, color: "#1b1b1b", borderColor: "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
+      />
+    </div>
+  );
 
   return (
     <div className="absolute inset-0 z-50 bg-white rounded-[48px] overflow-hidden flex flex-col" style={{ width: 375, height: 812 }}>
@@ -330,17 +360,15 @@ export function CreditNoteForm({
                 <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
               </span>
             </button>
-            {/* Due Date + Receiving Account apply to a cancellation CN (reducing an unpaid invoice). A
-                refund CN pays money out — no due date, and the source account is chosen in the refund flow. */}
-            {!refund && (
-              <button type="button" onClick={() => setDueOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
-                <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Due Date</span>
-                <span className="flex items-center gap-1.5">
-                  <span className="text-[14px] font-medium" style={{ ...FONT, color: "#101828" }}>{dueLabel}</span>
-                  <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
-                </span>
-              </button>
-            )}
+            {/* Due Date shows for both credit + refund (defaults to Next 30 days). The Receiving Account
+                row is cancellation-only — a refund CN's source account is chosen in the refund flow. */}
+            <button type="button" onClick={() => setDueOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
+              <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Due Date</span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-[14px] font-medium" style={{ ...FONT, color: "#101828" }}>{dueLabel}</span>
+                <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
+              </span>
+            </button>
             {!refund && (
               <button type="button" onClick={() => setAcctSheetOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
                 <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Receiving Account</span>
@@ -381,23 +409,25 @@ export function CreditNoteForm({
             style={{ borderColor: reasonError ? "#dc2626" : "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
           >
             <span className="text-[16px] truncate" style={{ ...FONT, color: reason ? "var(--text-primary)" : "#9ca3af" }}>
-              {/* "Other" shows the user's free-text description on the main page, not the word "Other". */}
-              {reason === "Other" ? (reasonNote.trim() || "Other") : (reason || "Select a reason")}
+              {reason || "Select a reason"}
             </span>
             <KeyboardArrowDownIcon style={{ fontSize: 24, color: "var(--text-secondary)" }} />
           </button>
           {reasonError && (
             <p className="text-[12px] leading-[1.3]" style={{ ...FONT, color: "var(--text-error-primary)" }}>
-              {reason === "" ? "Please select a reason for this credit note." : "Please add a description for the reason."}
+              Please select a reason for this {refund ? "refund" : "credit note"}.
             </p>
           )}
         </div>
+
+        {/* Credit note: description sits above the items (refund shows it below the summary). */}
+        {!refund && descriptionBlock}
 
         {/* Corrected invoice — edit each line to its CORRECT value; the credit is derived automatically. */}
         <div ref={itemsRef} className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2 px-1">
             <p className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>{refund ? "Items to refund" : "Items"} <span style={{ color: "#b42318" }}>*</span></p>
-            {credited > 0 && (
+            {!refund && credited > 0 && (
               <span
                 className="px-2 py-0.5 rounded-full border text-[10px] font-bold leading-[15px]"
                 style={
@@ -406,7 +436,7 @@ export function CreditNoteForm({
                     : { ...FONT, background: "#fff7e6", borderColor: "#fde68a", color: "#b45309" }
                 }
               >
-                {isFull ? (refund ? "Full Refund" : "Full Credit") : (refund ? "Partial Refund" : "Partial Credit")}
+                {isFull ? "Full Credit" : "Partial Credit"}
               </span>
             )}
           </div>
@@ -417,8 +447,32 @@ export function CreditNoteForm({
                 : "Lower at least one item's amount to credit — the credit can't be zero."}
             </p>
           )}
-          {/* Per-line cards — edit each line to its CORRECTED value; Original / Corrected / Credited are
-              shown explicitly so the derivation is legible (the credit is never typed directly). */}
+          {/* Refund only: Full (read-only lines) vs Partial (editable). DS tab control. */}
+          {refund && (
+            <HorizontalTabs
+              variant="button"
+              tabs={["Full refund", "Partial refund"]}
+              activeIndex={fpMode === "full" ? 0 : 1}
+              onChange={(i) => { if (i === 0 && fpMode !== "full") applyFull(); else if (i === 1 && fpMode !== "partial") applyPartial(); }}
+            />
+          )}
+
+          {refund && fpMode === "full" ? (
+            /* Full refund → read-only line list; amounts in red = being refunded. */
+            <div className="rounded-xl border bg-white overflow-hidden" style={{ borderColor: "rgba(160,160,160,0.25)", boxShadow: "var(--shadow-card-soft)" }}>
+              {(itemsExpanded ? items : items.slice(0, COLLAPSED_ITEMS)).map((it, i) => (
+                <div key={i} className="flex items-start justify-between gap-3 px-4 py-3.5 border-t first:border-t-0" style={{ borderColor: "rgba(160,160,160,0.18)" }}>
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold leading-tight" style={{ ...FONT, color: INK }}>{it.name}</p>
+                    <p className="text-[12px] mt-0.5" style={{ ...FONT, color: MUTED }}>{it.qty} {it.unit} · {money(it.unitPrice)}</p>
+                  </div>
+                  <span className="text-[14px] font-semibold shrink-0" style={{ ...FONT, color: "#b42318" }}>−{money(it.amount)}</span>
+                </div>
+              ))}
+              {items.length > COLLAPSED_ITEMS && showMoreBtn}
+            </div>
+          ) : (
+          /* Per-line cards — Partial refund (editable) or credit mode (corrected values). */
           <div className="flex flex-col gap-3">
             {(itemsExpanded ? lines : lines.slice(0, COLLAPSED_ITEMS)).map((l, i) => (
               <div
@@ -467,10 +521,10 @@ export function CreditNoteForm({
                   </div>
                 </div>
 
-                {/* Derived per-line credit / refund — only when this line contributes an amount */}
-                {lineCredit(l) > 0.001 && (
+                {/* Credit mode: derived per-line credit (Original − corrected). */}
+                {!refund && lineCredit(l) > 0.001 && (
                   <div className="flex items-center justify-between border-t border-[rgba(160,160,160,0.18)] pt-2.5">
-                    <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>{refund ? "Refund amount" : "Credited"}</span>
+                    <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Credited</span>
                     <span className="text-[14px] font-medium" style={{ ...FONT, color: "#b42318" }}>−{money(lineCredit(l))}</span>
                   </div>
                 )}
@@ -478,6 +532,7 @@ export function CreditNoteForm({
             ))}
             {lines.length > COLLAPSED_ITEMS && showMoreBtn}
           </div>
+          )}
         </div>
 
         {/* Summary — auto-derived; the user never types a total. */}
@@ -493,15 +548,11 @@ export function CreditNoteForm({
             </div>
             {refund ? (
               <>
-                {/* Total refund is the highlighted figure; remaining after refund follows. */}
+                {/* Total refund is the highlighted figure. */}
                 <div className="h-px bg-[rgba(160,160,160,0.3)] my-1" />
                 <div className="flex items-center justify-between py-3">
                   <span className="text-[15px] font-black tracking-[-0.3px]" style={{ ...FONT, color: INK }}>Total refund</span>
                   <span className="text-[18px] font-black tracking-[-0.5px]" style={{ ...FONT, color: "#b42318" }}>− {money(credited)}</span>
-                </div>
-                <div className="flex items-center justify-between py-2.5 border-t border-[rgba(160,160,160,0.18)]">
-                  <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Remaining after refund</span>
-                  <span className="text-[13px] font-medium" style={{ ...FONT, color: INK }}>{money(amountDue)}</span>
                 </div>
               </>
             ) : (
@@ -548,13 +599,16 @@ export function CreditNoteForm({
             <p className="px-1 text-[12px] leading-[1.4]" style={{ ...FONT, color: MUTED }}>{helper}</p>
           ) : null;
         })()}
+
+        {/* Refund: description sits below the summary. */}
+        {refund && descriptionBlock}
         </div>
       </div>
 
       <ButtonDock
         type="single"
         sticky
-        primaryLabel={isEdit ? (submitLabel ?? "Save changes") : "Apply to Invoice"}
+        primaryLabel={isEdit ? (submitLabel ?? "Save changes") : "Create Credit Note"}
         onPrimary={handleCreate}
         homeIndicator
       />
@@ -591,8 +645,6 @@ export function CreditNoteForm({
         onClose={() => setReasonSheetOpen(false)}
         reason={reason}
         setReason={setReason}
-        reasonNote={reasonNote}
-        setReasonNote={setReasonNote}
       />
 
       {/* Edit client details — applies to this credit note only (not the invoice or client record) */}
@@ -603,8 +655,6 @@ export function CreditNoteForm({
         draftEmail={draftEmail}
         setDraftName={setDraftName}
         setDraftEmail={setDraftEmail}
-        dirty={clientDirty}
-        valid={clientValid}
         onSave={saveClient}
       />
 

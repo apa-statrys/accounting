@@ -91,8 +91,8 @@ export function matchesIssueRange(iso: string, from: string, to: string): boolea
 export type StatusMatch = "all" | Status | "Overdue";
 
 // No standalone Overdue / Partially Paid tabs — they fold into a related tab (see matchStatus):
-// Overdue rows show under Awaiting (an overdue invoice is Awaiting past its due date), and
-// Partially Paid rows show under Paid (any payment received). Each card still shows its own chip.
+// Overdue and Partially Paid rows both show under Awaiting (still outstanding — a balance is due).
+// Each card still shows its own chip.
 export const FILTERS: { label: string; match: StatusMatch }[] = [
   { label: "All", match: "all" },
   { label: "Draft", match: "Draft" },
@@ -112,14 +112,14 @@ export function effectiveStatus(inv: Invoice): EffectiveStatus {
 
 /**
  * Whether an invoice matches a status chip:
- * - "Awaiting" = all outstanding (on-time + overdue) — no separate Overdue tab.
- * - "Paid" = fully paid + partially paid — no separate Partially Paid tab.
+ * - "Awaiting" = all outstanding (on-time + overdue + partially paid) — no separate Overdue/Partial tab.
+ * - "Paid" = fully paid only.
  */
 export function matchStatus(inv: Invoice, match: StatusMatch): boolean {
   if (match === "all") return true;
   const eff = effectiveStatus(inv);
-  if (match === "Awaiting") return eff === "Awaiting" || eff === "Overdue"; // Outstanding = unpaid
-  if (match === "Paid") return eff === "Paid" || eff === "PartiallyPaid"; // any payment received
+  if (match === "Awaiting") return eff === "Awaiting" || eff === "Overdue" || eff === "PartiallyPaid"; // still owed a balance
+  if (match === "Paid") return eff === "Paid"; // fully paid only
   return eff === match;
 }
 
@@ -151,8 +151,6 @@ export function sortInvoices(rows: Invoice[], key: SortKey): Invoice[] {
   }
 }
 
-const DAY_MS = 86400000;
-
 /**
  * Status-aware secondary line (competitor-aligned): relative "Due in N days" for Awaiting,
  * red "Overdue by N days" for overdue; other statuses keep their authored meta suffix.
@@ -168,13 +166,18 @@ export function metaLine(inv: Invoice, eff: EffectiveStatus): { number: string; 
     return { number: inv.origin === "uploaded" ? number.replace(/^INV/, "UL") : "", rest: norm, danger: false };
   }
   if (inv.due && (eff === "Overdue" || eff === "Awaiting")) {
-    const diff = Math.round((parseISO(inv.due).getTime() - TODAY.getTime()) / DAY_MS);
     if (eff === "Overdue") {
-      // Caption reads "since <due date>" (the DS InvoiceRow overdue format from the Showcase) —
-      // the "Overdue" Badge already carries the status word, so the caption just dates it.
+      // The row's red "Overdue" Badge already carries the status, so the caption just dates it →
+      // reads "Overdue since <date>" (matches the invoice-detail hero).
       return { number, rest: `since ${format(parseISO(inv.due), "d MMM yyyy")}`, danger: true };
     }
-    return { number, rest: diff <= 0 ? "Due today" : diff === 1 ? "Due tomorrow" : `Due in ${diff} days`, danger: false };
+    // Awaiting → absolute due date ("Due 5 Jul 2026"), matching the invoice-detail hero (no relative "Due in N days").
+    return { number, rest: `Due ${format(parseISO(inv.due), "d MMM yyyy")}`, danger: false };
+  }
+  // Partially Paid pairs its badge with the due date (like Awaiting/Overdue). The remaining balance
+  // used to read here ("$2,450.00 due") but that stray second amount looked odd next to the full total.
+  if (eff === "PartiallyPaid" && inv.due) {
+    return { number, rest: `Due ${format(parseISO(inv.due), "d MMM yyyy")}`, danger: false };
   }
   // Terminal statuses keep the authored absolute date, normalised to read "<verb> on <date>".
   return { number, rest: rest.replace(/^(Paid|Created|Uploaded|Void) (?=\d)/, "$1 on "), danger: false };

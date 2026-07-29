@@ -60,7 +60,7 @@ export function RecordPaymentSheet({
         <div className="flex flex-col gap-5">
           <motion.div variants={sheetItem} className="flex flex-col gap-3">
             <p className="body-md leading-[1.45]" style={{ ...FONT, color: MUTED }}>
-              Record a payment received for this invoice.
+              If the amount is less than the invoice total, the invoice will remain Partially Paid.
             </p>
             <TextField
               type="left-icon"

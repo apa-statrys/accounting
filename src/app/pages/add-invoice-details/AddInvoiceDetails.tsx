@@ -13,7 +13,6 @@ import { ListCard } from "../../ui/ListCard";
 import { ListRow } from "../../ui/ListRow";
 import { ButtonDock } from "../../components/ButtonDock";
 import { TextField } from "../../ui/TextField";
-import { CountryFlag } from "../../components/CountryFlag";
 import { ServiceItemCard } from "../../components/ServiceItemCard";
 import { DiscountCard, type DiscountMode } from "../../components/DiscountCard";
 import { DiscountModeSheet } from "../../components/DiscountModeSheet";
@@ -22,7 +21,7 @@ import { SendInvoiceSheet } from "../../components/SendInvoiceSheet";
 import { InvoicePreviewPage } from "../shared/InvoicePreviewPage";
 import { BankInfoSheet } from "../../components/BankInfoSheet";
 import { CustomerSheet } from "../../components/CustomerSheet";
-import { CURRENCIES, CURRENCY_COUNTRY, CurrencySheet } from "../../components/CurrencySheet";
+import { CURRENCIES, CurrencySheet } from "../../components/CurrencySheet";
 import { Toggle } from "../../ui/Toggle";
 import { DueDateSheet } from "../../components/DueDateSheet";
 import { IssueDateSheet } from "../../components/IssueDateSheet";
@@ -73,7 +72,9 @@ interface AddInvoiceDetailsProps {
     invoiceNo?: string;
     currency?: string;
     services?: ServiceLine[];
-    /** Issued invoice = limited edit: lock customer, issue date, currency, receiving account. */
+    /** True when editing an ISSUED invoice (Awaiting/Overdue) vs a Draft. Informational only now —
+     *  per the updated story every field is editable except the invoice number + client identity
+     *  (the client tile is locked for any edit); it no longer restricts issue date/currency/etc. */
     limited?: boolean;
   } | null;
   /** Edit mode (Qonto-style): back arrow → return to the invoice detail page without saving. */
@@ -106,6 +107,31 @@ interface AddInvoiceDetailsProps {
   recurring?: boolean;
   /** Editing an existing series (DES-782 AC4) — recurring form with a "Save changes" CTA. */
   editingSeries?: boolean;
+  /** Locked-period demo (DES-751): seed the Issue Date, open its calendar on mount, disable dates
+   *  before `issueMinDate`, show `issueSheetHelper` inside the calendar sheet, and (if `lockIssueSheet`)
+   *  prevent dismissing the sheet by tapping ✕/scrim (a valid date must be picked to proceed). */
+  seedIssueDate?: Date;
+  autoOpenIssueSheet?: boolean;
+  issueMinDate?: Date;
+  issueSheetHelper?: string;
+  lockIssueSheet?: boolean;
+  /** Override the header title (e.g. "Upload Invoice" for the locked-period upload demo). */
+  headerTitle?: string;
+  /** Banner rendered at the top of the form (e.g. the locked-period alert) — replaces the OCR
+   *  coverage banner when set. */
+  topBanner?: React.ReactNode;
+  /** Show the Issue Date as an unset, muted placeholder (e.g. "Select issue date") until a date is
+   *  picked — used when the OCR date fell in a closed period and must be re-chosen. */
+  issuePlaceholder?: string;
+  /** Locked-period demo: disable the header Back button and the primary CTA (Send/Create Invoice). */
+  lockActions?: boolean;
+  /** Locked-period demo: block every in-page interaction EXCEPT the Issue Date row (and the header Back,
+   *  which is locked too). The CTA sits outside the guarded area — gate it separately via `lockActions`.
+   *  Create Locked-Period locks the CTA; Upload Locked-Period leaves it live for re-issue. */
+  lockExceptIssueDate?: boolean;
+  /** Notifies the parent when the Issue Date calendar sheet opens/closes (drives the beside-frame
+   *  annotation on the Create Locked-Period demo). */
+  onIssueSheetToggle?: (open: boolean) => void;
 }
 
 import { FONT, MUTED, avatarTint, initials } from "../../lib/theme";
@@ -166,6 +192,17 @@ export function AddInvoiceDetails({
   defaultAccountId = "personal",
   recurring = false,
   editingSeries = false,
+  seedIssueDate,
+  autoOpenIssueSheet = false,
+  issueMinDate,
+  issueSheetHelper,
+  lockIssueSheet = false,
+  headerTitle,
+  topBanner,
+  issuePlaceholder,
+  lockActions = false,
+  lockExceptIssueDate = false,
+  onIssueSheetToggle,
 }: AddInvoiceDetailsProps) {
   // When `extracted` is present we came from an upload.
   const isExtracted = !!extracted;
@@ -173,8 +210,10 @@ export function AddInvoiceDetails({
   const [failBannerOpen, setFailBannerOpen] = useState(true);
   // `initial` means we opened the form to edit an existing invoice (from the detail page).
   const isEditing = !!initial;
-  // Limited edit of an issued invoice — lock fields bound at issue (DES-715 AC4).
-  const lockedEdit = isEditing && !!initial?.limited;
+  // NB: an issued-invoice edit (Awaiting/Overdue, `initial.limited`) no longer restricts the form —
+  // updated story: every field is editable except the auto-generated invoice number (not on this form)
+  // and the client identity (locked via the customer tile below, for any edit). So there's no separate
+  // "locked edit" branch anymore; the form behaves like a create except the client tile is read-only.
   // Recurring-series setup (DES-782): a per-invoice "Recurring Invoice" toggle (below Invoice Details)
   // turns a one-off into a series and reveals the schedule. Shown on a fresh create AND when editing a
   // scheduled recurring draft (combined content + schedule edit) — but never for uploads or a normal edit.
@@ -234,8 +273,19 @@ export function AddInvoiceDetails({
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const [customerSheetOpen, setCustomerSheetOpen] = useState(false);
 
-  const [issueDate, setIssueDate] = useState<Date>(extracted?.issueDate ?? new Date(2026, 5, 15));
-  const [issueSheetOpen, setIssueSheetOpen] = useState(false);
+  const [issueDate, setIssueDate] = useState<Date>(extracted?.issueDate ?? seedIssueDate ?? new Date(2026, 5, 15));
+  const [issueSheetOpen, setIssueSheetOpen] = useState(autoOpenIssueSheet);
+  // Let the parent (Create Locked-Period demo) swap its beside-frame annotation when the calendar opens.
+  useEffect(() => { onIssueSheetToggle?.(issueSheetOpen); }, [issueSheetOpen, onIssueSheetToggle]);
+  // Placeholder mode (locked-period upload demo): the Issue Date reads "Select issue date" until picked.
+  const [issuePicked, setIssuePicked] = useState(!issuePlaceholder);
+  // Create flow: the Issue Date defaults to today, shown with a "Today (…)" descriptor until the user
+  // picks another date (mirrors the Due Date row's "Next 30 days (…)" pattern).
+  const [issueChanged, setIssueChanged] = useState(false);
+  const showIssueToday = !isExtracted && !isEditing && !isRecurring && !seedIssueDate && !issuePlaceholder && !issueChanged;
+  // Set when the user hits the CTA with the Issue Date still unset — flags the row + scrolls to it.
+  const [issueError, setIssueError] = useState(false);
+  const issueRowRef = useRef<HTMLDivElement>(null);
   const [dueDate, setDueDate] = useState(extracted?.dueDate || "Next 30 days");
   const [dueSheetOpen, setDueSheetOpen] = useState(false);
   // Currency seeds from the customer default (→ Settings default), or OCR/edit-seed for an
@@ -311,7 +361,7 @@ export function AddInvoiceDetails({
   const draftAmount = amountLabel;
   const clientLabel = name.trim() || "Untitled customer";
   // Due Date labels — the relative "Next N days" term resolved against the issue date.
-  const { dueDateLabel, dueShort } = dueLabels(issueDate, dueDate);
+  const { dueDateLabel, dueRowLabel, dueShort } = dueLabels(issueDate, dueDate);
   // Meta line for the recent list card — drafts show the created date, issued invoices the due date.
   const draftMeta = `${invoiceNo} · Created ${format(issueDate, "d MMM yyyy")}`;
   const sentMeta = `${invoiceNo} · Due ${dueShort}`;
@@ -378,6 +428,17 @@ export function AddInvoiceDetails({
   // Line items in the invoice currency, for the PDF preview.
   const previewItems = toPreviewItems(services, currency);
 
+  // Locked-period upload (DES-751): the OCR Issue Date sat in a closed period, so it must be
+  // re-picked. Block the CTA while it's still the "Select issue date" placeholder — flag the row
+  // red and scroll it into view. Returns true when blocked.
+  const issueDateMissing = !!issuePlaceholder && !issuePicked;
+  const guardIssueDate = () => {
+    if (!issueDateMissing) return false;
+    setIssueError(true);
+    setTimeout(() => issueRowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+    return true;
+  };
+
   const openAddService = () => {
     setEditingId(null);
     setServicesSheetOpen(true);
@@ -408,35 +469,20 @@ export function AddInvoiceDetails({
           : "After a number of invoices")
     : recEnd.date ? format(recEnd.date, "d MMM yyyy") : "On a specific date";
 
-  // A brand-new invoice's issue date defaults to today (2026-06-15 in this demo's timeline) —
-  // show that as the row's description, same as Figma's "Create Invoice" (node 1387-18118), but
-  // only while it's still that default: once the user picks a different issue date it's no
-  // longer "today" and the description drops.
-  const issueDateIsToday = issueDate.getTime() === new Date(2026, 5, 15).getTime();
-  const account = getAccount(accountId);
-  const receivingValue = externalCardLast4 ? "Visa" : account?.name ?? formatAccount(accountId);
-  const receivingDescription = externalCardLast4 ? `..${externalCardLast4}` : account?.number;
-  const currencyFlag = <CountryFlag name={CURRENCY_COUNTRY[currencyLabel]} size={16} />;
-
-  const details = lockedEdit
-    ? [
-        // Issued limited edit (Awaiting/Overdue) — DES-817 + Figma 1130-6193: ONLY Due Date is
-        // editable; everything else is locked (dimmed, no chevron). Order matches the Figma.
-        { label: "Due Date", value: dueDate, valueDescription: dueDate !== dueShort ? dueShort : undefined, onClick: () => setDueSheetOpen(true), locked: false },
-        { label: "Issue Date", value: format(issueDate, "d MMM yyyy"), valueDescription: issueDateIsToday ? "Today" : undefined, onClick: () => {}, locked: true },
-        { label: "Currency", value: currencyLabel, valueFlag: currencyFlag, onClick: () => {}, locked: true },
-        { label: "Receiving Account", value: receivingValue, valueDescription: receivingDescription, onClick: () => {}, locked: true },
-      ]
-    : [
-        { label: "Currency", value: currencyLabel, valueFlag: currencyFlag, onClick: () => setCurrencySheetOpen(true), locked: false },
-        ...(isRecurring
-          ? []
-          : [
-              { label: "Issue Date", value: format(issueDate, "d MMM yyyy"), valueDescription: issueDateIsToday ? "Today" : undefined, onClick: () => setIssueSheetOpen(true), locked: false },
-              { label: "Due Date", value: dueDate, valueDescription: dueDate !== dueShort ? dueShort : undefined, onClick: () => setDueSheetOpen(true), locked: false },
-            ]),
-        { label: "Receiving Account", value: receivingValue, valueDescription: receivingDescription, onClick: () => setAccountSheetOpen(true), locked: false },
-      ];
+  // Issued limited edit (Awaiting/Overdue) — updated story: ALL invoice fields are editable except the
+  // auto-generated invoice number and the client identity (name/address/email). So the detail rows
+  // (Currency, Issue Date, Due Date, Receiving Account) are editable exactly as in a fresh create; the
+  // client stays locked separately (see the customer tile below), and the number never appears here.
+  const details = [
+    { label: "Currency", value: currencyLabel, onClick: () => setCurrencySheetOpen(true), locked: false, readOnly: false },
+    ...(isRecurring
+      ? []
+      : [
+          { label: "Issue Date", value: !issuePicked ? issuePlaceholder! : showIssueToday ? `Today (${format(issueDate, "d MMM yyyy")})` : format(issueDate, "d MMM yyyy"), onClick: () => setIssueSheetOpen(true), locked: false, readOnly: false, placeholder: !issuePicked },
+          { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false, readOnly: false },
+        ]),
+    { label: "Receiving Account", value: externalCardLast4 ? `Visa (..${externalCardLast4})` : formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false, readOnly: false },
+  ];
 
   return (
     <div
@@ -454,8 +500,8 @@ export function AddInvoiceDetails({
               draft on exit); the autosave chip lives in the header's custom right slot. */}
           <PageHeader
             type="center"
-            title={editingSeries ? "Edit recurring series" : isRecurring ? (isEditing ? "Edit invoice" : "New Recurring Invoice") : isEditing ? "Edit invoice" : "Create Invoice"}
-            onBack={isEditing && !editExitToList ? onEditBack : onSaveDraft ? saveDraft : onClose}
+            title={headerTitle ?? (editingSeries ? "Edit recurring series" : isRecurring ? (isEditing ? "Edit invoice" : "New Recurring Invoice") : isEditing ? "Edit invoice" : "Create Invoice")}
+            onBack={lockActions || lockExceptIssueDate ? () => {} : isEditing && !editExitToList ? onEditBack : onSaveDraft ? saveDraft : onClose}
             right={
               // Figma "Create Invoice" header (node 1387-18223): the DS Loading spinner, not a
               // hand-rolled spinning border — "Saved" keeps the existing check (Figma's own mock
@@ -474,12 +520,31 @@ export function AddInvoiceDetails({
           />
         </PageAppHeader>
 
-        <div className="px-4 pt-5 pb-28 flex flex-col gap-4">
+        <div
+          className="px-4 pt-5 pb-28 flex flex-col gap-4"
+          // Locked-period demos: the only permitted in-page interaction is picking the Issue Date. A
+          // capture-phase click guard swallows every click outside the Issue Date row (scrolling is a
+          // separate event stream, so it stays fully usable).
+          onClickCapture={
+            lockExceptIssueDate
+              ? (e) => {
+                  if (!issueRowRef.current?.contains(e.target as Node)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }
+              : undefined
+          }
+        >
+          {/* Custom top banner (e.g. the locked-period alert) — replaces the OCR coverage banner. */}
+          {topBanner}
+
+
         {/* Duplicate found — shown at the very top, above the uploaded-file preview. */}
         {isExtracted && existingInvoice && <DuplicateBanner />}
 
         {/* Extraction coverage — only when a field couldn't be read (OCR-missing case). */}
-        {isExtracted && !extractionFailed && fieldsNeedAttention > 0 && (
+        {isExtracted && !extractionFailed && !topBanner && fieldsNeedAttention > 0 && (
           <CoverageBanner fieldsExtracted={fieldsExtracted} fieldsTotal={fieldsTotal} />
         )}
 
@@ -662,19 +727,28 @@ export function AddInvoiceDetails({
             rows (limited edit, DES-817) stay dimmed with no chevron/tap, same semantics as before. */}
         <Section title="Invoice Details">
           <ListCard onLayer="beige">
-            {details.map((d, i) => (
-              <div key={d.label} style={d.locked ? { opacity: 0.5 } : undefined}>
-                <ListRow
-                  label={d.label}
-                  value={d.value}
-                  valueDescription={d.valueDescription}
-                  valueFlag={d.valueFlag}
-                  trailing={d.locked ? "none" : "chevron"}
-                  onClick={d.locked ? undefined : d.onClick}
-                  last={i === details.length - 1}
-                />
-              </div>
-            ))}
+            {details.map((d, i) => {
+              const isIssueRow = d.label === "Issue Date";
+              const rowError = isIssueRow && issueError && !issuePicked;
+              // Unset Issue Date (placeholder mode) reads amber by default to signal it must be re-picked;
+              // the required-field error escalates it to red once the CTA is tapped.
+              const rowWarning = isIssueRow && !issuePicked && !rowError;
+              return (
+                <div key={d.label} ref={isIssueRow ? issueRowRef : undefined} className="scroll-mt-24" style={d.locked ? { opacity: 0.5 } : undefined}>
+                  <ListRow
+                    label={d.label}
+                    value={d.value}
+                    trailing={d.locked ? "none" : "chevron"}
+                    onClick={d.locked ? undefined : d.onClick}
+                    last={i === details.length - 1}
+                    placeholder={(d as { placeholder?: boolean }).placeholder}
+                    error={rowError}
+                    warning={rowWarning}
+                    caption={rowError ? "Issue date is required" : undefined}
+                  />
+                </div>
+              );
+            })}
           </ListCard>
         </Section>
 
@@ -709,26 +783,21 @@ export function AddInvoiceDetails({
                   key={s.id}
                   line={s}
                   invoiceCurrency={currency}
-                  // Issued limited edit: line items are read-only (no tap-to-edit, swipe, or chevron).
-                  readOnly={lockedEdit}
-                  hint={!lockedEdit && hintFirst && idx === 0}
-                  onClick={lockedEdit ? undefined : () => openEditService(s.id)}
-                  onDelete={lockedEdit ? undefined : () => setServices((prev) => prev.filter((x) => x.id !== s.id))}
-                  last={lockedEdit && idx === services.length - 1}
+                  hint={hintFirst && idx === 0}
+                  onClick={() => openEditService(s.id)}
+                  onDelete={() => setServices((prev) => prev.filter((x) => x.id !== s.id))}
                 />
               ))}
-              {!lockedEdit && (
-                <ListRow label="Add more items" trailing="chevron" onClick={openAddService} last />
-              )}
+              <ListRow label="Add more items" trailing="chevron" onClick={openAddService} last />
             </ListCard>
           )}
         </Section>
         </div>
 
-        {/* Discounts — appears once the first service is added. Hidden in the issued limited edit
-            (Awaiting/Overdue): discount is not editable after Send (DES-817). */}
+        {/* Discounts — appears once the first service is added. Editable in the issued limited edit
+            (Awaiting/Overdue) too, per the updated story (only invoice number + client stay locked). */}
         <AnimatePresence>
-          {services.length > 0 && !lockedEdit && (
+          {services.length > 0 && (
             <motion.div
               key="discount-card"
               initial={{ opacity: 0, y: 8 }}
@@ -878,7 +947,9 @@ export function AddInvoiceDetails({
             // Uploaded invoices are record-only by default (DES-716): issuing moves them
             // to Awaiting Payment (sending happened elsewhere). The toast confirms the record
             // action — the Awaiting Payment status is shown by the detail-page badge.
-            onPrimary={() => onSend?.({ title: "Invoice created successfully" }, recentSent)}
+            // Locked-period demo: an unset Issue Date shows the required-field error (guardIssueDate
+            // scrolls + flags); once picked, lockActions keeps the CTA inert so it never lands.
+            onPrimary={() => { if (!guardIssueDate() && !lockActions) onSend?.({ title: "Invoice created successfully" }, recentSent); }}
             homeIndicator
           />
         ) : (
@@ -890,7 +961,9 @@ export function AddInvoiceDetails({
             sticky
             primaryLabel="Send Invoice"
             primaryLoading={sendPending}
+            // Locked-period demo: the CTA stays visually enabled but tapping it goes nowhere.
             onPrimary={() => {
+              if (lockActions) return;
               if (services.length === 0) {
                 setItemsError(true);
                 servicesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -918,9 +991,15 @@ export function AddInvoiceDetails({
       <IssueDateSheet
         open={issueSheetOpen}
         value={issueDate}
+        minDate={issueMinDate}
+        helperText={issueSheetHelper}
+        locked={lockIssueSheet}
         onClose={() => setIssueSheetOpen(false)}
         onSelect={(d) => {
           setIssueDate(d);
+          setIssuePicked(true);
+          setIssueChanged(true);
+          setIssueError(false);
           setIssueSheetOpen(false);
         }}
       />

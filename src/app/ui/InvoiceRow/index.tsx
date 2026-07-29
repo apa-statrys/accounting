@@ -35,7 +35,8 @@ interface InvoiceRowProps {
   amount: string;
   /** Preformatted credited total — shows the credited strip when set. */
   creditedAmount?: string;
-  /** Leading label on the credited strip (Figma "Credited amount"); e.g. "Refund amount". */
+  /** Leading label on the credited strip (Figma "Credited amount"); e.g. "Refund amount". Pass an
+   *  empty string to show `creditedAmount` alone with no "label:" prefix (e.g. a credit-note number). */
   creditedLabel?: string;
   onCreditedClick?: () => void;
   /** Last row of the list — no bottom divider. */
@@ -79,7 +80,10 @@ export function InvoiceRow({
       <span className={styles.fileIcon}>
         <FileTextIcon />
       </span>
-      <span className={styles.creditedText}>{creditedLabel}: {creditedAmount}</span>
+      {/* "<label>: <value>" normally; when creditedLabel is empty the strip shows the value alone
+          (e.g. a credit-note number like "CN-2026-000006"). No trailing chevron here even when
+          tappable (Figma "CreditedAmount", node 4250-486) — the strip hugs its content. */}
+      <span className={styles.creditedText}>{creditedLabel ? `${creditedLabel}: ${creditedAmount}` : creditedAmount}</span>
     </>
   );
   return (

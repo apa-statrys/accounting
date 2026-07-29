@@ -9,10 +9,10 @@ export const DEFAULT_SETTINGS: CompanySettings = {
   phone: "+852 1234 5678",
   website: "lumenstudio.co",
   address: "",
-  city: "Hong Kong Island",
-  state: "",
+  city: "Sydney",
+  state: "New South Wales",
   zip: "",
-  country: "Hong Kong",
+  country: "Australia",
   logo: { name: "lumen-logo.svg", size: 12_400 },
   paymentMethod: "personal", // Personal Saving — the PRIMARY receiving account
   chaserEnabled: true,

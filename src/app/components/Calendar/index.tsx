@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   addMonths,
   subMonths,
@@ -26,6 +26,10 @@ interface CalendarProps {
   disablePast?: boolean;
   /** Disable (grey out) any date after this day — e.g. the 6-month due-date cap. */
   maxDate?: Date;
+  /** Disable (grey out) any date before this day — e.g. a closed accounting period boundary. */
+  minDate?: Date;
+  /** Fired with the first day of the month currently in view (on mount and on navigation). */
+  onViewChange?: (viewMonthStart: Date) => void;
 }
 
 /* Thin-stroke chevrons matching the DS convention (e.g. ui/PageHeader's ChevronLeftIcon) —
@@ -84,16 +88,24 @@ function MonthYearPicker({ view, onPick }: { view: Date; onPick: (d: Date) => vo
   );
 }
 
-export function Calendar({ value, onChange, disablePast = false, maxDate }: CalendarProps) {
+export function Calendar({ value, onChange, disablePast = false, maxDate, minDate, onViewChange }: CalendarProps) {
   const [view, setView] = useState<Date>(value ?? new Date());
   const [picking, setPicking] = useState(false);
+
+  // Report the month in view so callers can react (e.g. hide a closed-period note once past it).
+  useEffect(() => {
+    onViewChange?.(startOfMonth(view));
+  }, [view, onViewChange]);
 
   const firstWeekday = getDay(startOfMonth(view));
   const dayCount = getDaysInMonth(view);
   const today = startOfDay(new Date());
   const maxDay = maxDate ? startOfDay(maxDate) : undefined;
+  const minDay = minDate ? startOfDay(minDate) : undefined;
   const isDisabled = (date: Date) =>
-    (disablePast && isBefore(date, today)) || (maxDay ? isAfter(date, maxDay) : false);
+    (disablePast && isBefore(date, today)) ||
+    (maxDay ? isAfter(date, maxDay) : false) ||
+    (minDay ? isBefore(date, minDay) : false);
 
   const cells: (Date | null)[] = [];
   for (let i = 0; i < firstWeekday; i++) cells.push(null);
@@ -158,22 +170,23 @@ export function Calendar({ value, onChange, disablePast = false, maxDate }: Cale
                 <div key={`b${i}`} />
               ) : (
                 <div key={date.toISOString()} className={styles.dayCell}>
-                  <button
-                    disabled={isDisabled(date)}
-                    onClick={() => onChange?.(date)}
-                    className={[
-                      styles.dayBtn,
-                      value && isSameDay(date, value)
-                        ? styles.daySelected
-                        : isDisabled(date)
-                        ? styles.dayDisabled
-                        : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                  >
-                    {date.getDate()}
-                  </button>
+                  {(() => {
+                    const disabled = isDisabled(date);
+                    // A disabled date never reads as "selected" — greyed styling wins (e.g. the
+                    // current issue date sits inside a closed accounting period).
+                    const selected = value && isSameDay(date, value) && !disabled;
+                    return (
+                      <button
+                        disabled={disabled}
+                        onClick={() => onChange?.(date)}
+                        className={[styles.dayBtn, selected ? styles.daySelected : disabled ? styles.dayDisabled : ""]
+                          .filter(Boolean)
+                          .join(" ")}
+                      >
+                        {date.getDate()}
+                      </button>
+                    );
+                  })()}
                 </div>
               )
             )}

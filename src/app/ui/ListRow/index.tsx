@@ -35,6 +35,13 @@ interface ListRowProps {
   valueDescription?: string;
   /** Leading icon before `value` (ui/ListText's "Currency" layout, e.g. a country flag). */
   valueFlag?: React.ReactNode;
+  /** Render `value` as a muted placeholder (e.g. an unset "Select issue date") — not a Figma axis. */
+  placeholder?: boolean;
+  /** Flag the row as invalid (e.g. a required field left unset) — red value; pairs with `caption`
+   *  for the inline error message, which also turns red. Not a Figma axis. */
+  error?: boolean;
+  /** Soft attention state (e.g. a value that must be re-picked) — amber value. Not a Figma axis. */
+  warning?: boolean;
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
   /** Hides the bottom divider — pass on the last row in a ListCard. */
@@ -66,6 +73,9 @@ export function ListRow({
   value,
   valueDescription,
   valueFlag,
+  placeholder = false,
+  error = false,
+  warning = false,
   checked,
   onCheckedChange,
   last = false,
@@ -84,7 +94,9 @@ export function ListRow({
     <span className={styles.labelInline}>{label}</span>
   );
 
-  const valueNode = value ? <ListText text={value} description={valueDescription} flag={valueFlag} /> : null;
+  const valueNode = value ? (
+    <ListText text={value} description={valueDescription} flag={valueFlag} placeholder={placeholder} error={error} warning={warning} />
+  ) : null;
 
   const trailingNode =
     trailing === "toggle" ? (
@@ -135,7 +147,7 @@ export function ListRow({
         {labelBlock}
         {trailingNode}
       </div>
-      {caption && <p className={styles.caption}>{caption}</p>}
+      {caption && <p className={[styles.caption, error ? styles.captionError : ""].filter(Boolean).join(" ")}>{caption}</p>}
     </>
   );
 

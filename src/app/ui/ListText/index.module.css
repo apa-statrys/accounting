@@ -32,6 +32,19 @@
   max-width: 100%;
 }
 
+/* Not a Figma axis — a value that still needs picking (e.g. an unset Issue Date). */
+.placeholder {
+  color: var(--text-placeholder);
+}
+/* Invalid value (e.g. a required field left unset). */
+.error {
+  color: var(--text-error-primary);
+}
+/* Soft attention state (e.g. a value that must be re-picked). */
+.warning {
+  color: #b45309;
+}
+
 .description {
   font-weight: var(--fw-regular);
   color: var(--text-secondary);

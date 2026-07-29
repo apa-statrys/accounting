@@ -31,9 +31,13 @@ export function ReceivingAccountSheet({
   return (
     <BottomSheet open={open} title={title} onClose={onClose}>
       <div className={styles.root}>
-        <motion.div variants={sheetItem}>
-          <p className={styles.heading}>Statrys Accounts</p>
-        </motion.div>
+        {/* The "Statrys Accounts" group header only makes sense when the external "Use Other Bank
+            Accounts" option is also shown; with external hidden there's a single group, so drop it. */}
+        {!hideExternal && (
+          <motion.div variants={sheetItem}>
+            <p className={styles.heading}>Statrys Accounts</p>
+          </motion.div>
+        )}
 
         <div className={styles.accounts}>
           {RECEIVING_ACCOUNTS.map((a) => (

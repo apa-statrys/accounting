@@ -1249,6 +1249,7 @@ const INVOICEROW_CONTROL_GROUPS: ControlGroup[] = [
       { value: "none", label: "None" },
       { value: "credited", label: '"Credited amount"' },
       { value: "refund", label: '"Refund amount"' },
+      { value: "cn", label: "CN number only (no label) — use when linking to the credit note itself" },
     ],
   },
   {
@@ -1274,8 +1275,8 @@ function InvoiceRowOverview() {
             recurring={v.recurring === "on"}
             {...INVOICE_ROW_STATUSES[v.status]}
             amount="USD 6,430.05"
-            creditedAmount={v.credited === "none" ? undefined : "USD 2,000.00"}
-            creditedLabel={v.credited === "refund" ? "Refund amount" : undefined}
+            creditedAmount={v.credited === "none" ? undefined : v.credited === "cn" ? "CN-2026-000006" : "USD 2,000.00"}
+            creditedLabel={v.credited === "refund" ? "Refund amount" : v.credited === "cn" ? "" : undefined}
             onCreditedClick={() => {}}
             lastItem
             onClick={() => {}}

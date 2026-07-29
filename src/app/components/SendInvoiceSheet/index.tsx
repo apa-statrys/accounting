@@ -37,6 +37,8 @@ interface SendInvoiceSheetProps {
   amountLabel: string;
   /** Pre-formatted due date, e.g. "17 July 2025". */
   dueDateLabel: string;
+  /** Which document is being sent — drives the email subject/message/preview-button wording. */
+  docType?: "invoice" | "creditNote";
   /** The generated no-login payment link (Share/Download tab). */
   link: string;
   /** Close (✕/back) — the parent decides where it goes (e.g. the invoice list). */
@@ -65,6 +67,7 @@ export function SendInvoiceSheet({
   invoiceNo,
   amountLabel,
   dueDateLabel,
+  docType = "invoice",
   link,
   onClose,
   onSend,
@@ -76,12 +79,17 @@ export function SendInvoiceSheet({
 
   // ===== Email tab state (Figma "Send by Email") =====
   const companyInitial = (companyName.trim()[0] ?? "L").toUpperCase();
+  // Document noun for the subject / message / preview button ("Invoice" vs "Credit Note").
+  const isCreditNote = docType === "creditNote";
+  const docLabel = isCreditNote ? "Credit Note" : "Invoice";
   const [recipients, setRecipients] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
   const [cc, setCc] = useState(false);
-  const [subject, setSubject] = useState(`Invoice #${invoiceNo}`);
+  const [subject, setSubject] = useState(`${docLabel} #${invoiceNo}`);
   const [message, setMessage] = useState(
-    `Hi,\n\nPlease find attached Invoice #${invoiceNo} for ${amountLabel}, due on ${dueDateLabel}.\n\nYou can view and pay your invoice using the button below.\n\nThank you for your business.`
+    isCreditNote
+      ? `Hi,\n\nPlease find attached Credit Note #${invoiceNo} for ${amountLabel}.\n\nYou can view your credit note using the button below.\n\nThank you for your business.`
+      : `Hi,\n\nPlease find attached Invoice #${invoiceNo} for ${amountLabel}, due on ${dueDateLabel}.\n\nYou can view and pay your invoice using the button below.\n\nThank you for your business.`
   );
   const [saveDefault, setSaveDefault] = useState(false);
   const [showRecipients, setShowRecipients] = useState(false);
@@ -351,31 +359,16 @@ export function SendInvoiceSheet({
               <div className="bg-white px-4 py-4 text-[13px] leading-[1.5] text-[var(--text-primary)] whitespace-pre-line" style={FONT}>
                 {message}
               </div>
-              {/* Structured invoice content (DES-718 Email Content) */}
+              {/* Structured invoice content (DES-718 Email Content) — the number/amount/due date
+                  already appear in the subject and body above, so no separate summary box. */}
               <div className="bg-white px-4 pb-4">
                 <button
                   type="button"
                   className="w-full rounded-lg bg-[var(--bg-neutral-inverse-primary)] text-white py-2.5 text-[14px] font-medium"
                   style={FONT}
                 >
-                  Open invoice
+                  {isCreditNote ? "Open credit note" : "Open invoice"}
                 </button>
-                <div className="mt-3 rounded-lg border border-[rgba(160,160,160,0.25)] px-3.5 py-1">
-                  {[
-                    { label: "Invoice number", value: `#${invoiceNo}` },
-                    { label: "Amount due", value: amountLabel },
-                    { label: "Due date", value: dueDateLabel },
-                    { label: "Payment reference", value: invoiceNo },
-                  ].map((r, i, arr) => (
-                    <div
-                      key={r.label}
-                      className={`flex items-center justify-between py-2 ${i === arr.length - 1 ? "" : "border-b border-[rgba(160,160,160,0.15)]"}`}
-                    >
-                      <span className="text-[12px]" style={{ ...FONT, color: "var(--text-secondary)" }}>{r.label}</span>
-                      <span className="text-[12px] font-medium text-[var(--text-primary)]" style={FONT}>{r.value}</span>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
           </BottomSheet>
