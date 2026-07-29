@@ -167,7 +167,7 @@ export function SendInvoiceSheet({
         >
           <div className={styles.body} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}>
             <PageAppHeader scrolled={scrolled}>
-              <PageHeader type="center" title="Send Invoice" onBack={onClose} showSearch={false} />
+              <PageHeader type="center" title={`Send ${docLabel}`} onBack={onClose} showSearch={false} />
               {/* PageAppHeader's own flex `gap: 12px` already provides part of Figma's 16px top
                   padding here (node 1896-17204) — pt-1 (4px) tops it up to 16px total; pb-2 (8px)
                   matches the frame's asymmetric bottom padding. */}
@@ -326,7 +326,7 @@ export function SendInvoiceSheet({
             type={tab === 0 ? "double" : "single"}
             sticky
             secondaryLabel="Preview"
-            primaryLabel={tab === 0 ? (sendError ? "Try again" : "Send Invoice") : "Mark as Sent"}
+            primaryLabel={tab === 0 ? (sendError ? "Try again" : `Send ${docLabel}`) : "Mark as Sent"}
             onSecondary={() => setPreviewOpen(true)}
             onPrimary={tab === 0 ? handleSend : onSent}
             homeIndicator={!keyboardOpen}
