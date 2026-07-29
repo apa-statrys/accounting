@@ -176,6 +176,20 @@ export function CreditNoteForm({
   const [attempted, setAttempted] = useState(false);
   const reasonRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<HTMLDivElement>(null);
+
+  // Sticky dock's summary slot (same idea as Create Invoice, Figma node 1419-52781) — shown
+  // until the real inline Summary card scrolls into view, since it'd be redundant once visible.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const [summaryVisible, setSummaryVisible] = useState(false);
+  useEffect(() => {
+    const root = scrollRef.current;
+    const target = summaryRef.current;
+    if (!root || !target) return;
+    const observer = new IntersectionObserver(([entry]) => setSummaryVisible(entry.isIntersecting), { root });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
   const reasonInvalid = reason === "";
   const amountInvalid = credited <= 0.001; // nothing credited yet (exceedsCap has its own banner)
   const reasonError = attempted && reasonInvalid;
@@ -323,6 +337,7 @@ export function CreditNoteForm({
   return (
     <div className="absolute inset-0 z-50 bg-white rounded-[48px] overflow-hidden flex flex-col" style={{ width: 375, height: 812 }}>
       <div
+        ref={scrollRef}
         className={`flex-1 thin-scrollbar bg-white ${scrollLocked ? "overflow-hidden" : "overflow-y-auto"}`}
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
         onWheel={() => { if (focusedLineId) closeKeypad(); }}
@@ -538,7 +553,7 @@ export function CreditNoteForm({
         </div>
 
         {/* Summary — auto-derived; the user never types a total. */}
-        <div className="flex flex-col gap-2">
+        <div ref={summaryRef} className="flex flex-col gap-2">
           <p className="px-1 text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>
             {refund ? "Refund Summary" : "Summary"}
           </p>
@@ -610,6 +625,30 @@ export function CreditNoteForm({
       <ButtonDock
         type="single"
         sticky
+        slot={
+          !summaryVisible ? (
+            <div className="flex flex-col">
+              <div className="flex items-start justify-between gap-4 py-2.5">
+                <span className="body-sm text-[var(--text-secondary)]">
+                  {refund ? "Original paid amount" : alreadyCredited > 0.001 ? "Current balance" : "Invoice Total"}
+                </span>
+                <span className="body-sm text-[var(--text-primary)]">{money(invoiceTotal)}</span>
+              </div>
+              {!refund && (
+                <div className="flex items-start justify-between gap-4 py-2.5 border-b border-[rgba(208,208,208,0.4)]">
+                  <span className="body-sm text-[var(--text-secondary)]">Credit Amount</span>
+                  <span className="body-sm text-[#b42318]">− {money(credited)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-4 py-3">
+                <span className="body-sm-bold text-[var(--text-primary)]">{refund ? "Total refund" : "Amount Due"}</span>
+                <span className={`body-sm-bold ${refund ? "text-[#b42318]" : "text-[var(--text-primary)]"}`}>
+                  {refund ? "− " : ""}{money(refund ? credited : amountDue)}
+                </span>
+              </div>
+            </div>
+          ) : undefined
+        }
         primaryLabel={isEdit ? (submitLabel ?? "Save changes") : "Create Credit Note"}
         onPrimary={handleCreate}
         homeIndicator
