@@ -4,7 +4,7 @@
   position: absolute;
   inset-inline: 0;
   bottom: 0;
-  /* Literal magic value — matches other overlays stacked at z-[60] (e.g. DemoShareSheet); doesn't
+  /* Literal magic value — matches other overlays stacked at z-[60]; doesn't
      correspond to this project's semantic z-index scale (z-index/z-index.css). */
   z-index: 60;
   background: #d1d4db;

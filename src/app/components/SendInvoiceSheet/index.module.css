@@ -1,4 +1,4 @@
-/* SendInvoiceSheet — "Delivery method" full-page sheet, slides in from the right. */
+/* SendInvoiceSheet — "Send Invoice" full-page sheet, slides in from the right. */
 
 .root {
   position: absolute;
@@ -19,21 +19,8 @@
   flex-direction: column;
 }
 
-.trailingSpacer {
-  display: block;
-  width: 30px;
-  height: 30px;
-}
-
 .body {
   flex: 1 1 0%;
   overflow-y: auto;
-  background: var(--bg-neutral-primary);
-}
-
-.methods {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-10) var(--space-8) var(--space-20);
+  background: var(--bg-beige-primary);
 }

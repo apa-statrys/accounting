@@ -1,25 +1,39 @@
 import { useState } from "react";
 import { FONT, INK, MUTED } from "../lib/theme";
 import { Toggle } from "./Toggle";
-import { Button } from "./Button";
+import { Button, type Hierarchy } from "./Button";
 import { FAB } from "./FAB";
 import { TabsBase } from "./TabsBase";
 import { HorizontalTabs } from "./HorizontalTabs";
-import { Badge } from "./Badge";
+import { SegmentedControlBase } from "./SegmentedControlBase";
+import { SegmentedControls } from "./SegmentedControls";
+import { Badge, type BadgeColor } from "./Badge";
+import { NotiBadge } from "./NotiBadge";
 import { Tooltip, TooltipArrow } from "./Tooltip";
 import { TextField, TextFieldType } from "./TextField";
+import { TextArea } from "./TextArea";
 import { Search } from "./Search";
 import { Loading, LoadingSize } from "./Loading";
-import { PageHeader } from "./PageHeader";
-import { ButtonDock } from "../components/ButtonDock";
+import { PageHeader, type PageHeaderType } from "./PageHeader";
+import { ButtonDock, type ButtonDockType, type ButtonDockStack } from "../components/ButtonDock";
 import StatusBar from "../components/StatusBar";
-import { Tile } from "./Tile";
+import { Tile, type TileTrailing } from "./Tile";
+import { Chips } from "./Chips";
+import { CheckboxBase } from "./CheckboxBase";
+import { Checkbox } from "./Checkbox";
+import { Avatar, type AvatarSize } from "./Avatar";
 import { USFlag } from "./TextField/USFlag";
 import { BottomSheet } from "./BottomSheet";
 import { Overlay } from "./Overlay";
 import { OutstandingCard } from "./OutstandingCard";
 import { InvoiceRow } from "./InvoiceRow";
+import { InvoiceStatus } from "./InvoiceStatus";
 import { ActionRequired } from "./ActionRequired";
+import { ListRow } from "./ListRow";
+import { ListCard } from "./ListCard";
+import { ListText } from "./ListText";
+import { SwipeActions } from "./SwipeActions";
+import { NotificationItem } from "./NotificationItem";
 
 /**
  * Showcase — standalone gallery of the design-system components in `ui/`,
@@ -32,10 +46,22 @@ import { ActionRequired } from "./ActionRequired";
  */
 
 /** 16/20px placeholder circle, standing in for Figma's icon-swap slot (inherits label color). */
-function CircleIcon({ size = 16 }: { size?: number }) {
+/** Generic placeholder icon used across every demo's icon slot — 1px stroke by
+ *  default, matching the DS-wide convention every real icon in this file now
+ *  follows (a named default, not a literal baked into the markup, same as `size`). */
+function CircleIcon({ size = 16, strokeWidth = 1 }: { size?: number; strokeWidth?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth={strokeWidth} />
+    </svg>
+  );
+}
+
+/** Stand-in X for the PageHeader custom-back-icon demo (app uses MUI CloseIcon on sheet-style pages). */
+function CloseGlyphIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -43,7 +69,7 @@ function CircleIcon({ size = 16 }: { size?: number }) {
 /** Stand-in gear for the PageHeader custom-right-action demo (app uses lucide Settings). */
 function SettingsGearIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
       <circle cx="12" cy="12" r="3" />
     </svg>
@@ -65,15 +91,20 @@ const NAV_GROUPS = [
     category: "Inputs & Selection",
     items: [
       { id: "text-field", label: "Text Field" },
+      { id: "text-area", label: "Text Area" },
       { id: "search", label: "Search" },
       { id: "toggle", label: "Toggle" },
       { id: "tile", label: "Tile" },
+      { id: "chips", label: "Chips" },
+      { id: "checkbox-base", label: "Checkbox Base" },
+      { id: "checkbox", label: "Checkbox" },
     ],
   },
   {
     category: "Feedback & Status",
     items: [
       { id: "badge", label: "Badge" },
+      { id: "noti-badge", label: "Noti Badge" },
       { id: "loading", label: "Loading" },
       { id: "tooltip", label: "Tooltip" },
     ],
@@ -82,15 +113,21 @@ const NAV_GROUPS = [
     category: "Navigation",
     items: [
       { id: "tabs-base", label: "Tabs Base" },
+      { id: "segmented-controls", label: "Segmented Controls" },
       { id: "page-header", label: "Page Header" },
     ],
   },
   {
     category: "Data Display",
     items: [
+      { id: "avatar", label: "Avatar" },
+      { id: "invoice-status", label: "Invoice Status" },
       { id: "invoice-row", label: "Invoice Row" },
       { id: "outstanding-card", label: "Outstanding Card" },
       { id: "action-required", label: "Action Required" },
+      { id: "list-row", label: "List Row" },
+      { id: "list-card", label: "List Card" },
+      { id: "notification-item", label: "Notification Item" },
     ],
   },
   {
@@ -113,11 +150,6 @@ const SECTION_GREEN_BG = "#e3f2e9";
 const TABS = ["Foundation", "Components", "Patterns"] as const;
 type Tab = (typeof TABS)[number];
 
-const SECTIONS = [
-  { id: "overview", label: "Overview" },
-  { id: "variants", label: "Variants" },
-];
-
 function SwatchCell({ label, dark = false, children }: { label: string; dark?: boolean; children: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3">
@@ -136,46 +168,88 @@ function SwatchCell({ label, dark = false, children }: { label: string; dark?: b
   );
 }
 
-/** Interactive preview panel with a light/dark segmented switch (dark shows Inverse variants). */
-function TryPanel({ render }: { render: (dark: boolean) => React.ReactNode }) {
-  const [dark, setDark] = useState(false);
+/** One radio-style choice within a ControlGroup — every control is a labeled set of
+ *  string options (booleans model as a 2-option Yes/No or On/Off group) so ControlsPanel
+ *  only ever has to render one kind of input. */
+interface ControlOption {
+  value: string;
+  label: string;
+}
+interface ControlGroup {
+  key: string;
+  label: string;
+  options: ControlOption[];
+}
+
+/** Sidebar of radio-button groups — one label + option list per prop being demoed. Note
+ *  it renders as a bare column (no own border/background): InteractiveDemo owns the single
+ *  shared card the preview + controls both sit inside. Not meant to be used directly. */
+function ControlsPanel({
+  groups,
+  values,
+  onChange,
+}: {
+  groups: ControlGroup[];
+  values: Record<string, string>;
+  onChange: (key: string, value: string) => void;
+}) {
   return (
-    <div
-      className="relative rounded-[10px] border px-4 pb-8 pt-16"
-      style={{ background: dark ? "#222222" : "#f4f4f2", borderColor: dark ? "#3a3a3a" : "#ececec" }}
-    >
-      <div
-        className="absolute right-3 top-3 flex gap-[2px] rounded-[8px] p-[2px]"
-        style={{ background: dark ? "#2f2f2f" : "#ececec" }}
-      >
-        <button
-          type="button"
-          aria-label="Light preview"
-          onClick={() => setDark(false)}
-          className="flex size-[28px] items-center justify-center rounded-[6px]"
-          style={{ background: dark ? "transparent" : "#ffffff", color: dark ? "#9c9c9c" : INK, cursor: "pointer" }}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-            <circle cx="8" cy="8" r="3" />
-            <path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M12.6 3.4l-1 1M4.4 11.6l-1 1" />
-          </svg>
-        </button>
-        <button
-          type="button"
-          aria-label="Dark preview"
-          onClick={() => setDark(true)}
-          className="flex size-[28px] items-center justify-center rounded-[6px]"
-          style={{ background: dark ? "#454545" : "transparent", color: dark ? "#ffffff" : MUTED, cursor: "pointer" }}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16">
-            <path d="M13.5 9.8A6 6 0 0 1 6.2 2.5a6 6 0 1 0 7.3 7.3z" fill="currentColor" />
-          </svg>
-        </button>
+    <div className="w-[220px] shrink-0 border-l border-[#ececec] bg-white p-4">
+      <p className="text-[13px] font-semibold" style={{ ...FONT, color: INK }}>Controls</p>
+      <div className="mt-3 flex flex-col gap-4">
+        {groups.map((g) => (
+          <div key={g.key}>
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-wide" style={{ ...FONT, color: MUTED }}>{g.label}</p>
+            <div className="flex flex-col gap-1.5">
+              {g.options.map((o) => (
+                <label
+                  key={o.value}
+                  className="flex items-center gap-2 text-[13px]"
+                  style={{ ...FONT, color: INK, cursor: "pointer" }}
+                >
+                  <input
+                    type="radio"
+                    name={g.key}
+                    checked={values[g.key] === o.value}
+                    onChange={() => onChange(g.key, o.value)}
+                    style={{ accentColor: NAV_ACCENT, width: 14, height: 14, cursor: "pointer" }}
+                  />
+                  {o.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
-      <div className="flex flex-wrap items-center justify-center gap-4">{render(dark)}</div>
-      <p className="mt-5 text-center text-[13px]" style={{ ...FONT, color: dark ? "#8a8a8a" : MUTED }}>
-        Press and hold to see the Active state
-      </p>
+    </div>
+  );
+}
+
+/** Live single-instance preview + a ControlsPanel to drive its props, both inside one
+ *  shared card — replaces a static grid of every combination with one instance you flip
+ *  through, in less space. This IS the component page's `overview` slot; nothing else
+ *  needed alongside it (skip the `variants` prop on ComponentPage for these). */
+function InteractiveDemo({
+  groups,
+  defaultValues,
+  render,
+  canvasBg,
+}: {
+  groups: ControlGroup[];
+  defaultValues: Record<string, string>;
+  render: (values: Record<string, string>) => React.ReactNode;
+  /** Canvas background as a function of the current values — e.g. flip to a dark
+   *  swatch when an "Inverse"/"Surface" control is on a dark-surface variant, or
+   *  to the beige page color for onLayer="beige". Defaults to the standard light gray. */
+  canvasBg?: (values: Record<string, string>) => string;
+}) {
+  const [values, setValues] = useState(defaultValues);
+  return (
+    <div className="flex items-stretch overflow-hidden rounded-[12px] border border-[#ececec]">
+      <div className="flex min-h-[220px] flex-1 items-center justify-center p-8" style={{ background: canvasBg ? canvasBg(values) : "#f4f4f2" }}>
+        {render(values)}
+      </div>
+      <ControlsPanel groups={groups} values={values} onChange={(key, value) => setValues((prev) => ({ ...prev, [key]: value }))} />
     </div>
   );
 }
@@ -190,6 +264,8 @@ function Section({ id, title, children }: { id: string; title: string; children:
 }
 
 /** One component's doc page: header + Overview / Test me / Variants + right section nav. */
+/** One component's doc page — plain flowing content on the page background (no card/border),
+ *  like a document rather than a boxed panel. */
 function ComponentPage({
   title,
   description,
@@ -200,218 +276,406 @@ function ComponentPage({
   description: string;
   /** The interactive demo panel — the page's hero, like the reference docs site. */
   overview: React.ReactNode;
-  variants: React.ReactNode;
+  /** The exhaustive variant grid — omit for components whose Overview is an
+   *  InteractiveDemo (controls + live preview already cover every combination). */
+  variants?: React.ReactNode;
 }) {
-  const [activeSection, setActiveSection] = useState(SECTIONS[0].id);
-  const jump = (id: string) => {
-    setActiveSection(id);
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
   return (
-    <div className="flex items-start gap-8">
-      <div className="min-w-0 flex-1 rounded-[16px] border border-[#e5e5e5] bg-white p-8">
-        <span
-          className="inline-block rounded-full px-3 py-1 text-[12px] font-medium"
-          style={{ ...FONT, color: SECTION_GREEN, background: SECTION_GREEN_BG }}
-        >
-          Ready
-        </span>
-        <h1 className="mt-3 text-[32px] font-semibold" style={{ ...FONT, color: INK }}>{title}</h1>
-        <p className="mt-2 text-[16px] leading-snug" style={{ ...FONT, color: MUTED }}>{description}</p>
-        <Section id="overview" title="Overview">{overview}</Section>
-        <Section id="variants" title="Variants">{variants}</Section>
-      </div>
-      {/* On-this-page nav, like the reference docs site (wide screens only). */}
-      <nav className="sticky top-[88px] hidden w-[150px] shrink-0 flex-col gap-1 xl:flex">
-        {SECTIONS.map((s) => {
-          const active = activeSection === s.id;
-          return (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => jump(s.id)}
-              className="rounded-full px-3 py-1.5 text-left text-[14px]"
-              style={{
-                ...FONT,
-                color: active ? SECTION_GREEN : INK,
-                background: active ? SECTION_GREEN_BG : "transparent",
-                fontWeight: active ? 600 : 400,
-                cursor: "pointer",
-              }}
-            >
-              {s.label}
-            </button>
-          );
-        })}
-      </nav>
+    <div className="w-full">
+      <span
+        className="inline-block rounded-full px-3 py-1 text-[12px] font-medium"
+        style={{ ...FONT, color: SECTION_GREEN, background: SECTION_GREEN_BG }}
+      >
+        Ready
+      </span>
+      <h1 className="mt-3 text-[32px] font-semibold" style={{ ...FONT, color: INK }}>{title}</h1>
+      <p className="mt-2 max-w-[720px] text-[16px] leading-snug" style={{ ...FONT, color: MUTED }}>{description}</p>
+      <Section id="overview" title="Overview">{overview}</Section>
+      {variants && <Section id="variants" title="Variants">{variants}</Section>}
     </div>
   );
 }
 
 const HIERARCHIES = ["primary", "secondary", "tertiary"] as const;
-const BADGE_COLORS = ["neutral", "success", "warning", "error", "info"] as const;
+
+const BADGE_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "variant",
+    label: "Style",
+    options: [
+      { value: "subtle", label: "Subtle" },
+      { value: "bold", label: "Bold" },
+      { value: "text", label: "Text" },
+    ],
+  },
+  {
+    key: "color",
+    label: "Color",
+    options: [
+      { value: "neutral", label: "Neutral" },
+      { value: "success", label: "Success" },
+      { value: "warning", label: "Warning" },
+      { value: "error", label: "Error" },
+      { value: "info", label: "Info" },
+      { value: "custom", label: "Custom" },
+    ],
+  },
+  {
+    key: "size",
+    label: "Size",
+    options: [
+      { value: "sm", label: "Small" },
+      { value: "md", label: "Medium" },
+      { value: "lg", label: "Large" },
+    ],
+  },
+  {
+    key: "icon",
+    label: "Icon",
+    options: [
+      { value: "off", label: "None" },
+      { value: "on", label: "Leading icon" },
+    ],
+  },
+];
 
 function BadgeOverview() {
   return (
-    <div className="flex flex-col gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
-      <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>As they'd appear on invoices:</p>
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge label="Paid" color="success" />
-        <Badge label="Awaiting payment" color="info" />
-        <Badge label="Partially paid" color="warning" />
-        <Badge label="Overdue" color="error" variant="bold" />
-        <Badge label="Draft" />
-        <Badge label="New" color="custom" variant="bold" />
-      </div>
-    </div>
-  );
-}
-
-function BadgeVariants() {
-  return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Subtle (white pill, colored text)</p>
-        <div className="grid grid-cols-5 gap-4">
-          {BADGE_COLORS.map((c) => (
-            <SwatchCell key={c} label={c}><Badge label="Text" color={c} /></SwatchCell>
-          ))}
-        </div>
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Bold (filled)</p>
-        <div className="grid grid-cols-6 gap-4">
-          {BADGE_COLORS.map((c) => (
-            <SwatchCell key={c} label={c}><Badge label="Text" color={c} variant="bold" /></SwatchCell>
-          ))}
-          <SwatchCell label="custom"><Badge label="Text" color="custom" variant="bold" /></SwatchCell>
-        </div>
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Text only (bold type, no pill)</p>
-        <div className="grid grid-cols-6 gap-4">
-          {BADGE_COLORS.map((c) => (
-            <SwatchCell key={c} label={c}><Badge label="Text" color={c} variant="text" /></SwatchCell>
-          ))}
-          <SwatchCell label="custom"><Badge label="Text" color="custom" variant="text" /></SwatchCell>
-        </div>
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Sizes & icon</p>
-        <div className="grid grid-cols-4 gap-4">
-          <SwatchCell label="sm (h16, 12px type)"><Badge label="Text" size="sm" color="success" /></SwatchCell>
-          <SwatchCell label="md (h18, 14px type)"><Badge label="Text" color="success" /></SwatchCell>
-          <SwatchCell label="lg (h20, 16px type)"><Badge label="Text" size="lg" color="success" /></SwatchCell>
-          <SwatchCell label="With icon"><Badge label="Text" color="info" icon={<CircleIcon size={12} />} /></SwatchCell>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ButtonVariants() {
-  return (
-    <div className="flex flex-col gap-5">
-      {HIERARCHIES.map((h) => (
-        <div key={h}>
-          <p className="mb-2 text-[13px] font-medium capitalize" style={{ ...FONT, color: INK }}>{h} · md</p>
-          <div className="grid grid-cols-3 gap-4">
-            <SwatchCell label="Default"><Button hierarchy={h} label="Button" /></SwatchCell>
-            <SwatchCell label="Active (pressed)"><Button hierarchy={h} label="Button" forceActive /></SwatchCell>
-            <SwatchCell label="Disabled"><Button hierarchy={h} label="Button" disabled /></SwatchCell>
-          </div>
-        </div>
-      ))}
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Small (sm, 30px)</p>
-        <div className="grid grid-cols-3 gap-4">
-          <SwatchCell label="Primary sm"><Button size="sm" label="Button" /></SwatchCell>
-          <SwatchCell label="Secondary sm"><Button size="sm" hierarchy="secondary" label="Button" /></SwatchCell>
-          <SwatchCell label="Tertiary sm"><Button size="sm" hierarchy="tertiary" label="Button" /></SwatchCell>
-        </div>
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Icons & square</p>
-        <div className="grid grid-cols-4 gap-4">
-          <SwatchCell label="Icon left"><Button label="Button" iconLeft={<CircleIcon />} /></SwatchCell>
-          <SwatchCell label="Icon right"><Button hierarchy="secondary" label="Button" iconRight={<CircleIcon />} /></SwatchCell>
-          <SwatchCell label="Square md"><Button square icon={<CircleIcon />} aria-label="Square button" /></SwatchCell>
-          <SwatchCell label="Square sm"><Button square size="sm" hierarchy="secondary" icon={<CircleIcon />} aria-label="Square button" /></SwatchCell>
-        </div>
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Inverse (dark surface) · md</p>
-        <div className="flex flex-col gap-4">
-          {HIERARCHIES.map((h) => (
-            <div key={h} className="grid grid-cols-3 gap-4">
-              <SwatchCell dark label={`${h} · Default`}><Button inverse hierarchy={h} label="Button" /></SwatchCell>
-              <SwatchCell dark label={`${h} · Active`}><Button inverse hierarchy={h} label="Button" forceActive /></SwatchCell>
-              <SwatchCell dark label={`${h} · Disabled`}><Button inverse hierarchy={h} label="Button" disabled /></SwatchCell>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FabVariants() {
-  return (
-    <div className="flex flex-col gap-5">
-      {HIERARCHIES.map((h) => (
-        <div key={h}>
-          <p className="mb-2 text-[13px] font-medium capitalize" style={{ ...FONT, color: INK }}>{h} · rounded</p>
-          <div className="grid grid-cols-3 gap-4">
-            <SwatchCell label="Default"><FAB hierarchy={h} label="Button" /></SwatchCell>
-            <SwatchCell label="Active (pressed)"><FAB hierarchy={h} label="Button" forceActive /></SwatchCell>
-            <SwatchCell label="Disabled"><FAB hierarchy={h} label="Button" disabled /></SwatchCell>
-          </div>
-        </div>
-      ))}
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Circle (icon-only, 46px)</p>
-        <div className="grid grid-cols-3 gap-4">
-          <SwatchCell label="Primary"><FAB circle icon={<CircleIcon size={20} />} aria-label="Circle FAB" /></SwatchCell>
-          <SwatchCell label="Secondary"><FAB circle hierarchy="secondary" icon={<CircleIcon size={20} />} aria-label="Circle FAB" /></SwatchCell>
-          <SwatchCell label="Tertiary"><FAB circle hierarchy="tertiary" icon={<CircleIcon size={20} />} aria-label="Circle FAB" /></SwatchCell>
-        </div>
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Inverse (dark surface)</p>
-        <div className="flex flex-col gap-4">
-          {HIERARCHIES.map((h) => (
-            <div key={h} className="grid grid-cols-3 gap-4">
-              <SwatchCell dark label={`${h} · Default`}><FAB inverse hierarchy={h} label="Button" /></SwatchCell>
-              <SwatchCell dark label={`${h} · Active`}><FAB inverse hierarchy={h} label="Button" forceActive /></SwatchCell>
-              <SwatchCell dark label={`${h} · Circle`}><FAB inverse circle hierarchy={h} icon={<CircleIcon size={20} />} aria-label="Circle FAB" /></SwatchCell>
-            </div>
-          ))}
-        </div>
-      </div>
-      <FabCollapseDemo />
-    </div>
-  );
-}
-
-/** Pill ↔ circle morph via the `collapsed` prop (used by the Dashboard's
-    scroll interaction) — click to toggle. */
-function FabCollapseDemo() {
-  const [collapsed, setCollapsed] = useState(false);
-  return (
-    <div>
-      <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Pill ↔ circle morph (collapsed prop — click it)</p>
-      <div className="grid grid-cols-3 gap-4">
-        <SwatchCell label={collapsed ? "collapsed" : "default"}>
-          <FAB
-            collapsed={collapsed}
-            iconLeft={<CircleIcon size={20} />}
-            label="Button"
-            aria-label="Toggle collapse"
-            onClick={() => setCollapsed((c) => !c)}
+    <div className="flex flex-col gap-6">
+      <InteractiveDemo
+        groups={BADGE_CONTROL_GROUPS}
+        defaultValues={{ variant: "subtle", color: "success", size: "md", icon: "off" }}
+        render={(v) => (
+          <Badge
+            label="Text"
+            variant={v.variant as "subtle" | "bold" | "text"}
+            color={v.color as BadgeColor}
+            size={v.size as "sm" | "md" | "lg"}
+            icon={v.icon === "on" ? <CircleIcon size={v.size === "lg" ? 16 : 12} /> : undefined}
           />
-        </SwatchCell>
+        )}
+      />
+      <div className="flex flex-col gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
+        <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>As they'd appear on invoices:</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge label="Paid" color="success" />
+          <Badge label="Awaiting payment" color="info" />
+          <Badge label="Partially paid" color="warning" />
+          <Badge label="Overdue" color="error" variant="bold" />
+          <Badge label="Draft" />
+          <Badge label="New" color="custom" variant="bold" />
+        </div>
       </div>
     </div>
+  );
+}
+
+const CHIPS_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "active",
+    label: "State",
+    options: [
+      { value: "off", label: "Default" },
+      { value: "on", label: "Active" },
+    ],
+  },
+];
+
+function ChipsOverview() {
+  const [selected, setSelected] = useState("newest");
+  return (
+    <div className="flex flex-col gap-6">
+      <InteractiveDemo
+        groups={CHIPS_CONTROL_GROUPS}
+        defaultValues={{ active: "off" }}
+        render={(v) => <Chips label="Label" active={v.active === "on"} />}
+      />
+      <div className="flex flex-col gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
+        <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>As a filter row — one selected at a time:</p>
+        <div className="flex flex-wrap gap-2">
+          {["Newest", "Oldest", "Amount: High to low", "Amount: Low to high"].map((label) => {
+            const key = label.toLowerCase();
+            return (
+              <Chips key={key} label={label} active={selected === key} onClick={() => setSelected(key)} />
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const CHECKBOXBASE_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "state",
+    label: "State",
+    options: [
+      { value: "unchecked", label: "Unchecked" },
+      { value: "checked", label: "Checked" },
+      { value: "indeterminate", label: "Indeterminate" },
+    ],
+  },
+  {
+    key: "size",
+    label: "Size",
+    options: [
+      { value: "sm", label: "Small" },
+      { value: "md", label: "Medium" },
+    ],
+  },
+  {
+    key: "disabled",
+    label: "Disabled",
+    options: [
+      { value: "off", label: "No" },
+      { value: "on", label: "Yes" },
+    ],
+  },
+];
+
+function CheckboxBaseOverview() {
+  const [live, setLive] = useState(false);
+  return (
+    <div className="flex flex-col gap-6">
+      <InteractiveDemo
+        groups={CHECKBOXBASE_CONTROL_GROUPS}
+        defaultValues={{ state: "checked", size: "sm", disabled: "off" }}
+        render={(v) => (
+          <CheckboxBase
+            checked={v.state !== "unchecked"}
+            indeterminate={v.state === "indeterminate"}
+            size={v.size as "sm" | "md"}
+            disabled={v.disabled === "on"}
+            aria-label="Example checkbox"
+          />
+        )}
+      />
+      <div className="flex items-center gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
+        <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>Standalone + interactive:</p>
+        <CheckboxBase checked={live} onChange={setLive} aria-label="Toggle example" />
+      </div>
+    </div>
+  );
+}
+
+const CHECKBOX_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "description",
+    label: "Description",
+    options: [
+      { value: "on", label: "Shown" },
+      { value: "off", label: "Hidden" },
+    ],
+  },
+  {
+    key: "disabled",
+    label: "Disabled",
+    options: [
+      { value: "off", label: "No" },
+      { value: "on", label: "Yes" },
+    ],
+  },
+];
+
+function CheckboxOverview() {
+  const [checked, setChecked] = useState(true);
+  return (
+    <div className="flex flex-col gap-6">
+      <InteractiveDemo
+        groups={CHECKBOX_CONTROL_GROUPS}
+        defaultValues={{ description: "on", disabled: "off" }}
+        render={(v) => (
+          <Checkbox
+            checked={checked}
+            onChange={setChecked}
+            label="Remember me"
+            description={v.description === "on" ? "Save my login details for next time" : undefined}
+            disabled={v.disabled === "on"}
+          />
+        )}
+      />
+    </div>
+  );
+}
+
+const NOTIBADGE_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "style",
+    label: "Style",
+    options: [
+      { value: "solid", label: "Solid" },
+      { value: "inverse", label: "Inverse" },
+    ],
+  },
+  {
+    key: "count",
+    label: "Count",
+    options: [
+      { value: "3", label: "1 digit (3)" },
+      { value: "12", label: "2 digits (12)" },
+      { value: "99+", label: "Capped (99+)" },
+    ],
+  },
+];
+
+function NotiBadgeOverview() {
+  return (
+    <div className="flex flex-col gap-6">
+      <InteractiveDemo
+        groups={NOTIBADGE_CONTROL_GROUPS}
+        defaultValues={{ style: "solid", count: "99+" }}
+        render={(v) => <NotiBadge count={v.count} inverse={v.style === "inverse"} />}
+      />
+      <div className="flex flex-col gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
+        <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>Overlaid on a tab (see Tabs Base):</p>
+        <div className="flex flex-wrap items-center gap-6">
+          <TabsBase label="Text" unread="99+" />
+          <TabsBase label="Text" active unread="99+" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const BUTTON_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "hierarchy",
+    label: "Hierarchy",
+    options: HIERARCHIES.map((h) => ({ value: h, label: h[0].toUpperCase() + h.slice(1) })),
+  },
+  {
+    key: "size",
+    label: "Size",
+    options: [
+      { value: "md", label: "Medium" },
+      { value: "sm", label: "Small" },
+    ],
+  },
+  {
+    key: "shape",
+    label: "Shape",
+    options: [
+      { value: "rec", label: "Rectangle" },
+      { value: "square", label: "Square (icon-only)" },
+    ],
+  },
+  {
+    key: "icon",
+    label: "Icon",
+    options: [
+      { value: "none", label: "None" },
+      { value: "left", label: "Leading" },
+      { value: "right", label: "Trailing" },
+    ],
+  },
+  {
+    key: "state",
+    label: "State",
+    options: [
+      { value: "default", label: "Default" },
+      { value: "active", label: "Active (pressed)" },
+      { value: "loading", label: "Loading" },
+      { value: "disabled", label: "Disabled" },
+    ],
+  },
+  {
+    key: "surface",
+    label: "Surface",
+    options: [
+      { value: "light", label: "Light" },
+      { value: "dark", label: "Dark (inverse)" },
+    ],
+  },
+];
+
+function ButtonOverview() {
+  return (
+    <InteractiveDemo
+      groups={BUTTON_CONTROL_GROUPS}
+      defaultValues={{ hierarchy: "primary", size: "md", shape: "rec", icon: "none", state: "default", surface: "light" }}
+      canvasBg={(v) => (v.surface === "dark" ? "#222222" : "#f4f4f2")}
+      render={(v) => (
+        <Button
+          hierarchy={v.hierarchy as Hierarchy}
+          size={v.size as "md" | "sm"}
+          square={v.shape === "square"}
+          label={v.shape === "square" ? undefined : "Button"}
+          icon={v.shape === "square" ? <CircleIcon /> : undefined}
+          iconLeft={v.shape === "rec" && v.icon === "left" ? <CircleIcon /> : undefined}
+          iconRight={v.shape === "rec" && v.icon === "right" ? <CircleIcon /> : undefined}
+          disabled={v.state === "disabled"}
+          loading={v.state === "loading"}
+          forceActive={v.state === "active"}
+          inverse={v.surface === "dark"}
+          aria-label={v.shape === "square" ? "Square button" : undefined}
+        />
+      )}
+    />
+  );
+}
+
+const FAB_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "hierarchy",
+    label: "Hierarchy",
+    options: HIERARCHIES.map((h) => ({ value: h, label: h[0].toUpperCase() + h.slice(1) })),
+  },
+  {
+    key: "shape",
+    label: "Shape",
+    options: [
+      { value: "pill", label: "Rounded pill" },
+      { value: "circle", label: "Circle (icon-only)" },
+    ],
+  },
+  {
+    key: "collapsed",
+    label: "Collapsed (pill only)",
+    options: [
+      { value: "no", label: "Expanded" },
+      { value: "yes", label: "Collapsed" },
+    ],
+  },
+  {
+    key: "state",
+    label: "State",
+    options: [
+      { value: "default", label: "Default" },
+      { value: "active", label: "Active (pressed)" },
+      { value: "disabled", label: "Disabled" },
+    ],
+  },
+  {
+    key: "surface",
+    label: "Surface",
+    options: [
+      { value: "light", label: "Light" },
+      { value: "dark", label: "Dark (inverse)" },
+    ],
+  },
+];
+
+function FabOverview() {
+  return (
+    <InteractiveDemo
+      groups={FAB_CONTROL_GROUPS}
+      defaultValues={{ hierarchy: "primary", shape: "pill", collapsed: "no", state: "default", surface: "light" }}
+      canvasBg={(v) => (v.surface === "dark" ? "#222222" : "#f4f4f2")}
+      render={(v) => (
+        <FAB
+          hierarchy={v.hierarchy as Hierarchy}
+          circle={v.shape === "circle"}
+          collapsed={v.shape === "pill" && v.collapsed === "yes"}
+          label={v.shape === "pill" ? "Button" : undefined}
+          icon={v.shape === "circle" ? <CircleIcon size={20} /> : undefined}
+          iconLeft={v.shape === "pill" ? <CircleIcon size={20} /> : undefined}
+          disabled={v.state === "disabled"}
+          forceActive={v.state === "active"}
+          inverse={v.surface === "dark"}
+          aria-label={v.shape === "circle" ? "Circle FAB" : undefined}
+        />
+      )}
+    />
   );
 }
 
@@ -428,22 +692,45 @@ const TOOLTIP_ARROWS: { arrow: TooltipArrow; label: string }[] = [
 const TOOLTIP_DESCRIPTION =
   "Tooltips are used to describe or identify an element. In most scenarios, tooltips help the user understand the meaning, function or alt-text of an element.";
 
+const TOOLTIP_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "style",
+    label: "Style",
+    options: [
+      { value: "default", label: "Default (beige, for dark surfaces)" },
+      { value: "inverse", label: "Inverse (dark, for light surfaces)" },
+    ],
+  },
+  {
+    key: "arrow",
+    label: "Arrow",
+    options: TOOLTIP_ARROWS.map(({ arrow, label }) => ({ value: arrow, label })),
+  },
+  {
+    key: "description",
+    label: "Supporting text",
+    options: [
+      { value: "off", label: "None" },
+      { value: "on", label: "Shown (320px max width)" },
+    ],
+  },
+];
+
 function TooltipOverview() {
   return (
-    <div className="flex flex-col gap-4 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-6">
-      <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
-        As it'd appear explaining a field (inverse = dark bubble for light surfaces):
-      </p>
-      <div className="flex flex-wrap items-center gap-6">
-        <Tooltip inverse arrow="bottom" title="This is a tooltip" />
+    <InteractiveDemo
+      groups={TOOLTIP_CONTROL_GROUPS}
+      defaultValues={{ style: "inverse", arrow: "bottom-left", description: "on" }}
+      canvasBg={(v) => (v.style === "default" ? "#222222" : "#f4f4f2")}
+      render={(v) => (
         <Tooltip
-          inverse
-          arrow="bottom-left"
-          title="Due date"
-          description="The date by which your customer should pay this invoice. Overdue chasers start the day after."
+          inverse={v.style === "inverse"}
+          arrow={v.arrow as TooltipArrow}
+          title={v.description === "on" ? "Due date" : "This is a tooltip"}
+          description={v.description === "on" ? TOOLTIP_DESCRIPTION : undefined}
         />
-      </div>
-    </div>
+      )}
+    />
   );
 }
 
@@ -467,55 +754,40 @@ function AutoCell({ label, dark = false, children }: { label: string; dark?: boo
   );
 }
 
-function TooltipVariants() {
-  return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>
-          Default (beige, for dark surfaces) — arrow positions
-        </p>
-        <div className="grid grid-cols-4 gap-4">
-          {TOOLTIP_ARROWS.map(({ arrow, label }) => (
-            <AutoCell key={arrow} dark label={label}>
-              <Tooltip arrow={arrow} title="This is a tooltip" />
-            </AutoCell>
-          ))}
-        </div>
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>
-          Inverse (dark, for light surfaces) — arrow positions
-        </p>
-        <div className="grid grid-cols-4 gap-4">
-          {TOOLTIP_ARROWS.map(({ arrow, label }) => (
-            <AutoCell key={arrow} label={label}>
-              <Tooltip inverse arrow={arrow} title="This is a tooltip" />
-            </AutoCell>
-          ))}
-        </div>
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>
-          With supporting text (320px max width)
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <AutoCell dark label="Default · Bottom center">
-            <Tooltip arrow="bottom" title="This is a tooltip" description={TOOLTIP_DESCRIPTION} />
-          </AutoCell>
-          <AutoCell label="Inverse · Bottom center">
-            <Tooltip inverse arrow="bottom" title="This is a tooltip" description={TOOLTIP_DESCRIPTION} />
-          </AutoCell>
-          <AutoCell dark label="Default · Left">
-            <Tooltip arrow="left" title="This is a tooltip" description={TOOLTIP_DESCRIPTION} />
-          </AutoCell>
-          <AutoCell label="Inverse · Right">
-            <Tooltip inverse arrow="right" title="This is a tooltip" description={TOOLTIP_DESCRIPTION} />
-          </AutoCell>
-        </div>
-      </div>
-    </div>
-  );
-}
+const TABSBASE_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "variant",
+    label: "Style",
+    options: [
+      { value: "button", label: "Button" },
+      { value: "underline", label: "Underline" },
+    ],
+  },
+  {
+    key: "state",
+    label: "State",
+    options: [
+      { value: "active", label: "Active" },
+      { value: "default", label: "Default" },
+    ],
+  },
+  {
+    key: "icon",
+    label: "Icon",
+    options: [
+      { value: "off", label: "None" },
+      { value: "on", label: "Leading icon" },
+    ],
+  },
+  {
+    key: "unread",
+    label: "Unread badge",
+    options: [
+      { value: "off", label: "None" },
+      { value: "on", label: "99+" },
+    ],
+  },
+];
 
 function TabsTestMe() {
   const [buttonTab, setButtonTab] = useState(0);
@@ -523,71 +795,75 @@ function TabsTestMe() {
   // enough tabs to overflow the panel — drag/scroll the row to see the overflow behavior
   const labels = ["Invoices", "Credit notes", "Drafts", "Recurring", "Customers", "Reports"];
   return (
-    <div className="flex flex-col gap-4 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
-      <div>
-        <p className="mb-2 text-[12px]" style={{ ...FONT, color: MUTED }}>HorizontalTabs · button style</p>
-        <HorizontalTabs tabs={labels} activeIndex={buttonTab} onChange={setButtonTab} />
-      </div>
-      <div>
-        <p className="mb-2 text-[12px]" style={{ ...FONT, color: MUTED }}>HorizontalTabs · underline style</p>
-        <HorizontalTabs tabs={labels} variant="underline" activeIndex={underlineTab} onChange={setUnderlineTab} />
-      </div>
-    </div>
-  );
-}
-
-function TabsVariants() {
-  return (
-    <div className="flex flex-col gap-5">
-      {(["button", "underline"] as const).map((v) => (
-        <div key={v}>
-          <p className="mb-2 text-[13px] font-medium capitalize" style={{ ...FONT, color: INK }}>{v} style</p>
-          <div className="grid grid-cols-4 gap-4">
-            <SwatchCell label="md · Active"><TabsBase variant={v} label="Text" active /></SwatchCell>
-            <SwatchCell label="md · Default"><TabsBase variant={v} label="Text" /></SwatchCell>
-            <SwatchCell label="lg · Active"><TabsBase variant={v} size="lg" label="Text" active /></SwatchCell>
-            <SwatchCell label="lg · Default"><TabsBase variant={v} size="lg" label="Text" /></SwatchCell>
-          </div>
+    <div className="flex flex-col gap-6">
+      <InteractiveDemo
+        groups={TABSBASE_CONTROL_GROUPS}
+        defaultValues={{ variant: "button", state: "active", icon: "off", unread: "off" }}
+        render={(v) => (
+          <TabsBase
+            label="Text"
+            variant={v.variant as "button" | "underline"}
+            active={v.state === "active"}
+            icon={v.icon === "on" ? <CircleIcon size={12} /> : undefined}
+            unread={v.unread === "on" ? "99+" : undefined}
+          />
+        )}
+      />
+      <div className="flex flex-col gap-4 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
+        <div>
+          <p className="mb-2 text-[12px]" style={{ ...FONT, color: MUTED }}>HorizontalTabs · button style</p>
+          <HorizontalTabs tabs={labels} activeIndex={buttonTab} onChange={setButtonTab} />
         </div>
-      ))}
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>With icon</p>
-        <div className="grid grid-cols-4 gap-4">
-          <SwatchCell label="Button md"><TabsBase label="Text" active icon={<CircleIcon />} /></SwatchCell>
-          <SwatchCell label="Button lg"><TabsBase size="lg" label="Text" icon={<CircleIcon size={20} />} /></SwatchCell>
-          <SwatchCell label="Underline md"><TabsBase variant="underline" label="Text" active icon={<CircleIcon />} /></SwatchCell>
-          <SwatchCell label="Underline lg"><TabsBase variant="underline" size="lg" label="Text" icon={<CircleIcon size={20} />} /></SwatchCell>
-        </div>
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>HorizontalTabs (row of Tabs Base)</p>
-        <div className="grid grid-cols-1 gap-4">
-          <SwatchCell label="Button · md">
-            <div className="w-full px-4"><HorizontalTabs tabs={["Text", "Text", "Text", "Text"]} activeIndex={0} onChange={() => {}} /></div>
-          </SwatchCell>
-          <SwatchCell label="Underline · md">
-            <div className="w-full px-4"><HorizontalTabs variant="underline" tabs={["Text", "Text", "Text", "Text"]} activeIndex={0} onChange={() => {}} /></div>
-          </SwatchCell>
-          <SwatchCell label="Button · lg">
-            <div className="w-full px-4"><HorizontalTabs size="lg" tabs={["Text", "Text", "Text", "Text"]} activeIndex={0} onChange={() => {}} /></div>
-          </SwatchCell>
-          <SwatchCell label="Underline · lg">
-            <div className="w-full px-4"><HorizontalTabs size="lg" variant="underline" tabs={["Text", "Text", "Text", "Text"]} activeIndex={0} onChange={() => {}} /></div>
-          </SwatchCell>
+        <div>
+          <p className="mb-2 text-[12px]" style={{ ...FONT, color: MUTED }}>HorizontalTabs · underline style</p>
+          <HorizontalTabs tabs={labels} variant="underline" activeIndex={underlineTab} onChange={setUnderlineTab} />
         </div>
       </div>
     </div>
   );
 }
 
-function LoadingOverview() {
+const SEGMENTEDCONTROLS_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "count",
+    label: "Segments",
+    options: [
+      { value: "2", label: "2" },
+      { value: "3", label: "3" },
+      { value: "4", label: "4" },
+    ],
+  },
+];
+
+function SegmentedControlsTestMe() {
+  const [active2, setActive2] = useState(0);
+  const [active3, setActive3] = useState(0);
+  const [active4, setActive4] = useState(0);
+  const demos: Record<string, { segments: string[]; active: number; onChange: (i: number) => void }> = {
+    "2": { segments: ["Label", "Label"], active: active2, onChange: setActive2 },
+    "3": { segments: ["Label", "Label", "Label"], active: active3, onChange: setActive3 },
+    "4": { segments: ["Label", "Label", "Label", "Label"], active: active4, onChange: setActive4 },
+  };
   return (
-    <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-6">
-      <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
-        As it'd appear while an invoice is being generated (lg, spins continuously):
-      </p>
-      <div className="flex w-full justify-center py-4">
-        <Loading />
+    <div className="flex flex-col gap-6">
+      <InteractiveDemo
+        groups={SEGMENTEDCONTROLS_CONTROL_GROUPS}
+        defaultValues={{ count: "2" }}
+        render={(v) => {
+          const demo = demos[v.count];
+          return (
+            <div className="w-[343px]">
+              <SegmentedControls segments={demo.segments} activeIndex={demo.active} onChange={demo.onChange} />
+            </div>
+          );
+        }}
+      />
+      <div className="flex flex-col gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
+        <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>Sub-part — SegmentedControlBase, standalone:</p>
+        <div className="flex flex-wrap items-center gap-4">
+          <SegmentedControlBase label="Label" active />
+          <SegmentedControlBase label="Label" />
+        </div>
       </div>
     </div>
   );
@@ -601,15 +877,21 @@ const LOADING_SIZES: { size: LoadingSize; label: string }[] = [
   { size: "2xs", label: "2xs (16px)" },
 ];
 
-function LoadingVariants() {
+const LOADING_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "size",
+    label: "Size",
+    options: LOADING_SIZES.map(({ size, label }) => ({ value: size, label })),
+  },
+];
+
+function LoadingOverview() {
   return (
-    <div className="grid grid-cols-3 gap-4">
-      {LOADING_SIZES.map(({ size, label }) => (
-        <AutoCell key={size} label={label}>
-          <Loading size={size} />
-        </AutoCell>
-      ))}
-    </div>
+    <InteractiveDemo
+      groups={LOADING_CONTROL_GROUPS}
+      defaultValues={{ size: "lg" }}
+      render={(v) => <Loading size={v.size as LoadingSize} />}
+    />
   );
 }
 
@@ -654,73 +936,79 @@ function SheetStage({ children }: { children: React.ReactNode }) {
   );
 }
 
-function BottomSheetOverview() {
-  const [picked, setPicked] = useState("us");
-  return (
-    <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
-      <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
-        As a currency picker sheet (Tiles inside, frosted search action):
-      </p>
-      <PhoneSheetStage>
-        <BottomSheet title="Currency" action={<CircleIcon size={20} />} actionLabel="Search currencies">
-          <div className="flex flex-col gap-2 px-4">
-            <Tile
-              title="United States"
-              text="USD"
-              flag={<USFlag size={30} />}
-              selected={picked === "us"}
-              trailing={picked === "us" ? "check" : "none"}
-              onClick={() => setPicked("us")}
-            />
-            <Tile
-              title="Hong Kong"
-              text="HKD"
-              flag={<USFlag size={30} />}
-              selected={picked === "hk"}
-              trailing={picked === "hk" ? "check" : "none"}
-              onClick={() => setPicked("hk")}
-            />
-          </div>
-        </BottomSheet>
-      </PhoneSheetStage>
-    </div>
-  );
-}
+const BOTTOMSHEET_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "header",
+    label: "Header",
+    options: [
+      { value: "action", label: "Title + action button" },
+      { value: "title", label: "Title only" },
+      { value: "none", label: "Hidden (grabber too)" },
+    ],
+  },
+  {
+    key: "footer",
+    label: "Footer",
+    options: [
+      { value: "none", label: "None (plain bottom pad)" },
+      { value: "dock", label: "ButtonDock (Confirm/Cancel)" },
+    ],
+  },
+];
 
-function BottomSheetVariants() {
+function BottomSheetOverview() {
   const filler = (
     <div className="flex flex-col gap-2 px-4">
       <div className="h-10 w-full rounded-[8px] bg-[#f4f4f2]" />
       <div className="h-10 w-full rounded-[8px] bg-[#f4f4f2]" />
     </div>
   );
+  const [picked, setPicked] = useState("us");
   return (
-    <div className="grid grid-cols-2 gap-4">
-      <AutoCell label="Header + action button">
-        <SheetStage>
-          <BottomSheet title="Title" action={<CircleIcon size={20} />}>{filler}</BottomSheet>
-        </SheetStage>
-      </AutoCell>
-      <AutoCell label="Header, no action">
-        <SheetStage>
-          <BottomSheet title="Title">{filler}</BottomSheet>
-        </SheetStage>
-      </AutoCell>
-      <AutoCell label="No header (grabber hidden too)">
-        <SheetStage>
-          <BottomSheet showHeader={false}>{filler}</BottomSheet>
-        </SheetStage>
-      </AutoCell>
-      <AutoCell label="With footer (BottomsheetsEnd, composed from ButtonDock)">
-        <SheetStage>
-          <BottomSheet
-            title="Title"
-            footer={<ButtonDock type="double" primaryLabel="Confirm" secondaryLabel="Cancel" />}
-          >
-            {filler}
+    <div className="flex flex-col gap-6">
+      <InteractiveDemo
+        groups={BOTTOMSHEET_CONTROL_GROUPS}
+        defaultValues={{ header: "action", footer: "none" }}
+        render={(v) => (
+          <SheetStage>
+            <BottomSheet
+              title={v.header === "none" ? undefined : "Title"}
+              action={v.header === "action" ? <CircleIcon size={20} /> : undefined}
+              showHeader={v.header !== "none"}
+              footer={v.footer === "dock" ? <ButtonDock type="double" primaryLabel="Confirm" secondaryLabel="Cancel" /> : undefined}
+            >
+              {filler}
+            </BottomSheet>
+          </SheetStage>
+        )}
+      />
+      <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
+        <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
+          As a currency picker sheet (Tiles inside, frosted search action):
+        </p>
+        <PhoneSheetStage>
+          <BottomSheet title="Currency" action={<CircleIcon size={20} />} actionLabel="Search currencies">
+            <div className="flex flex-col gap-2 px-4">
+              <Tile
+                title="United States"
+                text="USD"
+                flag={<USFlag size={30} />}
+                selected={picked === "us"}
+                trailing={picked === "us" ? "check" : "none"}
+                onClick={() => setPicked("us")}
+              />
+              <Tile
+                title="Hong Kong"
+                text="HKD"
+                flag={<USFlag size={30} />}
+                selected={picked === "hk"}
+                trailing={picked === "hk" ? "check" : "none"}
+                onClick={() => setPicked("hk")}
+              />
+            </div>
           </BottomSheet>
-        </SheetStage>
-      </AutoCell>
+        </PhoneSheetStage>
+      </div>
     </div>
   );
 }
@@ -744,19 +1032,6 @@ function OverlayOverview() {
         </div>
         <Overlay />
       </div>
-    </div>
-  );
-}
-
-function OverlayVariants() {
-  return (
-    <div className="grid grid-cols-3 gap-4">
-      <AutoCell label="--overlay · rgba(27, 27, 27, 0.6)">
-        <div className="relative h-[76px] w-full overflow-hidden rounded-[10px]">
-          <div className="absolute inset-0 bg-[#efe7d2]" />
-          <Overlay />
-        </div>
-      </AutoCell>
     </div>
   );
 }
@@ -808,43 +1083,90 @@ function DockStage({ children }: { children: React.ReactNode }) {
   );
 }
 
+const BUTTONDOCK_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "type",
+    label: "Type",
+    options: [
+      { value: "single", label: "Primary only" },
+      { value: "double", label: "Primary + outline" },
+      { value: "ghost", label: "Primary + ghost" },
+      { value: "triple", label: "Primary + secondary + tertiary" },
+    ],
+  },
+  {
+    key: "stack",
+    label: "Layout (ghost only)",
+    options: [
+      { value: "vertical", label: "Vertical" },
+      { value: "horizontal", label: "Horizontal" },
+    ],
+  },
+  {
+    key: "accessory",
+    label: "Checkbox accessory",
+    options: [
+      { value: "off", label: "Hidden" },
+      { value: "on", label: "Shown" },
+    ],
+  },
+  {
+    key: "bottom",
+    label: "iOS controls",
+    options: [
+      { value: "none", label: "None" },
+      { value: "home", label: "Home indicator" },
+      { value: "keyboard", label: "Keyboard" },
+    ],
+  },
+];
+
 function ButtonDockOverview() {
   return (
-    <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
-      <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
-        The frosted dock floating over page content via the sticky prop — the gradient fades in and content blurs underneath (page docks pass sticky; sheet footers stay in-flow):
-      </p>
-      <PhoneDockStage>
-        <ButtonDock type="double" sticky primaryLabel="Send Invoice" secondaryLabel="Send Later" homeIndicator />
-      </PhoneDockStage>
-    </div>
-  );
-}
-
-function ButtonDockVariants() {
-  return (
-    <div className="grid grid-cols-2 gap-4">
-      <AutoCell label="Primary only">
-        <DockStage><ButtonDock type="single" sticky primaryLabel="Confirm" /></DockStage>
-      </AutoCell>
-      <AutoCell label="Primary + outline (stacked)">
-        <DockStage><ButtonDock type="double" sticky primaryLabel="Confirm" secondaryLabel="Cancel" /></DockStage>
-      </AutoCell>
-      <AutoCell label="Primary + ghost (stacked)">
-        <DockStage><ButtonDock type="ghost" sticky primaryLabel="Confirm" secondaryLabel="Close" /></DockStage>
-      </AutoCell>
-      <AutoCell label="Primary + ghost (horizontal)">
-        <DockStage><ButtonDock type="ghost" stack="horizontal" sticky primaryLabel="Confirm" secondaryLabel="Close" /></DockStage>
-      </AutoCell>
-      <AutoCell label="Primary + secondary + tertiary">
-        <DockStage><ButtonDock type="triple" sticky primaryLabel="Confirm" secondaryLabel="Cancel" tertiaryLabel="Close" /></DockStage>
-      </AutoCell>
-      <AutoCell label="With checkbox accessory">
-        <DockStage><ButtonDock type="double" sticky accessory checked accessoryLabel="Remember me" primaryLabel="Send Invoice" secondaryLabel="Send Later" /></DockStage>
-      </AutoCell>
-      <AutoCell label="With home indicator">
-        <DockStage><ButtonDock type="single" sticky primaryLabel="Confirm" homeIndicator /></DockStage>
-      </AutoCell>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1.5 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-3.5">
+        <p className="text-[12px] leading-snug" style={{ ...FONT, color: MUTED }}>
+          <strong style={{ color: INK }}>Vertical</strong> — up to 3 actions, stacked full width. Use when
+          one action is the recommended one (e.g. Cancel/Delete) or there are 3 actions.
+        </p>
+        <p className="text-[12px] leading-snug" style={{ ...FONT, color: MUTED }}>
+          <strong style={{ color: INK }}>Horizontal</strong> — exactly 2 equal actions side by side (Ghost
+          only). Use for a neutral pair with no "safer" option, e.g. Close/Confirm.
+        </p>
+      </div>
+      <InteractiveDemo
+        groups={BUTTONDOCK_CONTROL_GROUPS}
+        defaultValues={{ type: "double", stack: "vertical", accessory: "off", bottom: "none" }}
+        render={(v) => {
+          const typeStack =
+            v.type === "ghost"
+              ? { type: "ghost" as const, stack: v.stack as ButtonDockStack }
+              : { type: v.type as "single" | "double" | "triple" };
+          return (
+            <DockStage>
+              <ButtonDock
+                {...typeStack}
+                sticky
+                accessory={v.accessory === "on"}
+                checked
+                primaryLabel="Confirm"
+                secondaryLabel={v.type === "ghost" ? "Close" : "Cancel"}
+                tertiaryLabel="Close"
+                homeIndicator={v.bottom === "home"}
+                keyboard={v.bottom === "keyboard"}
+              />
+            </DockStage>
+          );
+        }}
+      />
+      <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
+        <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
+          The frosted dock floating over page content via the sticky prop — the gradient fades in and content blurs underneath (page docks pass sticky; sheet footers stay in-flow):
+        </p>
+        <PhoneDockStage>
+          <ButtonDock type="double" sticky primaryLabel="Send Invoice" secondaryLabel="Send Later" homeIndicator />
+        </PhoneDockStage>
+      </div>
     </div>
   );
 }
@@ -854,255 +1176,430 @@ function HeaderStrip({ children }: { children: React.ReactNode }) {
   return <div className="mobile-mode w-full max-w-[375px] rounded-[12px] bg-[#f9f5ea] py-2">{children}</div>;
 }
 
-function InvoiceRowOverview() {
+const INVOICESTATUS_PRESETS: Record<string, { label: string; color: BadgeColor; caption: string }> = {
+  paid: { label: "Paid", color: "success", caption: "12 Jun 2026" },
+  awaiting: { label: "Awaiting Payment", color: "warning", caption: "Due 12 Jun 2026" },
+  partial: { label: "Partially Paid", color: "warning", caption: "USD 2,400.00 due" },
+  refundPending: { label: "Refund Pending", color: "warning", caption: "Paid on 12 Jun 2026" },
+  refunded: { label: "Refunded", color: "success", caption: "12 Jun 2026" },
+  overdue: { label: "Overdue", color: "error", caption: "Due 12 Jun 2026" },
+  void: { label: "Void", color: "neutral", caption: "12 Jun 2026" },
+  draft: { label: "Draft", color: "neutral", caption: "12 Jun 2026" },
+};
+
+const INVOICESTATUS_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "preset",
+    label: "Status",
+    options: [
+      { value: "paid", label: "Paid" },
+      { value: "awaiting", label: "Awaiting Payment" },
+      { value: "partial", label: "Partially Paid" },
+      { value: "refundPending", label: "Refund Pending" },
+      { value: "refunded", label: "Refunded" },
+      { value: "overdue", label: "Overdue" },
+      { value: "void", label: "Void" },
+      { value: "draft", label: "Draft" },
+    ],
+  },
+];
+
+function InvoiceStatusOverview() {
   return (
-    <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
-      <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>As a list — statuses use the Badge palette:</p>
-      <div className="w-full max-w-[343px] rounded-[12px] bg-white px-4">
-        <InvoiceRow
-          title="Marlow & Finch Studio"
-          invoiceNo="INV-2026-000004"
-          recurring
-          status="Paid"
-          statusColor="success"
-          statusCaption="on 12 Jun 2026"
-          amount="USD 6,430.05"
-          creditedAmount="USD 2,000.00"
-          onCreditedClick={() => {}}
-          onClick={() => {}}
-        />
-        <InvoiceRow
-          title="Nordwind Trading"
-          invoiceNo="INV-2026-000005"
-          status="Awaiting payment"
-          statusColor="info"
-          statusCaption="due 30 Jun 2026"
-          amount="USD 1,180.00"
-          onClick={() => {}}
-        />
-        <InvoiceRow
-          title="Kappa Logistics"
-          invoiceNo="INV-2026-000006"
-          status="Overdue"
-          statusColor="error"
-          statusCaption="since 2 Jun 2026"
-          amount="USD 920.50"
-          lastItem
-          onClick={() => {}}
-        />
-      </div>
-    </div>
+    <InteractiveDemo
+      groups={INVOICESTATUS_CONTROL_GROUPS}
+      defaultValues={{ preset: "paid" }}
+      render={(v) => (
+        <div className="w-[280px]">
+          <InvoiceStatus {...INVOICESTATUS_PRESETS[v.preset]} />
+        </div>
+      )}
+    />
   );
 }
 
-function InvoiceRowVariants() {
-  const base = {
-    title: "Marlow & Finch Studio",
-    invoiceNo: "INV-2026-000004",
-    status: "Paid",
-    statusColor: "success" as const,
-    statusCaption: "on 12 Jun 2026",
-    amount: "USD 6,430.05",
-    lastItem: true,
-  };
-  const cell = (label: string, node: React.ReactNode) => (
-    <AutoCell label={label}>
-      <div className="w-full max-w-[343px] rounded-[12px] bg-white px-4">{node}</div>
-    </AutoCell>
-  );
+const INVOICE_ROW_STATUSES: Record<string, { status: string; statusColor: BadgeColor; statusCaption: string }> = {
+  paid: { status: "Paid", statusColor: "success", statusCaption: "on 12 Jun 2026" },
+  awaiting: { status: "Awaiting payment", statusColor: "info", statusCaption: "due 30 Jun 2026" },
+  overdue: { status: "Overdue", statusColor: "error", statusCaption: "since 2 Jun 2026" },
+};
+
+const INVOICEROW_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "status",
+    label: "Status",
+    options: [
+      { value: "paid", label: "Paid" },
+      { value: "awaiting", label: "Awaiting payment" },
+      { value: "overdue", label: "Overdue" },
+    ],
+  },
+  {
+    key: "recurring",
+    label: "Recurring chip",
+    options: [
+      { value: "off", label: "Hidden" },
+      { value: "on", label: "Shown" },
+    ],
+  },
+  {
+    key: "credited",
+    label: "Credited amount",
+    options: [
+      { value: "none", label: "None" },
+      { value: "credited", label: '"Credited amount"' },
+      { value: "refund", label: '"Refund amount"' },
+    ],
+  },
+  {
+    key: "invoiceNo",
+    label: "Invoice number",
+    options: [
+      { value: "on", label: "Shown" },
+      { value: "off", label: "Hidden" },
+    ],
+  },
+];
+
+function InvoiceRowOverview() {
   return (
-    <div className="grid grid-cols-2 gap-4">
-      {cell("sm (list density)", <InvoiceRow {...base} recurring />)}
-      {cell("md", <InvoiceRow {...base} recurring size="md" />)}
-      {cell("With credited amount", <InvoiceRow {...base} recurring creditedAmount="USD 2,000.00" />)}
-      {cell("Custom credited label (refund)", <InvoiceRow {...base} creditedAmount="USD 2,000.00" creditedLabel="Refund amount" />)}
-      {cell("No recurring chip", <InvoiceRow {...base} />)}
-      {cell("No invoice number", <InvoiceRow {...base} invoiceNo={undefined} />)}
-      {cell(
-        "Divider between rows (lastItem on final only)",
-        <>
-          <InvoiceRow {...base} lastItem={false} />
-          <InvoiceRow {...base} title="Nordwind Trading" />
-        </>
+    <InteractiveDemo
+      groups={INVOICEROW_CONTROL_GROUPS}
+      defaultValues={{ status: "paid", recurring: "off", credited: "none", invoiceNo: "on" }}
+      render={(v) => (
+        <div className="w-[320px] rounded-[12px] bg-white px-4">
+          <InvoiceRow
+            title="Marlow & Finch Studio"
+            invoiceNo={v.invoiceNo === "on" ? "INV-2026-000004" : undefined}
+            recurring={v.recurring === "on"}
+            {...INVOICE_ROW_STATUSES[v.status]}
+            amount="USD 6,430.05"
+            creditedAmount={v.credited === "none" ? undefined : "USD 2,000.00"}
+            creditedLabel={v.credited === "refund" ? "Refund amount" : undefined}
+            onCreditedClick={() => {}}
+            lastItem
+            onClick={() => {}}
+          />
+        </div>
       )}
-    </div>
+    />
   );
 }
 
 const AHEAD_LINE = "You're ahead of 71% of similar businesses this month";
 
+const OUTSTANDING_SCENARIOS: Record<string, { collected: string; outstanding: string; percent: number; encouragement?: string; linkLabel?: string; outstandingSuffix?: string }> = {
+  "0": { collected: "0.00", outstanding: "20,000.00", percent: 0, outstandingSuffix: "to collect", linkLabel: "2 invoices" },
+  "50-none": { collected: "15,000.00", outstanding: "5,000.00", percent: 50, encouragement: AHEAD_LINE, linkLabel: "2 invoices" },
+  "50-partial": { collected: "15,000.00", outstanding: "5,000.00", percent: 50, encouragement: AHEAD_LINE, linkLabel: "1 overdue out of 2 invoices" },
+  "50-all": { collected: "15,000.00", outstanding: "0.00", percent: 50, encouragement: AHEAD_LINE, linkLabel: "2 overdue" },
+  "100": { collected: "20,000.00", outstanding: "0.00", percent: 100, encouragement: AHEAD_LINE },
+};
+
+const OUTSTANDINGCARD_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "scenario",
+    label: "Scenario",
+    options: [
+      { value: "0", label: "0% collected" },
+      { value: "50-none", label: "50% · none overdue" },
+      { value: "50-partial", label: "50% · partially overdue" },
+      { value: "50-all", label: "50% · all overdue" },
+      { value: "100", label: "100% collected (green bar)" },
+    ],
+  },
+];
+
 function OutstandingCardOverview() {
   return (
-    <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
-      <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
-        Half collected, one invoice overdue — as it'd sit on the dashboard (Collected box + invoices link both tappable):
-      </p>
-      <div className="w-full max-w-[343px]">
-        <OutstandingCard
-          expected="20,000.00"
-          collected="15,000.00"
-          outstanding="5,000.00"
-          percent={50}
-          encouragement={AHEAD_LINE}
-          linkLabel="1 overdue out of 2 invoices"
-          onLinkClick={() => {}}
-          onCollectedClick={() => {}}
-        />
-      </div>
-    </div>
+    <InteractiveDemo
+      groups={OUTSTANDINGCARD_CONTROL_GROUPS}
+      defaultValues={{ scenario: "50-partial" }}
+      render={(v) => (
+        <div className="w-[320px]">
+          <OutstandingCard expected="20,000.00" {...OUTSTANDING_SCENARIOS[v.scenario]} onLinkClick={() => {}} onCollectedClick={() => {}} />
+        </div>
+      )}
+    />
   );
 }
 
-function OutstandingCardVariants() {
-  return (
-    <div className="grid grid-cols-2 gap-4">
-      <AutoCell label="0% collected">
-        <div className="w-full max-w-[343px]">
-          <OutstandingCard expected="20,000.00" collected="0.00" outstanding="20,000.00" percent={0} outstandingSuffix="to collect" linkLabel="2 invoices" />
-        </div>
-      </AutoCell>
-      <AutoCell label="50% · none overdue">
-        <div className="w-full max-w-[343px]">
-          <OutstandingCard expected="20,000.00" collected="15,000.00" outstanding="5,000.00" percent={50} encouragement={AHEAD_LINE} linkLabel="2 invoices" />
-        </div>
-      </AutoCell>
-      <AutoCell label="50% · partially overdue">
-        <div className="w-full max-w-[343px]">
-          <OutstandingCard expected="20,000.00" collected="15,000.00" outstanding="5,000.00" percent={50} encouragement={AHEAD_LINE} linkLabel="1 overdue out of 2 invoices" />
-        </div>
-      </AutoCell>
-      <AutoCell label="50% · all overdue">
-        <div className="w-full max-w-[343px]">
-          <OutstandingCard expected="20,000.00" collected="15,000.00" outstanding="0.00" percent={50} encouragement={AHEAD_LINE} linkLabel="2 overdue" />
-        </div>
-      </AutoCell>
-      <AutoCell label="100% collected (green bar, no link)">
-        <div className="w-full max-w-[343px]">
-          <OutstandingCard expected="20,000.00" collected="20,000.00" outstanding="0.00" percent={100} encouragement={AHEAD_LINE} />
-        </div>
-      </AutoCell>
-    </div>
-  );
-}
+const ACTION_REQUIRED_CONTENT: Record<string, { title: string; description?: string }> = {
+  short: { title: "Invoice extracted", description: "Uploaded PDF invoice from Terra..." },
+  titleOnly: { title: "Invoice extracted" },
+  long: {
+    title: "Overpayment received on invoice awaiting review",
+    description: "INV-2026-000005 · paid USD 250.00 over the invoice total amount due",
+  },
+};
+
+const ACTIONREQUIRED_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "content",
+    label: "Content",
+    options: [
+      { value: "titleOnly", label: "Title only" },
+      { value: "short", label: "Title + description" },
+      { value: "long", label: "Long (truncates)" },
+    ],
+  },
+  {
+    key: "actionLabel",
+    label: "Action label",
+    options: [
+      { value: "Proceed", label: "Proceed (default)" },
+      { value: "Confirm", label: "Confirm" },
+    ],
+  },
+];
 
 function ActionRequiredOverview() {
   return (
-    <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
-      <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>A single actionable row — title, optional description, secondary "Proceed" button:</p>
-      <div className="w-full max-w-[343px]">
-        <ActionRequired title="Invoice extracted" description="Uploaded PDF invoice from Terra..." onAction={() => {}} />
+    <InteractiveDemo
+      groups={ACTIONREQUIRED_CONTROL_GROUPS}
+      defaultValues={{ content: "short", actionLabel: "Proceed" }}
+      render={(v) => (
+        <div className="w-[320px]">
+          <ActionRequired {...ACTION_REQUIRED_CONTENT[v.content]} actionLabel={v.actionLabel} onAction={() => {}} />
+        </div>
+      )}
+    />
+  );
+}
+
+const NOTIFICATIONITEM_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "read",
+    label: "Read state",
+    options: [
+      { value: "unread", label: "Unread" },
+      { value: "read", label: "Read" },
+    ],
+  },
+  {
+    key: "amount",
+    label: "Amount",
+    options: [
+      { value: "on", label: "Shown" },
+      { value: "off", label: "Hidden" },
+    ],
+  },
+  {
+    key: "action",
+    label: "Action button",
+    options: [
+      { value: "on", label: "Shown" },
+      { value: "off", label: "Hidden" },
+    ],
+  },
+];
+
+function NotificationItemOverview() {
+  return (
+    <InteractiveDemo
+      groups={NOTIFICATIONITEM_CONTROL_GROUPS}
+      defaultValues={{ read: "unread", amount: "on", action: "on" }}
+      render={(v) => (
+        <div className="w-[320px] rounded-[10px] bg-white px-4">
+          <NotificationItem
+            title="Payment received from Stripe Inc."
+            text="API payout · Wire transfer · DBS HK"
+            time="3 hours ago"
+            amount="HKD 6,430.05"
+            showAmount={v.amount === "on"}
+            actionLabel="Complete setup"
+            onAction={() => {}}
+            showAction={v.action === "on"}
+            read={v.read === "read"}
+            lastItem
+          />
+        </div>
+      )}
+    />
+  );
+}
+
+const LISTROW_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "content",
+    label: "Content",
+    options: [
+      { value: "simple", label: "Label only" },
+      { value: "description", label: "With description" },
+      { value: "caption", label: "Description + caption" },
+    ],
+  },
+  {
+    key: "trailing",
+    label: "Trailing",
+    options: [
+      { value: "none", label: "None" },
+      { value: "chevron", label: "Chevron" },
+      { value: "value", label: "Value + chevron" },
+      { value: "valueDescription", label: "Value + description" },
+      { value: "valueFlag", label: "Value + flag (currency)" },
+      { value: "toggle", label: "Toggle" },
+      { value: "swipedFull", label: "Swiped — more + delete" },
+      { value: "swipedDelete", label: "Swiped — delete only" },
+    ],
+  },
+];
+
+function ListRowTestMe() {
+  return (
+    <div className="flex flex-col gap-6">
+      <InteractiveDemo
+        groups={LISTROW_CONTROL_GROUPS}
+        defaultValues={{ content: "description", trailing: "value" }}
+        canvasBg={() => "#f9f5ea"}
+        render={(v) => (
+          <div className="w-[320px]">
+            <ListCard onLayer="beige">
+              <ListRow
+                label="Label"
+                description={v.content !== "simple" ? "This is description text" : undefined}
+                caption={v.content === "caption" ? "This is caption text" : undefined}
+                trailing={v.trailing === "toggle" ? "toggle" : v.trailing.startsWith("swiped") ? "none" : v.trailing === "none" ? "none" : "chevron"}
+                value={v.trailing === "value" ? "Next 30 days" : v.trailing === "valueDescription" ? "Personal Saving" : v.trailing === "valueFlag" ? "USD" : undefined}
+                valueDescription={v.trailing === "valueDescription" ? "HK883-168888-168" : undefined}
+                valueFlag={v.trailing === "valueFlag" ? <USFlag size={16} /> : undefined}
+                checked={v.trailing === "toggle"}
+                swiped={v.trailing === "swipedFull" || v.trailing === "swipedDelete"}
+                showMoreAction={v.trailing === "swipedFull"}
+                onMore={() => {}}
+                onDelete={() => {}}
+                onClick={v.trailing === "chevron" || v.trailing === "value" || v.trailing === "valueDescription" || v.trailing === "valueFlag" ? () => {} : undefined}
+                last
+              />
+            </ListCard>
+          </div>
+        )}
+      />
+      <div>
+        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Sub-parts</p>
+        <div className="grid grid-cols-4 gap-4">
+          <SwatchCell label="ListText · plain"><ListText text="Next 30 days" /></SwatchCell>
+          <SwatchCell label="ListText · +description"><ListText text="Personal Saving" description="HK883-168888-168" /></SwatchCell>
+          <SwatchCell label="ListText · currency"><ListText text="USD" flag={<USFlag size={16} />} /></SwatchCell>
+          <SwatchCell label="SwipeActions"><SwipeActions /></SwatchCell>
+        </div>
       </div>
     </div>
   );
 }
 
-function ActionRequiredVariants() {
+const LISTCARD_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "surface",
+    label: "Surface",
+    options: [
+      { value: "beige", label: "Beige page (borderless)" },
+      { value: "neutral", label: "White page (bordered)" },
+    ],
+  },
+];
+
+function ListCardTestMe() {
   return (
-    <div className="grid grid-cols-2 gap-4">
-      <AutoCell label="Title only">
-        <div className="w-full max-w-[343px]">
-          <ActionRequired title="Invoice extracted" onAction={() => {}} />
+    <InteractiveDemo
+      groups={LISTCARD_CONTROL_GROUPS}
+      defaultValues={{ surface: "beige" }}
+      canvasBg={(v) => (v.surface === "beige" ? "#f9f5ea" : "#f4f4f2")}
+      render={(v) => (
+        <div className="w-[320px]">
+          <ListCard onLayer={v.surface as "neutral" | "beige"}>
+            <ListRow label="Label" description="This is description text" trailing="chevron" value="Next 30 days" onClick={() => {}} />
+            <ListRow label="Label" description="This is description text" trailing="chevron" value="Next 30 days" onClick={() => {}} last />
+          </ListCard>
         </div>
-      </AutoCell>
-      <AutoCell label="Title + description">
-        <div className="w-full max-w-[343px]">
-          <ActionRequired title="Invoice extracted" description="Uploaded PDF invoice from Terra..." onAction={() => {}} />
-        </div>
-      </AutoCell>
-      <AutoCell label="Custom action label">
-        <div className="w-full max-w-[343px]">
-          <ActionRequired title="Payment match found" description="HKD 2,800 from Globe Enterprises matches this invoice" actionLabel="Confirm" onAction={() => {}} />
-        </div>
-      </AutoCell>
-      <AutoCell label="Long title/description (truncates)">
-        <div className="w-full max-w-[343px]">
-          <ActionRequired title="Overpayment received on invoice awaiting review" description="INV-2026-000005 · paid USD 250.00 over the invoice total amount due" onAction={() => {}} />
-        </div>
-      </AutoCell>
-    </div>
+      )}
+    />
   );
 }
+
+const PAGEHEADER_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "type",
+    label: "Type",
+    options: [
+      { value: "left", label: "Left align (22px title)" },
+      { value: "left-on-scroll", label: "Left align on scroll" },
+      { value: "center", label: "Center align" },
+      { value: "search", label: "Search" },
+    ],
+  },
+  {
+    key: "text",
+    label: "Text line",
+    options: [
+      { value: "off", label: "None" },
+      { value: "on", label: "Shown" },
+    ],
+  },
+  {
+    key: "back",
+    label: "Back button",
+    options: [
+      { value: "on", label: "Shown" },
+      { value: "off", label: "Hidden" },
+    ],
+  },
+  {
+    key: "searchState",
+    label: "Search state (search only)",
+    options: [
+      { value: "default", label: "Default" },
+      { value: "filled", label: "Filled" },
+      { value: "error", label: "Error" },
+      { value: "disabled", label: "Disabled" },
+    ],
+  },
+];
 
 function PageHeaderTestMe() {
-  const [query, setQuery] = useState("");
   const [collapsed, setCollapsed] = useState(false);
   return (
-    <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
-      <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
-        The big header and its scrolled-down compact state, plus the search header (try typing):
-      </p>
-      <HeaderStrip>
-        <PageHeader type="left" title="Invoices" />
-      </HeaderStrip>
-      <HeaderStrip>
-        <PageHeader type="left-on-scroll" title="Invoices" />
-      </HeaderStrip>
-      <HeaderStrip>
-        <PageHeader type="search" searchPlaceholder="Search invoices" searchValue={query} onSearchChange={setQuery} />
-      </HeaderStrip>
-
-      <p className="mt-2 text-[12px]" style={{ ...FONT, color: MUTED }}>
-        "Left" also animates smoothly in place via the <code>collapsed</code> prop — toggle it
-        to see the title slide up next to the back button (drive this from a scroll listener,
-        same pattern as FAB's <code>collapsed</code>):
-      </p>
-      <div className="flex items-center gap-2">
-        <Toggle checked={collapsed} onChange={setCollapsed} aria-label="Toggle collapsed" />
-        <span className="text-[12px]" style={{ ...FONT, color: INK }}>{collapsed ? "Collapsed" : "Expanded"}</span>
-      </div>
-      <HeaderStrip>
-        <PageHeader type="left" title="Invoices" text="last 5 invoices" collapsed={collapsed} />
-      </HeaderStrip>
-    </div>
-  );
-}
-
-function PageHeaderVariants() {
-  return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Types</p>
-        <div className="grid grid-cols-2 gap-4">
-          <AutoCell label="Left align (32px title, slot below buttons)">
-            <HeaderStrip><PageHeader type="left" title="Title" /></HeaderStrip>
-          </AutoCell>
-          <AutoCell label="Left align on scroll (24px title)">
-            <HeaderStrip><PageHeader type="left-on-scroll" title="Title" /></HeaderStrip>
-          </AutoCell>
-          <AutoCell label="Left align, collapsed prop (animates in place — see Test me)">
-            <HeaderStrip><PageHeader type="left" title="Title" collapsed /></HeaderStrip>
-          </AutoCell>
-          <AutoCell label="Center align (18px title)">
-            <HeaderStrip><PageHeader type="center" title="Title" /></HeaderStrip>
-          </AutoCell>
-          <AutoCell label="Search">
-            <HeaderStrip><PageHeader type="search" searchPlaceholder="Input text" /></HeaderStrip>
-          </AutoCell>
+    <div className="flex flex-col gap-6">
+      <InteractiveDemo
+        groups={PAGEHEADER_CONTROL_GROUPS}
+        defaultValues={{ type: "left-on-scroll", text: "off", back: "on", searchState: "default" }}
+        render={(v) => (
+          <HeaderStrip>
+            <PageHeader
+              type={v.type as PageHeaderType}
+              title="Title"
+              text={v.text === "on" ? "Text" : undefined}
+              showBack={v.back === "on"}
+              searchPlaceholder="Input text"
+              searchValue={v.searchState === "filled" || v.searchState === "error" ? "Input text" : ""}
+              error={v.searchState === "error"}
+              disabled={v.searchState === "disabled"}
+            />
+          </HeaderStrip>
+        )}
+      />
+      <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
+        <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
+          "Left" also animates smoothly in place via the <code>collapsed</code> prop — toggle it
+          to see the title slide up next to the back button (drive this from a scroll listener,
+          same pattern as FAB's <code>collapsed</code>):
+        </p>
+        <div className="flex items-center gap-2">
+          <Toggle checked={collapsed} onChange={setCollapsed} aria-label="Toggle collapsed" />
+          <span className="text-[12px]" style={{ ...FONT, color: INK }}>{collapsed ? "Collapsed" : "Expanded"}</span>
         </div>
+        <HeaderStrip>
+          <PageHeader type="left" title="Invoices" text="last 5 invoices" collapsed={collapsed} />
+        </HeaderStrip>
       </div>
       <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Options</p>
+        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Code-slot patterns (custom ReactNode content, not plain props)</p>
         <div className="grid grid-cols-2 gap-4">
-          <AutoCell label="With text line">
-            <HeaderStrip><PageHeader type="left-on-scroll" title="Title" text="Text" /></HeaderStrip>
-          </AutoCell>
-          <AutoCell label="Left align + text (32px title + subtitle)">
-            <HeaderStrip><PageHeader type="left" title="Title" text="Text" /></HeaderStrip>
-          </AutoCell>
-          <AutoCell label="Center + text">
-            <HeaderStrip><PageHeader type="center" title="Title" text="Text" /></HeaderStrip>
-          </AutoCell>
-          <AutoCell label="Without back button">
-            <HeaderStrip><PageHeader type="left-on-scroll" title="Title" showBack={false} /></HeaderStrip>
-          </AutoCell>
-          <AutoCell label="Center, no search button (form pages)">
-            <HeaderStrip><PageHeader type="center" title="Title" showSearch={false} /></HeaderStrip>
-          </AutoCell>
           <AutoCell label="Left align, custom slot">
             <HeaderStrip>
               <PageHeader type="left">
                 <div className="flex items-baseline gap-2">
-                  <p className="text-[32px] font-medium tracking-[-1.6px]" style={{ ...FONT, color: INK, lineHeight: 0.9 }}>USD 12,450</p>
+                  <p className="text-[22px] font-medium tracking-[-1.1px]" style={{ ...FONT, color: INK, lineHeight: 0.9 }}>USD 12,450</p>
                   <p className="text-[14px]" style={{ ...FONT, color: MUTED }}>outstanding</p>
                 </div>
               </PageHeader>
@@ -1111,6 +1608,11 @@ function PageHeaderVariants() {
           <AutoCell label="Custom right action (code slot — settings gear)">
             <HeaderStrip>
               <PageHeader type="left" title="Title" rightIcon={<SettingsGearIcon />} rightLabel="Settings" />
+            </HeaderStrip>
+          </AutoCell>
+          <AutoCell label="Custom back icon (code slot — close instead of back)">
+            <HeaderStrip>
+              <PageHeader type="center" title="Title" backIcon={<CloseGlyphIcon />} backLabel="Close" showSearch={false} />
             </HeaderStrip>
           </AutoCell>
           <AutoCell label="Custom right content (code slot — autosave chip)">
@@ -1126,134 +1628,31 @@ function PageHeaderVariants() {
               />
             </HeaderStrip>
           </AutoCell>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SearchTestMe() {
-  const [query, setQuery] = useState("");
-  return (
-    <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
-      <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
-        Try typing — focusing swaps the mic for an X that clears the field:
-      </p>
-      <div className="w-full max-w-[327px]">
-        <Search placeholder="Search invoices" value={query} onChange={setQuery} aria-label="Search demo" />
-      </div>
-    </div>
-  );
-}
-
-function SearchVariants() {
-  return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>States</p>
-        <div className="grid grid-cols-3 gap-4">
-          <SwatchCell label="Default"><div className="w-full px-3"><Search placeholder="Input text" aria-label="Search default" /></div></SwatchCell>
-          <SwatchCell label="Focused (X clears)"><div className="w-full px-3"><Search placeholder="Input text" value="Input text" forceFocus aria-label="Search focused" /></div></SwatchCell>
-          <SwatchCell label="Filled"><div className="w-full px-3"><Search value="Input text" aria-label="Search filled" /></div></SwatchCell>
-          <SwatchCell label="Error"><div className="w-full px-3"><Search value="Input text" error aria-label="Search error" /></div></SwatchCell>
-          <SwatchCell label="Disabled"><div className="w-full px-3"><Search placeholder="Input text" disabled aria-label="Search disabled" /></div></SwatchCell>
-        </div>
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Without the mic action</p>
-        <div className="grid grid-cols-3 gap-4">
-          <SwatchCell label="Default"><div className="w-full px-3"><Search placeholder="Input text" showAction={false} aria-label="Search no action" /></div></SwatchCell>
-          <SwatchCell label="Filled"><div className="w-full px-3"><Search value="Input text" showAction={false} aria-label="Search no action filled" /></div></SwatchCell>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TileTestMe() {
-  const [picked, setPicked] = useState("us");
-  const countries = [
-    { id: "us", title: "United States", text: "USD" },
-    { id: "hk", title: "Hong Kong", text: "HKD" },
-  ];
-  return (
-    <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
-      <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>Tap to pick — as a country picker would use it:</p>
-      <div className="flex w-full max-w-[343px] flex-col gap-2">
-        {countries.map((c) => (
-          <Tile
-            key={c.id}
-            title={c.title}
-            text={c.text}
-            flag={<USFlag size={30} />}
-            selected={picked === c.id}
-            trailing={picked === c.id ? "check" : "none"}
-            onClick={() => setPicked(c.id)}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function TileVariants() {
-  const states = (props: { icon?: React.ReactNode; flag?: React.ReactNode; avatar?: string }) => (
-    <div className="grid grid-cols-2 gap-4">
-      <AutoCell label="Default"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" {...props} /></div></AutoCell>
-      <AutoCell label="Chevron"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" trailing="chevron" {...props} /></div></AutoCell>
-      <AutoCell label="Selected + check"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" selected trailing="check" {...props} /></div></AutoCell>
-      <AutoCell label="Disabled"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" disabled {...props} /></div></AutoCell>
-      <AutoCell label="No trailing slot (long title)"><div className="w-full max-w-[343px]"><Tile title="A long action title that needs the full row" reserveTrailing={false} {...props} /></div></AutoCell>
-    </div>
-  );
-  return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Text only</p>
-        {states({})}
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>With icon (24px slot)</p>
-        {states({ icon: <CircleIcon size={24} /> })}
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Country (30px flag)</p>
-        {states({ flag: <USFlag size={30} /> })}
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Avatar (40px initials)</p>
-        {states({ avatar: "OR" })}
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Inline badge (badge slot)</p>
-        <div className="grid grid-cols-2 gap-4">
-          <AutoCell label="Inline badge"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" flag={<USFlag size={30} />} badge={<Badge label="Primary" size="sm" variant="bold" />} /></div></AutoCell>
-          <AutoCell label="Corner badge (primary account)"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" flag={<USFlag size={30} />} cornerBadge={<Badge label="Primary" size="md" variant="bold" color="custom" />} /></div></AutoCell>
-          <AutoCell label="Corner badge + selected"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" flag={<USFlag size={30} />} cornerBadge={<Badge label="Primary" size="md" variant="bold" color="custom" />} selected trailing="check" /></div></AutoCell>
-        </div>
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Avatar tints (avatarColor)</p>
-        <div className="grid grid-cols-2 gap-4">
-          <AutoCell label="Grey"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" avatar="OR" avatarColor="#efeff0" /></div></AutoCell>
-          <AutoCell label="Blue"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" avatar="OR" avatarColor="#d8e8f2" /></div></AutoCell>
-          <AutoCell label="Beige (default)"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" avatar="OR" /></div></AutoCell>
-          <AutoCell label="Sand"><div className="w-full max-w-[343px]"><Tile title="Title" text="Text" avatar="OR" avatarColor="#e7dfc9" /></div></AutoCell>
-        </div>
-      </div>
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>
-          On beige layer (borderless) & single line
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex w-full items-center justify-center rounded-[10px] border border-[#ececec] bg-[#f9f5ea] px-4 py-6" style={{ pointerEvents: "none" }}>
-              <div className="w-full max-w-[343px]"><Tile title="Title" text="Text" onLayer="beige" trailing="chevron" /></div>
-            </div>
-            <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>Beige layer</p>
-          </div>
-          <AutoCell label="No second line">
-            <div className="w-full max-w-[343px]"><Tile title="Title" trailing="chevron" /></div>
+          <AutoCell label="Right slot (Figma MenuPageHeader 'Slot' — frosted pill wraps custom content)">
+            <HeaderStrip>
+              <PageHeader
+                type="center"
+                title="Title"
+                showSearch={false}
+                rightSlot={
+                  <span className="flex items-center gap-2 text-[16px]" style={{ ...FONT, color: INK }}>
+                    <CircleIcon size={20} /> Slot
+                  </span>
+                }
+              />
+            </HeaderStrip>
+          </AutoCell>
+          <AutoCell label="More actions (Figma MenuPageHeader 'More actions' — glass button + solid primary button)">
+            <HeaderStrip>
+              <PageHeader
+                type="left-on-scroll"
+                title="Title"
+                rightIcon={<CircleIcon size={20} />}
+                rightLabel="More"
+                primaryIcon={<CircleIcon size={20} />}
+                primaryLabel="Add"
+              />
+            </HeaderStrip>
           </AutoCell>
         </div>
       </div>
@@ -1261,20 +1660,186 @@ function TileVariants() {
   );
 }
 
-function TextFieldTestMe() {
-  const [name, setName] = useState("");
-  const [amount, setAmount] = useState("");
-  const [phone, setPhone] = useState("");
+const SEARCH_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "state",
+    label: "State",
+    options: [
+      { value: "default", label: "Default" },
+      { value: "focused", label: "Focused (X clears)" },
+      { value: "filled", label: "Filled" },
+      { value: "error", label: "Error" },
+      { value: "disabled", label: "Disabled" },
+    ],
+  },
+  {
+    key: "mic",
+    label: "Mic action",
+    options: [
+      { value: "on", label: "Shown" },
+      { value: "off", label: "Hidden" },
+    ],
+  },
+];
+
+function SearchTestMe() {
   return (
-    <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
-      <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>Try typing — as they'd appear on Add customer:</p>
-      <div className="flex w-full max-w-[327px] flex-col gap-3">
-        <TextField placeholder="Customer name" value={name} onChange={setName} aria-label="Customer name" />
-        <TextField type="mobile" placeholder="Mobile number" inputMode="tel" value={phone} onChange={setPhone} aria-label="Mobile number" />
-        <TextField type="currency" placeholder="0.00" inputMode="decimal" value={amount} onChange={setAmount} aria-label="Amount" />
-        <TextField type="date-picker" placeholder="Due date" aria-label="Due date" onClick={() => {}} />
-      </div>
-    </div>
+    <InteractiveDemo
+      groups={SEARCH_CONTROL_GROUPS}
+      defaultValues={{ state: "default", mic: "on" }}
+      render={(v) => (
+        <div className="w-[280px]">
+          <Search
+            placeholder="Search invoices"
+            value={v.state === "filled" || v.state === "error" ? "Input text" : ""}
+            forceFocus={v.state === "focused"}
+            error={v.state === "error"}
+            disabled={v.state === "disabled"}
+            showAction={v.mic === "on"}
+            aria-label="Search demo"
+          />
+        </div>
+      )}
+    />
+  );
+}
+
+const TILE_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "size",
+    label: "Size",
+    options: [
+      { value: "md", label: "Medium (65px) — default" },
+      { value: "sm", label: "Small (54px) — denser lists" },
+    ],
+  },
+  {
+    key: "leading",
+    label: "Leading visual",
+    options: [
+      { value: "none", label: "None" },
+      { value: "icon", label: "Icon (24px)" },
+      { value: "flag", label: "Country flag (30px)" },
+      { value: "avatar", label: "Avatar (40px) — Figma doesn't shrink this at size=\"sm\", so it overflows a bit there" },
+    ],
+  },
+  {
+    key: "trailing",
+    label: "Trailing",
+    options: [
+      { value: "none", label: "None" },
+      { value: "chevron", label: "Chevron" },
+      { value: "check", label: "Check (selected)" },
+    ],
+  },
+  {
+    key: "text",
+    label: "Second line",
+    options: [
+      { value: "on", label: "Shown" },
+      { value: "off", label: "Hidden" },
+    ],
+  },
+  {
+    key: "state",
+    label: "State",
+    options: [
+      { value: "default", label: "Default" },
+      { value: "disabled", label: "Disabled" },
+      { value: "error", label: "Error — a required Tile left empty on submit" },
+    ],
+  },
+  {
+    key: "surface",
+    label: "Surface",
+    options: [
+      { value: "neutral", label: "White page" },
+      { value: "beige", label: "Beige page" },
+    ],
+  },
+];
+
+function TileTestMe() {
+  return (
+    <InteractiveDemo
+      groups={TILE_CONTROL_GROUPS}
+      defaultValues={{ size: "md", leading: "flag", trailing: "chevron", text: "on", state: "default", surface: "neutral" }}
+      canvasBg={(v) => (v.surface === "beige" ? "#f9f5ea" : "#f4f4f2")}
+      render={(v) => (
+        <div className="w-[320px]">
+          <Tile
+            title="Title"
+            size={v.size as "md" | "sm"}
+            text={v.text === "on" ? "Text" : undefined}
+            icon={v.leading === "icon" ? <CircleIcon size={24} /> : undefined}
+            flag={v.leading === "flag" ? <USFlag size={30} /> : undefined}
+            avatar={v.leading === "avatar" ? "OR" : undefined}
+            trailing={v.trailing as TileTrailing}
+            selected={v.trailing === "check"}
+            disabled={v.state === "disabled"}
+            error={v.state === "error"}
+            onLayer={v.surface as "neutral" | "beige"}
+            // Interactive (onClick given) so the momentary Pressed state (Figma node
+            // 4222-8331) is demoable — press and hold on a plain, non-selected tile.
+            onClick={() => {}}
+          />
+        </div>
+      )}
+    />
+  );
+}
+
+
+const AVATAR_SIZES = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const;
+
+const AVATAR_COLORS: Record<string, { color?: string; textColor?: string }> = {
+  beige: {},
+  grey: { color: "#efeff0" },
+  blue: { color: "#d8e8f2" },
+  sand: { color: "#e7dfc9" },
+  disabled: { color: "var(--bg-neutral-disabled)", textColor: "var(--text-neutral-inverse-disabled)" },
+};
+
+const AVATAR_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "style",
+    label: "Style",
+    options: [
+      { value: "square", label: "Square (initials)" },
+      { value: "photo", label: "Photo (circular)" },
+    ],
+  },
+  {
+    key: "size",
+    label: "Size",
+    options: AVATAR_SIZES.map((s) => ({ value: s, label: s })),
+  },
+  {
+    key: "color",
+    label: "Tint (square only)",
+    options: [
+      { value: "beige", label: "Beige (default)" },
+      { value: "grey", label: "Grey" },
+      { value: "blue", label: "Blue" },
+      { value: "sand", label: "Sand" },
+      { value: "disabled", label: "Disabled" },
+    ],
+  },
+];
+
+function AvatarOverview() {
+  return (
+    <InteractiveDemo
+      groups={AVATAR_CONTROL_GROUPS}
+      defaultValues={{ style: "square", size: "lg", color: "beige" }}
+      render={(v) =>
+        v.style === "photo" ? (
+          <Avatar size={v.size as AvatarSize} style="photo" src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=128&h=128&fit=crop" alt="" />
+        ) : (
+          <Avatar size={v.size as AvatarSize} initials="OR" {...AVATAR_COLORS[v.color]} />
+        )
+      }
+    />
   );
 }
 
@@ -1288,73 +1853,141 @@ const TEXT_FIELD_TYPES: { type: TextFieldType; label: string }[] = [
   { type: "unit", label: "Unit" },
 ];
 
-function TextFieldVariants() {
+const TEXTFIELD_CONTROL_GROUPS: ControlGroup[] = [
+  { key: "type", label: "Type", options: TEXT_FIELD_TYPES.map(({ type, label }) => ({ value: type, label })) },
+  {
+    key: "state",
+    label: "State",
+    options: [
+      { value: "default", label: "Default" },
+      { value: "focused", label: "Focused" },
+      { value: "filled", label: "Filled" },
+      { value: "error", label: "Error" },
+      { value: "disabled", label: "Disabled" },
+      { value: "highlight", label: "Highlight" },
+    ],
+  },
+  {
+    key: "label",
+    label: "Label & caption",
+    options: [
+      { value: "off", label: "None" },
+      { value: "on", label: "Shown (mandatory)" },
+    ],
+  },
+  {
+    key: "trailing",
+    label: "Trailing icon",
+    options: [
+      { value: "off", label: "None" },
+      { value: "on", label: "Shown (e.g. a unit picker or status badge)" },
+    ],
+  },
+];
+
+function TextFieldTestMe() {
   return (
-    <div className="flex flex-col gap-5">
-      {TEXT_FIELD_TYPES.map(({ type, label }) => {
-        const common = {
-          type,
-          placeholder: "Input text",
-          "aria-label": `${label} example`,
-          icon: type === "left-icon" ? <CircleIcon size={20} /> : undefined,
-        };
-        return (
-          <div key={type}>
-            <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>{label}</p>
-            <div className="grid grid-cols-3 gap-4">
-              <SwatchCell label="Default"><div className="w-full px-3"><TextField {...common} /></div></SwatchCell>
-              <SwatchCell label="Focused"><div className="w-full px-3"><TextField {...common} forceFocus /></div></SwatchCell>
-              <SwatchCell label="Filled"><div className="w-full px-3"><TextField {...common} value="Input text" /></div></SwatchCell>
-              <SwatchCell label="Error"><div className="w-full px-3"><TextField {...common} value="Input text" error /></div></SwatchCell>
-              <SwatchCell label="Disabled"><div className="w-full px-3"><TextField {...common} disabled /></div></SwatchCell>
-            </div>
-          </div>
-        );
-      })}
-      <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>
-          With label & caption (label keeps text-primary in every state; caption turns red on error)
-        </p>
-        <div className="grid grid-cols-3 gap-4">
-          <AutoCell label="Default">
-            <TextField label="Input Label" mandatory caption="Caption" placeholder="Input text" aria-label="Labeled default" />
-          </AutoCell>
-          <AutoCell label="Focused">
-            <TextField label="Input Label" mandatory caption="Caption" placeholder="Input text" forceFocus aria-label="Labeled focused" />
-          </AutoCell>
-          <AutoCell label="Filled">
-            <TextField label="Input Label" mandatory caption="Caption" value="Input text" aria-label="Labeled filled" />
-          </AutoCell>
-          <AutoCell label="Error">
-            <TextField label="Input Label" mandatory caption="Caption" value="Input text" error aria-label="Labeled error" />
-          </AutoCell>
-          <AutoCell label="Disabled">
-            <TextField label="Input Label" mandatory caption="Caption" placeholder="Input text" disabled aria-label="Labeled disabled" />
-          </AutoCell>
+    <InteractiveDemo
+      groups={TEXTFIELD_CONTROL_GROUPS}
+      defaultValues={{ type: "text", state: "default", label: "off", trailing: "off" }}
+      render={(v) => (
+        <div className="w-[280px]">
+          <TextField
+            type={v.type as TextFieldType}
+            placeholder="Input text"
+            value={v.state === "filled" || v.state === "error" ? "Input text" : ""}
+            forceFocus={v.state === "focused"}
+            error={v.state === "error"}
+            disabled={v.state === "disabled"}
+            highlight={v.state === "highlight"}
+            icon={v.type === "left-icon" ? <CircleIcon size={20} /> : undefined}
+            iconRight={v.trailing === "on" ? <CircleIcon size={20} /> : undefined}
+            label={v.label === "on" ? "Input Label" : undefined}
+            mandatory={v.label === "on"}
+            caption={v.label === "on" ? "Caption" : undefined}
+            aria-label="Text field demo"
+          />
         </div>
-      </div>
-    </div>
+      )}
+    />
   );
 }
+
+const TEXTAREA_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "state",
+    label: "State",
+    options: [
+      { value: "default", label: "Default" },
+      { value: "focused", label: "Focused" },
+      { value: "filled", label: "Filled" },
+      { value: "error", label: "Error" },
+      { value: "disabled", label: "Disabled" },
+    ],
+  },
+  {
+    key: "label",
+    label: "Label & caption",
+    options: [
+      { value: "off", label: "None" },
+      { value: "on", label: "Shown (mandatory)" },
+    ],
+  },
+];
+
+function TextAreaTestMe() {
+  return (
+    <InteractiveDemo
+      groups={TEXTAREA_CONTROL_GROUPS}
+      defaultValues={{ state: "default", label: "off" }}
+      render={(v) => (
+        <div className="w-[280px]">
+          <TextArea
+            placeholder="Input text"
+            value={v.state === "filled" || v.state === "error" ? "Input text" : ""}
+            onChange={() => {}}
+            forceFocus={v.state === "focused"}
+            error={v.state === "error"}
+            disabled={v.state === "disabled"}
+            label={v.label === "on" ? "Input Label" : undefined}
+            mandatory={v.label === "on"}
+            caption={v.label === "on" ? "Caption" : undefined}
+            aria-label="Text area demo"
+          />
+        </div>
+      )}
+    />
+  );
+}
+
+const TOGGLE_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "checked",
+    label: "Checked",
+    options: [
+      { value: "on", label: "On" },
+      { value: "off", label: "Off" },
+    ],
+  },
+  {
+    key: "disabled",
+    label: "State",
+    options: [
+      { value: "no", label: "Default" },
+      { value: "yes", label: "Disabled" },
+    ],
+  },
+];
 
 function ToggleTestMe() {
-  const [on, setOn] = useState(true);
   return (
-    <div className="flex items-center gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-4">
-      <Toggle checked={on} onChange={setOn} aria-label="Live toggle demo" />
-      <p className="text-[13px]" style={{ ...FONT, color: INK }}>Try it — currently {on ? "on" : "off"}</p>
-    </div>
-  );
-}
-
-function ToggleVariants() {
-  return (
-    <div className="grid grid-cols-4 gap-4">
-      <SwatchCell label="On · Default"><Toggle checked onChange={() => {}} /></SwatchCell>
-      <SwatchCell label="Off · Default"><Toggle checked={false} onChange={() => {}} /></SwatchCell>
-      <SwatchCell label="On · Disabled"><Toggle checked disabled onChange={() => {}} /></SwatchCell>
-      <SwatchCell label="Off · Disabled"><Toggle checked={false} disabled onChange={() => {}} /></SwatchCell>
-    </div>
+    <InteractiveDemo
+      groups={TOGGLE_CONTROL_GROUPS}
+      defaultValues={{ checked: "on", disabled: "no" }}
+      render={(v) => (
+        <Toggle checked={v.checked === "on"} onChange={() => {}} disabled={v.disabled === "yes"} aria-label="Toggle demo" />
+      )}
+    />
   );
 }
 
@@ -1370,7 +2003,7 @@ export function Showcase() {
   };
   const showSidebar = activeTab === "Components" && navOpen;
   return (
-    <div className={`min-h-screen bg-[#f2f2f0] px-6 pb-10 pt-[104px] ${showSidebar ? "lg:pl-[280px]" : ""}`}>
+    <div className={`min-h-screen bg-white px-6 pb-10 pt-[104px] ${showSidebar ? "lg:pl-[280px]" : ""}`}>
       {/* Top bar — Statrys logo left, doc-site sections right (only Components has content). */}
       <header className="fixed inset-x-0 top-0 z-10 flex h-[64px] items-center justify-between bg-black px-6">
         <div className="flex items-center gap-3">
@@ -1496,21 +2129,26 @@ export function Showcase() {
               </svg>
             </button>
           )}
-          <div className="mx-auto w-full max-w-[980px]">
+          <div className="w-full">
             {activeNav === "badge" && (
               <ComponentPage
                 title="Badge"
                 description="A small status label — subtle, bold, or text-only, in the five status colors plus the brand gradient."
                 overview={<BadgeOverview />}
-                variants={<BadgeVariants />}
+              />
+            )}
+            {activeNav === "noti-badge" && (
+              <ComponentPage
+                title="Noti Badge"
+                description="A small unread-count pill that overlays the corner of another element (e.g. Tabs Base). `inverse` flips it to a white pill with a brand border/text for use on brand-colored surfaces."
+                overview={<NotiBadgeOverview />}
               />
             )}
             {activeNav === "bottom-sheet" && (
               <ComponentPage
                 title="Bottom Sheet"
-                description="The modal sheet container — grabber, sticky 32px-title header with an optional frosted action button, content slot and 32px bottom pad."
+                description="The modal sheet container — grabber, sticky 18px-title header with an optional frosted action button, content slot and 32px bottom pad."
                 overview={<BottomSheetOverview />}
-                variants={<BottomSheetVariants />}
               />
             )}
             {activeNav === "overlay" && (
@@ -1518,59 +2156,41 @@ export function Showcase() {
                 title="Overlay"
                 description="The full-bleed scrim behind a modal or bottom sheet — a single flat color/opacity, no variants. Used by every BottomSheet in the app."
                 overview={<OverlayOverview />}
-                variants={<OverlayVariants />}
               />
             )}
             {activeNav === "button" && (
               <ComponentPage
                 title="Button"
                 description="Buttons are clickable items used to perform a direct action."
-                overview={
-                  <TryPanel
-                    render={(dark) => (
-                      <>
-                        <Button inverse={dark} label="Try me" onClick={() => {}} />
-                        <Button inverse={dark} hierarchy="secondary" label="Try me" onClick={() => {}} />
-                        <Button inverse={dark} hierarchy="tertiary" label="Try me" onClick={() => {}} />
-                      </>
-                    )}
-                  />
-                }
-                variants={<ButtonVariants />}
+                overview={<ButtonOverview />}
               />
             )}
             {activeNav === "fab" && (
               <ComponentPage
                 title="FAB"
                 description="Floating action button — a prominent, elevated shortcut that floats above the page content."
-                overview={
-                  <TryPanel
-                    render={(dark) => (
-                      <>
-                        <FAB inverse={dark} label="Try me" onClick={() => {}} />
-                        <FAB inverse={dark} hierarchy="secondary" label="Try me" onClick={() => {}} />
-                        <FAB inverse={dark} circle icon={<CircleIcon size={20} />} aria-label="Circle FAB" onClick={() => {}} />
-                      </>
-                    )}
-                  />
-                }
-                variants={<FabVariants />}
+                overview={<FabOverview />}
               />
             )}
             {activeNav === "tabs-base" && (
               <ComponentPage
                 title="Tabs Base"
-                description="A single tab item in button or underline style — compose several into a row to switch between views."
+                description="A single tab item in button or underline style — compose several into a row to switch between views. Optionally shows an unread NotiBadge in the corner (button style) or inline (underline style)."
                 overview={<TabsTestMe />}
-                variants={<TabsVariants />}
+              />
+            )}
+            {activeNav === "segmented-controls" && (
+              <ComponentPage
+                title="Segmented Controls"
+                description="A set of two to four segments dividing different views — the active segment is a white pill with a soft shadow, the rest sit flat on the beige track. A hairline separator appears between two adjacent inactive segments."
+                overview={<SegmentedControlsTestMe />}
               />
             )}
             {activeNav === "button-dock" && (
               <ComponentPage
                 title="Button Dock"
-                description="The bottom action dock in the frosted StickyButton style — vertically stacked full-width buttons over a transparent-to-white gradient with backdrop blur."
+                description="The bottom action dock — frosted, floating over a transparent-to-white gradient with backdrop blur."
                 overview={<ButtonDockOverview />}
-                variants={<ButtonDockVariants />}
               />
             )}
             {activeNav === "outstanding-card" && (
@@ -1578,7 +2198,6 @@ export function Showcase() {
                 title="Outstanding Card"
                 description="The dark dashboard hero card — expected amount, collected progress with a gradient bar (green at 100%), and the outstanding balance with an invoices link."
                 overview={<OutstandingCardOverview />}
-                variants={<OutstandingCardVariants />}
               />
             )}
             {activeNav === "action-required" && (
@@ -1586,7 +2205,27 @@ export function Showcase() {
                 title="Action Required"
                 description="A single actionable row — title, optional description, and a secondary 'Proceed' button. Stack it (see components/NeedAttentionStack) for the dashboard's Action Required preview."
                 overview={<ActionRequiredOverview />}
-                variants={<ActionRequiredVariants />}
+              />
+            )}
+            {activeNav === "list-row" && (
+              <ComponentPage
+                title="List Row"
+                description="A settings-style list row — label with an optional description, an optional caption line, and a trailing value (via ui/ListText)/chevron/toggle. Also covers ui/ListText and ui/SwipeActions, its sub-parts."
+                overview={<ListRowTestMe />}
+              />
+            )}
+            {activeNav === "list-card" && (
+              <ComponentPage
+                title="List Card"
+                description="The rounded card that groups ui/ListRow children — onLayer=neutral adds a hairline border for a white page background, onLayer=beige drops it."
+                overview={<ListCardTestMe />}
+              />
+            )}
+            {activeNav === "notification-item" && (
+              <ComponentPage
+                title="Notification Item"
+                description="A single row in a notification list — unread dot, title, description, a clock + relative time, an optional success-green amount, and an optional CTA button. `lastItem` drops the divider."
+                overview={<NotificationItemOverview />}
               />
             )}
             {activeNav === "page-header" && (
@@ -1594,15 +2233,27 @@ export function Showcase() {
                 title="Page Header"
                 description="Floating page header with frosted-glass buttons — big left title, compact scrolled state, centered title, or a search pill."
                 overview={<PageHeaderTestMe />}
-                variants={<PageHeaderVariants />}
+              />
+            )}
+            {activeNav === "avatar" && (
+              <ComponentPage
+                title="Avatar"
+                description="A leading identity chip — a rounded-square initials avatar (the only style used today) or a circular photo, across seven sizes."
+                overview={<AvatarOverview />}
+              />
+            )}
+            {activeNav === "invoice-status" && (
+              <ComponentPage
+                title="Invoice Status"
+                description="A colored status label + date caption, space-between across the full width — the top row of InvoiceRow."
+                overview={<InvoiceStatusOverview />}
               />
             )}
             {activeNav === "invoice-row" && (
               <ComponentPage
                 title="Invoice Row"
-                description="An invoice list row — title, number with optional Recurring chip, Badge-colored status line, amount, and an optional credited-amount strip."
+                description="An invoice list row — a full-width InvoiceStatus row, title + number, amount with an optional Recurring chip, and an optional credited-amount strip."
                 overview={<InvoiceRowOverview />}
-                variants={<InvoiceRowVariants />}
               />
             )}
             {activeNav === "loading" && (
@@ -1610,7 +2261,6 @@ export function Showcase() {
                 title="Loading"
                 description="A spinner with the Statrys mark at its center — the gradient arc rotates around a grey track; smaller sizes drop the logo."
                 overview={<LoadingOverview />}
-                variants={<LoadingVariants />}
               />
             )}
             {activeNav === "search" && (
@@ -1618,7 +2268,6 @@ export function Showcase() {
                 title="Search"
                 description="A compact search input with a leading search icon and a mic action that swaps to a clear button while focused."
                 overview={<SearchTestMe />}
-                variants={<SearchVariants />}
               />
             )}
             {activeNav === "text-field" && (
@@ -1626,15 +2275,41 @@ export function Showcase() {
                 title="Text Field"
                 description="A single-line input field — plain, with a leading icon, dropdown, date picker, or with a country-code, currency or unit selector."
                 overview={<TextFieldTestMe />}
-                variants={<TextFieldVariants />}
+              />
+            )}
+            {activeNav === "text-area" && (
+              <ComponentPage
+                title="Text Area"
+                description="A multi-line input field for longer free text (e.g. an email body) — same field styling as Text Field, height set by the caller via `rows`."
+                overview={<TextAreaTestMe />}
               />
             )}
             {activeNav === "tile" && (
               <ComponentPage
                 title="Tile"
-                description="A tappable list row — plain, with an icon, country flag or initials avatar, plus chevron/check trailing states for pickers."
+                description="A tappable list row — plain, with an icon, country flag or initials avatar, plus chevron/check trailing states for pickers. Press and hold a plain (non-selected) tile to see the momentary Pressed surface."
                 overview={<TileTestMe />}
-                variants={<TileVariants />}
+              />
+            )}
+            {activeNav === "chips" && (
+              <ComponentPage
+                title="Chips"
+                description="A single-line filter toggle — transparent background, black label in both states; only the border switches from neutral to black when active."
+                overview={<ChipsOverview />}
+              />
+            )}
+            {activeNav === "checkbox-base" && (
+              <ComponentPage
+                title="Checkbox Base"
+                description="The bare checkbox glyph — unchecked, checked, or indeterminate, in sm/md, each with a disabled state. The hit target is always larger than the visible square. Standalone it's a real role=checkbox button; compose it non-interactively inside a labeled row (see Checkbox)."
+                overview={<CheckboxBaseOverview />}
+              />
+            )}
+            {activeNav === "checkbox" && (
+              <ComponentPage
+                title="Checkbox"
+                description="A labeled checkbox row — title + optional description, the whole row clickable and keyboard-toggleable, not just the glyph."
+                overview={<CheckboxOverview />}
               />
             )}
             {activeNav === "tooltip" && (
@@ -1642,7 +2317,6 @@ export function Showcase() {
                 title="Tooltip"
                 description="Tooltips describe or identify an element — a short label, optionally with supporting text, with the arrow on any side."
                 overview={<TooltipOverview />}
-                variants={<TooltipVariants />}
               />
             )}
             {activeNav === "toggle" && (
@@ -1650,7 +2324,6 @@ export function Showcase() {
                 title="Toggle"
                 description="A switch to change between two states, on and off — used as an alternative to the checkbox."
                 overview={<ToggleTestMe />}
-                variants={<ToggleVariants />}
               />
             )}
             <p className="mt-8 text-[12px]" style={{ ...FONT, color: MUTED }}>

@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { PageAppHeader } from "../../components/PageAppHeader";
-import { SheetHeader, HeaderIconButton } from "../../components/SheetHeader";
+import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
 import { BottomSheet } from "../../components/BottomSheet";
 import { SendInvoiceSheet } from "../../components/SendInvoiceSheet";
@@ -13,8 +12,6 @@ import { RefundCreditNoteFlow } from "./RefundCreditNoteFlow";
 import { FilePreviewOverlay, type UploadedFileInfo } from "../../components/UploadedFile";
 import { CreditNotePreviewPage } from "../credit-note-list/CreditNotePreviewPage";
 import { CreditNoteDetailPage } from "../credit-note-list/CreditNoteDetailPage";
-import { ReviewEmail } from "../shared/ReviewEmail";
-import { ShareLinkSheet } from "../../components/ShareLinkSheet";
 import { InvoicePreviewPage } from "../shared/InvoicePreviewPage";
 import { SendSuccessToast } from "../../components/SendSuccessToast";
 import { getAccount, RECEIVING_ACCOUNTS } from "../../data/receivingAccounts";
@@ -205,8 +202,16 @@ export function InvoiceDetailPage({
 
   // Optional-send sub-flow state (reused from the create flow).
   const [sendSheetOpen, setSendSheetOpen] = useState(false);
-  const [emailReviewOpen, setEmailReviewOpen] = useState(false);
-  const [shareLinkOpen, setShareLinkOpen] = useState(false);
+  // Brief loading state on the Send invoice button itself (Figma node 4591-5847) before the
+  // delivery-method sheet opens — this prototype has no real network call to await.
+  const [sendPending, setSendPending] = useState(false);
+  const handleSendInvoiceClick = () => {
+    setSendPending(true);
+    setTimeout(() => {
+      setSendPending(false);
+      setSendSheetOpen(true);
+    }, 600);
+  };
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   // Whether the send sub-flow is sending the invoice or the just-created credit note.
   const [sendContext, setSendContext] = useState<"invoice" | "creditNote">("invoice");
@@ -386,8 +391,6 @@ export function InvoiceDetailPage({
 
   const closeSendFlows = () => {
     setSendSheetOpen(false);
-    setEmailReviewOpen(false);
-    setShareLinkOpen(false);
     setPdfPreviewOpen(false);
   };
 
@@ -628,24 +631,14 @@ export function InvoiceDetailPage({
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
       <PageAppHeader scrolled={scrolled}>
-      <SheetHeader
+      <PageHeader
+        type="center"
         title={headerTitle}
-        type="inside-page"
-        state="fixed"
-        leading={
-          <HeaderIconButton aria-label="Back" onClick={onBack}>
-            <ChevronLeftIcon />
-          </HeaderIconButton>
-        }
-        trailing={
-          (showMenu || paidActionsInMenu) ? (
-            <HeaderIconButton aria-label="More actions" onClick={() => setActionsOpen(true)}>
-              <MoreHorizIcon />
-            </HeaderIconButton>
-          ) : (
-            <span className="w-[30px] h-[30px] block" aria-hidden />
-          )
-        }
+        onBack={onBack}
+        showSearch={showMenu || paidActionsInMenu}
+        rightIcon={<MoreHorizIcon style={{ fontSize: 20 }} />}
+        rightLabel="More actions"
+        onRightClick={() => setActionsOpen(true)}
       />
       </PageAppHeader>
 
@@ -934,8 +927,9 @@ export function InvoiceDetailPage({
             sticky
             secondaryLabel="Edit invoice"
             primaryLabel="Send now"
+            primaryLoading={sendPending}
             onSecondary={openEdit}
-            onPrimary={() => setSendSheetOpen(true)}
+            onPrimary={handleSendInvoiceClick}
             homeIndicator
           />
         ) : uploaded ? (
@@ -958,7 +952,7 @@ export function InvoiceDetailPage({
         ) : (
           // Once a payment is logged, drop the "Mark as paid" secondary → just "Send invoice".
           pendingPayment ? (
-            <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryDisabled={!requiredComplete} onPrimary={() => setSendSheetOpen(true)} homeIndicator />
+            <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryDisabled={!requiredComplete} primaryLoading={sendPending} onPrimary={handleSendInvoiceClick} homeIndicator />
           ) : (
             <ButtonDock
               type="double"
@@ -966,8 +960,9 @@ export function InvoiceDetailPage({
               secondaryLabel="Mark as paid"
               primaryLabel="Send invoice"
               primaryDisabled={!requiredComplete}
+              primaryLoading={sendPending}
               onSecondary={() => { setRecordAmount(String(TOTAL)); setRecordPayOpen(true); }}
-              onPrimary={() => setSendSheetOpen(true)}
+              onPrimary={handleSendInvoiceClick}
               homeIndicator
             />
           )
@@ -975,7 +970,7 @@ export function InvoiceDetailPage({
       ) : sendable ? (
         // Once a payment is logged (awaiting approval) the "Mark as paid" CTA drops, leaving just "Send invoice".
         pendingPayment ? (
-          <ButtonDock type="single" sticky primaryLabel="Send invoice" onPrimary={() => setSendSheetOpen(true)} homeIndicator />
+          <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryLoading={sendPending} onPrimary={handleSendInvoiceClick} homeIndicator />
         ) : (
           <ButtonDock
             type="double"
@@ -984,7 +979,8 @@ export function InvoiceDetailPage({
             // own detail page). Label is "Send invoice" to match the Figma (696:4595).
             secondaryLabel="Send invoice"
             primaryLabel="Mark as paid"
-            onSecondary={() => setSendSheetOpen(true)}
+            secondaryLoading={sendPending}
+            onSecondary={handleSendInvoiceClick}
             onPrimary={() => { setRecordAmount(String(TOTAL)); setRecordPayOpen(true); }}
             homeIndicator
           />
@@ -1011,7 +1007,8 @@ export function InvoiceDetailPage({
             sticky
             secondaryLabel="Send invoice"
             primaryLabel="Refund Credit Note"
-            onSecondary={() => setSendSheetOpen(true)}
+            secondaryLoading={sendPending}
+            onSecondary={handleSendInvoiceClick}
             onPrimary={() => setRefundFlowOpen(true)}
             homeIndicator
           />
@@ -1042,8 +1039,8 @@ export function InvoiceDetailPage({
         onDeleteDraft={() => { setActionsOpen(false); setConfirmDelete(true); }}
       />
 
-      {/* Delete confirm (Draft only). Safe action (Keep draft) is the filled primary; destructive
-          Delete is the outline secondary (see memory: confirm-dialog-pattern). */}
+      {/* Delete confirm (Draft only). Safe action (Keep Draft) is the filled primary; destructive
+          Delete Draft is the outline secondary (see memory: confirm-dialog-pattern). */}
       <BottomSheet
         open={confirmDelete}
         title="Delete this draft?"
@@ -1052,8 +1049,8 @@ export function InvoiceDetailPage({
         footer={
           <ButtonDock
             type="double"
-            primaryLabel="Keep draft"
-            secondaryLabel="Delete"
+            primaryLabel="Keep Draft"
+            secondaryLabel="Delete Draft"
             onPrimary={() => setConfirmDelete(false)}
             onSecondary={() => { setConfirmDelete(false); onDeleted?.(); }}
             homeIndicator
@@ -1061,7 +1058,7 @@ export function InvoiceDetailPage({
         }
       >
         <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: MUTED }}>
-          This draft will be removed from the system. This can’t be undone.
+          Are you sure you want to delete this draft invoice? This action cannot be undone.
         </p>
       </BottomSheet>
 
@@ -1284,40 +1281,18 @@ export function InvoiceDetailPage({
         open={sendSheetOpen}
         customerName={sendName}
         customerEmail={sendEmail}
-        onClose={() => { setSendSheetOpen(false); setSendContext("invoice"); }}
-        onConfirm={(method) => {
-          // All methods keep the Delivery method page mounted underneath and open instantly
-          // (no transition): email review / share-link sheet / PDF preview overlay it.
-          if (method === "email") setEmailReviewOpen(true);
-          else if (method === "link") setShareLinkOpen(true);
-          else if (method === "pdf") setPdfPreviewOpen(true);
-        }}
-      />
-
-      {/* Email review — shown instantly over the (still-mounted) Delivery method page; no transition. */}
-      {emailReviewOpen && (
-        <div className="absolute inset-0 z-50">
-          <ReviewEmail
-            customerName={sendName}
-            customerEmail={sendEmail}
-            companyEmail={companyEmail}
-            invoiceNo={sendNo}
-            amountLabel={`${currency} ${sendTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            dueDateLabel={dueDateLabel}
-            onBack={() => setEmailReviewOpen(false)}
-            onSend={completeSend}
-          />
-        </div>
-      )}
-
-      <ShareLinkSheet
-        open={shareLinkOpen}
+        companyEmail={companyEmail}
+        invoiceNo={sendNo}
+        amountLabel={`${currency} ${sendTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+        dueDateLabel={dueDateLabel}
         link={`https://pay.statrys.com/i/${sendNo.toLowerCase()}`}
+        onClose={() => { setSendSheetOpen(false); setSendContext("invoice"); }}
+        onSend={completeSend}
         onSent={completeSend}
-        onDismiss={() => setShareLinkOpen(false)}
+        onDownload={() => setPdfPreviewOpen(true)}
       />
 
-      {/* PDF preview — shown instantly over the (still-mounted) Delivery method page; no transition.
+      {/* PDF preview — shown instantly over the (still-mounted) Send Invoice page; no transition.
           A credit-note send renders the dedicated credit-note document; otherwise the invoice. */}
       {pdfPreviewOpen && (
         <div className="absolute inset-0 z-50">

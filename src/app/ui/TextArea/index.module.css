@@ -1,0 +1,68 @@
+/* TextArea — Figma "[APP] Design System" → TextAreaFields (node 4338-1074) /
+   TextArea (node 4338-1075). 8px radius, 16px/12px padding, resizable height
+   left to the caller via `rows`. States: focus via :focus-within (border
+   black), error border red (wins over focus), disabled greys the surface,
+   text and placeholder. Colors from styles/theme.css. */
+
+.field {
+  composes: body-md from global;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  resize: none;
+  padding: 12px 16px;
+  background: var(--field-bg);
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  outline: none;
+}
+.field:focus,
+.forceFocus {
+  border-color: var(--field-border-focus);
+}
+.error,
+.error:focus {
+  border-color: var(--border-error-bold);
+}
+.field::placeholder {
+  color: var(--text-placeholder);
+  opacity: 1;
+}
+.disabled {
+  background: var(--field-bg-disabled);
+  color: var(--text-disabled);
+}
+.disabled::placeholder {
+  color: var(--text-disabled);
+}
+
+.labeled {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  font-family: var(--font-primary);
+}
+.label {
+  margin: 0;
+  font-family: var(--font-primary);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-body-md);
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+.asterisk {
+  font-size: var(--fs-body-md);
+  font-weight: var(--fw-medium);
+  margin-left: var(--space-2);
+}
+.caption {
+  composes: caption from global;
+  margin: 0;
+  color: var(--text-secondary);
+}
+.captionError {
+  color: var(--text-error-primary);
+}

@@ -55,15 +55,22 @@ src/app/
                      #   Button's color classes — keep those color-only.
                      #   Showcase.tsx = review gallery at /#showcase. RULE: every DS component
                      #   build OR update changes both the component folder and its Showcase page
-                     #   (NAV entry + Overview demo + Variants grid) in the same pass.
+                     #   (NAV entry + Overview demo) in the same pass. Overview demo = an
+                     #   InteractiveDemo (single live preview + a Controls sidebar of radio
+                     #   groups, one per prop — see Badge/NotiBadge/TabsBase, added 2026-07-24)
+                     #   — one instance you flip through beats a static grid of every
+                     #   combination. Skip a separate Variants grid when the Overview is
+                     #   already an InteractiveDemo; it's redundant.
   components/        # shared widgets only — sheets, cards, nav, inputs (no screens). Same
                      #   folder-per-component shape as ui/ now (index.tsx + index.module.css,
                      #   e.g. SearchField/, SelectionCard/, BottomSheet/ — SearchField/
                      #   SelectionCard renamed from Search/Tile 2026-07-16 to stop colliding
                      #   with ui/'s same-named DS components (genuinely different, not dupes).
-                     #   ButtonDock + EditCard render ui/Button inside.
-                     #   NB components/ui/ = legacy checkbox + utils (used by ReviewEmail,
-                     #   ButtonDock); don't confuse with the DS ui/ above.
+                     #   ButtonDock + EditCard render ui/Button inside. The legacy
+                     #   components/ui/ (radix checkbox + cn() utils) was deleted 2026-07-29 once
+                     #   its last callers (SendInvoiceSheet, ButtonDock) migrated to the real DS
+                     #   ui/Checkbox — always use ui/Checkbox for a new checkbox, never re-add
+                     #   a components/ui/ shim.
   pages/             # screens. A screen that owns sub-pages/parts lives in a folder
                      # holding the main page + its private pieces (folder-per-screen
                      # reorg 2026-07-17); standalone single-file screens stay flat.
@@ -77,11 +84,11 @@ src/app/
     credit-note-list/     # CreditNotesList (page) + CreditNoteDetailPage + CreditNotePreviewPage
                           # (the CN detail/preview are also opened from invoice-detail & the list)
     shared/               # pages rendered inside >1 screen's flow: InvoicePreviewPage
-                          # (invoice-detail + add-invoice-details), ReviewEmail (both send
-                          # flows + CN detail). Flat single-file screens (Dashboard, AccountingHub,
-                          # InvoiceSettings, NeedAttention, CustomerList, CustomerDetailPage,
-                          # AddCustomerPage, CreateSalesInvoice, GeneratingInvoice, DuplicateDecision,
-                          # RecurringSeriesDetail) stay directly under pages/.
+                          # (invoice-detail + add-invoice-details). Flat single-file screens
+                          # (Dashboard, AccountingHub, InvoiceSettings, NeedAttention,
+                          # CustomerList, CustomerDetailPage, AddCustomerPage, CreateSalesInvoice,
+                          # GeneratingInvoice, DuplicateDecision, RecurringSeriesDetail) stay
+                          # directly under pages/.
 ```
 
 Rules for new code:
@@ -136,7 +143,19 @@ in-session only — a reload resets it (expected prototype limit).
 - Client delete/archive is out of scope (referential integrity; record shared with payments side).
 - Sheet motion: sheets dim the page with the shared `ui/Overlay` component (`--overlay`,
   `rgba(27, 27, 27, 0.6)` — Figma dev-mode spec; no page recede/scale). `ButtonDock` labels
-  single-line. Currency sheet height = Add-Services sheet (`SERVICE_SHEET_HEIGHT`).
+  single-line. **Bottom sheet height: use the available space** (decided 2026-07-28) — default to
+  no `heightClass` at all so the sheet auto-sizes to its content up to `BottomSheet`'s own 88%
+  `max-height` cap, instead of pinning to a smaller fixed height that leaves room unused or forces
+  scrolling sooner than necessary. Only pass a fixed `heightClass`/`tall` when a sheet must match a
+  sibling sheet's height exactly (e.g. stepping between a form and its nested picker). When a sheet
+  needs to show as much as possible without scrolling, `fullPage` (taller than any percent
+  `heightClass`) plus `compact` (reclaims the empty no-footer spacer) is the strongest combo —
+  verify the actual fit with a headless-browser screenshot, don't just eyeball the CSS. CurrencySheet
+  no longer pins to Add-Services' `SERVICE_SHEET_HEIGHT` — it's `fullPage compact` so all 11
+  currencies show with zero scrolling. **Sheet titles are action-oriented** (decided 2026-07-28) —
+  lead with a verb ("Select Currency", "Select Due Date", "Select Country"), not a bare noun
+  ("Currency", "Due Date"); doesn't apply to purely informational sheets (e.g. "Bank Information",
+  "Email Preview") that aren't a choice/action.
 
 ## Specs / tickets
 

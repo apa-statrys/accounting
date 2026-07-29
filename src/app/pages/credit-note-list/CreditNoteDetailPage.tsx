@@ -1,5 +1,4 @@
 import { useState } from "react";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
@@ -7,12 +6,10 @@ import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { Asterisk } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
-import { SheetHeader, HeaderIconButton } from "../../components/SheetHeader";
+import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
 import { BottomSheet } from "../../components/BottomSheet";
 import { SendInvoiceSheet } from "../../components/SendInvoiceSheet";
-import { ReviewEmail } from "../shared/ReviewEmail";
-import { ShareLinkSheet } from "../../components/ShareLinkSheet";
 import { SendSuccessToast } from "../../components/SendSuccessToast";
 import { CreditNotePreviewPage } from "./CreditNotePreviewPage";
 import { FilePreviewOverlay, type UploadedFileInfo } from "../../components/UploadedFile";
@@ -142,8 +139,6 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const [sentLocal, setSentLocal] = useState(!!sent);
   // Send sub-flow (reused from the invoice send flow).
   const [sendSheetOpen, setSendSheetOpen] = useState(false);
-  const [emailReviewOpen, setEmailReviewOpen] = useState(false);
-  const [shareLinkOpen, setShareLinkOpen] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
   // Whether the PDF preview was opened from the send flow (download = complete send) or ⋯ (just view).
   const [pdfFromSend, setPdfFromSend] = useState(false);
@@ -191,7 +186,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const hasMenu = (isOpen && !!onCancel) || (isApplied && !!onCancel) || (isPendingRefund && !!onCancel) || isCancelled;
   const openSend = () => setSendSheetOpen(true);
 
-  const closeSend = () => { setSendSheetOpen(false); setEmailReviewOpen(false); setShareLinkOpen(false); setPdfOpen(false); };
+  const closeSend = () => { setSendSheetOpen(false); setPdfOpen(false); };
   const completeSend = () => { closeSend(); setSentLocal(true); setToastOpen(true); onSent?.(); };
   const openPdfPreview = () => { setActionsOpen(false); setPdfFromSend(false); setPdfOpen(true); };
 
@@ -224,13 +219,15 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
       <PageAppHeader scrolled={scrolled}>
-      <SheetHeader
+      <PageHeader
+        type="center"
         // Drafts carry no CN number yet (decided 2026-07-15) — a generic title until the note is applied.
         title={status === "Draft" ? (kind === "refund" ? "Refund Credit Note" : "Credit Note") : creditNoteNo}
-        type="inside-page"
-        state="fixed"
-        leading={<HeaderIconButton aria-label="Back" onClick={onBack}><ChevronLeftIcon /></HeaderIconButton>}
-        trailing={hasMenu ? <HeaderIconButton aria-label="More actions" onClick={() => setActionsOpen(true)}><MoreHorizIcon /></HeaderIconButton> : <span className="w-[30px] h-[30px] block" aria-hidden />}
+        onBack={onBack}
+        showSearch={hasMenu}
+        rightIcon={<MoreHorizIcon style={{ fontSize: 20 }} />}
+        rightLabel="More actions"
+        onRightClick={() => setActionsOpen(true)}
       />
       </PageAppHeader>
 
@@ -577,34 +574,15 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         open={sendSheetOpen}
         customerName={customerName}
         customerEmail={customerEmail ?? ""}
-        onClose={() => setSendSheetOpen(false)}
-        onConfirm={(method) => {
-          if (method === "email") setEmailReviewOpen(true);
-          else if (method === "link") setShareLinkOpen(true);
-          else if (method === "pdf") { setPdfFromSend(true); setPdfOpen(true); }
-        }}
-      />
-
-      {emailReviewOpen && (
-        <div className="absolute inset-0 z-50">
-          <ReviewEmail
-            customerName={customerName}
-            customerEmail={customerEmail ?? ""}
-            companyEmail={companyEmail}
-            invoiceNo={creditNoteNo}
-            amountLabel={amountLabel}
-            dueDateLabel={issueDateLabel}
-            onBack={() => setEmailReviewOpen(false)}
-            onSend={completeSend}
-          />
-        </div>
-      )}
-
-      <ShareLinkSheet
-        open={shareLinkOpen}
+        companyEmail={companyEmail}
+        invoiceNo={creditNoteNo}
+        amountLabel={amountLabel}
+        dueDateLabel={issueDateLabel}
         link={`https://pay.statrys.com/cn/${creditNoteNo.toLowerCase()}`}
+        onClose={() => setSendSheetOpen(false)}
+        onSend={completeSend}
         onSent={completeSend}
-        onDismiss={() => setShareLinkOpen(false)}
+        onDownload={() => { setPdfFromSend(true); setPdfOpen(true); }}
       />
 
       {pdfOpen && (
