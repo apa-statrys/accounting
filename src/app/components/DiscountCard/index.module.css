@@ -46,6 +46,6 @@
 }
 
 .chevron {
-  font-size: var(--text-lg);
-  color: #808080;
+  display: flex;
+  color: var(--text-secondary);
 }

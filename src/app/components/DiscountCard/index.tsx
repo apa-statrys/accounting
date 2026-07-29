@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import { TextField } from "../../ui/TextField";
+import { TextField, Chevron } from "../../ui/TextField";
 import { Toggle } from "../../ui/Toggle";
 import styles from "./index.module.css";
 
@@ -58,7 +57,9 @@ export function DiscountCard({ currency, enabled, onToggle, value, onChange, mod
               iconRight={
                 <button type="button" onClick={onOpenMode} className={styles.modeButton}>
                   <span className={`${styles.modeLabel} body-sm`}>{mode === "percent" ? "%" : currency}</span>
-                  <KeyboardArrowDownIcon className={styles.chevron} />
+                  <span className={styles.chevron}>
+                    <Chevron size={16} />
+                  </span>
                 </button>
               }
             />

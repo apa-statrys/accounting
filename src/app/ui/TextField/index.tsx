@@ -59,7 +59,11 @@ interface TextFieldProps {
   className?: string;
 }
 
-function Chevron({ size }: { size: 16 | 24 }) {
+/** The DS's own thin-stroke chevron (used for the mobile/currency/unit selector and the
+ *  dropdown/date-picker types below) — exported so other trailing "value + chevron" buttons
+ *  (e.g. DiscountCard's %/amount picker, AddServicesSheet's Unit picker) can reuse the exact
+ *  same glyph instead of reaching for a bolder/differently-weighted icon library. */
+export function Chevron({ size }: { size: 16 | 24 }) {
   return size === 16 ? (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <path d="M4 6L8 10L12 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />

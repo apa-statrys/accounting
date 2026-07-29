@@ -1,5 +1,4 @@
 import { useState } from "react";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { AnimatePresence, motion } from "motion/react";
 import { BottomSheet, SERVICE_SHEET_HEIGHT } from "../BottomSheet";
 import { TextField } from "../../ui/TextField";
@@ -40,7 +39,9 @@ export function AddServicesSheet({
 }: AddServicesSheetProps) {
   const [serviceName, setServiceName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [unit, setUnit] = useState(initial?.unit ?? "");
+  // "Unit" is itself a real, selectable entry in UNITS (a generic count) — it's the default,
+  // not a placeholder, so an unedited Quantity field is already validly filled.
+  const [unit, setUnit] = useState(initial?.unit ?? "Unit");
   const [quantity, setQuantity] = useState(initial ? String(initial.quantity) : "");
   const [unitPrice, setUnitPrice] = useState(initial ? String(initial.unitPrice) : "");
   // Field errors appear only after a failed CTA click; editing a field clears its error.
@@ -55,14 +56,14 @@ export function AddServicesSheet({
   const currency = invoiceCurrency;
   const currencyCountry = CURRENCY_COUNTRY[currency];
 
-  // DES-817: every line field is required (Item Name, Description, Quantity, Unit, Unit Price).
+  // DES-817: every line field is required (Item Name, Description, Quantity, Unit Price) — Unit
+  // itself defaults to "Unit" (a real, selectable entry in UNITS), so it's never unfilled.
   const handleAdd = () => {
     const next: typeof errors = {};
     if (!serviceName.trim()) next.name = "Enter the service name";
     if (!description.trim()) next.description = "Enter the description";
     if (!unitPrice.trim()) next.price = "Enter the unit price";
     if (!quantity.trim()) next.qty = "Enter the quantity";
-    else if (!unit) next.qty = "Choose a unit";
     setErrors(next);
     const firstInvalid = next.name ? "svc-field-name" : next.description ? "svc-field-description" : next.price ? "svc-field-price" : next.qty ? "svc-field-qty" : null;
     if (firstInvalid) {
@@ -80,7 +81,7 @@ export function AddServicesSheet({
     // Reset for the next line.
     setServiceName("");
     setDescription("");
-    setUnit("");
+    setUnit("Unit");
     setQuantity("");
     setUnitPrice("");
     setErrors({});
@@ -130,7 +131,6 @@ export function AddServicesSheet({
                   trailing={unit === u ? "check" : "none"}
                   onClick={() => {
                     setUnit(u);
-                    if (errors.qty === "Choose a unit") setErrors((p) => ({ ...p, qty: undefined }));
                     setStep("form");
                   }}
                 />
@@ -172,8 +172,11 @@ export function AddServicesSheet({
                 onBlur={blurKeyboard}
               />
 
+              {/* Currency is fixed per invoice (not chosen per line) — same TextField "currency"
+                  type as everywhere else, just with no onSelectorClick since there's nothing to
+                  open here. */}
               <TextField
-                type="left-icon"
+                type="currency"
                 id="svc-field-price"
                 label="Unit Price"
                 mandatory
@@ -185,17 +188,15 @@ export function AddServicesSheet({
                 onChange={(v) => { setUnitPrice(v); if (errors.price) setErrors((p) => ({ ...p, price: undefined })); }}
                 onFocus={focusKeyboard}
                 onBlur={blurKeyboard}
-                icon={
-                  <span className={styles.priceCurrency}>
-                    {currencyCountry && <CountryFlag name={currencyCountry} size={18} />}
-                    {currency || "—"}
-                  </span>
-                }
+                selectorLabel={currency || "—"}
+                selectorIcon={currencyCountry && <CountryFlag name={currencyCountry} size={20} />}
               />
 
               {/* Quantity with the Unit picker inline (Figma) — the trailing "Unit ⌄" pushes the
-                  "unit" step of this same sheet. */}
+                  "unit" step of this same sheet. TextField's own "unit" type (selectorLabel falls
+                  back to "Unit" when none is chosen yet). */}
               <TextField
+                type="unit"
                 id="svc-field-qty"
                 label="Quantity"
                 mandatory
@@ -208,17 +209,8 @@ export function AddServicesSheet({
                 onChange={(v) => { setQuantity(v.replace(/[^0-9]/g, "")); if (errors.qty) setErrors((p) => ({ ...p, qty: undefined })); }}
                 onFocus={focusKeyboard}
                 onBlur={blurKeyboard}
-                iconRight={
-                  <button
-                    type="button"
-                    onClick={() => setStep("unit")}
-                    aria-label="Choose unit"
-                    className={[styles.unitButton, unit ? styles.unitButtonFilled : styles.unitButtonEmpty].join(" ")}
-                  >
-                    {unit || "Unit"}
-                    <ExpandMoreIcon className={styles.unitIcon} />
-                  </button>
-                }
+                selectorLabel={unit}
+                onSelectorClick={() => setStep("unit")}
               />
             </div>
           </motion.div>
