@@ -1,5 +1,4 @@
 import { useState } from "react";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Camera } from "lucide-react";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { ButtonDock } from "../components/ButtonDock";
@@ -165,28 +164,19 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
     return false;
   })();
 
-  /** One field's TextField, configured from FIELD_META — used inside the section sheets. */
+  /** One field's TextField, configured from FIELD_META — used inside the section sheets.
+   *  Phone uses TextField's own "mobile" type (flag + dial code + chevron selector) instead of
+   *  a hand-rolled one — see memory: no-handrolled-ds-duplicates. */
   const field = (k: FieldKey) => (
     <TextField
-      type={k === "phone" ? "left-icon" : "text"}
+      type={k === "phone" ? "mobile" : "text"}
       label={FIELD_META[k].label}
       inputType={FIELD_META[k].type}
       placeholder={FIELD_META[k].placeholder}
       mandatory={FIELD_META[k].required}
-      icon={
-        k === "phone" ? (
-          <button
-            type="button"
-            className="flex items-center gap-1"
-            style={{ ...FONT, color: "var(--text-primary)" }}
-            onClick={(e) => { e.stopPropagation(); setPhoneCodeOpen(true); }}
-          >
-            <CountryFlag name={phoneCountry.name} size={20} />
-            <span className="body-md">{phoneCountry.dialCode}</span>
-            <ExpandMoreIcon style={{ fontSize: 16, color: "var(--text-secondary)" }} />
-          </button>
-        ) : undefined
-      }
+      selectorLabel={k === "phone" ? phoneCountry.dialCode : undefined}
+      selectorIcon={k === "phone" ? <CountryFlag name={phoneCountry.name} size={20} /> : undefined}
+      onSelectorClick={k === "phone" ? () => setPhoneCodeOpen(true) : undefined}
       value={s[k]}
       onChange={(v) => set(k, v)}
       onFocus={() => setKeyboardOpen(true)}

@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { TextField } from "../ui/TextField";
@@ -231,19 +230,12 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
                 error={!!err("email")} caption={err("email") || undefined} value={email} onChange={setEmail}
                 onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
-              <TextField type="left-icon" id="client-field-phone" label="Phone Number" inputType="tel" placeholder="Enter contact phone number"
-                icon={
-                  <button
-                    type="button"
-                    className="flex items-center gap-1"
-                    style={{ ...FONT, color: "var(--text-primary)" }}
-                    onClick={(e) => { e.stopPropagation(); setPhoneCodeOpen(true); }}
-                  >
-                    <CountryFlag name={phoneCountry.name} size={20} />
-                    <span className="body-md">{phoneCountry.dialCode}</span>
-                    <ExpandMoreIcon style={{ fontSize: 16, color: "var(--text-secondary)" }} />
-                  </button>
-                }
+              {/* TextField's own "mobile" type (flag + dial code + chevron selector) — see
+                  memory: no-handrolled-ds-duplicates. */}
+              <TextField type="mobile" id="client-field-phone" label="Phone Number" inputType="tel" placeholder="Enter contact phone number"
+                selectorLabel={phoneCountry.dialCode}
+                selectorIcon={<CountryFlag name={phoneCountry.name} size={20} />}
+                onSelectorClick={() => setPhoneCodeOpen(true)}
                 error={!!err("phone")} caption={err("phone") || undefined} value={phone} onChange={setPhone}
                 onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
