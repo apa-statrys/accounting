@@ -1,0 +1,37 @@
+/* XClose — Figma "[APP] Design System" → XClose (node 1646-164).
+   Size(sm 20px | md 30px) × inverse(false|true) × state(Default|Hover). Colors from
+   styles/theme.css. Hover is this component's own momentary state, not selected/disabled. */
+
+.root {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  border-radius: var(--radius-md);
+  color: var(--icon-primary);
+}
+.root.inverse {
+  color: var(--icon-neutral-inverse-primary);
+}
+
+.sm {
+  width: 20px;
+  height: 20px;
+}
+.md {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+}
+
+.root.hover {
+  background: var(--btn-tertiary-hover);
+}
+.root.inverse.hover {
+  background: var(--bg-neutral-inverse-primary-hover);
+}

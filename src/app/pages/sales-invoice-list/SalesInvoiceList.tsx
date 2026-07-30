@@ -10,7 +10,8 @@ import { Tile } from "../../ui/Tile";
 import { Avatar } from "../../ui/Avatar";
 import { Chips } from "../../ui/Chips";
 import { Checkbox } from "../../ui/Checkbox";
-import { SendSuccessToast } from "../../components/SendSuccessToast";
+import { Toast } from "../../components/Toast";
+import type { ToastVariant } from "../../ui/ToastMessage";
 import { CreateInvoiceSheet } from "../../components/CreateInvoiceSheet";
 import { BottomSheet } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
@@ -103,6 +104,7 @@ function SelectedCustomers({ clients, onRemove }: { clients: string[]; onRemove:
 
 interface SalesInvoiceListProps {
   showSuccess?: boolean;
+  successVariant?: ToastVariant;
   /** Toast title — short, varies by action. */
   successMessage?: string;
   /** Toast muted subline (e.g. "Marked as sent"). */
@@ -134,7 +136,7 @@ interface SalesInvoiceListProps {
   refundState?: Record<string, "partial" | "full">;
 }
 
-export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, onSuccessDone, recent, recentHighlighted, onRecentShown, onBack, onOpenInvoice, onManual, onUpload, onRecurring, initialStatus, onActiveStatusChange, initialDue, refundState }: SalesInvoiceListProps) {
+export function SalesInvoiceList({ showSuccess, successVariant, successMessage, successSubtext, onSuccessDone, recent, recentHighlighted, onRecentShown, onBack, onOpenInvoice, onManual, onUpload, onRecurring, initialStatus, onActiveStatusChange, initialDue, refundState }: SalesInvoiceListProps) {
   const initialActive = initialStatus ? Math.max(0, FILTERS.findIndex((f) => f.match === initialStatus)) : 0;
   const [active, setActive] = useState(initialActive);
   // Keep the selected status tab scrolled into view (e.g. when opened pre-filtered from the hero).
@@ -696,8 +698,9 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
         </AnimatePresence>
       </BottomSheet>
 
-      {/* Delete-draft confirmation. Safe action (Keep Draft) is the filled primary; destructive
-          Delete Draft is the outline secondary (see memory: confirm-dialog-pattern). */}
+      {/* Delete-draft confirmation. Delete Draft leads as the filled primary, in red — it's
+          irreversible, not just the recommended choice; Keep Draft is the plain outline secondary
+          (see memory: destructive-color-by-reversibility). */}
       <BottomSheet
         open={!!confirmDeleteId}
         title="Delete Draft Invoice?"
@@ -706,13 +709,14 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
         footer={
           <ButtonDock
             type="double"
-            primaryLabel="Keep Draft"
-            secondaryLabel="Delete Draft"
-            onPrimary={() => setConfirmDeleteId(null)}
-            onSecondary={() => {
+            primaryLabel="Delete Draft"
+            primaryDestructive
+            secondaryLabel="Keep Draft"
+            onPrimary={() => {
               if (confirmDeleteId) setDeletedIds((prev) => [...prev, confirmDeleteId]);
               setConfirmDeleteId(null);
             }}
+            onSecondary={() => setConfirmDeleteId(null)}
           />
         }
       >
@@ -722,7 +726,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
       </BottomSheet>
 
       {/* Success toast on top */}
-      <SendSuccessToast open={!!showSuccess} message={successMessage} subtext={successSubtext} onDone={onSuccessDone} />
+      <Toast open={!!showSuccess} message={successMessage} subtext={successSubtext} variant={successVariant} onDone={onSuccessDone} />
     </div>
   );
 }

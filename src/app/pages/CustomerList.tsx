@@ -4,7 +4,7 @@ import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { Search } from "../ui/Search";
 import { Button } from "../ui/Button";
-import { SendSuccessToast } from "../components/SendSuccessToast";
+import { Toast } from "../components/Toast";
 import type { Customer } from "../types";
 
 import { FONT, INK, MUTED } from "../lib/theme";
@@ -121,7 +121,7 @@ export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer,
       </div>
 
       {/* Success confirmation (AC5) — shared toast style. */}
-      <SendSuccessToast open={!!flash} message={flash ?? ""} onDone={onFlashDone} />
+      <Toast open={!!flash} message={flash ?? ""} onDone={onFlashDone} bottomOffset={16} />
     </div>
   );
 }

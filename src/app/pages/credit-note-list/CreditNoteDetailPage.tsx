@@ -10,7 +10,7 @@ import { BottomSheet } from "../../components/BottomSheet";
 import { SendInvoiceSheet } from "../../components/SendInvoiceSheet";
 import { LockedPeriodDialog } from "../locked-period/LockedPeriodDialog";
 import { LockedPeriodBanner } from "../locked-period/LockedPeriodBanner";
-import { SendSuccessToast } from "../../components/SendSuccessToast";
+import { Toast } from "../../components/Toast";
 import { CreditNotePreviewPage } from "./CreditNotePreviewPage";
 import { FilePreviewOverlay, type UploadedFileInfo } from "../../components/UploadedFile";
 import { money, fmtDate } from "../../lib/format";
@@ -559,8 +559,10 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       </BottomSheet>
 
       {/* Delete-draft confirmation (DES-719 AC7). Dock goes in the sheet footer so it aligns flush
-          like every other ButtonDock (body placement double-pads it). Safe action (Cancel) is the
-          filled primary; destructive Delete is the outline secondary (see memory: confirm-dialog-pattern). */}
+          like every other ButtonDock (body placement double-pads it). Delete Credit note leads as
+          the filled primary, in red — it's irreversible, not just the recommended choice; Cancel
+          (dismiss this prompt) is the plain outline secondary (see memory:
+          destructive-color-by-reversibility). */}
       <BottomSheet
         open={confirmDelete}
         title="Delete credit note?"
@@ -569,10 +571,11 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         footer={
           <ButtonDock
             type="double"
-            primaryLabel="Cancel"
-            secondaryLabel="Delete Credit note"
-            onPrimary={() => setConfirmDelete(false)}
-            onSecondary={() => { setConfirmDelete(false); onCancel?.(); }}
+            primaryLabel="Delete Credit note"
+            primaryDestructive
+            secondaryLabel="Cancel"
+            onPrimary={() => { setConfirmDelete(false); onCancel?.(); }}
+            onSecondary={() => setConfirmDelete(false)}
           />
         }
       >
@@ -657,7 +660,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
 
       <FilePreviewOverlay open={proofPreview !== null} file={proofPreview} onClose={() => setProofPreview(null)} />
 
-      <SendSuccessToast open={toastOpen} message="Credit note sent" onDone={() => setToastOpen(false)} />
+      <Toast open={toastOpen} message="Credit note sent" onDone={() => setToastOpen(false)} />
     </div>
   );
 }

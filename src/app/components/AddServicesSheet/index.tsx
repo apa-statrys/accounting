@@ -100,7 +100,10 @@ export function AddServicesSheet({
         setStep("form");
       }}
       keyboardOpen={keyboardOpen}
-      heightClass={SERVICE_SHEET_HEIGHT}
+      // The form step matches its own fixed height so stepping to/from the Unit picker doesn't
+      // resize the sheet; the Unit picker itself is a short, fixed 6-row list, so let it hug its
+      // own content instead of inheriting the taller form height (which left empty space below it).
+      heightClass={step === "unit" ? undefined : SERVICE_SHEET_HEIGHT}
       footer={
         step === "unit" ? undefined : (
           // Editing an item: single "Save Changes" CTA — removal is done by swiping the line left.

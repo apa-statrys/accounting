@@ -2,7 +2,7 @@ import { useState } from "react";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { ButtonDock } from "../components/ButtonDock";
-import { SendSuccessToast } from "../components/SendSuccessToast";
+import { Toast } from "../components/Toast";
 import type { Customer } from "../types";
 
 import { FONT, INK, MUTED } from "../lib/theme";
@@ -132,7 +132,7 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
         onPrimary={() => onEdit?.()}
       />
 
-      <SendSuccessToast open={!!flash} message={flash ?? ""} onDone={onFlashDone} />
+      <Toast open={!!flash} message={flash ?? ""} onDone={onFlashDone} />
     </div>
   );
 }

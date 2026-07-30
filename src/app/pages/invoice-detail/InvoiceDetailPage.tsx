@@ -12,7 +12,7 @@ import { FilePreviewOverlay, type UploadedFileInfo } from "../../components/Uplo
 import { CreditNotePreviewPage } from "../credit-note-list/CreditNotePreviewPage";
 import { CreditNoteDetailPage } from "../credit-note-list/CreditNoteDetailPage";
 import { InvoicePreviewPage } from "../shared/InvoicePreviewPage";
-import { SendSuccessToast } from "../../components/SendSuccessToast";
+import { Toast } from "../../components/Toast";
 import { getAccount, RECEIVING_ACCOUNTS } from "../../data/receivingAccounts";
 import { SHOW_CREDIT_NOTES, SHOW_RECURRING } from "../../lib/flags";
 import { CREDIT_NOTES } from "../../data/creditNotes";
@@ -690,7 +690,7 @@ export function InvoiceDetailPage({
       {/* Status + amount — full-bleed beige→white gradient hero (Figma "Invoice Detail",
           node 1423:63521), edge to edge rather than inset like the cards below it. */}
       <div
-        className="p-4 flex flex-col gap-3"
+        className="p-4 flex flex-col gap-1"
         style={{ backgroundImage: "linear-gradient(180deg, var(--bg-beige-primary) 1%, var(--bg-neutral-primary) 99%)" }}
       >
         <span className="flex items-center gap-1.5 flex-wrap">
@@ -750,7 +750,7 @@ export function InvoiceDetailPage({
         )}
       </div>
 
-      <div className="px-4 pt-5 pb-44 flex flex-col gap-6 bg-white">
+      <div className="px-4 pt-2 pb-44 flex flex-col gap-6 bg-white">
         {/* Locked-period notice (DES-751) — neutral, non-blocking; Mark as paid still works. */}
         {lockedPeriod && (
           <LockedPeriodBanner
@@ -889,7 +889,7 @@ export function InvoiceDetailPage({
                 (Figma puts the divider here, not above Total). */}
             <div className="flex items-center justify-between py-2.5 border-b" style={{ borderColor: "rgba(208,208,208,0.4)" }}>
               <span className="body-sm" style={{ ...FONT, color: MUTED }}>Discount</span>
-              <span className="body-sm" style={{ ...FONT, color: DISCOUNT > 0 ? "var(--text-brand)" : INK }}>{DISCOUNT > 0 ? `−${money(DISCOUNT, currency)}` : money(0, currency)}</span>
+              <span className="body-sm" style={{ ...FONT, color: INK }}>{DISCOUNT > 0 ? `−${money(DISCOUNT, currency)}` : money(0, currency)}</span>
             </div>
             {/* When credit is APPLIED, Total is just a reference and Amount due is the prominent figure.
                 An UNapplied (Open) credit note isn't shown here — it's surfaced in the Credits Applied card
@@ -991,16 +991,17 @@ export function InvoiceDetailPage({
           <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryDisabled={!requiredComplete} primaryLoading={sendPending} onPrimary={openSend} />
         )
       ) : sendable ? (
-        // Once a payment is logged (awaiting approval) the "Mark as paid" CTA drops, leaving just "Send invoice".
+        // Once a payment is logged (awaiting approval) the "Mark as paid" CTA drops, leaving just "Resend invoice".
         pendingPayment ? (
-          <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryLoading={sendPending} onPrimary={openSend} />
+          <ButtonDock type="single" sticky primaryLabel="Resend invoice" primaryLoading={sendPending} onPrimary={openSend} />
         ) : (
           <ButtonDock
             type="double"
             sticky
             // On the INVOICE detail the secondary always sends the INVOICE (credit notes are sent from their
-            // own detail page). Label is "Send invoice" to match the Figma (696:4595).
-            secondaryLabel="Send invoice"
+            // own detail page). Already Awaiting/Overdue/Partially Paid means it was sent once already, so
+            // this is a resend, not a first send (Figma 696:4595 label updated to "Resend invoice").
+            secondaryLabel="Resend invoice"
             primaryLabel="Mark as paid"
             secondaryLoading={sendPending}
             onSecondary={openSend}
@@ -1021,12 +1022,13 @@ export function InvoiceDetailPage({
             onPrimary={openSendCreditNote}
           />
         ) : (
-          // Refund pending (Figma 696:5495): Send Invoice (secondary) + Refund Credit Note (primary,
-          // money-out — the DES-720 AC3 label). The refund CN is sent from its own detail page.
+          // Refund pending (Figma 696:5495): Resend Invoice (secondary — it's already been sent to
+          // reach this refund state) + Refund Credit Note (primary, money-out — the DES-720 AC3 label).
+          // The refund CN is sent from its own detail page.
           <ButtonDock
             type="double"
             sticky
-            secondaryLabel="Send invoice"
+            secondaryLabel="Resend invoice"
             primaryLabel="Refund Credit Note"
             secondaryLoading={sendPending}
             onSecondary={openSend}
@@ -1059,8 +1061,9 @@ export function InvoiceDetailPage({
         onDeleteDraft={() => { setActionsOpen(false); setConfirmDelete(true); }}
       />
 
-      {/* Delete confirm (Draft only). Safe action (Keep Draft) is the filled primary; destructive
-          Delete Draft is the outline secondary (see memory: confirm-dialog-pattern). */}
+      {/* Delete confirm (Draft only). Delete Draft leads as the filled primary, in red — it's
+          irreversible, not just the recommended choice; Keep Draft is the plain outline secondary
+          (see memory: destructive-color-by-reversibility). */}
       <BottomSheet
         open={confirmDelete}
         title="Delete this draft?"
@@ -1069,10 +1072,11 @@ export function InvoiceDetailPage({
         footer={
           <ButtonDock
             type="double"
-            primaryLabel="Keep Draft"
-            secondaryLabel="Delete Draft"
-            onPrimary={() => setConfirmDelete(false)}
-            onSecondary={() => { setConfirmDelete(false); onDeleted?.(); }}
+            primaryLabel="Delete Draft"
+            primaryDestructive
+            secondaryLabel="Keep Draft"
+            onPrimary={() => { setConfirmDelete(false); onDeleted?.(); }}
+            onSecondary={() => setConfirmDelete(false)}
           />
         }
       >
@@ -1399,7 +1403,7 @@ export function InvoiceDetailPage({
       )}
 
       {/* Local toast for in-page outcomes (void / re-download) */}
-      <SendSuccessToast open={!!localToast} message={localToast ?? ""} onDone={() => setLocalToast(null)} />
+      <Toast open={!!localToast} message={localToast ?? ""} onDone={() => setLocalToast(null)} />
     </div>
   );
 }

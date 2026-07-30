@@ -50,8 +50,14 @@ interface ButtonDockCommonProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Trailing icon on the primary action (e.g. a chevron-right for a "Continue"-style
    *  forward-navigation step — Figma sets this per-instance, not as a StickyButton axis). */
   primaryIconRight?: React.ReactNode;
+  /** Red instead of the default filled black — the primary action is irreversible
+   *  (e.g. "Delete Draft" leading as the recommended-looking CTA). */
+  primaryDestructive?: boolean;
   /** Second action: outline for 'double'/'triple', ghost text for 'ghost'. */
   secondaryLabel?: string;
+  /** Red instead of the default black outline — the secondary action is irreversible
+   *  (e.g. "Delete Draft"), not just the non-recommended choice. */
+  secondaryDestructive?: boolean;
   /** Third (ghost) action — 'triple' only. */
   tertiaryLabel?: string;
   onPrimary?: () => void;
@@ -106,7 +112,9 @@ export function ButtonDock({
   sticky = false,
   primaryLabel = 'Confirm',
   primaryIconRight,
+  primaryDestructive = false,
   secondaryLabel = 'Cancel',
+  secondaryDestructive = false,
   tertiaryLabel = 'Close',
   onPrimary,
   onSecondary,
@@ -131,6 +139,7 @@ export function ButtonDock({
       className={styles.fullButton}
       disabled={primaryDisabled}
       loading={primaryLoading}
+      destructive={primaryDestructive}
       onClick={onPrimary}
       label={primaryLabel}
       iconRight={primaryIconRight}
@@ -144,6 +153,7 @@ export function ButtonDock({
       className={styles.fullButton}
       disabled={secondaryDisabled}
       loading={secondaryLoading}
+      destructive={secondaryDestructive}
       onClick={onSecondary}
       label={secondaryLabel}
     />

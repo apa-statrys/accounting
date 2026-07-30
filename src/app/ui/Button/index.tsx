@@ -45,6 +45,10 @@ interface ButtonProps {
   "aria-label"?: string;
   /** Pin the pressed ("Active") look — for the showcase's static state grid only. */
   forceActive?: boolean;
+  /** Red instead of the default black — filled red for primary (e.g. a "Delete Draft" CTA),
+   *  red border/text for secondary/tertiary — for an irreversible action that shouldn't read
+   *  as neutral/safe. Ignored on `inverse`. */
+  destructive?: boolean;
 }
 
 export function Button({
@@ -64,12 +68,14 @@ export function Button({
   className,
   "aria-label": ariaLabel,
   forceActive = false,
+  destructive = false,
 }: ButtonProps) {
   const [pressed, setPressed] = useState(false);
   const classes = [
     styles.root,
     square ? (size === "md" ? styles.squareMd : styles.squareSm) : size === "md" ? styles.md : styles.sm,
     hierarchyClass(hierarchy, inverse),
+    destructive && !inverse ? styles.destructive : "",
     (pressed || forceActive || loading) && !disabled ? styles.active : "",
     fullWidth ? styles.fullWidth : "",
     className ?? "",

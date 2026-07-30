@@ -52,11 +52,6 @@
   color: var(--text-primary);
 }
 
-.valueBrandMedium {
-  composes: body-sm from global;
-  color: var(--text-brand);
-}
-
 .valueBold {
   composes: body-sm-bold from global;
   color: var(--text-primary);

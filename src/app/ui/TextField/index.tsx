@@ -136,14 +136,23 @@ export function TextField({
     .filter(Boolean)
     .join(" ");
 
+  // No onSelectorClick → nothing to tap (e.g. a currency fixed per invoice, shown read-only) —
+  // render plain text with no chevron rather than a button that implies it's interactive.
   const selector = hasSelector && (
-    <button type="button" className={styles.selector} onClick={onSelectorClick} disabled={disabled}>
-      {type !== "unit" && <span className={styles.flag}>{selectorIcon ?? <USFlag />}</span>}
-      <span>{selectorLabel ?? SELECTOR_DEFAULTS[type]}</span>
-      <span className={styles.chevronSm}>
-        <Chevron size={16} />
+    onSelectorClick ? (
+      <button type="button" className={styles.selector} onClick={onSelectorClick} disabled={disabled}>
+        {type !== "unit" && <span className={styles.flag}>{selectorIcon ?? <USFlag />}</span>}
+        <span>{selectorLabel ?? SELECTOR_DEFAULTS[type]}</span>
+        <span className={styles.chevronSm}>
+          <Chevron size={16} />
+        </span>
+      </button>
+    ) : (
+      <span className={styles.selector}>
+        {type !== "unit" && <span className={styles.flag}>{selectorIcon ?? <USFlag />}</span>}
+        <span>{selectorLabel ?? SELECTOR_DEFAULTS[type]}</span>
       </span>
-    </button>
+    )
   );
 
   const field =

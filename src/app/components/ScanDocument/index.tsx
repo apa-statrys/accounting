@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import CloseIcon from "@mui/icons-material/Close";
 import FlashOnOutlinedIcon from "@mui/icons-material/FlashOnOutlined";
 import PhotoLibraryOutlinedIcon from "@mui/icons-material/PhotoLibraryOutlined";
-import StatusBar from "../../components/StatusBar";
+import StatusBar from "../StatusBar";
 
 import { FONT } from "../../lib/theme";
 const BRAND = "#FF4A15";
@@ -25,7 +25,9 @@ function Corner({ pos }: { pos: "tl" | "tr" | "bl" | "br" }) {
  * scanner (iOS VisionKit / Android ML Kit); here it plays a framing → scanning sequence,
  * then hands a captured file back via `onCapture`. The bottom bar also has a photo-library
  * import button (`onImport`) — same spot as iOS Camera's last-shot thumbnail — so upload
- * isn't camera-only. Render at the PAGE ROOT.
+ * isn't camera-only. Renders full-screen (`absolute inset-0`) over whatever's underneath
+ * (CreateInvoiceSheet) — needs a positioned ancestor sized to the phone frame, same as any
+ * other sheet overlay.
  */
 export function ScanDocument({
   open,

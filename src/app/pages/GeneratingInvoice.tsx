@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { StatusBar } from "../components/StatusBar";
+import { Loading } from "../ui/Loading";
 
 const DEFAULT_STEPS = [
   "Preparing invoice details…",
@@ -69,36 +70,14 @@ export function GeneratingInvoice({ onDone, title = "Generating invoice", steps 
           transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        {/* Icon */}
+        {/* Loading spinner (ui/Loading) — replaces a hand-rolled icon+ring animation. */}
         <motion.div
           className="relative mb-8"
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
-          <div className="w-20 h-20 rounded-3xl bg-white shadow-md flex items-center justify-center">
-            <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-              <rect x="6" y="4" width="24" height="28" rx="3" fill="var(--icon-neutral-inverse-primary)" stroke="#E0E0E0" strokeWidth="1.5"/>
-              <path d="M11 12h14M11 17h14M11 22h8" stroke="var(--icon-primary)" strokeWidth="1.5" strokeLinecap="round"/>
-              <motion.path
-                d="M11 12h14M11 17h14M11 22h8"
-                stroke="var(--icon-brand)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeDasharray="40"
-                strokeDashoffset="40"
-                animate={{ strokeDashoffset: 0 }}
-                transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
-              />
-            </svg>
-          </div>
-          {/* Spinning ring */}
-          <motion.div
-            className="absolute -inset-2 rounded-[22px] border-2 border-transparent"
-            style={{ borderTopColor: "var(--border-brand-primary)", borderRightColor: "rgba(255,74,21,0.2)" }}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
-          />
+          <Loading size="lg" aria-label={title} />
         </motion.div>
 
         {/* Title */}

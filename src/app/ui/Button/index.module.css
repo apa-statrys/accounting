@@ -90,6 +90,39 @@
   color: var(--btn-disabled);
 }
 
+/* Destructive override — red instead of the default black, for an irreversible action
+   like "Delete Draft" (see memory: destructive-color-by-reversibility). Comes after the
+   hierarchy classes above so it wins. */
+.destructive.primary {
+  background: var(--bg-error-bold);
+  border-color: var(--bg-error-bold);
+  color: var(--text-neutral-inverse-primary);
+}
+.destructive.primary.active {
+  background: var(--red-7);
+  border-color: var(--red-7);
+}
+.destructive.primary:disabled {
+  background: var(--btn-disabled);
+  border-color: transparent;
+  color: var(--text-neutral-inverse-disabled);
+}
+
+.destructive.secondary {
+  border-color: var(--border-error-bold);
+  color: var(--text-error-primary);
+}
+.destructive.secondary.active {
+  border-color: var(--red-7);
+  color: var(--red-7);
+}
+.destructive.tertiary {
+  color: var(--text-error-primary);
+}
+.destructive.tertiary.active {
+  color: var(--red-7);
+}
+
 /* Inverse (dark-surface) hierarchies */
 .inversePrimary {
   background: var(--btn-inverse);

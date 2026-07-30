@@ -10,7 +10,6 @@ export type Screen =
   | "list"
   | "customer"
   | "details"
-  | "upload"
   | "extracting"
   | "send"
   | "invoiceDetail"

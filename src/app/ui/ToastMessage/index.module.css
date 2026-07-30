@@ -1,0 +1,72 @@
+/* ToastMessage — Figma "[APP] Design System" → ToastMessage (node 4603-6683).
+   Dark inverse card, 8px radius, 8px gap, 16/12px padding. Colors from styles/theme.css. */
+
+.toast {
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  max-width: 356px;
+  padding: 12px 16px;
+  border-radius: var(--radius-xl);
+  background: var(--bg-neutral-inverse-primary);
+  box-shadow: 0px 10px 30px 0px rgba(0, 0, 0, 0.12);
+  font-family: var(--font-primary);
+}
+
+.icon {
+  display: flex;
+  flex-shrink: 0;
+}
+.icon.success {
+  color: var(--icon-success-primary);
+}
+.icon.error {
+  color: var(--icon-error-primary);
+}
+.icon.warning {
+  color: var(--icon-warning-primary);
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.textBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  line-height: 1.3;
+}
+.title {
+  composes: body-sm-medium from global;
+  margin: 0;
+  color: var(--text-neutral-inverse-primary);
+  word-break: break-word;
+}
+
+.subtitle {
+  composes: body-sm from global;
+  margin: 0;
+  color: var(--text-neutral-inverse-primary);
+  word-break: break-word;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  composes: body-sm-medium from global;
+  color: var(--link-inverse);
+}

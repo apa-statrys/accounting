@@ -1,0 +1,13 @@
+/* SendSuccessToast — bottom-anchored toast wrapper around ui/ToastMessage (Figma "[APP]
+   Design System" → ToastMessage, node 4603-6683: "mobile — bottom center, 16px above the
+   bottom toolbar"). `bottom` (inline, from the `bottomOffset` prop) lifts it clear of
+   whatever bottom chrome — ButtonDock or FAB — the page currently has. */
+
+.toast {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+}

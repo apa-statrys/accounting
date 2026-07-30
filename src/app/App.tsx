@@ -19,10 +19,10 @@ import { RecurringSeriesDetail } from "./pages/RecurringSeriesDetail";
 import { AddInvoiceDetails } from "./pages/add-invoice-details/AddInvoiceDetails";
 import { LockedPeriodBanner } from "./pages/locked-period/LockedPeriodBanner";
 import { SalesInvoiceList } from "./pages/sales-invoice-list/SalesInvoiceList";
+import type { ToastVariant } from "./ui/ToastMessage";
 import type { StatusMatch } from "./pages/sales-invoice-list/filters";
 import { NeedAttention } from "./pages/NeedAttention";
 import { DuplicateDecision } from "./pages/DuplicateDecision";
-import { UploadInvoice } from "./pages/upload-invoice/UploadInvoice";
 import { InvoiceSettings } from "./pages/InvoiceSettings";
 import { GeneratingInvoice } from "./pages/GeneratingInvoice";
 import { DEMO_EXTRACTION, DEMO_EXTRACTION_MATCHED, DEMO_EXTRACTION_NO_CUSTOMER, BLANK_EXTRACTION, EXISTING_INVOICES } from "./data/extraction";
@@ -253,7 +253,7 @@ export default function App() {
   // null = OCR found nothing usable (routes to the extract-failed screen).
   const [pendingExtraction, setPendingExtraction] = useState<ExtractedInvoice | null>(DEMO_EXTRACTION);
   // Toast shown on the list after returning from the create flow.
-  const [toast, setToast] = useState<{ title: string; subtext?: string } | null>(null);
+  const [toast, setToast] = useState<{ title: string; subtext?: string; variant?: ToastVariant } | null>(null);
   // Freshly created/saved invoice to surface + highlight at the top of the list.
   const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string; recurring?: boolean } | null>(null);
   // Whether `recent`'s one-time arrival highlight has already played — `recent` itself stays set
@@ -283,9 +283,6 @@ export default function App() {
   const [editInitial, setEditInitial] = useState<InvoiceEditSeed | null>(null);
   // The file picked in the upload flow — shown as an attachment on the review screen.
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number } | null>(null);
-  // The actual File objects picked in the upload sheet — kept so Back from a later step can
-  // re-open the upload sheet with the user's file still attached.
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   // Account-level invoice settings (DES-764) — default currency seeds the create flow.
   const [settings, setSettings] = useState<CompanySettings>(DEFAULT_SETTINGS);
   // The existing draft an upload matched — drives the duplicate decision page.
@@ -298,7 +295,8 @@ export default function App() {
   const [detailFlash, setDetailFlash] = useState<string | null>(null);
   // Where the detail page's back button returns (the screen it was opened from).
   const [detailReturn, setDetailReturn] = useState<Screen>("list");
-  // The screen the upload sheet is presented over (shown dimmed behind it).
+  // Where "Upload" was triggered from — real picker is native now, so this is only used to send
+  // the user back to the right screen (DuplicateDecision's back arrow, "Upload a clearer file").
   const [uploadReturn, setUploadReturn] = useState<"dashboard" | "list">("list");
   // Recurring-series create flow (DES-782) — reuses the customer → details flow with a schedule.
   const [recurring, setRecurring] = useState(false);
@@ -309,25 +307,25 @@ export default function App() {
   const [seriesScenario, setSeriesScenario] = useState<"draft" | "midrun" | "completed">("midrun");
   const seriesInvoices = seriesScenario === "draft"
     ? [
-        { number: "series-1", label: "Next Invoice", date: "01 Jul 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
-        { number: "series-2", label: "Invoice #2", date: "01 Aug 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
-        { number: "series-3", label: "Invoice #3", date: "01 Sep 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
-        { number: "series-4", label: "Invoice #4", date: "01 Oct 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
-        { number: "series-5", label: "Invoice #5", date: "01 Nov 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+        { number: "series-1", label: "Next Invoice", date: "1 Jul 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+        { number: "series-2", label: "Invoice #2", date: "1 Aug 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+        { number: "series-3", label: "Invoice #3", date: "1 Sep 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+        { number: "series-4", label: "Invoice #4", date: "1 Oct 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+        { number: "series-5", label: "Invoice #5", date: "1 Nov 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
       ]
     : seriesScenario === "completed"
     ? [
         // A finished series (end condition reached) — every scheduled date generated, nothing pending.
-        { number: "INV-2026-000021", label: "INV-2026-000021", date: "01 Mar 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
-        { number: "INV-2026-000022", label: "INV-2026-000022", date: "01 Apr 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
-        { number: "INV-2026-000023", label: "INV-2026-000023", date: "01 May 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
+        { number: "INV-2026-000021", label: "INV-2026-000021", date: "1 Mar 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
+        { number: "INV-2026-000022", label: "INV-2026-000022", date: "1 Apr 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
+        { number: "INV-2026-000023", label: "INV-2026-000023", date: "1 May 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
       ]
     : [
-        { number: "INV-2026-000001", label: "INV-2026-000001", date: "01 Jul 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
-        { number: "INV-2026-000002", label: "INV-2026-000002", date: "01 Aug 2026", status: "Awaiting" as DetailStatus, kind: "await" as const },
-        { number: "series-3", label: "Next Invoice", date: "01 Sep 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
-        { number: "series-4", label: "Invoice #4", date: "01 Oct 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
-        { number: "series-5", label: "Invoice #5", date: "01 Nov 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+        { number: "INV-2026-000001", label: "INV-2026-000001", date: "1 Jul 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
+        { number: "INV-2026-000002", label: "INV-2026-000002", date: "1 Aug 2026", status: "Awaiting" as DetailStatus, kind: "await" as const },
+        { number: "series-3", label: "Next Invoice", date: "1 Sep 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+        { number: "series-4", label: "Invoice #4", date: "1 Oct 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
+        { number: "series-5", label: "Invoice #5", date: "1 Nov 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
       ];
   // Editing an existing series (DES-782 AC4) — reuses the recurring form with a "Save changes" CTA.
   const [editingSeries, setEditingSeries] = useState(false);
@@ -434,8 +432,15 @@ export default function App() {
         { label: "Create Invoice", active: screen === "customer" || screen === "details", onSelect: () => { setRecurring(false); setEditingSeries(false); setExtracted(null); setCustomer(DEMO_CUSTOMER); setDevSeedItems(true); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setScreen("details"); } },
         { label: "Create (Locked Period)", active: screen === "lockedPeriodDialog", onSelect: () => setScreen("lockedPeriodDialog") },
         { label: "Send Invoice", active: screen === "send", onSelect: () => setScreen("send") },
-        { label: "Upload Invoice", active: screen === "upload" || screen === "extracting", onSelect: () => { setUploadedFiles([]); setUploadedFile(null); setUploadReturn("list"); setScreen("upload"); } },
+        // Upload is native scan/picker now (no in-app sheet) — dev jump reproduces what a real
+        // pick hands back: straight to the "reading your invoice" loading step.
+        { label: "Upload Invoice", active: screen === "extracting", onSelect: () => { setUploadReturn("list"); setRecurring(false); setEditingSeries(false); setCustomer(null); setPendingExtraction(DEMO_EXTRACTION); setUploadedFile({ name: "invoice.pdf", size: 419430 }); setScreen("extracting"); } },
         { label: "Upload (Locked Period)", active: screen === "lockedPeriodUpload", onSelect: () => setScreen("lockedPeriodUpload") },
+        // Upload scenario shortcuts (jump straight to each OCR outcome, skipping the native picker).
+        { label: "Upload — Error (Too Large)", active: screen === "list" && toast?.variant === "error", onSelect: () => { setToast(null); setScreen("list"); setToast({ title: "This file is larger than 10 MB.", variant: "error" }); } },
+        { label: "Upload — Duplicate", active: screen === "duplicateCheck", onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_MATCHED); setExtracted(DEMO_EXTRACTION_MATCHED); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-scan.png", size: 1258291 }); setDupExisting(EXISTING_INVOICES.find((i) => i.number === DEMO_EXTRACTION_MATCHED.invoiceNumber) ?? null); setScreen("duplicateCheck"); } },
+        { label: "Upload — Manual Entry Needed", active: screen === "details" && extracted === DEMO_EXTRACTION_NO_CUSTOMER, onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_NO_CUSTOMER); setExtracted(DEMO_EXTRACTION_NO_CUSTOMER); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice.pdf", size: 419430 }); setScreen("details"); } },
+        { label: "Upload — Unreadable (Blank)", active: screen === "details" && extracted === BLANK_EXTRACTION, onSelect: () => { setPendingExtraction(null); setExtracted(BLANK_EXTRACTION); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-unreadable.jpg", size: 3565158 }); setScreen("details"); } },
       ],
       sections: [
         {
@@ -575,11 +580,15 @@ export default function App() {
             setScreen("customer");
           }}
           onUpload={() => {
+            // No in-app picker anymore (real build hands this to the OS document scanner) — jump
+            // straight to the "reading" step with a demo file already "returned" by the native picker.
             setUploadReturn("dashboard");
             setRecurring(false);
             setEditingSeries(false);
             setCustomer(null); // customer comes from OCR — don't carry a previously-selected one in
-            setScreen("upload");
+            setPendingExtraction(DEMO_EXTRACTION);
+            setUploadedFile({ name: "invoice.pdf", size: 419430 });
+            setScreen("extracting");
           }}
           onRecurring={() => {
             setExtracted(null);
@@ -774,6 +783,7 @@ export default function App() {
       {screen === "list" && (
         <SalesInvoiceList
           showSuccess={!!toast}
+          successVariant={toast?.variant}
           successMessage={toast?.title}
           successSubtext={toast?.subtext}
           onSuccessDone={() => setToast(null)}
@@ -798,11 +808,15 @@ export default function App() {
             setScreen("customer");
           }}
           onUpload={() => {
+            // No in-app picker anymore (real build hands this to the OS document scanner) — jump
+            // straight to the "reading" step with a demo file already "returned" by the native picker.
             setUploadReturn("list");
             setRecurring(false);
             setEditingSeries(false);
             setCustomer(null); // customer comes from OCR — don't carry a previously-selected one in
-            setScreen("upload");
+            setPendingExtraction(DEMO_EXTRACTION);
+            setUploadedFile({ name: "invoice.pdf", size: 419430 });
+            setScreen("extracting");
           }}
           onRecurring={() => {
             setExtracted(null);
@@ -879,49 +893,9 @@ export default function App() {
         />
       )}
 
-      {screen === "upload" && (
-        <div className="relative overflow-hidden rounded-[48px] shadow-2xl" style={{ width: 375, height: 812 }}>
-          {/* The originating screen, shown dimmed behind the sheet. */}
-          <div className="absolute inset-0 pointer-events-none">
-            {uploadReturn === "dashboard" ? (
-              <Dashboard tab="dashboard" />
-            ) : (
-              <SalesInvoiceList />
-            )}
-          </div>
-
-          <UploadInvoice
-          initialFiles={uploadedFiles}
-          onBack={() => {
-            // Dismissing the sheet saves nothing — drop the attachment and return to where it opened.
-            setUploadedFiles([]);
-            setUploadedFile(null);
-            setScreen(uploadReturn);
-          }}
-          onContinue={(files) => {
-            // Demo: each source maps to a distinct OCR case (file names encode the case).
-            //  • Choose from Photos (invoice-scan.png) → duplicate (matches an existing draft)
-            //  • Browse Files (invoice.pdf)      → customer name + email NOT read (manual input + save-to-list)
-            //  • Simulate unreadable             → nothing read (blank form)
-            // (Take Photo returns an oversized file → rejected before reaching here.)
-            const name = files[0]?.name ?? "";
-            if (/blank|unreadable/i.test(name)) {
-              setPendingExtraction(null);
-            } else if (/scan/i.test(name)) {
-              setPendingExtraction(DEMO_EXTRACTION_MATCHED);
-            } else {
-              setPendingExtraction(DEMO_EXTRACTION_NO_CUSTOMER);
-            }
-            // Remember the uploaded file so the review can show it (and so Back can restore it).
-            setUploadedFiles(files);
-            setUploadedFile(files[0] ? { name: files[0].name, size: files[0].size } : null);
-            setScreen("extracting");
-          }}
-          />
-        </div>
-      )}
-
-      {/* OCR / extraction step after an upload */}
+      {/* OCR / extraction step after an upload — real entry points (Dashboard/List "Upload") skip
+          straight here with a demo file, same as a real native picker would already have returned
+          one; only QuickNav's per-scenario shortcuts skip this loading step entirely. */}
       {screen === "extracting" && (
         <GeneratingInvoice
           title="Reading your invoice"
@@ -956,7 +930,7 @@ export default function App() {
         <DuplicateDecision
           existing={dupExisting}
           file={uploadedFile}
-          onBack={() => setScreen("upload")}
+          onBack={() => setScreen(uploadReturn)}
           onEditExisting={() => {
             // Open the existing draft's editor and keep editing it (existing draft unchanged otherwise).
             const inv = dupExisting;
@@ -1027,7 +1001,7 @@ export default function App() {
           customers={customers}
           recurring={recurring}
           editingSeries={editingSeries}
-          key={devSeedItems ? "dev-prefilled" : "editor"}
+          key={devSeedItems ? "dev-prefilled" : extracted === DEMO_EXTRACTION_NO_CUSTOMER ? "upload-manual" : extracted === BLANK_EXTRACTION ? "upload-blank" : extracted === DEMO_EXTRACTION_MATCHED ? "upload-matched" : "editor"}
           seedServices={editingSeries ? RECURRING_SERIES_ITEMS : devSeedItems ? DEMO_EXTRACTION.services : undefined}
           companyName={settings.companyName}
           companyEmail={settings.email}
@@ -1039,7 +1013,7 @@ export default function App() {
           defaultChaser={settings.chaserEnabled}
           defaultAccountId={settings.paymentMethod}
           extractionFailed={extracted === BLANK_EXTRACTION}
-          onReupload={() => setScreen("upload")}
+          onReupload={() => setScreen(uploadReturn)}
           uploadedFile={uploadedFile}
           numberRecommended={numberRecommended}
           editExitToList={editFromDuplicate}
@@ -1131,9 +1105,9 @@ export default function App() {
           customerName={openInvoice.client}
           amountLabel="USD 6,450.00"
           frequency="Monthly"
-          startDate="01 Jul 2026"
-          nextDate="01 Sep 2026"
-          ends="01 Dec 2026 (5 invoices)"
+          startDate="1 Jul 2026"
+          nextDate="1 Sep 2026"
+          ends="1 Dec 2026 (5 invoices)"
           autoSend={true}
           onBack={() => setScreen("invoiceDetail")}
           onEdit={() => {

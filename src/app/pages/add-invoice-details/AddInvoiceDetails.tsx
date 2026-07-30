@@ -772,7 +772,7 @@ export function AddInvoiceDetails({
         {/* Items (Figma "Create Invoice", node 1387-18118 — renamed from "Services / Products" to
             match) */}
         <div ref={servicesRef} className="scroll-mt-5">
-        <Section title="Items">
+        <Section title={services.length > 0 ? `Items ( ${services.length} )` : "Items"}>
           {services.length === 0 ? (
             /* DS Tile on the beige page — tap (chevron) opens the add-service sheet. Red border +
                caption when Send Invoice was tapped with no items yet (see `itemsError`). */

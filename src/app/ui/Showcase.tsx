@@ -21,6 +21,8 @@ import { SummaryCard } from "../components/SummaryCard";
 import StatusBar from "../components/StatusBar";
 import { Tile, type TileTrailing } from "./Tile";
 import { Banner, type BannerColor } from "./Banner";
+import { XClose, type XCloseSize } from "./XClose";
+import { ToastMessage, type ToastVariant } from "./ToastMessage";
 import { Chips } from "./Chips";
 import { CheckboxBase } from "./CheckboxBase";
 import { Checkbox } from "./Checkbox";
@@ -106,11 +108,13 @@ const NAV_GROUPS = [
   {
     category: "Feedback & Status",
     items: [
+      { id: "toast-message", label: "Toast Message" },
       { id: "banner", label: "Banner" },
       { id: "badge", label: "Badge" },
       { id: "noti-badge", label: "Noti Badge" },
       { id: "loading", label: "Loading" },
       { id: "tooltip", label: "Tooltip" },
+      { id: "x-close", label: "X Close" },
     ],
   },
   {
@@ -301,6 +305,86 @@ function ComponentPage({
 }
 
 const HIERARCHIES = ["primary", "secondary", "tertiary"] as const;
+
+const XCLOSE_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "size",
+    label: "Size",
+    options: [
+      { value: "sm", label: "Small (20px) — default, e.g. inside a Toast" },
+      { value: "md", label: "Medium (30px) — a standalone dismiss, e.g. a sheet header" },
+    ],
+  },
+  {
+    key: "inverse",
+    label: "Surface",
+    options: [
+      { value: "off", label: "Normal — light surfaces" },
+      { value: "on", label: "Inverse — dark surfaces, e.g. Toast Message" },
+    ],
+  },
+];
+
+function XCloseOverview() {
+  return (
+    <InteractiveDemo
+      groups={XCLOSE_CONTROL_GROUPS}
+      defaultValues={{ size: "sm", inverse: "off" }}
+      canvasBg={(v) => (v.inverse === "on" ? "#1b1b1b" : "#f4f4f2")}
+      render={(v) => <XClose size={v.size as XCloseSize} inverse={v.inverse === "on"} onClick={() => {}} />}
+    />
+  );
+}
+
+const TOAST_MESSAGE_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "variant",
+    label: "Variant",
+    options: [
+      { value: "default", label: "Default — no icon, e.g. a generic confirmation" },
+      { value: "success", label: "Success — e.g. \"Invoice sent\"" },
+      { value: "error", label: "Error — e.g. a failed send" },
+      { value: "warning", label: "Warning — e.g. a partial success" },
+    ],
+  },
+  {
+    key: "subtitle",
+    label: "Subtitle",
+    options: [
+      { value: "on", label: "Shown" },
+      { value: "off", label: "Hidden" },
+    ],
+  },
+  {
+    key: "action",
+    label: "Action link",
+    options: [
+      { value: "off", label: "Hidden" },
+      { value: "on", label: "Shown — e.g. \"View Details\" opens the sent invoice" },
+    ],
+  },
+];
+
+function ToastMessageOverview() {
+  return (
+    <InteractiveDemo
+      groups={TOAST_MESSAGE_CONTROL_GROUPS}
+      defaultValues={{ variant: "success", subtitle: "on", action: "on" }}
+      canvasBg={() => "#f4f4f2"}
+      render={(v) => (
+        <div className="w-[356px]">
+          <ToastMessage
+            variant={v.variant as ToastVariant}
+            title="Invoice sent"
+            subtitle={v.subtitle === "on" ? "Marked as sent to the customer" : undefined}
+            action={v.action === "on" ? { label: "View Details", onClick: () => {} } : undefined}
+            onClose={() => {}}
+          />
+        </div>
+      )}
+    />
+  );
+}
 
 const BANNER_CONTROL_GROUPS: ControlGroup[] = [
   {
@@ -610,6 +694,14 @@ const BUTTON_CONTROL_GROUPS: ControlGroup[] = [
     ],
   },
   {
+    key: "destructive",
+    label: "Destructive",
+    options: [
+      { value: "off", label: "Off — use for the non-recommended-but-safe choice" },
+      { value: "on", label: "On — use when this action is irreversible (e.g. a \"Delete Draft\" CTA)" },
+    ],
+  },
+  {
     key: "surface",
     label: "Surface",
     options: [
@@ -623,7 +715,7 @@ function ButtonOverview() {
   return (
     <InteractiveDemo
       groups={BUTTON_CONTROL_GROUPS}
-      defaultValues={{ hierarchy: "primary", size: "md", shape: "rec", icon: "none", state: "default", surface: "light" }}
+      defaultValues={{ hierarchy: "secondary", size: "md", shape: "rec", icon: "none", state: "default", destructive: "off", surface: "light" }}
       canvasBg={(v) => (v.surface === "dark" ? "#222222" : "#f4f4f2")}
       render={(v) => (
         <Button
@@ -637,6 +729,7 @@ function ButtonOverview() {
           disabled={v.state === "disabled"}
           loading={v.state === "loading"}
           forceActive={v.state === "active"}
+          destructive={v.destructive === "on"}
           inverse={v.surface === "dark"}
           aria-label={v.shape === "square" ? "Square button" : undefined}
         />
@@ -1157,6 +1250,14 @@ const BUTTONDOCK_CONTROL_GROUPS: ControlGroup[] = [
       { value: "keyboard", label: "Keyboard — use when the dock sits above a focused text field" },
     ],
   },
+  {
+    key: "destructive",
+    label: "Primary is destructive",
+    options: [
+      { value: "off", label: "Off — primary is just the recommended safe choice (e.g. Confirm)" },
+      { value: "on", label: "On — primary is irreversible (e.g. Delete Draft) → filled red, secondary becomes the plain safe outline" },
+    ],
+  },
 ];
 
 function ButtonDockOverview() {
@@ -1174,7 +1275,7 @@ function ButtonDockOverview() {
       </div>
       <InteractiveDemo
         groups={BUTTONDOCK_CONTROL_GROUPS}
-        defaultValues={{ type: "double", stack: "vertical", accessory: "off", slot: "off", bottom: "none" }}
+        defaultValues={{ type: "double", stack: "vertical", accessory: "off", slot: "off", bottom: "none", destructive: "off" }}
         render={(v) => {
           const typeStack =
             v.type === "ghost"
@@ -1188,8 +1289,9 @@ function ButtonDockOverview() {
                 slot={v.slot === "on" ? <SummaryCard bare currency="USD" subtotal={110} discount={80} total={30} /> : undefined}
                 accessory={v.accessory === "on"}
                 checked
-                primaryLabel="Confirm"
-                secondaryLabel={v.type === "ghost" ? "Close" : "Cancel"}
+                primaryLabel={v.destructive === "on" ? "Delete Draft" : "Confirm"}
+                primaryDestructive={v.destructive === "on"}
+                secondaryLabel={v.type === "ghost" ? "Close" : v.destructive === "on" ? "Keep Draft" : "Cancel"}
                 tertiaryLabel="Close"
                 keyboard={v.bottom === "keyboard"}
               />
@@ -1769,7 +1871,7 @@ const TILE_CONTROL_GROUPS: ControlGroup[] = [
       { value: "none", label: "None" },
       { value: "chevron", label: "Chevron" },
       { value: "check", label: "Check (selected)" },
-      { value: "download", label: "Download icon — one-off instance override, e.g. Send Invoice's Share/Download tab" },
+      { value: "download", label: "Custom icon — one-off instance override for any glyph a row needs (e.g. the download icon on Send Invoice's Share/Download tab, an external-link icon, a status glyph)" },
     ],
   },
   {
@@ -2180,6 +2282,13 @@ export function Showcase() {
             </button>
           )}
           <div className="w-full">
+            {activeNav === "toast-message" && (
+              <ComponentPage
+                title="Toast Message"
+                description="A bottom-anchored, auto-hiding confirmation card — dark inverse surface, optional status icon, title + subtitle, and an optional 'View Details' link. Use for one-off action confirmations (e.g. 'Invoice sent'). Positioning/timer live in components/Toast, which every screen already renders — this page is the visual/variant reference."
+                overview={<ToastMessageOverview />}
+              />
+            )}
             {activeNav === "banner" && (
               <ComponentPage
                 title="Banner"
@@ -2374,6 +2483,13 @@ export function Showcase() {
                 title="Tooltip"
                 description="Tooltips describe or identify an element — a short label, optionally with supporting text, with the arrow on any side."
                 overview={<TooltipOverview />}
+              />
+            )}
+            {activeNav === "x-close" && (
+              <ComponentPage
+                title="X Close"
+                description="A square dismiss button with its own momentary hover surface — sm (20px) for compact contexts like Toast Message, md (30px) for a standalone sheet/dialog dismiss. `inverse` swaps to the light-on-dark palette for a dark surface."
+                overview={<XCloseOverview />}
               />
             )}
             {activeNav === "toggle" && (
