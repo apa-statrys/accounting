@@ -396,9 +396,33 @@ const BANNER_CONTROL_GROUPS: ControlGroup[] = [
     label: "Color",
     options: [
       { value: "success", label: "Success — e.g. a confirmed action" },
-      { value: "warning", label: "Warning — icon tints amber, text stays ink (Figma-exact, not the odd one out)" },
+      { value: "warning", label: "Warning — e.g. a soft attention-needed notice" },
       { value: "error", label: "Error — e.g. a failed validation" },
       { value: "info", label: "Info — e.g. a neutral heads-up" },
+    ],
+  },
+  {
+    key: "layout",
+    label: "Layout",
+    options: [
+      { value: "text", label: "Text only — use for a single-line status message" },
+      { value: "title", label: "Title + Text — use when the status needs its own bold headline above the detail" },
+    ],
+  },
+  {
+    key: "link",
+    label: "Link",
+    options: [
+      { value: "off", label: "Hidden" },
+      { value: "on", label: "Shown — use when there's somewhere to send the user for more detail (e.g. a linked record)" },
+    ],
+  },
+  {
+    key: "dismiss",
+    label: "Dismiss",
+    options: [
+      { value: "off", label: "Hidden — use for a persistent status that isn't the user's to clear" },
+      { value: "on", label: "Shown — use when the user can acknowledge/close the banner themselves" },
     ],
   },
 ];
@@ -407,10 +431,16 @@ function BannerOverview() {
   return (
     <InteractiveDemo
       groups={BANNER_CONTROL_GROUPS}
-      defaultValues={{ color: "success" }}
+      defaultValues={{ color: "success", layout: "title", link: "on", dismiss: "on" }}
       render={(v) => (
         <div className="w-[320px]">
-          <Banner color={v.color as BannerColor} text="Your information is secure and encrypted" />
+          <Banner
+            color={v.color as BannerColor}
+            title={v.layout === "title" ? "Title" : undefined}
+            text="Your information is secure and encrypted"
+            onLinkClick={v.link === "on" ? () => {} : undefined}
+            onClose={v.dismiss === "on" ? () => {} : undefined}
+          />
         </div>
       )}
     />
@@ -2385,7 +2415,7 @@ export function Showcase() {
             {activeNav === "banner" && (
               <ComponentPage
                 title="Banner"
-                description="An inline status message — subtle-tinted row with a 16px icon + one line of text, in success/warning/error/info. Use when a page or sheet needs to surface a persistent status inline (not a toast, not a dismissible alert)."
+                description="An inline status message — subtle-tinted row with a 16px icon + text, in success/warning/error/info, as either a single line (Text only, body-sm) or a medium-weight title (body-sm) + caption-sized detail (Title + Text). Optional trailing 'View Details' text link and dismiss (×). Use when a page or sheet needs to surface a status inline — text/title/link always stay ink, only the icon carries the color."
                 overview={<BannerOverview />}
               />
             )}

@@ -93,7 +93,7 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
           <div className="flex items-center gap-3">
             <span
               className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: "var(--bg-beige-secondary)", color: INK, fontFamily: FONT.fontFamily }}
+              style={{ background: "var(--bg-beige-primary)", color: INK, fontFamily: FONT.fontFamily }}
             >
               <span className="font-medium" style={{ fontSize: 13, letterSpacing: -0.65 }}>{initials(record.name)}</span>
             </span>

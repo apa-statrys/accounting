@@ -28,12 +28,23 @@ export const sheetItem = {
 
 /** Variant pair for a step-swap slide transition — the sub-level pattern where a deeper "level"
  *  (e.g. a picker opened from within a sheet) swaps the SAME BottomSheet's title/content instead
- *  of stacking a second sheet on top (see memory: sub-level-drawer-same-sheet). MUST be used with
- *  string variant labels (`initial="closed" animate="open" exit="closed"`), never object-literal
- *  targets — an object-literal `animate` on the step wrapper breaks Framer's variant-label
- *  propagation, so any `sheetItem`-tagged rows nested inside silently stay at `opacity: 0` (they're
- *  in the DOM, just invisible) instead of fading in. `direction: 1` slides in from the right (a
- *  "forward" sub-level), `-1` from the left (the "back"/default level). */
+ *  of stacking a second sheet on top (see memory: sub-level-drawer-same-sheet). `direction: 1`
+ *  slides in from the right (a "forward" sub-level), `-1` from the left (the "back"/default level).
+ *
+ *  Two ways to drive a step wrapper's motion.div, pick by what it contains:
+ *  - Content has NO nested `variants={sheetItem}` children (e.g. Sales Invoice List's
+ *    Filters→Customer search step, a plain form, a Calendar): use plain object-literal
+ *    `initial={{x, opacity:0}} animate={{x:0, opacity:1}} exit={{x, opacity:0}}
+ *    transition={{duration:0.2, ease:"easeInOut"}}` directly — simplest, no propagation to worry
+ *    about. This is the default/preferred shape for any "next level or search" interaction.
+ *  - Content is a SHARED component with its OWN nested `sheetItem`-tagged rows (e.g.
+ *    ReceivingAccountRows, CountryCodeRows): you MUST use this `stepSlide()` helper with STRING
+ *    variant labels (`variants={stepSlide(direction)} initial="closed" animate="open"
+ *    exit="closed"`), never object-literal targets on that wrapper — an object-literal `animate`
+ *    breaks Framer's variant-label propagation, so the nested `sheetItem` rows silently stay at
+ *    `opacity: 0` FOREVER (confirmed via computed style — they're in the DOM, just invisible, not
+ *    just slow to fade in). Mixing the two per step (e.g. RecordPaymentSheet's account step uses
+ *    this form, its form/date steps use the plain object-literal form) is correct and expected. */
 export function stepSlide(direction: 1 | -1) {
   return {
     closed: { x: 24 * direction, opacity: 0 },

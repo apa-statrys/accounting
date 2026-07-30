@@ -244,7 +244,6 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         {/* Locked-period notice (DES-751) — amber, non-blocking; explains why edit/cancel are unavailable. */}
         {lockedPeriod && (
           <LockedPeriodBanner
-            tone="amber"
             showContact={false}
             title="Accounting period closed"
             body={

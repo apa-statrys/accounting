@@ -1,8 +1,7 @@
 /* Banner — Figma "[APP] Design System" → Banner (node 4631-372).
    8px gap, 12/13px x / 10/11px y padding, 12px radius, 1px subtle border.
-   Colors from styles/theme.css. Warning is the one odd variant: only the
-   icon tints amber, the text itself stays ink (--text-primary) — matches
-   Figma exactly, not a mistake to "fix" into symmetry with the other three. */
+   Colors from styles/theme.css. Text/title/link are always ink — every color
+   only tints the icon (and the bg/border wash), never the copy itself. */
 
 .banner {
   box-sizing: border-box;
@@ -22,36 +21,87 @@
   color: var(--banner-icon);
 }
 
-.text {
-  composes: body-sm from global;
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   flex: 1;
   min-width: 0;
+}
+
+.textGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
+.title {
+  composes: body-sm-medium from global;
   margin: 0;
-  color: var(--banner-text);
+  color: var(--text-primary);
   word-break: break-word;
+}
+
+.text {
+  composes: body-sm from global;
+  margin: 0;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+/* The detail line under a title is caption-sized (12px) — only "Text only" (no title) stays
+   body-sm (14px), via .text above. */
+.textCaption {
+  composes: caption from global;
+  margin: 0;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.link {
+  composes: body-sm-medium from global;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--link-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.close {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--icon-secondary);
+  cursor: pointer;
 }
 
 .success {
   background: var(--bg-success-subtle);
   border-color: var(--border-success-subtle);
   --banner-icon: var(--icon-success-primary);
-  --banner-text: var(--text-success-primary);
 }
 .warning {
   background: var(--bg-warning-subtle);
   border-color: var(--border-warning-subtle);
   --banner-icon: var(--icon-warning-primary);
-  --banner-text: var(--text-primary);
 }
 .error {
   background: var(--bg-error-subtle);
   border-color: var(--border-error-subtle);
   --banner-icon: var(--icon-error-primary);
-  --banner-text: var(--text-error-primary);
 }
 .info {
   background: var(--bg-info-subtle);
   border-color: var(--border-info-subtle);
   --banner-icon: var(--icon-info-primary);
-  --banner-text: var(--text-info-primary);
 }

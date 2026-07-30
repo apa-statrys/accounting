@@ -1,7 +1,7 @@
 // Credits Applied section (DES-719/763) — rendered just below the invoice status card. Recent-first;
 // collapse to 2 with "View all"; each row opens the credit-note detail page (actions live there).
-// Row chrome matches ui/Tile's own recipe (Figma "Sales Invoice — Client", node 1927:12204) — a
-// plain Tile can't be reused verbatim (status badge + right-side value/chevron + below-row proof
+// Row chrome matches ui/Tile's own recipe (Figma "Sales Invoice — Client", node 1927-12439) — a
+// plain Tile can't be reused verbatim (status label + right-side value/chevron + below-row proof
 // blocks aren't shapes Tile's props support), so each row replicates Tile's border/radius/padding.
 import { Receipt } from "lucide-react";
 import { money, fmtDate } from "../../lib/format";
@@ -87,24 +87,20 @@ export function CreditsAppliedSection({
               style={{ background: "var(--bg-neutral-primary)", borderColor: "var(--border-neutral-primary)" }}
             >
               <div role="button" tabIndex={0} onClick={onRowTap} className="group flex items-center gap-2.5 px-4 py-3 min-h-[65px] text-left cursor-pointer">
-                <span className="flex-1 min-w-0">
-                  <span className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-[14px] truncate min-w-0" style={{ ...FONT, color: INK }}>{cn.no}</span>
-                    {/* Cancellation CN → application status as an outlined badge (Figma node 1927:12204). */}
-                    {appliedLabel && (
-                      <span
-                        className="caption-medium inline-flex items-center shrink-0 h-[18px] px-1.5 rounded-md border"
-                        style={{ ...FONT, background: "var(--bg-neutral-primary)", borderColor: "var(--border-neutral-primary)", color: CHIP_TEXT[appliedLabel] ?? "var(--text-secondary)" }}
-                      >
-                        {appliedLabel}
-                      </span>
-                    )}
-                  </span>
+                <span className="flex-1 min-w-0 flex flex-col gap-0.5">
+                  {/* Cancellation CN → application status as its own line above the number, plain
+                      colored text (no pill/border — Figma "Sales Invoice — Client", node 1927-12439). */}
+                  {appliedLabel && (
+                    <span className="caption-medium" style={{ ...FONT, color: CHIP_TEXT[appliedLabel] ?? "var(--text-secondary)" }}>
+                      {appliedLabel}
+                    </span>
+                  )}
+                  <span className="block text-[14px] truncate min-w-0" style={{ ...FONT, color: INK }}>{cn.no}</span>
                   {cn.reason && (
-                    <span className="block text-[12px] leading-[1.3] mt-0.5 truncate" style={{ ...FONT, color: MUTED }}>Reason: {reasonOf(cn)}</span>
+                    <span className="block text-[12px] leading-[1.3] truncate" style={{ ...FONT, color: MUTED }}>Reason: {reasonOf(cn)}</span>
                   )}
                   {!appliedLabel && !isRefundContext && (
-                    <span className="block text-[12px] leading-[1.3] mt-0.5" style={{ ...FONT, color: cn.sent ? MUTED : "var(--text-warning-primary)" }}>
+                    <span className="block text-[12px] leading-[1.3]" style={{ ...FONT, color: cn.sent ? MUTED : "var(--text-warning-primary)" }}>
                       {cn.sent ? `Sent ${cn.sentDate}` : "Not sent yet"}
                     </span>
                   )}

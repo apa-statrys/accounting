@@ -13,6 +13,7 @@ import { ListCard } from "../../ui/ListCard";
 import { ListRow } from "../../ui/ListRow";
 import { ButtonDock } from "../../components/ButtonDock";
 import { TextField } from "../../ui/TextField";
+import { Badge } from "../../ui/Badge";
 import { ServiceItemCard } from "../../components/ServiceItemCard";
 import { DiscountCard, type DiscountMode } from "../../components/DiscountCard";
 import { DiscountModeSheet } from "../../components/DiscountModeSheet";
@@ -700,19 +701,9 @@ export function AddInvoiceDetails({
               onBlur={() => setKeyboardOpen(false)}
               iconRight={
                 existingInvoice ? (
-                  <span
-                    className="shrink-0 px-2 py-0.5 rounded-full bg-[var(--bg-error-subtle)] border border-[var(--border-error-subtle)] text-[10px] font-bold leading-[15px] text-[var(--text-error-primary)]"
-                    style={FONT}
-                  >
-                    Already exists
-                  </span>
+                  <Badge label="Already exists" color="error" variant="text" size="sm" />
                 ) : numberRecommended ? (
-                  <span
-                    className="shrink-0 px-2 py-0.5 rounded-full bg-[var(--bg-success-subtle)] border border-[var(--border-success-subtle)] text-[10px] font-bold leading-[15px] text-[var(--text-success-primary)]"
-                    style={FONT}
-                  >
-                    Recommended
-                  </span>
+                  <Badge label="Recommended" color="success" variant="text" size="sm" />
                 ) : undefined
               }
             />
@@ -839,16 +830,25 @@ export function AddInvoiceDetails({
             // ListCard of rows (Figma "Create Invoice", node 1826-15914) — "Add more items" is the
             // list's own trailing row, not a separate outlined button below it.
             <ListCard onLayer="beige">
-              {services.map((s, idx) => (
-                <ServiceItemCard
-                  key={s.id}
-                  line={s}
-                  invoiceCurrency={currency}
-                  hint={hintFirst && idx === 0}
-                  onClick={() => openEditService(s.id)}
-                  onDelete={() => setServices((prev) => prev.filter((x) => x.id !== s.id))}
-                />
-              ))}
+              <AnimatePresence initial={false}>
+                {services.map((s, idx) => (
+                  <motion.div
+                    key={s.id}
+                    layout
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                    style={{ overflow: "hidden" }}
+                  >
+                    <ServiceItemCard
+                      line={s}
+                      invoiceCurrency={currency}
+                      hint={hintFirst && idx === 0}
+                      onClick={() => openEditService(s.id)}
+                      onDelete={() => setServices((prev) => prev.filter((x) => x.id !== s.id))}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
               <ListRow label="Add more items" trailing="chevron" onClick={openAddService} last />
             </ListCard>
           )}

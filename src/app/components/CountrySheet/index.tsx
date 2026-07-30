@@ -2,7 +2,6 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../BottomSheet";
 import { Tile } from "../../ui/Tile";
-import { Search } from "../../ui/Search";
 import { CountryFlag } from "../CountryFlag";
 import styles from "./index.module.css";
 
@@ -48,45 +47,34 @@ interface CountrySheetProps {
 }
 
 /**
- * Country picker for a client record — DS Bottomsheets header (grabber, no ✕) with the search
- * icon next to the "Select Country" title; tapping it reveals/hides the DS Search field.
- * Rows are the DS Tile country variant (flag + title, check when selected).
+ * Country picker for a client record — DS Bottomsheet search-mode header (Figma node 1333-38370,
+ * same experience as Sales Invoice List's Filters→Customer search): tapping the search icon swaps
+ * the "Select Country" title for a frosted search pill in place, with a back chevron to return to
+ * the plain title. Rows are the DS Tile country variant (flag + title, check when selected).
  */
 export function CountrySheet({ open, value, onClose, onSelect }: CountrySheetProps) {
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const filtered = COUNTRIES.filter((c) => c.toLowerCase().includes(query.toLowerCase()));
 
-  const toggleSearch = () => {
-    setSearchOpen((prev) => {
-      if (prev) setQuery(""); // closing the search resets the filter
-      return !prev;
-    });
-  };
+  const closeSearch = () => { setSearchOpen(false); setQuery(""); };
 
   return (
     <BottomSheet
       open={open}
       title="Select Country"
-      onClose={onClose}
+      onClose={() => { closeSearch(); onClose?.(); }}
       tall
-      action={<SearchGlyph />}
-      onAction={toggleSearch}
+      action={!searchOpen ? <SearchGlyph /> : undefined}
+      onAction={!searchOpen ? () => setSearchOpen(true) : undefined}
       actionLabel="Search country"
+      onBack={searchOpen ? closeSearch : undefined}
+      searchValue={searchOpen ? query : undefined}
+      onSearchChange={searchOpen ? setQuery : undefined}
+      searchPlaceholder="Search Country"
+      autoFocusSearch
     >
       <div className={styles.body}>
-        {searchOpen && (
-          <motion.div variants={sheetItem} initial="closed" animate="open">
-            <Search
-              placeholder="Search Country"
-              value={query}
-              onChange={setQuery}
-              showAction={false}
-              aria-label="Search country"
-            />
-          </motion.div>
-        )}
-
         <div className={styles.list}>
           {filtered.map((c) => (
             <motion.div key={c} variants={sheetItem}>

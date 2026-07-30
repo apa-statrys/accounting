@@ -1,5 +1,4 @@
 import { useState } from "react";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { ButtonDock } from "../components/ButtonDock";
@@ -11,6 +10,9 @@ import { FileItemBase } from "../ui/FileItemBase";
 import type { ExistingInvoice } from "../types";
 
 import { FONT } from "../lib/theme";
+
+// Figma "Sales Invoice — Client" (node 1959-11709) — hand-drawn warning-triangle illustration.
+const warningTriangleIcon = new URL("./duplicate-decision-warning.svg", import.meta.url).href;
 
 interface DuplicateDecisionProps {
   /** The matching draft already in the system. */
@@ -60,16 +62,16 @@ export function DuplicateDecision({ existing, file, onBack, onEditExisting, onVi
         </PageAppHeader>
 
         <div className="px-4 pt-6 pb-44 flex flex-col gap-5">
-          <div className="flex flex-col gap-2.5">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "var(--bg-warning-subtle)", border: "1px solid var(--border-warning-subtle)" }}>
-              <ErrorOutlineIcon style={{ fontSize: 24, color: "var(--icon-warning-primary)" }} />
+          <div className="flex flex-col gap-4">
+            <img src={warningTriangleIcon} alt="" width={52} height={49} />
+            <div className="flex flex-col gap-2.5">
+              <p className="card-title-lg" style={{ color: "var(--text-primary)" }}>Duplicate invoice found</p>
+              <p className="text-[14px] leading-[1.4]" style={{ ...FONT, color: "var(--text-secondary)" }}>
+                {isDraft
+                  ? "This upload matches an existing draft invoice. Continue editing the draft or create a new invoice."
+                  : "This upload matches an existing invoice. Review the existing invoice or continue with a new one if needed."}
+              </p>
             </div>
-            <p className="text-[20px] font-bold leading-[1.2] text-[var(--text-primary)]" style={FONT}>Duplicate invoice found</p>
-            <p className="text-[14px] leading-[1.4]" style={{ ...FONT, color: "var(--text-secondary)" }}>
-              {isDraft
-                ? "This upload matches an existing draft invoice. Continue editing the draft or create a new invoice."
-                : "This upload matches an existing invoice. Review the existing invoice or continue with a new one if needed."}
-            </p>
           </div>
 
           {/* Duplicate match summary — the key fields only (decision page, not the editor). */}

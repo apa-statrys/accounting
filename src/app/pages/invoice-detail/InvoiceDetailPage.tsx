@@ -754,7 +754,6 @@ export function InvoiceDetailPage({
         {/* Locked-period notice (DES-751) — neutral, non-blocking; Mark as paid still works. */}
         {lockedPeriod && (
           <LockedPeriodBanner
-            tone="amber"
             showContact={false}
             title="Accounting period closed"
             body={
@@ -898,17 +897,17 @@ export function InvoiceDetailPage({
                 (regular → bold), never size. */}
             <div className={`flex items-center justify-between ${credited > 0 ? "py-2.5" : "py-3"}`}>
               <span className={credited > 0 ? "body-sm font-medium" : "body-sm-bold"} style={{ ...FONT, color: credited > 0 ? MUTED : INK }}>Total</span>
-              <span className={credited > 0 ? "body-sm font-medium" : "body-sm-bold"} style={{ ...FONT, color: credited > 0 ? MUTED : INK }}>{money(TOTAL, currency)}</span>
+              <span className={credited > 0 ? "body-sm font-medium" : "body-sm-bold"} style={{ ...FONT, color: INK }}>{money(TOTAL, currency)}</span>
             </div>
             {credited > 0 && (
               <>
-                <div className="flex items-center justify-between pb-2.5">
-                  <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>{isRefundContext ? "Refunded" : "Credit notes applied"}</span>
-                  <span className="text-[13px] font-medium" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(credited, currency)}</span>
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="body-sm" style={{ ...FONT, color: MUTED }}>{isRefundContext ? "Refunded" : "Credit notes applied"}</span>
+                  <span className="body-sm font-medium" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(credited, currency)}</span>
                 </div>
                 <div className="flex items-center justify-between pb-3 pt-3 border-t" style={{ borderColor: "rgba(160,160,160,0.25)" }}>
-                  <span className="text-[17px] tracking-[-0.4px]" style={{ ...FONT, fontWeight: "var(--fw-black)", color: INK }}>{isRefundContext ? "Net Paid" : "Amount due"}</span>
-                  <span className="text-[17px] tracking-[-0.4px]" style={{ ...FONT, fontWeight: "var(--fw-black)", color: INK }}>{money(outstanding, currency)}</span>
+                  <span className="body-sm-bold" style={{ ...FONT, color: INK }}>{isRefundContext ? "Net Paid" : "Amount due"}</span>
+                  <span className="body-sm-bold" style={{ ...FONT, color: INK }}>{money(outstanding, currency)}</span>
                 </div>
               </>
             )}
