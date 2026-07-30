@@ -53,13 +53,17 @@ export function InvoiceCard({ inv, highlighted, lastItem, onClick, onDelete, onO
     : undefined;
 
   const status = rowStatus(eff, refundChip);
-  // Drop a duplicate leading status word from the caption ("Paid on …" → "on …", "Void on …" → "on …").
+  // Drop a duplicate leading status word from the caption ("Paid 22 Jun 2026" → "22 Jun 2026",
+  // "Void 8 Jun 2026" → "8 Jun 2026") — the badge already carries the word, so the caption is
+  // just the bare date, same pattern as every other status.
   let caption = meta.rest;
   if (status.label === "Paid") caption = caption.replace(/^Paid /, "");
   if (status.label === "Void") caption = caption.replace(/^Void /, "");
-  // Refund states (Pending Refund / Refunded / Partially Refunded) and Void show no date caption —
-  // just the badge (the CN-number strip carries the link).
-  if (refundChip || status.label === "Void") caption = "";
+  // Refunded gets its own settled date (the linked credit note's date) instead of the invoice's
+  // original payment date — "Paid 22 Jun 2026" next to a "Refunded" badge would be confusing.
+  // Pending / Partially Refunded stay caption-less (no settled date to show yet).
+  if (refundChip === "Refunded") caption = linkedCn?.date ?? "";
+  else if (refundChip) caption = "";
 
   // Credit-note strip (DES-763 AC6): shows the linked CN NUMBER (no amount) and opens that credit note.
   const hasCn = SHOW_CREDIT_NOTES && Boolean(inv.cnNo);

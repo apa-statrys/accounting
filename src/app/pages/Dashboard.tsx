@@ -215,7 +215,7 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
               title="Marlow & Finch Studio" invoiceNo="INV-2026-000006" amount={money(TOTAL)}
               status={SHOW_CREDIT_NOTES ? "Pending Refund" : "Paid"}
               statusColor={SHOW_CREDIT_NOTES ? "warning" : "success"}
-              statusCaption={SHOW_CREDIT_NOTES ? undefined : "on 20 Jun 2026"}
+              statusCaption={SHOW_CREDIT_NOTES ? undefined : "20 Jun 2026"}
               creditedAmount={SHOW_CREDIT_NOTES ? "CN-2026-000006" : undefined}
               creditedLabel=""
               onClick={() => onOpenInvoice?.({ number: "INV-2026-000006", client: "Marlow & Finch Studio", status: "Paid", origin: "created" })}
@@ -228,17 +228,17 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
             />
             <InvoiceRow
               title="Bright Harbor Co." amount={money(TOTAL)}
-              status="Draft" statusColor="neutral" statusCaption="Created on 20 Jun 2026"
+              status="Draft" statusColor="neutral" statusCaption="20 Jun 2026"
               onClick={() => onOpenInvoice?.({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Awaiting", origin: "created" })}
             />
             <InvoiceRow
               title="Otto Reyes" amount={money(TOTAL)}
-              status="Draft" statusColor="neutral" statusCaption="Created on 18 Jun 2026"
+              status="Draft" statusColor="neutral" statusCaption="18 Jun 2026"
               onClick={() => onOpenInvoice?.({ number: "INV-2026-000002", client: "Otto Reyes", status: "Awaiting", origin: "created" })}
             />
             <InvoiceRow
               title="Northwind Traders" invoiceNo="INV-2026-000001" amount={money(TOTAL)}
-              status="Paid" statusColor="success" statusCaption="on 12 Jun 2026" lastItem
+              status="Paid" statusColor="success" statusCaption="12 Jun 2026" lastItem
               onClick={() => onOpenInvoice?.({ number: "INV-2026-000001", client: "Northwind Traders", status: "Paid", origin: "created" })}
             />
           </div>

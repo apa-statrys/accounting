@@ -943,7 +943,7 @@ export function AddInvoiceDetails({
                       // can't be Awaiting — auto-send moves it to Awaiting on the scheduled date (backend).
                       editingSeries
                         ? undefined
-                        : { ...recentSent, status: "Draft", recurring: true, meta: `— · Scheduled on ${format(recStart, "d MMM yyyy")}` }
+                        : { ...recentSent, status: "Draft", recurring: true, meta: `— · Scheduled ${format(recStart, "d MMM yyyy")}` }
                     )
             }
             keyboard={keyboardOpen}

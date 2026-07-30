@@ -244,28 +244,22 @@ export function InvoiceDetailPage({
   // A recurring invoice awaiting its auto-send date reads as "Scheduled" — a display label only; the real
   // status stays Draft so it still filters under Draft (DES-782). It has no number until issued.
   const scheduledRecurring = recurring && status === "Draft";
-  // A draft has no invoice number yet (assigned on issue), so it carries a separate DF (draft)
-  // number; a scheduled recurring draft just reads "Invoice". Once issued, this is shown in the
-  // hero body (Figma "Invoice Detail", node 1423:63521) — the page header itself just reads the
-  // generic "Invoice Details" (see pageHeaderTitle below), same for every issued status.
-  const headerTitle = scheduledRecurring
-    ? "Invoice"
-    : status === "Draft" && origin === "uploaded"
-    ? (invoiceNo ? invoiceNo.replace(/^INV/, "UL") : "Uploaded invoice") // uploaded draft (DES-716/817)
-    : status === "Draft" && !recurring
-    ? "Invoice Detail" // created manual draft (DES-817)
-    : status === "Draft"
-    ? (invoiceNo ? invoiceNo.replace(/^INV/, "DF") : "Draft")
-    : (invoiceNo || "Invoice");
-  // A draft's own title (above) still carries its DF/UL number/label in the page header, matching
-  // how it always has — only issued invoices move their number down into the hero (Figma).
-  const pageHeaderTitle = status === "Draft" ? headerTitle : "Invoice Details";
   // Uploaded drafts default to "Mark as sent" (already issued externally → Awaiting payment);
   // "Mark as paid" is the secondary path for invoices already settled. Created drafts default to sending.
   const uploaded = origin === "uploaded";
+  // The page header is always the generic "Invoice Details" (Figma "Invoice Detail", node
+  // 1423:63521) — never a document number, not even for a draft. The actual reference (an
+  // uploaded draft's UL-number, or the real number once issued) shows in the hero body instead;
+  // a created/recurring draft has no number yet (assigned on issue) so it shows nothing there.
+  const pageHeaderTitle = "Invoice Details";
+  const heroReference = scheduledRecurring || (status === "Draft" && !uploaded)
+    ? ""
+    : status === "Draft" && uploaded
+    ? (invoiceNo ? invoiceNo.replace(/^INV/, "UL") : "") // uploaded draft (DES-716/817)
+    : (invoiceNo || "");
   // Created + uploaded drafts share the DES-817 detail layout: Bill To → Receiving account card →
   // Invoice details → Items → Summary. Only the header + hero line differ by source (uploaded shows
-  // the UL number + "Uploaded on"; created shows "Invoice Detail" + "Created on").
+  // the UL number + "Uploaded"; created shows nothing there since it has no number yet).
   // The account shown on the created-draft receiving card (default = the primary Statrys account).
   const receivingAcct = RECEIVING_ACCOUNTS.find((a) => a.primary) ?? RECEIVING_ACCOUNTS[0];
   // Read-only states for content. Paid still exposes a ⋯ menu (Refund with Credit Note); Cancelled/
@@ -335,11 +329,12 @@ export function InvoiceDetailPage({
   // (Figma "status + date" format), so it never repeats the badge's own word (no "Overdue" text
   // next to an "Overdue" badge, no "Paid"/"Refunded" text next to those badges either).
   const bannerText: Record<DetailStatus, string> = {
-    // Created drafts show "Created on <date>", uploaded drafts show "Uploaded on <date>" — inline
+    // Created drafts show "Created <date>", uploaded drafts show "Uploaded <date>" — inline
     // beside the "Draft" badge (same "status + date" row every other status uses), not a separate
-    // line. Only reached for a non-recurring Draft (scheduledRecurring overrides headlineBanner
-    // with its own "Scheduled on …"/"Paused on …" text before this is ever read).
-    Draft: `${uploaded ? "Uploaded on" : "Created on"} ${issueDateLabel}`,
+    // line. No "on" connector (matches every other date caption). Only reached for a non-recurring
+    // Draft (scheduledRecurring overrides headlineBanner with its own "Scheduled …"/"Paused …" text
+    // before this is ever read).
+    Draft: `${uploaded ? "Uploaded" : "Created"} ${issueDateLabel}`,
     // Hero shows the ORIGINAL full total as the big number; the sub-line shows what's actually due —
     // "$X due" once a credit note reduces the balance, otherwise the due date ("Due 5 Jul 2026",
     // same absolute format as the list). All "due" lines share one font weight + size (see render).
@@ -348,8 +343,9 @@ export function InvoiceDetailPage({
     PartiallyPaid: `${money(remaining, currency)} remaining · due ${dueDateLabel}`,
     // No "Paid on <date>" line on the hero (removed app-wide); only the overpayment note remains.
     Paid: overpayment > 0 ? `Overpaid by ${money(overpayment, currency)}, flagged for review` : "",
-    // Voided invoices show just the badge + amount — no "Voided … on <date>" sub-line.
-    Cancelled: "",
+    // Voided invoices show their date too, same as every other status (bare date, no repeated
+    // "Void" word next to the badge that already says it — matches the list row).
+    Cancelled: issueDateLabel,
     // Refund-context statuses are computed directly in headlineBanner below instead (their text
     // depends on refundAmt/refundVerb/fullyRefunded, not just which status this is — a "Paid"
     // invoice with a derived refund tag needs the same refund text as a real PendingRefund status).
@@ -397,12 +393,13 @@ export function InvoiceDetailPage({
   const pausedLabel = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   const headlineBanner = scheduledRecurring
     ? seriesStatus === "Paused"
-      ? `Paused on ${pausedLabel}`
-      : `Scheduled on ${issueDateLabel}`
-    // Refund context: same inline "status + date/amount" row as every other status — fully
-    // refunded already reads "Refunded" on the badge, so nothing more to add there.
+      ? `Paused ${pausedLabel}`
+      : `Scheduled ${issueDateLabel}`
+    // Refund context: same inline "status + date/amount" row as every other status. Once fully
+    // refunded, show the settled date (the credit note's own date) instead of the "to refund"
+    // amount — same "badge word not repeated, just the bare date" pattern as Void/Paid.
     : isRefundContext
-    ? (fullyRefunded ? "" : `${money(refundAmt, currency)} ${refundVerb}`)
+    ? (fullyRefunded ? (lastCreditNote?.date ?? "") : `${money(refundAmt, currency)} ${refundVerb}`)
     : bannerText[status];
   // Refund dock (DES-720): while a payout is due (refundPending > 0) the primary action is "Refund Credit
   // Note"; once everything committed has been paid out the remaining action is sending the credit-note
@@ -697,9 +694,8 @@ export function InvoiceDetailPage({
         style={{ backgroundImage: "linear-gradient(180deg, var(--bg-beige-primary) 1%, var(--bg-neutral-primary) 99%)" }}
       >
         <span className="flex items-center gap-1.5 flex-wrap">
-          {/* The "Paid" status badge is suppressed in refund context — the refund tag below is the
-              primary badge, and the green "Paid on …" line carries the paid state. Figma shows this
-              as plain colored text, not a pill. */}
+          {/* The "Paid" status badge is suppressed in refund context — the refund tag takes over as
+              the primary badge instead. Figma shows this as plain colored text, not a pill. */}
           {!effectiveRefundTag && (
             <span className="caption-medium" style={{ ...FONT, color: meta.text }}>{meta.label}</span>
           )}
@@ -739,10 +735,11 @@ export function InvoiceDetailPage({
             {headlineAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </p>
-        {/* Once issued, the document's own number moves down here (Figma) — the page header just
-            reads the generic "Invoice Details" for every issued status (see pageHeaderTitle). */}
-        {status !== "Draft" && (
-          <p className="body-md" style={{ ...FONT, color: INK }}>{headerTitle}</p>
+        {/* The document's own reference (an uploaded draft's UL-number, or the real invoice number
+            once issued) — the page header itself always just reads "Invoice Details" (see
+            pageHeaderTitle above). A created/recurring draft has no number yet, so nothing shows. */}
+        {heroReference && (
+          <p className="body-md" style={{ ...FONT, color: INK }}>{heroReference}</p>
         )}
         {/* A payment has been recorded and is waiting on the accountant to reconcile it — the invoice
             stays Awaiting Payment until then. Shows the amount the user recorded as "Marked as paid". */}

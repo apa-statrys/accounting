@@ -29,7 +29,7 @@ interface InvoiceRowProps {
   /** Status label, e.g. "Paid" — colored via the Badge palette (InvoiceStatus). */
   status?: string;
   statusColor?: BadgeColor;
-  /** Plain text after the status label, e.g. "on 12 Jun 2026". */
+  /** Plain text after the status label, e.g. "12 Jun 2026" (bare date, no "on"). */
   statusCaption?: string;
   /** Preformatted, e.g. "USD 6,430.05". */
   amount: string;

@@ -21,7 +21,7 @@ export const INVOICES: Invoice[] = [
   // the invoice to Refunded (status path Paid → Refunded).
   { id: "INV-2026-000015", client: "Solstice Media", meta: "INV-2026-000015 · Paid 22 Jun 2026", amount: "USD 6,450.00", status: "Paid", date: "2026-06-22", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false },
   { id: "INV-2026-000003", client: "Bright Harbor Co.", meta: "INV-2026-000003 · Created 20 Jun 2026", amount: "USD 283.23", status: "Draft", date: "2026-06-20" },
-  { id: "INV-2026-000006", client: "Lumen Creative", meta: "INV-2026-000006 · Scheduled on 20 Jul 2026", amount: "USD 980.50", status: "Draft", date: "2026-06-12", recurring: true },
+  { id: "INV-2026-000006", client: "Lumen Creative", meta: "INV-2026-000006 · Scheduled 20 Jul 2026", amount: "USD 980.50", status: "Draft", date: "2026-06-12", recurring: true },
   // A recurring invoice whose series has finished (end condition reached) — opening its series shows Completed.
   { id: "INV-2026-000023", client: "Lumen Creative", meta: "INV-2026-000023 · Paid 01 May 2026", amount: "USD 980.50", status: "Paid", date: "2026-05-01", recurring: true },
   { id: "INV-2026-000002", client: "Otto Reyes", meta: "INV-2026-000002 · Uploaded 18 Jun 2026", amount: "USD 100,034.00", status: "Draft", origin: "uploaded", date: "2026-06-18" },

@@ -1188,7 +1188,7 @@ const INVOICESTATUS_PRESETS: Record<string, { label: string; color: BadgeColor; 
   paid: { label: "Paid", color: "success", caption: "12 Jun 2026" },
   awaiting: { label: "Awaiting Payment", color: "warning", caption: "Due 12 Jun 2026" },
   partial: { label: "Partially Paid", color: "warning", caption: "USD 2,400.00 due" },
-  refundPending: { label: "Refund Pending", color: "warning", caption: "Paid on 12 Jun 2026" },
+  refundPending: { label: "Refund Pending", color: "warning", caption: "12 Jun 2026" },
   refunded: { label: "Refunded", color: "success", caption: "12 Jun 2026" },
   overdue: { label: "Overdue", color: "error", caption: "Due 12 Jun 2026" },
   void: { label: "Void", color: "neutral", caption: "12 Jun 2026" },
@@ -1227,7 +1227,7 @@ function InvoiceStatusOverview() {
 }
 
 const INVOICE_ROW_STATUSES: Record<string, { status: string; statusColor: BadgeColor; statusCaption: string }> = {
-  paid: { status: "Paid", statusColor: "success", statusCaption: "on 12 Jun 2026" },
+  paid: { status: "Paid", statusColor: "success", statusCaption: "12 Jun 2026" },
   awaiting: { status: "Awaiting payment", statusColor: "info", statusCaption: "due 30 Jun 2026" },
   overdue: { status: "Overdue", statusColor: "error", statusCaption: "since 2 Jun 2026" },
 };

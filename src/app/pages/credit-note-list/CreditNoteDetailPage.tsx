@@ -275,18 +275,18 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             {displayStatus !== "Awaiting refund" && (
               <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
                 {isCancelled
-                  ? `Cancelled on ${updatedDateLabel ?? issueDateLabel}`
+                  ? `Cancelled ${updatedDateLabel ?? issueDateLabel}`
                   : isRefund
                   ? (refundSettled
-                      ? `Refunded on ${refundProof ? fmtDate(refundProof.date) : issueDateLabel}`
-                      // An applied (pre-payout) refund CN reads "Applied on …", matching the cancellation
-                      // Applied detail; a not-yet-applied refund (Pending Refund) shows "Created on …".
+                      ? `Refunded ${refundProof ? fmtDate(refundProof.date) : issueDateLabel}`
+                      // An applied (pre-payout) refund CN reads "Applied …", matching the cancellation
+                      // Applied detail; a not-yet-applied refund (Pending Refund) shows "Created …".
                       : displayStatus === "Applied"
-                      ? `Applied on ${updatedDateLabel ?? issueDateLabel}`
-                      : `Created on ${issueDateLabel}`)
+                      ? `Applied ${updatedDateLabel ?? issueDateLabel}`
+                      : `Created ${issueDateLabel}`)
                   : isApplied
-                    ? `Applied on ${updatedDateLabel ?? issueDateLabel}`
-                    : `${updatedDateLabel ? "Updated" : "Created"} on ${updatedDateLabel ?? issueDateLabel}`}
+                    ? `Applied ${updatedDateLabel ?? issueDateLabel}`
+                    : `${updatedDateLabel ? "Updated" : "Created"} ${updatedDateLabel ?? issueDateLabel}`}
               </p>
             )}
           </div>

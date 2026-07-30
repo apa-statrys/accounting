@@ -159,11 +159,10 @@ export function metaLine(inv: Invoice, eff: EffectiveStatus): { number: string; 
   const number = inv.meta.split(" · ")[0];
   const rest = inv.meta.slice(number.length + 3); // text after " · "
   // Draft display by entry point: MANUAL drafts have no number yet (assigned on issue, DES-715);
-  // RECURRING drafts have no number and read "Scheduled on <date>" (no invoice until it's sent);
+  // RECURRING drafts have no number and read "Scheduled <date>" (no invoice until it's sent);
   // UPLOAD drafts keep the number the user entered, shown with a UL- prefix (DES-716/817).
   if (eff === "Draft") {
-    const norm = rest.replace(/^(Created|Uploaded|Scheduled) (?=\d)/, "$1 on ");
-    return { number: inv.origin === "uploaded" ? number.replace(/^INV/, "UL") : "", rest: norm, danger: false };
+    return { number: inv.origin === "uploaded" ? number.replace(/^INV/, "UL") : "", rest, danger: false };
   }
   if (inv.due && (eff === "Overdue" || eff === "Awaiting")) {
     if (eff === "Overdue") {
@@ -179,8 +178,9 @@ export function metaLine(inv: Invoice, eff: EffectiveStatus): { number: string; 
   if (eff === "PartiallyPaid" && inv.due) {
     return { number, rest: `Due ${format(parseISO(inv.due), "d MMM yyyy")}`, danger: false };
   }
-  // Terminal statuses keep the authored absolute date, normalised to read "<verb> on <date>".
-  return { number, rest: rest.replace(/^(Paid|Created|Uploaded|Void) (?=\d)/, "$1 on "), danger: false };
+  // Terminal statuses keep the authored absolute date as-is (no "<verb> on" prefix — the caller
+  // strips the leading status word, leaving just the bare date, matching every other status).
+  return { number, rest, danger: false };
 }
 
 /** Refund-status filter — lives in the Filters sheet, not a top chip (a refund is still a Paid invoice). */

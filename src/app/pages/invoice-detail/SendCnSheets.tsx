@@ -58,7 +58,7 @@ export function SendPickerSheet({ open, onClose, creditNotes, currency, selected
             key={cn.no}
             size="sm"
             title={cn.no}
-            text={`−${money(cn.amount, currency)}${cn.sent ? ` · Sent on ${cn.sentDate}` : " · Not sent yet"}`}
+            text={`−${money(cn.amount, currency)}${cn.sent ? ` · Sent ${cn.sentDate}` : " · Not sent yet"}`}
             badgeLabel={cn.sent ? "Sent" : undefined}
             selected={selectedIndex === i}
             trailing={selectedIndex === i ? "check" : "none"}

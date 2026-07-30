@@ -72,7 +72,8 @@ export function CreditsAppliedSection({
   const visible = collapsible ? ordered.slice(0, 2) : ordered;
   return (
     <div className="flex flex-col gap-2">
-      <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{`Credits ( ${creditNotes.length} )`}</p>
+      {/* No "( N )" count — MVP is one credit note per invoice, so it'd always read "( 1 )". */}
+      <p className="body-sm-medium" style={{ ...FONT, color: INK }}>Credits</p>
       <div className="flex flex-col gap-2">
         {visible.map(({ cn, idx }) => {
           const proof = cn.refundProof;
@@ -104,7 +105,7 @@ export function CreditsAppliedSection({
                   )}
                   {!appliedLabel && !isRefundContext && (
                     <span className="block text-[12px] leading-[1.3] mt-0.5" style={{ ...FONT, color: cn.sent ? MUTED : "#b45309" }}>
-                      {cn.sent ? `Sent on ${cn.sentDate}` : "Not sent yet"}
+                      {cn.sent ? `Sent ${cn.sentDate}` : "Not sent yet"}
                     </span>
                   )}
                 </span>
