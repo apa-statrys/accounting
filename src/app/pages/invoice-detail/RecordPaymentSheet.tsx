@@ -7,10 +7,11 @@ import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
 import { Item } from "../../components/Item";
-import { TextInput } from "../../components/TextInput";
+import { TextField } from "../../ui/TextField";
 import { Calendar } from "../../components/Calendar";
 import { ReceivingAccountSheet } from "../../components/ReceivingAccountSheet";
-import { CURRENCIES } from "../../components/CurrencySheet";
+import { CURRENCY_COUNTRY } from "../../components/CurrencySheet";
+import { CountryFlag } from "../../components/CountryFlag";
 import { money } from "../../lib/format";
 import { formatAccount } from "../../data/receivingAccounts";
 import { FONT, MUTED } from "../../lib/theme";
@@ -37,7 +38,8 @@ export function RecordPaymentSheet({
 }: RecordPaymentSheetProps) {
   const [accountOpen, setAccountOpen] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
-  const currencyFlag = CURRENCIES.find((c) => c.code === currency)?.flag;
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const currencyCountry = CURRENCY_COUNTRY[currency];
 
   return (
     <>
@@ -45,11 +47,11 @@ export function RecordPaymentSheet({
         open={open}
         title="Mark as paid"
         onClose={onClose}
-        dsHeader
+        keyboardOpen={keyboardOpen}
         footer={
           <ButtonDock
             type="double"
-            homeIndicator
+            keyboard={keyboardOpen}
             secondaryLabel="Cancel"
             primaryLabel="Mark as paid"
             onSecondary={onClose}
@@ -57,25 +59,27 @@ export function RecordPaymentSheet({
           />
         }
       >
-        <div className="flex flex-col gap-5 -mt-2">
+        <div className="flex flex-col gap-5">
           <motion.div variants={sheetItem} className="flex flex-col gap-3">
             <p className="body-md leading-[1.45]" style={{ ...FONT, color: MUTED }}>
               If the amount is less than the invoice total, the invoice will remain Partially Paid.
             </p>
-            <TextInput
+            <TextField
+              type="left-icon"
               label="Amount received"
               inputMode="decimal"
-              size="md"
               // Locked currency prefix (flag + code) — the currency is fixed per invoice, not chosen here.
-              iconLeft={
-                <span className="flex items-center gap-1.5 text-[15px] font-medium text-[#1b1b1b] -ml-0.5 mr-1 whitespace-nowrap">
-                  {currencyFlag && <span className="text-[18px] leading-none">{currencyFlag}</span>}
+              icon={
+                <span className="flex items-center gap-1.5 text-[15px] font-medium text-[var(--text-primary)] -ml-0.5 mr-1 whitespace-nowrap">
+                  {currencyCountry && <CountryFlag name={currencyCountry} size={18} />}
                   {currency}
                 </span>
               }
               value={value}
-              hintText={`Invoice total: ${money(total)}`}
-              onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ""))}
+              caption={`Invoice total: ${money(total, currency)}`}
+              onChange={(v) => onChange(v.replace(/[^0-9.]/g, ""))}
+              onFocus={() => setKeyboardOpen(true)}
+              onBlur={() => setKeyboardOpen(false)}
             />
           </motion.div>
 
@@ -101,7 +105,7 @@ export function RecordPaymentSheet({
       />
 
       {/* Optional payment date. */}
-      <BottomSheet open={dateOpen} title="Payment date" onClose={() => setDateOpen(false)} dsHeader>
+      <BottomSheet open={dateOpen} title="Select Payment Date" onClose={() => setDateOpen(false)}>
         <Calendar value={date ?? undefined} onChange={(d) => { onDateChange(d); setDateOpen(false); }} />
         {date && (
           <button

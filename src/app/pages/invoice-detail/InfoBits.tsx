@@ -16,11 +16,11 @@ export function InfoCard({ title, tone = "section", children }: { title?: string
   const hero = tone === "hero";
   return (
     <div
-      className={`shrink-0 border border-dashed rounded-[12px] px-4 ${hero ? "bg-[#faf9f4] border-[rgba(160,160,160,0.5)]" : "bg-white border-[rgba(160,160,160,0.2)]"}`}
+      className={`shrink-0 border border-dashed rounded-[12px] px-4 ${hero ? "bg-[var(--bg-neutral-secondary)] border-[rgba(160,160,160,0.5)]" : "bg-white border-[rgba(160,160,160,0.2)]"}`}
       style={{ boxShadow: "0px 4px 14px 0px rgba(226,220,203,0.3)" }}
     >
       {title && (
-        <p className="-mx-4 px-4 pt-3.5 pb-3 text-[12px] font-bold uppercase tracking-wide leading-[16.5px] border-b border-[rgba(160,160,160,0.2)]" style={{ ...FONT, color: "#a0a0a0" }}>{title}</p>
+        <p className="-mx-4 px-4 pt-3.5 pb-3 text-[12px] font-bold uppercase tracking-wide leading-[16.5px] border-b border-[rgba(160,160,160,0.2)]" style={{ ...FONT, color: "var(--text-placeholder)" }}>{title}</p>
       )}
       {children}
     </div>

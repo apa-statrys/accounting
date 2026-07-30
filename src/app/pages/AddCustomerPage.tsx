@@ -1,17 +1,19 @@
-import { useState } from "react";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import StatusBar from "../components/StatusBar";
+import { useRef, useState } from "react";
+import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
-import { TextInput } from "../components/TextInput";
-import { PhoneInput } from "../components/PhoneInput";
+import { TextField } from "../ui/TextField";
 import { ButtonDock } from "../components/ButtonDock";
 import { BottomSheet } from "../components/BottomSheet";
 import { CurrencySheet } from "../components/CurrencySheet";
 import { CountrySheet } from "../components/CountrySheet";
+import { CountryCodeSheet } from "../components/CountryCodeSheet";
+import { CountryFlag } from "../components/CountryFlag";
+import { DEFAULT_COUNTRY_CODE } from "../data/countryCodes";
 import type { Customer } from "../types";
 
 import { FONT } from "../lib/theme";
-const chevron = <ExpandMoreIcon style={{ fontSize: 20, color: "#808080" }} />;
+// "Details" / "Address" / "Invoice" section headers (Figma "Sales Invoice - Client" node 1333-30838).
+const SECTION_TITLE_STYLE = { ...FONT, fontWeight: 700, fontSize: 16, lineHeight: 1.3, color: "var(--text-primary)" } as const;
 
 /** Two-letter initials from a name (skips symbols like "&") — for the duplicate-warning avatar. */
 function initials(name: string): string {
@@ -72,6 +74,16 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
   const [discardOpen, setDiscardOpen] = useState(false);
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
+  const [phoneCountry, setPhoneCountry] = useState(DEFAULT_COUNTRY_CODE);
+  const [phoneCodeOpen, setPhoneCodeOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const focusKeyboard = () => setKeyboardOpen(true);
+  const blurKeyboard = () => setKeyboardOpen(false);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    setScrolled(e.currentTarget.scrollTop > 4);
+  };
 
   // Dirty = any field differs from the seeded state (edit) / from empty (add). Drives the discard warning
   // (714 AC1) and dirty-gates the Save Changes CTA in edit mode.
@@ -180,61 +192,93 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
   return (
     <div
       className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
-      style={{ width: 375, height: 812, background: "var(--ds-bg-beige-primary)" }}
+      style={{ width: 375, height: 812, background: "var(--bg-beige-primary)" }}
     >
-      <StatusBar />
+      <div
+        className="flex-1 overflow-y-auto thin-scrollbar"
+        onScroll={handleScroll}
+      >
+        <PageAppHeader scrolled={scrolled}>
+          <PageHeader
+            type="center"
+            title={isEdit ? "Edit Customer" : "New Customer"}
+            showSearch={false}
+            onBack={requestBack}
+          />
+        </PageAppHeader>
 
-      <PageHeader
-        type="center"
-        title={isEdit ? "Edit Customer" : "New Customer"}
-        showSearch={false}
-        onBack={requestBack}
-      />
+        <div className={`px-4 pt-5 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
+            <p style={SECTION_TITLE_STYLE}>Details</p>
+            <div className="flex flex-col gap-3">
+              <TextField id="client-field-company" label="Company Name" mandatory placeholder="e.g. Atlas Logistics"
+                error={!!err("company")} caption={err("company") || undefined} value={company} onChange={setCompany}
+                onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
-      <div className="flex-1 overflow-y-auto thin-scrollbar px-4 pt-5 pb-28">
-        <div className="flex flex-col gap-4">
-          <TextInput id="client-field-company" label="Company Name" placeholder="e.g. Atlas Logistics" size="md" required
-            error={err("company")} value={company} onChange={(e) => setCompany(e.target.value)} />
+              <div className="flex gap-4">
+                <TextField label="First Name" placeholder="Enter first name" className="flex-1"
+                  value={firstName} onChange={setFirstName} onFocus={focusKeyboard} onBlur={blurKeyboard} />
+                <TextField label="Last Name" placeholder="Enter last name" className="flex-1"
+                  value={lastName} onChange={setLastName} onFocus={focusKeyboard} onBlur={blurKeyboard} />
+              </div>
 
-          <div className="flex gap-4">
-            <TextInput label="First Name" placeholder="Enter first name" size="md" showHint={false} className="flex-1"
-              value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-            <TextInput label="Last Name" placeholder="Enter last name" size="md" showHint={false} className="flex-1"
-              value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              <TextField label="Company Registration Number" placeholder="Enter registration number"
+                value={regNo} onChange={setRegNo} onFocus={focusKeyboard} onBlur={blurKeyboard} />
+
+              <TextField id="client-field-email" label="Email Address" inputType="email" placeholder="e.g. abc@gmail.com" mandatory
+                error={!!err("email")} caption={err("email") || undefined} value={email} onChange={setEmail}
+                onFocus={focusKeyboard} onBlur={blurKeyboard} />
+
+              {/* TextField's own "mobile" type (flag + dial code + chevron selector) — see
+                  memory: no-handrolled-ds-duplicates. */}
+              <TextField type="mobile" id="client-field-phone" label="Phone Number" inputType="tel" placeholder="Enter contact phone number"
+                selectorLabel={phoneCountry.dialCode}
+                selectorIcon={<CountryFlag name={phoneCountry.name} size={20} />}
+                onSelectorClick={() => setPhoneCodeOpen(true)}
+                error={!!err("phone")} caption={err("phone") || undefined} value={phone} onChange={setPhone}
+                onFocus={focusKeyboard} onBlur={blurKeyboard} />
+
+              <TextField id="client-field-website" label="Website" placeholder="Enter company website"
+                error={!!err("website")} caption={err("website") || undefined} value={website} onChange={setWebsite}
+                onFocus={focusKeyboard} onBlur={blurKeyboard} />
+            </div>
           </div>
 
-          <TextInput label="Company Registration Number" placeholder="Enter registration number" size="md" showHint={false}
-            value={regNo} onChange={(e) => setRegNo(e.target.value)} />
+          <div className="flex flex-col gap-4">
+            <p style={SECTION_TITLE_STYLE}>Address</p>
+            <div className="flex flex-col gap-3">
+              <TextField type="dropdown" id="client-field-country" label="Country" mandatory placeholder="Select country"
+                error={!!err("country")} caption={err("country") || undefined} value={country} onClick={() => setCountryOpen(true)} />
 
-          <TextInput id="client-field-email" label="Email Address" type="email" placeholder="e.g. abc@gmail.com" size="md" required
-            error={err("email")} value={email} onChange={(e) => setEmail(e.target.value)} />
+              <TextField id="client-field-address" label="Address" mandatory placeholder="Enter company address"
+                error={!!err("address")} caption={err("address") || undefined} value={address} onChange={setAddress}
+                onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
-          <PhoneInput id="client-field-phone" label="Phone Number" size="md"
-            error={err("phone")} value={phone} onChange={setPhone} />
+              <div className="flex gap-4">
+                <TextField id="client-field-city" label="City" mandatory placeholder="Enter city"
+                  error={!!err("city")} caption={err("city") || undefined} className="flex-1" value={city} onChange={setCity}
+                  onFocus={focusKeyboard} onBlur={blurKeyboard} />
+                {!noPostal && (
+                  <TextField id="client-field-zip" label="Zip / Postal" mandatory placeholder="e.g. 11102"
+                    error={!!err("zip")} caption={err("zip") || undefined} className="flex-1" value={zip} onChange={setZip}
+                    onFocus={focusKeyboard} onBlur={blurKeyboard} />
+                )}
+              </div>
 
-          <TextInput id="client-field-website" label="Website" placeholder="Enter company website" size="md"
-            error={err("website")} value={website} onChange={(e) => setWebsite(e.target.value)} />
-
-          <TextInput id="client-field-country" label="Country" placeholder="Select country" size="md" required
-            error={err("country")} readOnly iconRight={chevron} value={country} onClick={() => setCountryOpen(true)} />
-
-          <TextInput id="client-field-address" label="Address" placeholder="Enter company address" size="md" required
-            error={err("address")} value={address} onChange={(e) => setAddress(e.target.value)} />
-
-          <div className="flex gap-4">
-            <TextInput id="client-field-city" label="City" placeholder="Enter city" size="md" required
-              error={err("city")} className="flex-1" value={city} onChange={(e) => setCity(e.target.value)} />
-            {!noPostal && (
-              <TextInput id="client-field-zip" label="Zip / Postal" placeholder="e.g. 11102" size="md" required
-                error={err("zip")} className="flex-1" value={zip} onChange={(e) => setZip(e.target.value)} />
-            )}
+              <TextField label="State" placeholder="Enter state or province"
+                value={stateVal} onChange={setStateVal} onFocus={focusKeyboard} onBlur={blurKeyboard} />
+            </div>
           </div>
 
-          <TextInput label="State" placeholder="Enter state or province" size="md" showHint={false}
-            value={stateVal} onChange={(e) => setStateVal(e.target.value)} />
-
-          <TextInput label="Currency" placeholder="Select default invoice currency" size="md" showHint={false} readOnly
-            iconRight={chevron} value={currency} onClick={() => setCurrencyOpen(true)} />
+          <div className="flex flex-col gap-4">
+            <p style={SECTION_TITLE_STYLE}>Invoice</p>
+            <div className="flex flex-col gap-3">
+              <TextField type="dropdown" label="Currency" placeholder="Select default invoice currency"
+                value={currency} onClick={() => setCurrencyOpen(true)} />
+            </div>
+          </div>
+        </div>
         </div>
       </div>
 
@@ -244,7 +288,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         primaryLabel={isEdit ? "Save Changes" : "Add Customer"}
         primaryDisabled={isEdit && !dirty}
         onPrimary={handleSave}
-        homeIndicator
+        keyboard={keyboardOpen}
       />
 
       <CountrySheet
@@ -261,13 +305,19 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         onSelect={(code) => { setCurrency(code); setCurrencyOpen(false); }}
       />
 
+      <CountryCodeSheet
+        open={phoneCodeOpen}
+        value={phoneCountry.name}
+        onClose={() => setPhoneCodeOpen(false)}
+        onSelect={(c) => { setPhoneCountry(c); setPhoneCodeOpen(false); }}
+      />
+
       {/* Unsaved-changes discard warning (DES-714 AC1). Safe action (Keep Editing) is the
           filled primary; the destructive Discard is the outline secondary. */}
       <BottomSheet
         open={discardOpen}
         title="Discard changes?"
         onClose={() => setDiscardOpen(false)}
-        dsHeader
         compact
         footer={
           <ButtonDock
@@ -276,11 +326,10 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
             secondaryLabel="Discard"
             onPrimary={() => setDiscardOpen(false)}
             onSecondary={() => { setDiscardOpen(false); onBack?.(); }}
-            homeIndicator
           />
         }
       >
-        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "#808080" }}>
+        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "var(--text-secondary)" }}>
           You have unsaved changes. If you go back now, they'll be lost.
         </p>
       </BottomSheet>
@@ -291,7 +340,6 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         open={dupOpen}
         title="Customer already exists"
         onClose={() => setDupOpen(false)}
-        dsHeader
         compact
         footer={
           <ButtonDock
@@ -300,12 +348,11 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
             primaryLabel={isEdit ? "Save Anyway" : "Create Anyway"}
             onSecondary={() => setDupOpen(false)} // Cancel → stay on the customer form
             onPrimary={() => { setDupOpen(false); commitSave(); }}
-            homeIndicator
           />
         }
       >
         <div className="flex flex-col gap-3">
-          <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "#808080" }}>
+          <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "var(--text-secondary)" }}>
             {isEdit
               ? "We found another customer with the same email address. Do you want to save anyway?"
               : "We found an existing customer with the same email address. Do you want to create another customer?"}
@@ -314,7 +361,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
             <div className="flex items-center gap-3 rounded-[12px] border border-[#e3e5e5] px-3 py-2.5">
               <span
                 className="shrink-0 rounded-full flex items-center justify-center text-[15px] font-medium"
-                style={{ width: 40, height: 40, background: "#f3ecda", color: "#1b1b1b", ...FONT }}
+                style={{ width: 40, height: 40, background: "var(--bg-beige-secondary)", color: "var(--text-primary)", ...FONT }}
               >
                 {initials(duplicate.name)}
               </span>
@@ -322,7 +369,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
                 <span className="text-[15px] font-medium truncate" style={{ ...FONT, color: "#101828" }}>
                   {duplicate.name}
                 </span>
-                <span className="text-[13px] truncate" style={{ ...FONT, color: "#808080" }}>
+                <span className="text-[13px] truncate" style={{ ...FONT, color: "var(--text-secondary)" }}>
                   {duplicate.email}
                 </span>
               </span>

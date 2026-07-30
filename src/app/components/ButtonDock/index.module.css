@@ -1,27 +1,67 @@
 /* Bottom action dock — DS StickyButton from Figma "[APP] Design System"
    (node 4141-2746): transparent→white-40 gradient with a backdrop blur and
    rounded top corners, so page content frosts as it scrolls underneath
-   (Figma blur radius 16 ≈ CSS blur(8px)). */
+   (Figma blur radius 16 ≈ CSS blur(8px)). Same frost recipe as
+   components/PageAppHeader (mirrored top/bottom): a separate .frost layer
+   behind the buttons carries the color gradient + blur + an eased mask, so
+   the feathered edge never washes out the buttons sitting on top of it. */
 
 .root {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   width: 100%;
   max-width: 375px;
   box-sizing: border-box;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, var(--ds-white-40) 100%);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-radius: var(--ds-radius-3xl) var(--ds-radius-3xl) 0 0;
+  border-radius: var(--radius-3xl) var(--radius-3xl) 0 0;
   /* Figma: 16px top, 32px bottom when there's no home-indicator area */
   padding-top: 16px;
   padding-bottom: 32px;
+  /* Crossfades .opaque in/out alongside the slot's own height/opacity animation (index.tsx). */
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-/* When the home indicator is present it provides the bottom space. */
-.withHomeIndicator {
+.root > :not(.frost) {
+  position: relative;
+  z-index: 1;
+}
+
+.frost {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(to bottom, transparent 0%, var(--alpha-white-40) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  /* Mirror of PageAppHeader's ease-out mask curve — feathers the top edge
+     (nearest the scrolling content) instead of the bottom. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.15) 3%, rgba(0, 0, 0, 0.4) 8%, rgba(0, 0, 0, 0.75) 16%, rgba(0, 0, 0, 0.94) 26%, #000 40%);
+  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.15) 3%, rgba(0, 0, 0, 0.4) 8%, rgba(0, 0, 0, 0.75) 16%, rgba(0, 0, 0, 0.94) 26%, #000 40%);
+}
+
+/* Opaque variant — a slot with real content (e.g. a price summary) needs a solid, legible
+   surface, not the frosted blur (Figma "Create Invoice", node 1419-52781: solid white +
+   drop shadow, no blur). Auto-applied whenever `slot` is passed; .frost isn't rendered
+   at all in this case (see index.tsx), so there's no conflicting blur/gradient layer. */
+.opaque {
+  background: var(--bg-neutral-primary);
+  box-shadow: 0px 10px 30px 0px rgba(0, 0, 0, 0.2);
+}
+
+/* Keyboard variant (Figma "IOS controls" = Keyboard): the Keyboard sits flush
+   against the dock's own bottom edge (no root padding-bottom) — the 12px gap
+   above it lives on .actions instead (.actionsKeyboardGap), since
+   padding-bottom here would land AFTER the keyboard (the last child), not
+   between it and the button(s) above. */
+.withKeyboard {
   padding-bottom: 0;
+}
+
+.actionsKeyboardGap {
+  margin-bottom: 12px;
 }
 
 /* Sticky page dock — floats over the page's scroll area (anchored to the
@@ -35,21 +75,14 @@
   z-index: 20;
 }
 
-/* ===== ACCESSORY (checkbox row) — Figma: 8px checkbox gap, 12px below,
-   body-sm/medium label ===== */
+/* ===== ACCESSORY — wraps ui/Checkbox (row layout + label typography live there). ===== */
 .accessory {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   padding: 0 16px 12px;
-  cursor: pointer;
 }
 
-.accessoryLabel {
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.3;
+/* ===== SLOT — arbitrary content above the actions (Figma "Slot", e.g. a price summary). ===== */
+.slot {
+  padding: 0 16px 12px;
 }
 
 /* ===== ACTIONS — Figma: 8px gap between buttons, all full width.
@@ -81,23 +114,6 @@
 
 .fullButton {
   width: 100%;
-}
-
-/* ===== HOME INDICATOR (iOS) — Figma AppStatusBarLower: 32px area,
-   134×5 black bar ending 6px above the bottom edge ===== */
-.homeIndicator {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  height: 32px;
-  padding-bottom: 6px;
-}
-
-.homeBar {
-  width: 134px;
-  height: 5px;
-  border-radius: var(--radius-full);
-  background: #000;
 }
 
 /* ===== RESPONSIVE ===== */

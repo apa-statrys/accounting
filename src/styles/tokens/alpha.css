@@ -1,0 +1,31 @@
+:root {
+  --alpha-black-10: #0000001a;
+  --alpha-black-20: #00000033;
+  --alpha-black-30: #0000004d;
+  --alpha-black-40: #00000066;
+  --alpha-black-50: #00000080;
+  --alpha-black-60: #00000099;
+  --alpha-black-70: #000000b2;
+  --alpha-black-80: #000000cc;
+  --alpha-black-90: #000000e5;
+
+  --alpha-white-10: #ffffff1a;
+  --alpha-white-20: #ffffff33;
+  --alpha-white-30: #ffffff4d;
+  --alpha-white-40: #ffffff66;
+  --alpha-white-50: #ffffff80;
+  --alpha-white-60: #ffffff99;
+  --alpha-white-70: #ffffffb2;
+  --alpha-white-80: #ffffffcc;
+  --alpha-white-90: #ffffffe5;
+
+  --alpha-brand-10: #ff4a151a;
+  --alpha-brand-20: #ff4a1533;
+  --alpha-brand-30: #ff4a154d;
+  --alpha-brand-40: #ff4a1566;
+  --alpha-brand-50: #ff4a1580;
+  --alpha-brand-60: #ff4a1599;
+  --alpha-brand-70: #ff4a15b2;
+  --alpha-brand-80: #ff4a15cc;
+  --alpha-brand-90: #ff4a15e5;
+}

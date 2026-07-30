@@ -41,7 +41,7 @@ export const ATTENTION_TASKS: AttentionTask[] = [
     id: "over-1",
     type: "overpayment",
     title: "Overpayment to review",
-    sub: "INV-2026-000005 · paid $250.00 over the invoice total",
+    sub: "INV-2026-000005 · paid USD 250.00 over the invoice total",
     action: "Review",
     invoice: { number: "INV-2026-000005", client: "Atlas Logistics", status: "Paid", origin: "created" },
   },

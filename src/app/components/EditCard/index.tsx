@@ -28,7 +28,7 @@ export const EditCard = React.forwardRef<HTMLDivElement, EditCardProps>(
         )}
 
         <div className={styles.body}>
-          <p className={`${styles.title} card-title-2xs`}>{title}</p>
+          <p className={`${styles.title} card-title-sm`}>{title}</p>
           <p className={`${styles.description} body-sm-medium`}>{description}</p>
         </div>
 

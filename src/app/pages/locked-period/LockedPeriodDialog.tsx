@@ -23,10 +23,8 @@ export function LockedPeriodDialog({
       open={open}
       title={title}
       onClose={onClose}
-      dsHeader
       compact
-      hideClose
-      footer={<ButtonDock type="single" primaryLabel="OK" onPrimary={onClose} homeIndicator />}
+      footer={<ButtonDock type="single" primaryLabel="OK" onPrimary={onClose} />}
     >
       <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: MUTED }}>
         {body}

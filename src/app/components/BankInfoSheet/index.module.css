@@ -1,0 +1,16 @@
+/* BankInfoSheet — card-details fields (card number, expiry + CVV, cardholder name) */
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-6);
+}
+
+.half {
+  flex: 1 1 0;
+}

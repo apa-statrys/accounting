@@ -1,11 +1,10 @@
 import { useRef, useState } from "react";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { SHOW_CREDIT_NOTES } from "../../lib/flags";
-import { FONT } from "../../lib/theme";
 import { money } from "../../lib/format";
 import type { Invoice } from "../../types";
 import { InvoiceRow } from "../../ui/InvoiceRow";
+import { SwipeActions } from "../../ui/SwipeActions";
 import type { BadgeColor } from "../../ui/Badge";
 import { effectiveStatus, metaLine, type EffectiveStatus } from "./filters";
 // Prototype: every invoice's detail page shows the same shared demo total (demoInvoice.TOTAL =
@@ -13,7 +12,9 @@ import { effectiveStatus, metaLine, type EffectiveStatus } from "./filters";
 // the detail shows (user, 22/Jul) — the varied per-invoice `inv.amount` is no longer displayed here.
 import { TOTAL } from "../invoice-detail/demoInvoice";
 
-const REVEAL = 88;
+// Reveal = ui/SwipeActions' own delete-only width (Figma "Create Invoice", node 1826-15916 —
+// same swipe-to-delete recipe as ServiceItemCard).
+const REVEAL = 44;
 
 /** Status chip label + DS Badge colour for a list row (refund state wins when present). */
 function rowStatus(eff: EffectiveStatus, refundChip?: string): { label: string; color: BadgeColor } {
@@ -52,20 +53,23 @@ export function InvoiceCard({ inv, highlighted, lastItem, onClick, onDelete, onO
     : undefined;
 
   const status = rowStatus(eff, refundChip);
-  // Drop a duplicate leading status word from the caption ("Paid on …" → "on …", "Void on …" → "on …").
+  // Drop a duplicate leading status word from the caption ("Paid 22 Jun 2026" → "22 Jun 2026",
+  // "Void 8 Jun 2026" → "8 Jun 2026") — the badge already carries the word, so the caption is
+  // just the bare date, same pattern as every other status.
   let caption = meta.rest;
   if (status.label === "Paid") caption = caption.replace(/^Paid /, "");
   if (status.label === "Void") caption = caption.replace(/^Void /, "");
-  // Refund states (Pending Refund / Refunded / Partially Refunded) and Void show no date caption —
-  // just the badge (the CN-number strip carries the link).
-  if (refundChip || status.label === "Void") caption = "";
+  // Refunded gets its own settled date (the linked credit note's date) instead of the invoice's
+  // original payment date — "Paid 22 Jun 2026" next to a "Refunded" badge would be confusing.
+  // Pending / Partially Refunded stay caption-less (no settled date to show yet).
+  if (refundChip === "Refunded") caption = linkedCn?.date ?? "";
+  else if (refundChip) caption = "";
 
   // Credit-note strip (DES-763 AC6): shows the linked CN NUMBER (no amount) and opens that credit note.
   const hasCn = SHOW_CREDIT_NOTES && Boolean(inv.cnNo);
 
   const row = (
     <InvoiceRow
-      size="md"
       title={inv.client}
       invoiceNo={meta.number || undefined}
       recurring={inv.recurring}
@@ -109,19 +113,14 @@ function DraftSwipeRow({ children, highlightBg, onDelete, onClick }: { children:
   const [dragging, setDragging] = useState(false);
   const press = useRef<{ x: number; base: number } | null>(null);
   const movedRef = useRef(false);
+  // Mirrors `tx` synchronously so onPointerUp can read the just-dragged position without
+  // waiting on React's setState batching.
+  const txRef = useRef(0);
 
   return (
     <div className="shrink-0 relative overflow-hidden rounded-lg">
-      <div className="absolute right-0 top-0 bottom-0 flex items-center justify-end py-1">
-        <button
-          type="button"
-          onClick={onDelete}
-          aria-label="Delete draft"
-          className="h-full w-[80px] rounded-xl bg-[#fb4d4d] flex flex-col items-center justify-center gap-0.5 text-white active:bg-[#e23d3d]"
-        >
-          <DeleteOutlineIcon style={{ fontSize: 22, color: "#fff" }} />
-          <span className="text-[12px] font-medium" style={FONT}>Delete</span>
-        </button>
+      <div className="absolute inset-0 flex items-center justify-end px-1">
+        <SwipeActions showMore={false} onDelete={onDelete} />
       </div>
 
       <div
@@ -135,18 +134,20 @@ function DraftSwipeRow({ children, highlightBg, onDelete, onClick }: { children:
           if (!press.current) return;
           const dx = e.clientX - press.current.x;
           if (Math.abs(dx) > 4) movedRef.current = true;
-          setTx(Math.max(-REVEAL, Math.min(0, press.current.base + dx)));
+          const next = Math.max(-REVEAL, Math.min(0, press.current.base + dx));
+          txRef.current = next;
+          setTx(next);
         }}
         onPointerUp={() => {
           if (!press.current) return;
           press.current = null;
           setDragging(false);
-          setTx((cur) => (cur < -REVEAL / 2 ? -REVEAL : 0));
+          setTx(txRef.current < -REVEAL / 2 ? -REVEAL : 0);
         }}
         onPointerCancel={() => {
           press.current = null;
           setDragging(false);
-          setTx((cur) => (cur < -REVEAL / 2 ? -REVEAL : 0));
+          setTx(txRef.current < -REVEAL / 2 ? -REVEAL : 0);
         }}
         onClick={() => {
           if (movedRef.current) { movedRef.current = false; return; }

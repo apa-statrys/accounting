@@ -1,0 +1,25 @@
+/* BottomsheetsEnd — Figma "[APP] Design System" → BottomsheetsEnd (node
+   4127-7752). In-flow: plain white background — nothing scrolls beneath it,
+   so there's nothing for a blur to frost. Overlap: transparent + absolute,
+   letting the dock's own gradient/blur (components/ButtonDock's .frost
+   layer) frost the scrolled content sitting behind it instead of a flat cut. */
+
+.footer {
+  background: var(--bg-neutral-primary);
+}
+
+.footerOverlap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  background: transparent;
+}
+
+/* No dock (Figma "Padding Bottom", node 4038-3023): fixed 32px spacer. */
+.bottomPad {
+  height: var(--space-16);
+  flex-shrink: 0;
+  background: var(--bg-neutral-primary);
+}

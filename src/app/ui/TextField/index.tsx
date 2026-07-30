@@ -34,6 +34,13 @@ interface TextFieldProps {
   /** Tap on a dropdown / date-picker field. */
   onClick?: () => void;
   inputMode?: React.InputHTMLAttributes<HTMLInputElement>["inputMode"];
+  /** Native input type (text/left-icon/mobile/currency/unit only) — defaults to "text". */
+  inputType?: "text" | "email" | "password" | "tel" | "number";
+  pattern?: string;
+  id?: string;
+  onFocus?: React.FocusEventHandler<HTMLInputElement>;
+  onBlur?: React.FocusEventHandler<HTMLInputElement>;
+  onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
   "aria-label"?: string;
   /** Label above the field (Figma "Fields" wrapper). */
   label?: string;
@@ -41,9 +48,22 @@ interface TextFieldProps {
   mandatory?: boolean;
   /** Helper text below the field; red when `error` is set. */
   caption?: string;
+  /** Trailing icon/button after the input (e.g. a unit picker or a status badge) — not a Figma
+   *  axis, just a slot for the caller's own trailing control. Mutually exclusive in practice with
+   *  the mobile/currency/unit selector types. */
+  iconRight?: React.ReactNode;
+  /** Soft warning border (e.g. an OCR-missing value to complete) — not a Figma state, just this
+   *  token swapped in for the field's normal border. */
+  highlight?: boolean;
+  /** Extra class on the outermost element (e.g. a flex-basis override for a side-by-side row). */
+  className?: string;
 }
 
-function Chevron({ size }: { size: 16 | 24 }) {
+/** The DS's own thin-stroke chevron (used for the mobile/currency/unit selector and the
+ *  dropdown/date-picker types below) — exported so other trailing "value + chevron" buttons
+ *  (e.g. DiscountCard's %/amount picker, AddServicesSheet's Unit picker) can reuse the exact
+ *  same glyph instead of reaching for a bolder/differently-weighted icon library. */
+export function Chevron({ size }: { size: 16 | 24 }) {
   return size === 16 ? (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <path d="M4 6L8 10L12 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
@@ -55,13 +75,13 @@ function Chevron({ size }: { size: 16 | 24 }) {
   );
 }
 
-function CalendarIcon() {
+export function CalendarIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
       <path
         d="M6.66667 1.66667V5M13.3333 1.66667V5M2.5 8.33333H17.5M4.16667 3.33333H15.8333C16.7538 3.33333 17.5 4.07953 17.5 5V16.6667C17.5 17.5871 16.7538 18.3333 15.8333 18.3333H4.16667C3.24619 18.3333 2.5 17.5871 2.5 16.6667V5C2.5 4.07953 3.24619 3.33333 4.16667 3.33333Z"
         stroke="currentColor"
-        strokeWidth="1.25"
+        strokeWidth="1"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -89,10 +109,19 @@ export function TextField({
   onSelectorClick,
   onClick,
   inputMode,
+  inputType = "text",
+  pattern,
+  id,
+  onFocus,
+  onBlur,
+  onKeyDown,
   "aria-label": ariaLabel,
   label,
   mandatory = false,
   caption,
+  iconRight,
+  highlight = false,
+  className,
 }: TextFieldProps) {
   const hasSelector = type === "mobile" || type === "currency" || type === "unit";
   const classes = [
@@ -101,6 +130,8 @@ export function TextField({
     disabled ? styles.disabled : "",
     error ? styles.error : "",
     forceFocus ? styles.forceFocus : "",
+    highlight ? styles.highlight : "",
+    label || caption ? "" : className || "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -130,23 +161,34 @@ export function TextField({
         {type === "left-icon" && icon && <span className={styles.leftIcon}>{icon}</span>}
         {type !== "unit" && selector}
         <input
+          id={id}
           className={styles.input}
-          type="text"
+          type={inputType}
+          pattern={pattern}
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          onKeyDown={onKeyDown}
           placeholder={placeholder}
           disabled={disabled}
           inputMode={inputMode}
           aria-label={ariaLabel}
         />
         {type === "unit" && selector}
+        {iconRight && <span className={styles.rightIcon}>{iconRight}</span>}
       </div>
     );
 
   if (!label && !caption) return field;
   return (
-    <div className={styles.labeled}>
-      {label && <p className={styles.label}>{mandatory ? `${label} *` : label}</p>}
+    <div className={[styles.labeled, className || ""].filter(Boolean).join(" ")}>
+      {label && (
+        <p className={styles.label}>
+          {label}
+          {mandatory && <span className={styles.asterisk}>*</span>}
+        </p>
+      )}
       {field}
       {caption && <p className={`${styles.caption} ${error ? styles.captionError : ""}`}>{caption}</p>}
     </div>

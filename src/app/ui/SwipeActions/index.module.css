@@ -1,0 +1,32 @@
+/* SwipeActions — Figma "[APP] Design System" → SwipeActions (node 4313-8369). */
+
+.root {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.more,
+.delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+
+.more {
+  background: var(--bg-neutral-tertiary);
+  color: var(--text-primary);
+}
+
+.delete {
+  background: var(--bg-error-bold);
+  color: var(--text-on-color);
+}

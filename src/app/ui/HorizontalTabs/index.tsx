@@ -11,11 +11,13 @@ interface HorizontalTabsProps {
   tabs: string[];
   activeIndex: number;
   onChange: (index: number) => void;
-  size?: "md" | "lg";
   variant?: "button" | "underline";
+  /** Per-tab unread count (Figma showUnread), aligned by index to `tabs` — omit an
+   *  entry (or pass undefined) to leave that tab's badge off. */
+  unread?: Array<string | undefined>;
 }
 
-export function HorizontalTabs({ tabs, activeIndex, onChange, size = "md", variant = "button" }: HorizontalTabsProps) {
+export function HorizontalTabs({ tabs, activeIndex, onChange, variant = "button", unread }: HorizontalTabsProps) {
   return (
     <div className={styles.scroller}>
       <div
@@ -27,10 +29,10 @@ export function HorizontalTabs({ tabs, activeIndex, onChange, size = "md", varia
           <TabsBase
             key={i}
             label={label}
-            size={size}
             variant={variant}
             active={i === activeIndex}
             onClick={() => onChange(i)}
+            unread={unread?.[i]}
           />
         ))}
       </div>

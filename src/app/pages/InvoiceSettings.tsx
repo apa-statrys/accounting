@@ -1,21 +1,22 @@
 import { useState } from "react";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Camera } from "lucide-react";
-import StatusBar from "../components/StatusBar";
+import { PageAppHeader } from "../components/PageAppHeader";
 import { ButtonDock } from "../components/ButtonDock";
 import { BottomSheet } from "../components/BottomSheet";
-import { TextInput } from "../components/TextInput";
-import { PhoneInput } from "../components/PhoneInput";
-import { Tile } from "../components/Tile";
-import { Search } from "../components/Search";
-import { CurrencySheet, CURRENCIES } from "../components/CurrencySheet";
+import { TextField } from "../ui/TextField";
+import { Tile } from "../ui/Tile";
+import { Search } from "../ui/Search";
+import { CurrencySheet, CURRENCY_COUNTRY } from "../components/CurrencySheet";
 import { ReceivingAccountSheet } from "../components/ReceivingAccountSheet";
+import { CountryCodeSheet } from "../components/CountryCodeSheet";
+import { CountryFlag } from "../components/CountryFlag";
 import { getAccount } from "../data/receivingAccounts";
 import { DEFAULT_SETTINGS } from "../data/settings";
+import { DEFAULT_COUNTRY_CODE } from "../data/countryCodes";
 import type { CompanySettings } from "../types";
 import { PageHeader } from "../ui/PageHeader";
-import { Toggle } from "../ui/Toggle";
+import { ListCard } from "../ui/ListCard";
+import { ListRow } from "../ui/ListRow";
 
 import { FONT } from "../lib/theme";
 import { EMAIL_RE } from "../lib/format";
@@ -51,68 +52,15 @@ function DemoLogo({ size = 72 }: { size?: number }) {
       </defs>
       <rect width="72" height="72" rx="20" fill="url(#lumenBg)" />
       {/* Two interlocking rounded chevrons — a clean, brand-neutral studio mark. */}
-      <path d="M23 25 L37 36 L23 47" fill="none" stroke="#ffffff" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M37 25 L51 36 L37 47" fill="none" stroke="#ffffff" strokeOpacity="0.55" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M23 25 L37 36 L23 47" fill="none" stroke="var(--icon-on-color)" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M37 25 L51 36 L37 47" fill="none" stroke="var(--icon-on-color)" strokeOpacity="0.55" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
-  );
-}
-
-/** Revolut-style grouped section — an uppercase header label above a card of divided rows. */
-function Group({ title, children }: { title?: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-2">
-      {title && (
-        <span className="px-1 text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0]" style={FONT}>{title}</span>
-      )}
-      <div className="rounded-2xl bg-white shadow-[0_1px_3px_rgba(27,27,27,0.05)] overflow-hidden">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-/** A row inside a Group: an optional leading element + title/subtitle, then a value+chevron (navigates
- *  to a sheet) OR a custom `trailing` (e.g. an inline toggle, in which case the row isn't a button). */
-function Row({ leading, title, subtitle, value, onClick, trailing, last }: {
-  leading?: React.ReactNode;
-  title: string;
-  subtitle?: string;
-  value?: string;
-  onClick?: () => void;
-  trailing?: React.ReactNode;
-  last?: boolean;
-}) {
-  const border = last ? "" : "border-b border-[rgba(160,160,160,0.18)]";
-  const body = (
-    <>
-      {leading && <span className="shrink-0">{leading}</span>}
-      <span className="flex-1 min-w-0 text-left">
-        <span className="block text-[15px] font-semibold leading-[1.25] text-[#101828]" style={FONT}>{title}</span>
-        {subtitle && <span className="block text-[13px] leading-[1.3] text-[#808080] truncate" style={FONT}>{subtitle}</span>}
-      </span>
-      {trailing ?? (
-        <span className="flex items-center gap-1.5 shrink-0">
-          {value && <span className="text-[14px] font-medium text-[#1b1b1b]" style={FONT}>{value}</span>}
-          <ChevronRightIcon className="transition-transform duration-200 group-hover:translate-x-1" style={{ fontSize: 18, color: "var(--icon-primary)" }} />
-        </span>
-      )}
-    </>
-  );
-  // Navigable rows (with an onClick) are buttons — including ones with a custom `trailing` display
-  // like Payment Method. Rows that carry their own control and don't navigate (e.g. the toggle row,
-  // no onClick) stay plain divs.
-  return onClick ? (
-    <button type="button" onClick={onClick} className={`group w-full flex items-center gap-3 px-[15px] py-3 text-left ${border}`}>
-      {body}
-    </button>
-  ) : (
-    <div className={`w-full flex items-center gap-3 px-[15px] py-3 ${border}`}>{body}</div>
   );
 }
 
 /** Text fields editable one-at-a-time via a single-input sheet. */
 type FieldKey = "companyName" | "email" | "registrationNumber" | "phone" | "website" | "address" | "city" | "state" | "zip" | "country";
-interface FieldMeta { label: string; placeholder: string; hint?: string; type?: string; required?: boolean }
+interface FieldMeta { label: string; placeholder: string; hint?: string; type?: "email" | "tel"; required?: boolean }
 const FIELD_META: Record<FieldKey, FieldMeta> = {
   companyName: { label: "Company name", placeholder: "Statrys Limited", hint: "The name shown on every invoice.", required: true },
   email: { label: "Email address", type: "email", placeholder: "billing@company.com", hint: "Where customers can reach you about invoices.", required: true },
@@ -149,13 +97,6 @@ const COUNTRY_DATA: Record<string, { states: string[]; cities: string[] }> = {
 /** Countries without postal codes — hide the Zip field for these (e.g. Hong Kong). */
 const NO_POSTAL_COUNTRIES = ["Hong Kong"];
 
-const COUNTRY_FLAGS: Record<string, string> = {
-  Australia: "🇦🇺", Brazil: "🇧🇷", Canada: "🇨🇦", China: "🇨🇳", France: "🇫🇷", Germany: "🇩🇪",
-  "Hong Kong": "🇭🇰", India: "🇮🇳", Indonesia: "🇮🇩", Ireland: "🇮🇪", Italy: "🇮🇹", Japan: "🇯🇵",
-  Malaysia: "🇲🇾", Mexico: "🇲🇽", Netherlands: "🇳🇱", "New Zealand": "🇳🇿", Singapore: "🇸🇬",
-  Spain: "🇪🇸", "United Kingdom": "🇬🇧", "United States": "🇺🇸",
-};
-
 interface InvoiceSettingsProps {
   initial?: CompanySettings;
   /** Leaving the screen persists the live edits (no explicit Save button). */
@@ -177,6 +118,10 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   // Active dropdown (country / city / state) inside the Business Address sheet.
   const [picker, setPicker] = useState<{ field: "country" | "city" | "state"; title: string; options: string[] } | null>(null);
   const [pickerQuery, setPickerQuery] = useState("");
+  const [phoneCountry, setPhoneCountry] = useState(DEFAULT_COUNTRY_CODE);
+  const [phoneCodeOpen, setPhoneCodeOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   const openSheet = (k: SheetKey) => { setBaseline(s); setLogoError(null); setSheet(k); };
   const openPicker = (p: { field: "country" | "city" | "state"; title: string; options: string[] }) => { setPickerQuery(""); setPicker(p); };
@@ -190,7 +135,6 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   };
 
   const set = <K extends keyof CompanySettings>(k: K, v: CompanySettings[K]) => setS((p) => ({ ...p, [k]: v }));
-  const cur = CURRENCIES.find((c) => c.code === s.currency);
   const payAccount = getAccount(s.paymentMethod);
 
   // A field is OK when filled (email must also be valid); optional fields may be blank.
@@ -220,28 +164,25 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
     return false;
   })();
 
-  /** One field's TextInput, configured from FIELD_META — used inside the section sheets. */
-  const field = (k: FieldKey) =>
-    k === "phone" ? (
-      <PhoneInput
-        label={FIELD_META[k].label}
-        placeholder={FIELD_META[k].placeholder}
-        required={FIELD_META[k].required}
-        showHint={false}
-        value={s[k]}
-        onChange={(v) => set(k, v)}
-      />
-    ) : (
-      <TextInput
-        label={FIELD_META[k].label}
-        type={FIELD_META[k].type}
-        placeholder={FIELD_META[k].placeholder}
-        required={FIELD_META[k].required}
-        showHint={false}
-        value={s[k]}
-        onChange={(e) => set(k, e.target.value)}
-      />
-    );
+  /** One field's TextField, configured from FIELD_META — used inside the section sheets.
+   *  Phone uses TextField's own "mobile" type (flag + dial code + chevron selector) instead of
+   *  a hand-rolled one — see memory: no-handrolled-ds-duplicates. */
+  const field = (k: FieldKey) => (
+    <TextField
+      type={k === "phone" ? "mobile" : "text"}
+      label={FIELD_META[k].label}
+      inputType={FIELD_META[k].type}
+      placeholder={FIELD_META[k].placeholder}
+      mandatory={FIELD_META[k].required}
+      selectorLabel={k === "phone" ? phoneCountry.dialCode : undefined}
+      selectorIcon={k === "phone" ? <CountryFlag name={phoneCountry.name} size={20} /> : undefined}
+      onSelectorClick={k === "phone" ? () => setPhoneCodeOpen(true) : undefined}
+      value={s[k]}
+      onChange={(v) => set(k, v)}
+      onFocus={() => setKeyboardOpen(true)}
+      onBlur={() => setKeyboardOpen(false)}
+    />
+  );
 
   /** Mock a logo pick (sandbox can't open a real file dialog) → validate against the rules. */
   const pickLogo = () => {
@@ -252,76 +193,69 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
     set("logo", { name: file.name, size: file.size });
   };
 
-  const chevron = (
-    <ChevronRightIcon className="transition-transform duration-200 group-hover:translate-x-1" style={{ fontSize: 16, color: "var(--icon-primary)" }} />
-  );
-  // Down-chevron for readOnly dropdown TextInputs — matches the Create/Edit Customer fields.
-  const dropdownChevron = <ExpandMoreIcon style={{ fontSize: 20, color: "#808080" }} />;
-
   return (
-    <div className="relative bg-[#F9F5EA] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
-      <StatusBar />
+    <div className="relative bg-[var(--bg-beige-primary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
+      <div
+        className="flex-1 overflow-y-auto bg-[var(--bg-beige-primary)]"
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+      >
+        <PageAppHeader scrolled={scrolled}>
+          {/* DS PageHeader (left): big 32px title + subtitle, back chevron only. */}
+          <PageHeader
+            type="left"
+            collapsed={scrolled}
+            title="Invoice Settings"
+            text="These settings apply to all new sales invoices"
+            onBack={() => onExit?.(s)}
+            showSearch={false}
+          />
+        </PageAppHeader>
 
-      {/* DS PageHeader (left): big 32px title + subtitle, back chevron only. */}
-      <PageHeader
-        type="left"
-        title="Invoice Settings"
-        text="These settings apply to all new sales invoices"
-        onBack={() => onExit?.(s)}
-        showSearch={false}
-      />
-
-      <div className="flex-1 overflow-y-auto bg-[#f9f5ea] px-4 pt-2 pb-6 flex flex-col gap-4">
+        <div className="px-4 pt-2 pb-6 flex flex-col gap-4">
         {/* Company — Company Details + Business Address */}
-        <Group>
-          <Row
-            title="Company Details"
-            subtitle="Registration, phone, website and logo"
+        <ListCard onLayer="beige">
+          <ListRow
+            label="Company Details"
+            description="Registration, phone, website and logo"
+            trailing="chevron"
             onClick={() => openSheet("company")}
           />
-          <Row title="Business Address" subtitle="Address, city, country and more" onClick={() => openSheet("address")} last />
-        </Group>
+          <ListRow label="Business Address" description="Address, city, country and more" trailing="chevron" onClick={() => openSheet("address")} last />
+        </ListCard>
 
         {/* Invoice defaults — currency + receiving account */}
-        <Group>
-          <Row
-            title="Currency"
-            subtitle="Default currency for invoices"
-            value={cur ? `${cur.flag}  ${cur.code}` : s.currency}
+        <ListCard onLayer="beige">
+          <ListRow
+            label="Currency"
+            description="Default currency for invoices"
+            trailing="chevron"
+            value={s.currency}
+            valueFlag={<CountryFlag name={CURRENCY_COUNTRY[s.currency] ?? ""} size={16} />}
             onClick={() => setSheet("currency")}
           />
-          <Row
-            title="Payment Method"
-            subtitle="Default account"
-            trailing={
-              <span className="flex items-center gap-1.5 shrink-0">
-                <span className="text-right">
-                  <span className="block text-[14px] font-semibold leading-[1.2] text-[#1b1b1b]" style={FONT}>
-                    {payAccount?.name ?? "Select account"}
-                  </span>
-                  {payAccount && (
-                    <span className="block text-[12px] leading-[1.2] text-[#808080]" style={FONT}>{payAccount.number}</span>
-                  )}
-                </span>
-                {chevron}
-              </span>
-            }
+          <ListRow
+            label="Payment Method"
+            description="Default account"
+            trailing="chevron"
+            value={payAccount?.name ?? "Select account"}
+            valueDescription={payAccount?.number}
             onClick={() => setSheet("payment")}
             last
           />
-        </Group>
+        </ListCard>
 
         {/* Notifications — Automatic reminders is a simple on/off toggle (no schedule sub-page). */}
-        <Group>
-          <Row
-            title="Automatic reminders"
-            subtitle="Email until invoice is paid"
+        <ListCard onLayer="beige">
+          <ListRow
+            label="Automatic reminders"
+            description="Email until invoice is paid"
+            trailing="toggle"
+            checked={s.chaserEnabled}
+            onCheckedChange={(v) => set("chaserEnabled", v)}
             last
-            trailing={
-              <Toggle checked={s.chaserEnabled} onChange={(v) => set("chaserEnabled", v)} aria-label="Automatic reminders" />
-            }
           />
-        </Group>
+        </ListCard>
+        </div>
       </div>
 
       {/* Company Details — one sheet for all company identity fields: logo, name, email, then
@@ -330,18 +264,18 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         open={sheet === "company"}
         title="Company Details"
         onClose={() => setSheet(null)}
-        dsHeader
+        keyboardOpen={keyboardOpen}
         heightClass="h-[72%]"
-        footer={<ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && companyValid && detailsValid)} onPrimary={() => setSheet(null)} homeIndicator />}
+        footer={<ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && companyValid && detailsValid)} onPrimary={() => setSheet(null)} keyboard={keyboardOpen} />}
       >
         <div className="flex flex-col gap-4">
           {/* Logo — beige monogram preview + "Change Logo" (mock picker; sandbox has no real image). */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-4">
-              <span className="shrink-0"><DemoLogo size={72} /></span>
-              <button type="button" onClick={pickLogo} className="flex items-center gap-2 text-[#1b1b1b]">
-                <Camera size={22} strokeWidth={1.75} />
-                <span className="text-[17px] font-medium" style={FONT}>Change Logo</span>
+              <span className="shrink-0"><DemoLogo size={64} /></span>
+              <button type="button" onClick={pickLogo} className="flex items-center gap-1 text-[var(--text-primary)]">
+                <Camera size={16} strokeWidth={1.75} />
+                <span className="text-[16px] font-medium" style={FONT}>Change logo</span>
               </button>
             </div>
             {logoError && <p className="text-[12px] text-[#d92d20]" style={FONT}>{logoError}</p>}
@@ -358,36 +292,29 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         open={sheet === "address"}
         title="Business Address"
         onClose={() => setSheet(null)}
-        dsHeader
+        keyboardOpen={keyboardOpen}
         heightClass="h-[72%]"
-        footer={<ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && addressValid)} onPrimary={() => setSheet(null)} homeIndicator />}
+        footer={<ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && addressValid)} onPrimary={() => setSheet(null)} keyboard={keyboardOpen} />}
       >
-        <div className="flex flex-col gap-3">
-          {/* Country first — drives the city/state options below. readOnly dropdown TextInput to match
-              the Create/Edit Customer fields. */}
-          <TextInput
+        <div className="flex flex-col gap-4">
+          {/* Country first — drives the city/state options below. Dropdown TextField to match
+              the Create/Edit Customer fields (plain text + chevron, no flag icon — matches Figma). */}
+          <TextField
+            type="dropdown"
             label={FIELD_META.country.label}
             placeholder="Select country"
-            size="md"
-            required={FIELD_META.country.required}
-            showHint={false}
-            readOnly
-            iconLeft={s.country ? <span className="text-[16px] leading-none">{COUNTRY_FLAGS[s.country] ?? "🌐"}</span> : undefined}
-            iconRight={dropdownChevron}
+            mandatory={FIELD_META.country.required}
             value={s.country}
             onClick={() => openPicker({ field: "country", title: "Country", options: COUNTRIES })}
           />
 
           {/* City — dropdown when the country has preset cities, otherwise free text */}
           {(COUNTRY_DATA[s.country]?.cities.length ?? 0) > 0 ? (
-            <TextInput
+            <TextField
+              type="dropdown"
               label={FIELD_META.city.label}
               placeholder="Select city"
-              size="md"
-              required={FIELD_META.city.required}
-              showHint={false}
-              readOnly
-              iconRight={dropdownChevron}
+              mandatory={FIELD_META.city.required}
               value={s.city}
               onClick={() => openPicker({ field: "city", title: "City", options: COUNTRY_DATA[s.country].cities })}
             />
@@ -397,13 +324,10 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
 
           {/* State — only shown when the country has states/provinces */}
           {(COUNTRY_DATA[s.country]?.states.length ?? 0) > 0 && (
-            <TextInput
+            <TextField
+              type="dropdown"
               label={FIELD_META.state.label}
               placeholder="Select state / province"
-              size="md"
-              showHint={false}
-              readOnly
-              iconRight={dropdownChevron}
               value={s.state}
               onClick={() => openPicker({ field: "state", title: "State / province", options: COUNTRY_DATA[s.country].states })}
             />
@@ -418,10 +342,10 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
       </BottomSheet>
 
       {/* Dropdown option picker (country / city / state) — stacks over the Address sheet */}
-      <BottomSheet open={!!picker} title={picker?.title ?? ""} onClose={() => setPicker(null)} dsHeader heightClass="h-[72%]">
+      <BottomSheet open={!!picker} title={picker?.title ?? ""} onClose={() => setPicker(null)} heightClass="h-[72%]">
         {picker && picker.options.length > 8 && (
           <div className="mb-3">
-            <Search size="md" placeholder={`Search ${picker.title.toLowerCase()}`} value={pickerQuery} onChange={(e) => setPickerQuery(e.target.value)} />
+            <Search placeholder={`Search ${picker.title.toLowerCase()}`} value={pickerQuery} onChange={setPickerQuery} showAction={false} />
           </div>
         )}
         <div className="flex flex-col gap-2">
@@ -430,11 +354,11 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             .map((o) => (
               <Tile
                 key={o}
+                size="sm"
                 title={o}
-                showDescription={false}
+                flag={picker.field === "country" ? <CountryFlag name={o} size={30} /> : undefined}
                 selected={!!picker.field && s[picker.field] === o}
-                showIcon={picker.field === "country"}
-                icon={picker.field === "country" ? <span className="text-[16px] leading-none">{COUNTRY_FLAGS[o] ?? "🌐"}</span> : undefined}
+                trailing={!!picker.field && s[picker.field] === o ? "check" : "none"}
                 onClick={() => selectOption(o)}
               />
             ))}
@@ -456,6 +380,13 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         hideExternal
         onClose={() => setSheet(null)}
         onSelect={(id) => { set("paymentMethod", id); setSheet(null); }}
+      />
+
+      <CountryCodeSheet
+        open={phoneCodeOpen}
+        value={phoneCountry.name}
+        onClose={() => setPhoneCodeOpen(false)}
+        onSelect={(c) => { setPhoneCountry(c); setPhoneCodeOpen(false); }}
       />
 
     </div>

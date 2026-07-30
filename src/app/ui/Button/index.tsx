@@ -6,7 +6,7 @@ import styles from "./index.module.css";
  * Variants: Hierarchy(primary|secondary|tertiary) × Size(md|sm) × Shape(rec|square) ×
  * Inverse(false|true, for dark surfaces) × states Default / Active / Disable.
  * Figma's "Active" is the pressed state: it applies while the finger/mouse is down.
- * All styling lives in index.module.css (colors via ui/tokens.css).
+ * All styling lives in index.module.css (colors via styles/theme.css).
  */
 
 export type Hierarchy = "primary" | "secondary" | "tertiary";
@@ -32,6 +32,10 @@ interface ButtonProps {
   iconLeft?: React.ReactNode;
   iconRight?: React.ReactNode;
   disabled?: boolean;
+  /** Loading state (Figma node 4591-5847) — swaps label/icons for a 3-dot bounce
+   *  indicator in the button's own text color, keeps the pressed/Active bg+stroke
+   *  color (a press is what triggers loading), and ignores clicks while true. */
+  loading?: boolean;
   fullWidth?: boolean;
   /** Dark-surface (Inverse=True) variants — cream fill / cream outline / cream text. */
   inverse?: boolean;
@@ -53,6 +57,7 @@ export function Button({
   iconLeft,
   iconRight,
   disabled = false,
+  loading = false,
   fullWidth = false,
   inverse = false,
   type = "button",
@@ -65,7 +70,7 @@ export function Button({
     styles.root,
     square ? (size === "md" ? styles.squareMd : styles.squareSm) : size === "md" ? styles.md : styles.sm,
     hierarchyClass(hierarchy, inverse),
-    (pressed || forceActive) && !disabled ? styles.active : "",
+    (pressed || forceActive || loading) && !disabled ? styles.active : "",
     fullWidth ? styles.fullWidth : "",
     className ?? "",
   ]
@@ -75,14 +80,21 @@ export function Button({
     <button
       type={type}
       aria-label={ariaLabel}
+      aria-busy={loading || undefined}
       disabled={disabled}
-      onClick={onClick}
-      onPointerDown={() => !disabled && setPressed(true)}
+      onClick={loading ? undefined : onClick}
+      onPointerDown={() => !disabled && !loading && setPressed(true)}
       onPointerUp={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
       className={classes}
     >
-      {square ? (
+      {loading ? (
+        <span className={`${styles.dots} ${size === "sm" ? styles.dotsSm : ""}`} aria-hidden="true">
+          <span className={styles.dot} />
+          <span className={styles.dot} />
+          <span className={styles.dot} />
+        </span>
+      ) : square ? (
         icon
       ) : (
         <>

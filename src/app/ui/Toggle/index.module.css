@@ -12,20 +12,20 @@
   border: none;
   padding: 0;
   border-radius: 9999px;
-  background: var(--ds-bg-neutral-inverse-tertiary);
+  background: var(--bg-neutral-inverse-tertiary);
   cursor: pointer;
   transition: background-color 0.2s;
 }
 .track.checked {
-  background: var(--ds-bg-brand-primary);
+  background: var(--bg-brand-primary);
 }
 .track:disabled {
   background: transparent;
-  box-shadow: inset 0 0 0 0.625px var(--ds-border-neutral-primary);
+  box-shadow: inset 0 0 0 0.625px var(--border-neutral-primary);
   cursor: default;
 }
 .track.checked:disabled {
-  background: var(--ds-bg-neutral-disabled);
+  background: var(--bg-neutral-disabled);
 }
 
 .knob {
@@ -35,7 +35,7 @@
   width: 17.5px;
   height: 17.5px;
   border-radius: 9999px;
-  background: var(--ds-bg-neutral-primary);
+  background: var(--bg-neutral-primary);
   left: 1.25px;
   transition: left 0.2s;
 }
@@ -43,7 +43,7 @@
   left: 16.25px;
 }
 .track:disabled .knob {
-  background: var(--ds-bg-neutral-disabled);
+  background: var(--bg-neutral-disabled);
   left: 0.63px;
 }
 .track.checked:disabled .knob {

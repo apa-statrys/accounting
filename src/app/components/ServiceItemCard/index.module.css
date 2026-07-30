@@ -1,0 +1,24 @@
+/* ServiceItemCard — swipe-to-delete service/product line, tap to edit. Renders a ui/ListRow
+   (Figma "Create Invoice", node 1826-15914) inside a shared ListCard, so no radius/shadow of its
+   own — square rows, divider via ListRow's own `last` prop. */
+
+.root {
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===== DELETE ACTION (revealed behind the card on swipe) ===== */
+.deleteWrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 var(--space-2);
+}
+
+/* ===== CARD (swipeable + tappable) ===== */
+.card {
+  position: relative;
+  background: var(--bg-neutral-primary);
+}

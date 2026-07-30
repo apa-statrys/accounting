@@ -1,0 +1,90 @@
+/* Keyboard — decorative on-screen QWERTY stand-in (Figma node 659-3124). Colors are the
+   OS keyboard's own native palette (Figma "Sky"/"Ink"/"Blue" tokens), not this app's design
+   tokens — same convention as components/StatusBar's iOS chrome. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 3px 0;
+  background: #e3e5e5;
+  user-select: none;
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+  padding: 0 3px;
+}
+
+/* Row 2 (ASDFGHJKL) is inset half a key on each side, iOS-style. */
+.rowInset {
+  padding: 0 20px;
+}
+
+.key {
+  flex: 1;
+  height: 42px;
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0 1px 0 0 rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 15px;
+  color: #090a0a;
+}
+
+/* Shift / backspace — wider than a letter key, muted control color */
+.control {
+  background: #adb1b3;
+  color: #090a0a;
+  flex: none;
+  width: 42px;
+}
+
+.wide {
+  width: 42px;
+}
+
+.narrow {
+  flex: none;
+  width: 60px;
+  font-size: 15px;
+}
+
+.space {
+  flex: 4;
+}
+
+.go {
+  background: #0065d0;
+  color: #fff;
+  font-weight: 600;
+}
+
+.utilityRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 20px 0;
+  color: #090a0a;
+}
+
+.homeIndicator {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 24px;
+  padding-bottom: 8px;
+}
+
+.homeBar {
+  width: 134px;
+  height: 5px;
+  border-radius: 100px;
+  background: #090a0a;
+}

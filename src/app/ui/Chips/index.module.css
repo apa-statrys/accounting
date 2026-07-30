@@ -1,0 +1,23 @@
+/* Chips — Figma "[APP] Design System" → Chips (node 4565-2176). Fixed 30px
+   height, transparent background, 4px radius. Label stays black in both
+   states; only the border color switches. Colors from styles/theme.css. */
+
+.chip {
+  composes: body-sm-medium from global;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 13px;
+  border: 1px solid var(--border-neutral-primary);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--btn-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.active {
+  border-color: var(--btn-secondary);
+}

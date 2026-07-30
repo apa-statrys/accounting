@@ -2,7 +2,7 @@
 // and the "which note to send" picker used when 2+ notes are unsent.
 import { BottomSheet } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
-import { Tile } from "../../components/Tile";
+import { Tile } from "../../ui/Tile";
 import { money } from "../../lib/format";
 import { FONT, MUTED } from "../../lib/theme";
 import type { CreditNote } from "./creditNoteTypes";
@@ -14,7 +14,6 @@ export function ResendPromptSheet({ open, onClose, onNotNow, onSendUpdate }: { o
       open={open}
       title="Send updated credit note?"
       onClose={onClose}
-      dsHeader
       compact
       footer={
         <ButtonDock
@@ -23,7 +22,6 @@ export function ResendPromptSheet({ open, onClose, onNotNow, onSendUpdate }: { o
           primaryLabel="Send Update"
           onSecondary={onNotNow}
           onPrimary={onSendUpdate}
-          homeIndicator
         />
       }
     >
@@ -35,9 +33,9 @@ export function ResendPromptSheet({ open, onClose, onNotNow, onSendUpdate }: { o
 }
 
 /** "Send credit note" picker — opened only when there are 2+ unsent notes (a single note sends
- *  directly). Choose which note's document to send; the latest is the default selection. Reuses
- *  the shared selection-card (`Tile`) style. Rows are recent-first, matching the ledger. */
-export function SendPickerSheet({ open, onClose, creditNotes, selectedIndex, onSelect, onSend }: { open: boolean; onClose: () => void; creditNotes: CreditNote[]; selectedIndex: number; onSelect: (i: number) => void; onSend: () => void }) {
+ *  directly). Choose which note's document to send; the latest is the default selection. Rows are
+ *  recent-first, matching the ledger. */
+export function SendPickerSheet({ open, onClose, creditNotes, currency, selectedIndex, onSelect, onSend }: { open: boolean; onClose: () => void; creditNotes: CreditNote[]; currency: string; selectedIndex: number; onSelect: (i: number) => void; onSend: () => void }) {
   return (
     <BottomSheet
       open={open}
@@ -48,7 +46,6 @@ export function SendPickerSheet({ open, onClose, creditNotes, selectedIndex, onS
           type="single"
           primaryLabel="Send credit note"
           onPrimary={onSend}
-          homeIndicator
         />
       }
     >
@@ -59,11 +56,12 @@ export function SendPickerSheet({ open, onClose, creditNotes, selectedIndex, onS
         {creditNotes.map((cn, i) => ({ cn, i })).reverse().map(({ cn, i }) => (
           <Tile
             key={cn.no}
+            size="sm"
             title={cn.no}
-            description={`−${money(cn.amount)}${cn.sent ? ` · Sent on ${cn.sentDate}` : " · Not sent yet"}`}
-            showStatus={cn.sent}
-            status="SENT"
+            text={`−${money(cn.amount, currency)}${cn.sent ? ` · Sent ${cn.sentDate}` : " · Not sent yet"}`}
+            badgeLabel={cn.sent ? "Sent" : undefined}
             selected={selectedIndex === i}
+            trailing={selectedIndex === i ? "check" : "none"}
             onClick={() => onSelect(i)}
           />
         ))}

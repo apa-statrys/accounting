@@ -22,8 +22,8 @@
    than using a heading or body utility class, which would not exist for 17px SF Pro. */
 .time {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
-  font-size: 17px;
-  font-weight: 600;
+  font-size: var(--text-lg);
+  font-weight: var(--fw-medium);
   line-height: 17px;
   letter-spacing: -0.5px;
   font-feature-settings: 'ss03' 1;

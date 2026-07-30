@@ -1,5 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { FinanceBottomNav } from "../components/FinanceBottomNav";
+import { StatusBar } from "../components/StatusBar";
 
 import { FONT, INK, MUTED } from "../lib/theme";
 import { SHOW_CREDIT_NOTES } from "../lib/flags";
@@ -97,24 +98,8 @@ export function AccountingHub({ onOpenSalesInvoices, onOpenCreditNotes, onOpenCu
           className="flex flex-col gap-2 pb-6 rounded-b-2xl"
           style={{ background: "linear-gradient(to left, rgba(246,246,246,0.8), rgba(255,243,208,0.8))" }}
         >
-          {/* Status bar */}
-          <div className="relative flex items-center justify-between w-full px-8 py-4">
-            <span className="text-[17px] font-semibold tracking-tight" style={{ color: INK }}>9:41</span>
-            <div className="absolute left-1/2 -translate-x-1/2 top-3 w-28 h-7 bg-black rounded-full" />
-            <div className="flex items-center gap-1.5">
-              <svg width="17" height="12" viewBox="0 0 17 12" fill="none">
-                <rect x="0" y="4" width="3" height="8" rx="0.5" fill={INK} />
-                <rect x="4.5" y="2.5" width="3" height="9.5" rx="0.5" fill={INK} />
-                <rect x="9" y="0.5" width="3" height="11.5" rx="0.5" fill={INK} />
-                <rect x="13.5" y="0" width="3" height="12" rx="0.5" fill={INK} fillOpacity="0.3" />
-              </svg>
-              <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
-                <rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke={INK} strokeOpacity="0.35" />
-                <rect x="2" y="2" width="18" height="8" rx="2" fill={INK} />
-                <path d="M23 4V8C23.8 7.6 24.5 6.9 24.5 6C24.5 5.1 23.8 4.4 23 4Z" fill={INK} fillOpacity="0.4" />
-              </svg>
-            </div>
-          </div>
+          {/* App status bar — shared DS component (matches every other screen). */}
+          <StatusBar />
 
           {/* Title row — the Menu is the top-level parent, so there's no back arrow here. */}
           <div className="w-full px-4 flex items-center gap-2">

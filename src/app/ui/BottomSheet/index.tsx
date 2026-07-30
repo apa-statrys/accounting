@@ -2,13 +2,15 @@ import styles from "./index.module.css";
 
 /**
  * BottomSheet — design-system bottom-sheet container (Figma "[APP] Design
- * System" → Bottomsheets, node 4038-3018). Presentational only: white panel
- * with 32px top radius, grabber, sticky header (28px title + optional 36px
- * frosted action button) and a 32px bottom pad around the content slot.
- * The modal behavior — scrim, slide-up motion, positioning — stays with the
- * caller (the app's components/BottomSheet.tsx keeps doing that until flows
- * adopt this). Figma's showStickyButton variant is composition: render a
- * ButtonDock after the content. Styling in index.module.css.
+ * System" → Bottomsheets, node 4038-3018, showStickyButton toggle). Presentational
+ * only: white panel with 32px top radius, sticky header (BottomsheetsHeader,
+ * node 4038-2652: grabber + 28px title + optional 36px frosted action button)
+ * and either a `footer` slot (BottomsheetsEnd, node 4127-7752 — pass a
+ * `ButtonDock`, which already renders that gradient/blur/padding, don't
+ * reimplement it here) or, with no footer, a plain 32px bottom pad. The modal
+ * behavior — scrim, slide-up motion, positioning — stays with the caller (the
+ * app's components/BottomSheet.tsx keeps doing that until flows adopt this).
+ * Styling in index.module.css.
  */
 
 interface BottomSheetProps {
@@ -20,10 +22,13 @@ interface BottomSheetProps {
   actionLabel?: string;
   /** Hide the whole header — grabber and title row (Figma showHeader). */
   showHeader?: boolean;
+  /** Sticky footer slot (Figma showStickyButton) — pass a `ButtonDock`; renders
+   *  in place of the plain bottom pad. */
+  footer?: React.ReactNode;
   children?: React.ReactNode;
 }
 
-export function BottomSheet({ title, action, onAction, actionLabel = "Action", showHeader = true, children }: BottomSheetProps) {
+export function BottomSheet({ title, action, onAction, actionLabel = "Action", showHeader = true, footer, children }: BottomSheetProps) {
   return (
     <div className={styles.sheet}>
       {showHeader && (
@@ -42,7 +47,7 @@ export function BottomSheet({ title, action, onAction, actionLabel = "Action", s
         </div>
       )}
       <div className={styles.content}>{children}</div>
-      <div className={styles.bottomPad} />
+      {footer ? <div className={styles.footer}>{footer}</div> : <div className={styles.bottomPad} />}
     </div>
   );
 }

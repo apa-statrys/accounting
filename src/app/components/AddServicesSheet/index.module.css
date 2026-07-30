@@ -1,0 +1,14 @@
+/* AddServicesSheet — Add/Edit Item form (Service Name / Description / Unit Price / Quantity),
+   plus the "Select Unit" step pushed in place of it (same sheet, see index.tsx). */
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.unitList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}

@@ -1,0 +1,51 @@
+/* DiscountCard — Figma "Create Invoice" (node 1826-15914): a bare title+toggle row (no card
+   chrome) that reveals a value field + %/amount mode picker, not a bordered/shadowed card. */
+
+.root {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* ===== HEADER ===== */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Typography via .card-title-sm utility; color only here. */
+.title {
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* ===== BODY (revealed when enabled) ===== */
+.body {
+  overflow: visible;
+  padding-top: var(--space-2);
+}
+
+/* ===== MODE PICKER TRIGGER — lives inside the field's own iconRight slot ===== */
+.modeButton {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+/* Typography via .body-sm utility; color only here. */
+.modeLabel {
+  color: var(--text-primary);
+}
+
+.chevron {
+  display: flex;
+  color: var(--text-secondary);
+}

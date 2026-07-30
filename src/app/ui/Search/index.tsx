@@ -5,7 +5,9 @@ import styles from "./index.module.css";
  * node 4144-11313). A 36px input with a leading search icon and a trailing
  * action: mic by default (hidden via showAction={false}), swapped for an
  * X clear button while the field is focused — the swap is pure CSS on
- * :focus-within. Error/Disabled via props. Styling in index.module.css.
+ * :focus-within. Error/Disabled via props. Icons are 1px stroke (updated
+ * 2026-07-24 — matches every other 20px DS icon; was 1.25 by mistake).
+ * Styling in index.module.css.
  */
 
 interface SearchProps {
@@ -14,12 +16,14 @@ interface SearchProps {
   placeholder?: string;
   disabled?: boolean;
   error?: boolean;
+  onFocus?: () => void;
   /** Paints the focused border + clear button without real focus — Showcase-only. */
   forceFocus?: boolean;
   /** Trailing mic action (Figma showAction). */
   showAction?: boolean;
   onMicClick?: () => void;
   "aria-label"?: string;
+  autoFocus?: boolean;
 }
 
 function SearchIcon() {
@@ -28,7 +32,7 @@ function SearchIcon() {
       <path
         d="M17.4999 17.5001L13.8833 13.8835M15.8333 9.16667C15.8333 12.8486 12.8486 15.8333 9.16667 15.8333C5.48477 15.8333 2.5 12.8486 2.5 9.16667C2.5 5.48477 5.48477 2.5 9.16667 2.5C12.8486 2.5 15.8333 5.48477 15.8333 9.16667Z"
         stroke="currentColor"
-        strokeWidth="1.25"
+        strokeWidth="1"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -39,7 +43,7 @@ function SearchIcon() {
 function XIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -50,7 +54,7 @@ function MicIcon() {
       <path
         d="M10 15.8333V18.3333M4.16667 8.33333V10C4.16667 11.5471 4.78125 13.0308 5.87521 14.1248C6.96917 15.2188 8.4529 15.8333 10 15.8333C11.5471 15.8333 13.0308 15.2188 14.1248 14.1248C15.2188 13.0308 15.8333 11.5471 15.8333 10V8.33333M10 1.66667C11.3807 1.66667 12.5 2.78595 12.5 4.16667V10C12.5 11.3807 11.3807 12.5 10 12.5C8.61929 12.5 7.5 11.3807 7.5 10V4.16667C7.5 2.78595 8.61929 1.66667 10 1.66667Z"
         stroke="currentColor"
-        strokeWidth="1.25"
+        strokeWidth="1"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -64,10 +68,12 @@ export function Search({
   placeholder,
   disabled = false,
   error = false,
+  onFocus,
   forceFocus = false,
   showAction = true,
   onMicClick,
   "aria-label": ariaLabel,
+  autoFocus = false,
 }: SearchProps) {
   const classes = [
     styles.field,
@@ -87,9 +93,11 @@ export function Search({
         type="text"
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
+        onFocus={onFocus}
         placeholder={placeholder}
         disabled={disabled}
         aria-label={ariaLabel}
+        autoFocus={autoFocus}
       />
       {/* X replaces the mic while focused (CSS swap); mousedown-preventDefault keeps the input focused */}
       <button

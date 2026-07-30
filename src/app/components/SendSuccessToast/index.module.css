@@ -1,0 +1,42 @@
+/* SendSuccessToast — top banner toast (translucent dark) with a sent checkmark */
+
+.toast {
+  position: absolute;
+  top: 54px;
+  left: var(--space-6);
+  right: var(--space-6);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  padding: var(--space-6) var(--space-8);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.checkIcon {
+  flex-shrink: 0;
+}
+
+.body {
+  min-width: 0;
+}
+
+/* No matching utility (14px/600/1.25) — literal values kept, family via token. */
+.title {
+  margin: 0;
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  line-height: 1.25;
+  color: var(--white);
+}
+
+/* Typography via .caption utility; color only here. */
+.subtext {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.65);
+}

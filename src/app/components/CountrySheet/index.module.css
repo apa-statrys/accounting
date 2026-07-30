@@ -1,0 +1,13 @@
+/* CountrySheet — country picker list inside the DS BottomSheet shell. */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}

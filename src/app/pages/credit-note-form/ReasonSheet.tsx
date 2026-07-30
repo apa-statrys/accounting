@@ -20,16 +20,14 @@ export function ReasonSheet({ open, onClose, reason, setReason }: ReasonSheetPro
   return (
     <BottomSheet
       open={open}
-      title="Reason for credit"
+      title="Select Reason for Credit"
       onClose={onClose}
-      dsHeader
       footer={
         <ButtonDock
           type="single"
           primaryLabel="Done"
           primaryDisabled={reason === ""}
           onPrimary={onClose}
-          homeIndicator
         />
       }
     >
@@ -37,6 +35,7 @@ export function ReasonSheet({ open, onClose, reason, setReason }: ReasonSheetPro
         {CREDIT_REASONS.map((r) => (
           <motion.div key={r} variants={sheetItem}>
             <Tile
+              size="sm"
               title={r}
               selected={reason === r}
               trailing={reason === r ? "check" : "none"}

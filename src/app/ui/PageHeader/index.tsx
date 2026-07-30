@@ -1,17 +1,25 @@
+import { AnimatePresence, motion } from "motion/react";
 import styles from "./index.module.css";
 
 /**
  * PageHeader — design-system page header (Figma "[APP] Design System" →
  * PageHeader, node 2558-13623). Four types:
- *   "left"           back/search button row with a big 32px title below
- *                    (Figma "Left align"); children replace the title slot
- *   "left-on-scroll" 48px compact row, 22px left-aligned title — the scrolled
+ *   "left"           back/search button row with a big 22px title below
+ *                    (Figma "Left align", node 4240-5662 — was 32px before
+ *                    the 2026-07-23 Figma update); children replace the
+ *                    title slot
+ *   "left-on-scroll" 48px compact row, 18px left-aligned title — the scrolled
  *                    state of "left" (Figma default)
  *   "center"         48px row, 18px centered title between the buttons
  *   "search"         48px row, back button + frosted search pill (input + mic)
  * Buttons and pill are frosted glass (White/40, 12px backdrop blur,
  * Shadow/MenuPageHeader) — made to float over page content while it scrolls
  * underneath. Styling in index.module.css.
+ *
+ * type="left" only — pass `collapsed` (toggle on scroll, same pattern as
+ * FAB's `collapsed` prop) to smoothly morph the SAME element from the big
+ * vertical-stack layout into the compact row, title sliding up next to the
+ * back button — no need to swap in a separate "left-on-scroll" instance.
  */
 
 export type PageHeaderType = "left" | "left-on-scroll" | "center" | "search";
@@ -24,6 +32,12 @@ interface PageHeaderProps {
   /** Hide the back button (Figma showLeftButton). */
   showBack?: boolean;
   onBack?: () => void;
+  /** Code slot: swap the back chevron for another icon (e.g. an X to close a
+   *  sheet-style page instead of navigating back) — keeps the DS glass-button styling. */
+  backIcon?: React.ReactNode;
+  /** Override the back button's aria-label (defaults to "Back") — set this when backIcon changes
+   *  what the action actually does, e.g. "Close". */
+  backLabel?: string;
   /** Hide the right-side button (Figma showRightButton) — an invisible 36px
    *  spacer keeps the "center" title optically centered. */
   showSearch?: boolean;
@@ -37,31 +51,60 @@ interface PageHeaderProps {
   /** Code slot: replace the right-side button entirely with custom content
    *  (e.g. an autosave "✓ Saved" chip) — no glass-button styling applied. */
   right?: React.ReactNode;
+  /** Code slot: like `right`, but wraps the content in the DS frosted glass
+   *  pill (Figma MenuPageHeader "Slot" type) instead of leaving it unstyled —
+   *  use this for custom multi-icon right-side content (e.g. "add" + "search"
+   *  together) that should still look like a header button. */
+  rightSlot?: React.ReactNode;
+  /** Figma MenuPageHeader "More actions" type — an extra solid (btn-primary)
+   *  circular button rendered after the main right button/slot. Omit for the
+   *  plain single-button "Default" type. */
+  primaryIcon?: React.ReactNode;
+  primaryLabel?: string;
+  onPrimaryClick?: () => void;
   /** type="search" only — the pill's controlled input + mic action. */
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
   onMicClick?: () => void;
+  /** type="search" only — show the trailing mic action (Figma showAction). While
+   *  focused it's swapped for an X clear button regardless (same convention as
+   *  ui/Search); set false to never show the mic, e.g. a dedicated search screen
+   *  that's always focused and only ever needs clear. */
+  showAction?: boolean;
+  /** type="search" only — red border, matching ui/Search's error state. */
+  error?: boolean;
+  /** type="search" only — greyed out, non-interactive, matching ui/Search's disabled state. */
+  disabled?: boolean;
+  /** type="search" only — focus the input on mount (e.g. entering a dedicated
+   *  search state from a tap). Off by default so multiple Showcase instances
+   *  don't fight over focus. */
+  autoFocusSearch?: boolean;
   /** type="left" only — custom content replacing the big-title slot. */
   children?: React.ReactNode;
+  /** type="left" only — animate into the compact "left-on-scroll" layout in
+   *  place (title next to the back button). Toggle on scroll. */
+  collapsed?: boolean;
 }
 
 function ChevronLeftIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-/* Same magnifier path as ui/Search — the glass button uses a heavier stroke than the pill. */
-function SearchIcon({ strokeWidth }: { strokeWidth: number }) {
+/* Same magnifier path as ui/Search — every 20px DS icon is a 1px stroke (matches
+   Tile/ListRow's chevrons); the glass-button vs. pill contexts used to diverge
+   to 1.66667/1.25, which was a drift from the Figma spec, not an intentional weight. */
+function SearchIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
       <path
         d="M17.4999 17.5001L13.8833 13.8835M15.8333 9.16667C15.8333 12.8486 12.8486 15.8333 9.16667 15.8333C5.48477 15.8333 2.5 12.8486 2.5 9.16667C2.5 5.48477 5.48477 2.5 9.16667 2.5C12.8486 2.5 15.8333 5.48477 15.8333 9.16667Z"
         stroke="currentColor"
-        strokeWidth={strokeWidth}
+        strokeWidth="1"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -75,10 +118,19 @@ function MicIcon() {
       <path
         d="M10 15.8333V18.3333M4.16667 8.33333V10C4.16667 11.5471 4.78125 13.0308 5.87521 14.1248C6.96917 15.2188 8.4529 15.8333 10 15.8333C11.5471 15.8333 13.0308 15.2188 14.1248 14.1248C15.2188 13.0308 15.8333 11.5471 15.8333 10V8.33333M10 1.66667C11.3807 1.66667 12.5 2.78595 12.5 4.16667V10C12.5 11.3807 11.3807 12.5 10 12.5C8.61929 12.5 7.5 11.3807 7.5 10V4.16667C7.5 2.78595 8.61929 1.66667 10 1.66667Z"
         stroke="currentColor"
-        strokeWidth="1.25"
+        strokeWidth="1"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+/* Same X path as ui/Search's clear button. */
+function ClearIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -97,25 +149,38 @@ export function PageHeader({
   text,
   showBack = true,
   onBack,
+  backIcon,
+  backLabel,
   showSearch = true,
   onSearchClick,
   rightIcon,
   rightLabel,
   onRightClick,
   right,
+  rightSlot,
+  primaryIcon,
+  primaryLabel,
+  onPrimaryClick,
   searchValue = "",
   onSearchChange,
   searchPlaceholder,
   onMicClick,
+  showAction = true,
+  autoFocusSearch = false,
+  error = false,
+  disabled = false,
   children,
+  collapsed = false,
 }: PageHeaderProps) {
   const back = showBack && (
-    <GlassButton aria-label="Back" onClick={onBack}>
-      <ChevronLeftIcon />
+    <GlassButton aria-label={backLabel ?? "Back"} onClick={onBack}>
+      {backIcon ?? <ChevronLeftIcon />}
     </GlassButton>
   );
-  const searchButton = right ? (
+  const mainRight = right ? (
     right
+  ) : rightSlot ? (
+    <div className={styles.glassPill}>{rightSlot}</div>
   ) : !showSearch ? (
     <span className={styles.spacer} aria-hidden />
   ) : rightIcon ? (
@@ -124,36 +189,50 @@ export function PageHeader({
     </GlassButton>
   ) : (
     <GlassButton aria-label="Search" onClick={onSearchClick}>
-      <SearchIcon strokeWidth={1.66667} />
+      <SearchIcon />
     </GlassButton>
+  );
+  const searchButton = primaryIcon ? (
+    <div className={styles.rightGroup}>
+      {mainRight}
+      <button type="button" className={styles.primaryButton} aria-label={primaryLabel ?? "Primary action"} onClick={onPrimaryClick}>
+        {primaryIcon}
+      </button>
+    </div>
+  ) : (
+    mainRight
   );
 
   if (type === "left") {
     return (
-      <header className={`${styles.header} ${styles.left}`}>
+      <header className={`${styles.header} ${styles.left} ${collapsed ? styles.collapsed : ""}`}>
         <div className={styles.buttonRow}>
           {back || <span />}
+          <p className={styles.compactTitle}>{title}</p>
           {searchButton}
         </div>
         <div className={styles.slot}>
-          {children ?? (
-            <>
-              <p className={styles.title2xl}>{title}</p>
-              {text && <p className={styles.text}>{text}</p>}
-            </>
-          )}
+          <div className={styles.slotInner}>
+            {children ?? (
+              <>
+                <p className={styles.titleLg}>{title}</p>
+                {text && <p className={styles.text}>{text}</p>}
+              </>
+            )}
+          </div>
         </div>
       </header>
     );
   }
 
   if (type === "search") {
+    const pillClasses = [styles.searchPill, error ? styles.error : "", disabled ? styles.disabled : ""].filter(Boolean).join(" ");
     return (
       <header className={`${styles.header} ${styles.row}`}>
         {back}
-        <div className={styles.searchPill}>
+        <div className={pillClasses}>
           <span className={styles.pillIcon}>
-            <SearchIcon strokeWidth={1.25} />
+            <SearchIcon />
           </span>
           <input
             className={styles.pillInput}
@@ -162,22 +241,66 @@ export function PageHeader({
             onChange={(e) => onSearchChange?.(e.target.value)}
             placeholder={searchPlaceholder}
             aria-label="Search"
+            autoFocus={autoFocusSearch}
+            disabled={disabled}
           />
-          <button type="button" className={styles.pillMic} aria-label="Voice search" onClick={onMicClick}>
-            <MicIcon />
+          {/* X replaces the mic while focused (CSS swap, same convention as ui/Search) */}
+          <button
+            type="button"
+            className={styles.pillClear}
+            aria-label="Clear search"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onSearchChange?.("")}
+            disabled={disabled}
+          >
+            <ClearIcon />
           </button>
+          {showAction && (
+            <button type="button" className={styles.pillMic} aria-label="Voice search" onClick={onMicClick} disabled={disabled}>
+              <MicIcon />
+            </button>
+          )}
         </div>
       </header>
     );
   }
 
-  // "left-on-scroll" and "center" share the compact row layout
+  // "left-on-scroll" and "center" share the compact row layout AND the same card-title-md (18px)
+  // size (confirmed against Figma — "left-on-scroll"'s title node is bound to the same text
+  // style as "center", not a distinct larger one). The title keeps the SAME <motion.p> across a
+  // `type` change (no key/remount) — `layout` tracks its resulting box move (align-items center
+  // ↔ flex-start) and tweens it, so center ↔ left-on-scroll (e.g. on scroll) is a real slide
+  // instead of an instant pop. The text line's CONTENT actually changes (e.g. a scroll-driven
+  // section label), so it crossfades instead — different labels aren't the same element sliding,
+  // they're a swap.
   return (
     <header className={`${styles.header} ${styles.row}`}>
       {back}
       <div className={`${styles.titleBlock} ${type === "center" ? styles.centered : ""}`}>
-        {title && <p className={type === "center" ? styles.titleMd : styles.titleLg}>{title}</p>}
-        {text && <p className={styles.text}>{text}</p>}
+        {title && (
+          <motion.p
+            layout
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className={styles.titleMd}
+          >
+            {title}
+          </motion.p>
+        )}
+        <AnimatePresence mode="wait" initial={false}>
+          {text && (
+            <motion.p
+              key={text}
+              layout
+              className={styles.text}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {text}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
       {searchButton}
     </header>

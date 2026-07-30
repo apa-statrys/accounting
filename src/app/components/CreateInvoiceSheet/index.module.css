@@ -1,0 +1,7 @@
+/* CreateInvoiceSheet — choice list (flex column, 8px gap between Tile rows) */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}

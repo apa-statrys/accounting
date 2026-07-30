@@ -1,52 +1,81 @@
 /* Tile — Figma "[APP] Design System" → Tile (node 4222-8331).
-   65px row, radius 2xl, 12/16 padding, 10px gap. Neutral layer = white with
-   the neutral border; Beige layer = borderless (tile sits on the beige page
-   bg). Selected = warm hover surface + brand border. Disabled greys surface,
-   text, icons; the flag fades via opacity (Figma ships a faded flag asset).
-   Colors from ui/tokens.css. */
+   65px row (54px at size="sm" — see .sm below), radius 2xl, 12/16 padding,
+   10px gap. Neutral layer = white with the neutral border; Beige layer =
+   borderless (tile sits on the beige page bg). Selected = warm hover surface
+   + brand border. Disabled greys surface, text, icons; the flag fades via
+   opacity (Figma ships a faded flag asset). Colors from styles/theme.css. */
 
 .tile {
   box-sizing: border-box;
-  position: relative; /* anchors .cornerBadge */
   display: flex;
   align-items: center;
   gap: 10px;
   height: 65px;
   width: 100%;
   padding: 12px 16px;
-  background: var(--ds-bg-neutral-primary);
-  border: 1px solid var(--ds-border-neutral-primary);
-  border-radius: var(--ds-radius-2xl);
-  font-family: var(--ds-font-primary);
+  background: var(--bg-neutral-primary);
+  border: 1px solid var(--border-neutral-primary);
+  border-radius: var(--radius-2xl);
+  font-family: var(--font-primary);
   text-align: left;
 }
 button.tile {
   cursor: pointer;
+}
+/* size="sm" — same padding/gap/typography as the default 65px row, just a tighter height. */
+.sm {
+  height: 54px;
 }
 .beige {
   border-color: transparent;
 }
 .selected,
 .beige.selected {
-  background: var(--ds-bg-neutral-primary-hover);
-  border-color: var(--ds-bg-brand-primary); /* brand #ff4a15 border on selection */
+  background: var(--bg-neutral-primary-hover);
+  border-color: var(--bg-brand-primary); /* brand #ff4a15 border on selection */
+}
+/* Momentary press feedback (Figma "Pressed" state) — same warm surface as .selected, but a
+   plain darker-neutral border on the neutral layer; beige stays borderless like its default. */
+.pressed {
+  background: var(--bg-neutral-primary-hover);
+  border-color: var(--border-neutral-primary-hover);
+}
+.beige.pressed {
+  border-color: transparent;
 }
 .disabled,
 .beige.disabled {
-  background: var(--ds-bg-neutral-disabled);
+  background: var(--bg-neutral-disabled);
 }
 .beige.disabled {
   border-color: transparent;
+}
+
+/* Validation error (e.g. a required Tile left empty on submit) — border only, same recipe as
+   .selected's brand border swap; not a Figma-defined axis, just this token in place of the
+   brand one. */
+.error,
+.beige.error {
+  border-color: var(--border-error-bold);
 }
 
 /* Leading visuals */
 .icon {
   display: flex;
   flex-shrink: 0;
-  color: var(--ds-text-secondary);
+  color: var(--icon-primary);
+}
+/* Figma spec is 1px stroke for every icon in a Tile row (leading + trailing) — force it
+   here so a consumer-supplied leading icon (e.g. a lucide icon with its own strokeWidth)
+   can't drift from the check/chevron weight. Targets descendants too, not just the root
+   <svg> — some icons set stroke-width on their inner <path>/<circle> instead, which an
+   `.icon svg` rule alone doesn't override (a child's own attribute beats a parent's). */
+.icon svg,
+.icon svg * {
+  stroke-width: 1;
 }
 .disabled .icon {
-  color: var(--ds-text-disabled);
+  color: var(--text-disabled);
 }
 .flag {
   display: flex;
@@ -55,26 +84,6 @@ button.tile {
 .disabled .flag {
   opacity: 0.4;
 }
-.avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: var(--ds-bg-beige-primary);
-  font-size: 17.647px;
-  font-weight: 500;
-  letter-spacing: -0.88px;
-  line-height: 1;
-  color: var(--ds-text-primary);
-}
-.disabled .avatar {
-  background: var(--ds-bg-neutral-disabled);
-  color: var(--ds-text-neutral-inverse-disabled);
-}
-
 /* Title + text */
 .textBlock {
   flex: 1;
@@ -86,47 +95,49 @@ button.tile {
   line-height: 1.3;
 }
 .title {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--ds-text-primary);
+  composes: body-sm from global;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* Badge pinned to the tile's top-right corner (Figma primary-account tile).
-   The badge's radii are reshaped so it hugs the card corner. */
-.cornerBadge {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: flex; /* kills the inline-baseline gap under the badge */
-}
-.cornerBadge > * {
-  border-radius: 0 var(--ds-radius-2xl) 0 var(--ds-radius-2xl);
-}
-
-/* Title + inline badge (e.g. "Primary" on a receiving account) */
+/* Title + inline badge (e.g. "Primary" on a receiving account) — Figma showBadge,
+   node 4222-8331 (title+badge row: 6px gap). */
 .titleRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
 .titleRow .title {
   flex-shrink: 1;
   min-width: 0;
 }
+/* Fixed pill styling per Figma — not the general ui/Badge (no matching beige-tertiary
+   color there). */
+.badgePill {
+  composes: caption-medium from global;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 18px;
+  padding: 2px 6px;
+  border-radius: var(--radius-md);
+  background: var(--bg-beige-tertiary);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
 .text {
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--ds-text-secondary);
+  composes: caption from global;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .disabled .title,
 .disabled .text {
-  color: var(--ds-text-disabled);
+  color: var(--text-disabled);
 }
 
 /* Trailing slot — always reserved (30px) so mixed lists align */
@@ -137,12 +148,12 @@ button.tile {
   flex-shrink: 0;
   width: 30px;
   height: 30px;
-  color: var(--ds-text-secondary);
+  color: var(--text-secondary);
 }
 .disabled .trailing {
-  color: var(--ds-text-disabled);
+  color: var(--text-disabled);
 }
 .check {
   display: flex;
-  color: var(--ds-bg-brand-primary); /* brand #ff4a15 check */
+  color: var(--bg-brand-primary); /* brand #ff4a15 check */
 }

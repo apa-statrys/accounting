@@ -1,0 +1,45 @@
+/* SegmentedControlBase — Figma "[APP] Design System" → SegmentedControlBase
+   (node 4587-1189). Active/Default, each with an optional leading icon. */
+
+.segment {
+  composes: caption-medium from global;
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  flex: 1 0 0;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4) var(--space-6);
+  border: none;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.1s;
+}
+
+.active {
+  color: var(--text-primary);
+}
+
+/* Shared framer-motion layoutId element (see index.tsx) — only the active segment renders
+   this, so it slides from its old position to its new one instead of popping in place. */
+.thumb {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: var(--radius-lg);
+  background: var(--bg-neutral-primary);
+  box-shadow: 0px 4px 2px rgba(0, 0, 0, 0.06);
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}

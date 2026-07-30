@@ -1,0 +1,20 @@
+/* SegmentedControls — Figma "[APP] Design System" → SegmentedControls (node
+   4587-1099). Beige track holding 2-4 SegmentedControlBase segments, full
+   width of its container. */
+
+.track {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--space-1);
+  border-radius: var(--radius-xl);
+  background: var(--bg-beige-secondary);
+}
+
+.separator {
+  flex-shrink: 0;
+  width: 1px;
+  height: 20px;
+  background: var(--border-neutral-primary);
+}

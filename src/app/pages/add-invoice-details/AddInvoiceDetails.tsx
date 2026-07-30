@@ -3,32 +3,30 @@ import { format } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
 import { UploadedFileCard, FilePreviewOverlay } from "../../components/UploadedFile";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import AddIcon from "@mui/icons-material/Add";
 import CheckIcon from "@mui/icons-material/Check";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import StatusBar from "../../components/StatusBar";
+import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
-import { Tile as DsTile } from "../../ui/Tile";
+import { Loading } from "../../ui/Loading";
+import { Tile } from "../../ui/Tile";
+import { ListCard } from "../../ui/ListCard";
+import { ListRow } from "../../ui/ListRow";
 import { ButtonDock } from "../../components/ButtonDock";
-import { Button } from "../../ui/Button";
-import { TextInput } from "../../components/TextInput";
-import { Item } from "../../components/Item";
+import { TextField } from "../../ui/TextField";
 import { ServiceItemCard } from "../../components/ServiceItemCard";
 import { DiscountCard, type DiscountMode } from "../../components/DiscountCard";
 import { DiscountModeSheet } from "../../components/DiscountModeSheet";
 import { SummaryCard } from "../../components/SummaryCard";
 import { SendInvoiceSheet } from "../../components/SendInvoiceSheet";
-import { ShareLinkSheet } from "../../components/ShareLinkSheet";
-import { InvoicePreviewPage } from "../InvoicePreviewPage";
+import { InvoicePreviewPage } from "../shared/InvoicePreviewPage";
 import { BankInfoSheet } from "../../components/BankInfoSheet";
-import { ReviewEmail } from "../ReviewEmail";
 import { CustomerSheet } from "../../components/CustomerSheet";
-import { CURRENCIES, CurrencySheet } from "../../components/CurrencySheet";
+import { CURRENCIES, CURRENCY_COUNTRY, CurrencySheet } from "../../components/CurrencySheet";
+import { CountryFlag } from "../../components/CountryFlag";
 import { Toggle } from "../../ui/Toggle";
 import { DueDateSheet } from "../../components/DueDateSheet";
 import { IssueDateSheet } from "../../components/IssueDateSheet";
 import { BottomSheet } from "../../components/BottomSheet";
-import { Tile } from "../../components/Tile";
 import { Calendar } from "../../components/Calendar";
 import { FREQUENCIES, type Frequency, nextDates } from "./recurrence";
 import { ReceivingAccountSheet } from "../../components/ReceivingAccountSheet";
@@ -137,12 +135,14 @@ interface AddInvoiceDetailsProps {
   onIssueSheetToggle?: (open: boolean) => void;
 }
 
-import { FONT, MUTED } from "../../lib/theme";
+import { FONT, MUTED, avatarTint, initials } from "../../lib/theme";
 
+/** Section label (Figma "Create Invoice", node 1826-15916): body-sm medium, text-primary,
+ *  sentence case — not the 12px bold-uppercase placeholder-grey style used elsewhere. */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="w-full flex flex-col gap-2">
-      <p className="text-[12px] font-bold uppercase leading-[1.3] text-[#a0a0a0]" style={FONT}>
+      <p className="body-sm-medium text-[var(--text-primary)]">
         {title}
       </p>
       {children}
@@ -157,7 +157,7 @@ function RadioDot({ selected }: { selected: boolean }) {
       className="shrink-0 rounded-full flex items-center justify-center"
       style={{ width: 26, height: 26, border: `2px solid ${selected ? "#ff4a15" : "#cdcfd0"}` }}
     >
-      {selected && <span className="rounded-full" style={{ width: 12, height: 12, background: "#ff4a15" }} />}
+      {selected && <span className="rounded-full" style={{ width: 12, height: 12, background: "var(--bg-brand-primary)" }} />}
     </span>
   );
 }
@@ -241,6 +241,7 @@ export function AddInvoiceDetails({
   const [existingViewOpen, setExistingViewOpen] = useState(false);
   // Preview the original uploaded file (demo: a representative document, no real bytes).
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   // Whether to also save the typed-in customer to the client list (default on).
 
   // The linked client (auto-matched or picked). When null on an upload, we're in
@@ -260,8 +261,16 @@ export function AddInvoiceDetails({
   const { fieldsTotal, fieldsExtracted, fieldsNeedAttention } = extractionCoverage(extracted, emailMissing);
 
   const [sendSheetOpen, setSendSheetOpen] = useState(false);
-  const [emailReviewOpen, setEmailReviewOpen] = useState(false);
-  const [shareLinkOpen, setShareLinkOpen] = useState(false);
+  // Brief loading state on the Send Invoice button itself (Figma node 4591-5847) before the
+  // delivery-method sheet opens — this prototype has no real network call to await.
+  const [sendPending, setSendPending] = useState(false);
+  const handleSendInvoiceClick = () => {
+    setSendPending(true);
+    setTimeout(() => {
+      setSendPending(false);
+      setSendSheetOpen(true);
+    }, 600);
+  };
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const [customerSheetOpen, setCustomerSheetOpen] = useState(false);
 
@@ -350,10 +359,7 @@ export function AddInvoiceDetails({
     maximumFractionDigits: 2,
   })}`;
   // Summary for the freshly-saved draft card on the list (✕ → save as draft).
-  const draftAmount = `${currency === "USD" ? "$" : `${currency} `}${total.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  const draftAmount = amountLabel;
   const clientLabel = name.trim() || "Untitled customer";
   // Due Date labels — the relative "Next N days" term resolved against the issue date.
   const { dueDateLabel, dueRowLabel, dueShort } = dueLabels(issueDate, dueDate);
@@ -410,6 +416,37 @@ export function AddInvoiceDetails({
     }
   }, [services.length]);
 
+  // Sticky dock's price-summary slot (Figma "Create Invoice", node 1419-52781) — shown until the
+  // real inline Summary card scrolls into view, since it'd be redundant once the user can see it.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const [summaryVisible, setSummaryVisible] = useState(false);
+  useEffect(() => {
+    const root = scrollRef.current;
+    const target = summaryRef.current;
+    if (!root || !target) {
+      setSummaryVisible(false);
+      return;
+    }
+    // threshold 1 (not the default 0) — a sliver of the card peeking into view at the bottom
+    // edge shouldn't count as "visible", or the sticky slot disappears before the user can
+    // actually read the real card.
+    const observer = new IntersectionObserver(([entry]) => setSummaryVisible(entry.isIntersecting), { root, threshold: 1 });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [services.length > 0]);
+
+  // On-screen keyboard mock (Figma "IOS controls" = Keyboard) — shown while the Discount amount
+  // field is focused, same convention as every other real text entry point in the app.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  // Items validation error (Send Invoice tapped with none added yet) — clears itself the moment
+  // an item exists, not just on the next tap.
+  const [itemsError, setItemsError] = useState(false);
+  useEffect(() => {
+    if (services.length > 0) setItemsError(false);
+  }, [services.length]);
+
   // DES-718 send methods (Shareable Link / Download).
   const shareLink = `https://pay.statrys.com/i/${invoiceNo}`;
 
@@ -441,8 +478,9 @@ export function AddInvoiceDetails({
   // Currency seeds from the customer default (line items may differ and convert into it). It's
   // selectable per invoice in the create/edit flow (tap → currency sheet), but LOCKED for an issued
   // invoice (limited edit) — matching the Invoice Settings currency row, read-only and no chevron.
+  // Item's `value` is string-only (no icon slot), so this row is code-only — no flag.
   const curMeta = CURRENCIES.find((c) => c.code === currency);
-  const currencyLabel = curMeta ? `${curMeta.flag}  ${curMeta.code}` : currency;
+  const currencyLabel = curMeta ? curMeta.code : currency;
 
   // Recurring series labels (DES-782). Each generated invoice gets its own issue/due date from the
   // schedule, so the one-off Issue/Due rows are hidden in recurring mode.
@@ -477,51 +515,56 @@ export function AddInvoiceDetails({
       style={{ width: 375, height: 812 }}
     >
       {/* Page — stays in place; the open sheet dims it with its own scrim (no recede). */}
-      <div className="absolute inset-0 flex flex-col bg-[#F9F5EA] overflow-hidden rounded-[48px]">
-        <StatusBar />
+      <div className="absolute inset-0 flex flex-col bg-[var(--bg-beige-primary)] overflow-hidden rounded-[48px]">
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto thin-scrollbar"
+          onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+        >
+        <PageAppHeader scrolled={scrolled}>
+          {/* DS PageHeader (center) — the back chevron plays the old ✕/back role (create flows save a
+              draft on exit); the autosave chip lives in the header's custom right slot. */}
+          <PageHeader
+            type="center"
+            title={headerTitle ?? (editingSeries ? "Edit recurring series" : isRecurring ? (isEditing ? "Edit invoice" : "New Recurring Invoice") : isEditing ? "Edit invoice" : "Create Invoice")}
+            onBack={lockActions || lockExceptIssueDate ? () => {} : isEditing && !editExitToList ? onEditBack : onSaveDraft ? saveDraft : onClose}
+            right={
+              // Figma "Create Invoice" header (node 1387-18223): the DS Loading spinner, not a
+              // hand-rolled spinning border — "Saved" keeps the existing check (Figma's own mock
+              // only shows the "Saving" state).
+              <div className="flex items-center gap-1 whitespace-nowrap" aria-live="polite">
+                {saveState === "saving" ? (
+                  <Loading size="xs" aria-label="Saving" />
+                ) : (
+                  <CheckIcon style={{ fontSize: 15, color: "var(--text-success-primary)" }} />
+                )}
+                <span className="text-[12px] text-[var(--text-secondary)]" style={FONT}>
+                  {saveState === "saving" ? "Saving" : "Saved"}
+                </span>
+              </div>
+            }
+          />
+        </PageAppHeader>
 
-      {/* DS PageHeader (center) — the back chevron plays the old ✕/back role (create flows save a
-          draft on exit); the autosave chip lives in the header's custom right slot. */}
-      <PageHeader
-        type="center"
-        title={headerTitle ?? (editingSeries ? "Edit recurring series" : isRecurring ? (isEditing ? "Edit invoice" : "New Recurring Invoice") : isEditing ? "Edit invoice" : "New Invoice")}
-        onBack={lockActions || lockExceptIssueDate ? () => {} : isEditing && !editExitToList ? onEditBack : onSaveDraft ? saveDraft : onClose}
-        right={
-          <div className="flex items-center gap-1 whitespace-nowrap" aria-live="polite">
-            {saveState === "saving" ? (
-              <motion.span
-                className="w-3.5 h-3.5 rounded-full border-2 border-[#d4d4d4] border-t-[#808080]"
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
-              />
-            ) : (
-              <CheckIcon style={{ fontSize: 15, color: "#006a1d" }} />
-            )}
-            <span className="text-[12px] text-[#808080]" style={FONT}>
-              {saveState === "saving" ? "Saving…" : "Saved"}
-            </span>
-          </div>
-        }
-      />
-
-      <div
-        className="flex-1 overflow-y-auto thin-scrollbar px-4 pt-5 pb-28 flex flex-col gap-4"
-        // Locked-period demos: the only permitted in-page interaction is picking the Issue Date. A
-        // capture-phase click guard swallows every click outside the Issue Date row (scrolling is a
-        // separate event stream, so it stays fully usable).
-        onClickCapture={
-          lockExceptIssueDate
-            ? (e) => {
-                if (!issueRowRef.current?.contains(e.target as Node)) {
-                  e.preventDefault();
-                  e.stopPropagation();
+        <div
+          className={`px-4 pt-5 flex flex-col gap-4 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}
+          // Locked-period demos: the only permitted in-page interaction is picking the Issue Date. A
+          // capture-phase click guard swallows every click outside the Issue Date row (scrolling is a
+          // separate event stream, so it stays fully usable).
+          onClickCapture={
+            lockExceptIssueDate
+              ? (e) => {
+                  if (!issueRowRef.current?.contains(e.target as Node)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
                 }
-              }
-            : undefined
-        }
-      >
-        {/* Custom top banner (e.g. the locked-period alert) — replaces the OCR coverage banner. */}
-        {topBanner}
+              : undefined
+          }
+        >
+          {/* Custom top banner (e.g. the locked-period alert) — replaces the OCR coverage banner. */}
+          {topBanner}
+
 
         {/* Duplicate found — shown at the very top, above the uploaded-file preview. */}
         {isExtracted && existingInvoice && <DuplicateBanner />}
@@ -542,14 +585,15 @@ export function AddInvoiceDetails({
         )}
 
         {/* Customer — matched / unmatched (upload) or the selected card */}
+        <Section title="Bill To">
         {!isExtracted ? (
           isEditing ? (
             /* DES-817: Client (Customer) is not editable in Draft/after Send — locked once created.
                To change it the user must start a new invoice (or edit the client record). */
-            <DsTile title={name} text={email} onLayer="beige" reserveTrailing={false} />
+            <Tile title={name} text={email} avatar={initials(name)} avatarColor={avatarTint(name)} onLayer="beige" reserveTrailing={false} />
           ) : (
             /* DS Tile on the beige page — tap (chevron) reopens the customer picker. */
-            <DsTile title={name} text={email} onLayer="beige" trailing="chevron" onClick={onChangeCustomer} />
+            <Tile title={name} text={email} avatar={initials(name)} avatarColor={avatarTint(name)} onLayer="beige" trailing="chevron" onClick={onChangeCustomer} />
           )
         ) : (
           /* Upload review (DES-716) — OCR extracts the customer name + email, so show them as
@@ -558,12 +602,12 @@ export function AddInvoiceDetails({
           <div ref={flaggedRef} className="scroll-mt-24 flex flex-col gap-3">
             {/* Customer name — warning highlight + caption when OCR couldn't read it */}
             <div className="flex flex-col gap-1">
-              <TextInput
+              <TextField
                 label="Customer name"
                 placeholder="Customer name"
-                required
+                mandatory
                 value={editName}
-                onChange={(e) => setEditName(e.target.value)}
+                onChange={setEditName}
                 highlight={nameMissing}
               />
               {nameMissing && (
@@ -575,13 +619,13 @@ export function AddInvoiceDetails({
 
             {/* Email — warning highlight + caption when OCR couldn't read it */}
             <div className="flex flex-col gap-1">
-              <TextInput
+              <TextField
                 label="Email address"
-                type="email"
+                inputType="email"
                 placeholder="name@email.com"
-                required
+                mandatory
                 value={editEmail}
-                onChange={(e) => setEditEmail(e.target.value)}
+                onChange={setEditEmail}
                 highlight={emailMissing}
               />
               {emailMissing && (
@@ -592,17 +636,18 @@ export function AddInvoiceDetails({
             </div>
           </div>
         )}
+        </Section>
 
         {/* Invoice number — user-entered for uploads (DES-716) */}
         {isExtracted && (
           <div ref={invoiceNoRef} className="scroll-mt-20 flex flex-col gap-1">
-            <TextInput
+            <TextField
               label="Invoice Number"
               placeholder="e.g. UPL-2026-000042"
-              required
+              mandatory
               highlight={!!existingInvoice}
               value={editInvoiceNo}
-              onChange={(e) => setEditInvoiceNo(e.target.value)}
+              onChange={setEditInvoiceNo}
               iconRight={
                 existingInvoice ? (
                   <span
@@ -613,7 +658,7 @@ export function AddInvoiceDetails({
                   </span>
                 ) : numberRecommended ? (
                   <span
-                    className="shrink-0 px-2 py-0.5 rounded-full bg-[#ebfcef] border border-[#a3e9b6] text-[10px] font-bold leading-[15px] text-[#006a1d]"
+                    className="shrink-0 px-2 py-0.5 rounded-full bg-[var(--bg-success-subtle)] border border-[var(--border-success-subtle)] text-[10px] font-bold leading-[15px] text-[var(--text-success-primary)]"
                     style={FONT}
                   >
                     Recommended
@@ -636,7 +681,7 @@ export function AddInvoiceDetails({
             {/* Header — the toggle only appears on a fresh create; in edit it's fixed on (can't be turned
                 off), so the title just sits as a label. */}
             <div className="flex items-center justify-between">
-              <span className="card-title-2xs text-[#101828]" style={FONT}>Recurring Invoice</span>
+              <span className="card-title-sm text-[#101828]" style={FONT}>Recurring Invoice</span>
               {!isEditing && !editingSeries && (
                 <Toggle checked={isRecurring} onChange={setRecurringOn} aria-label="Recurring Invoice" />
               )}
@@ -665,7 +710,7 @@ export function AddInvoiceDetails({
                         className="flex items-center justify-between gap-3 py-3 text-left"
                         style={{ borderTop: i === 0 ? "none" : "1px solid rgba(160,160,160,0.2)" }}
                       >
-                        <span className="body-sm text-[#808080]" style={FONT}>{r.label}</span>
+                        <span className="body-sm text-[var(--text-secondary)]" style={FONT}>{r.label}</span>
                         <span className="flex items-center gap-1.5 min-w-0">
                           <span className="body-sm-medium text-[#101828] truncate" style={FONT}>{r.value}</span>
                           <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
@@ -687,72 +732,79 @@ export function AddInvoiceDetails({
             style={{ background: "#f8f8f9", border: "1px dashed rgba(160,160,160,0.2)" }}
           >
             <div className="flex items-center gap-2">
-              <CalendarTodayIcon style={{ fontSize: 16, color: "#ff4a15" }} />
-              <span className="card-title-2xs text-[#101828]" style={FONT}>Invoice Schedule</span>
+              <CalendarTodayIcon style={{ fontSize: 16, color: "var(--text-brand)" }} />
+              <span className="card-title-sm text-[#101828]" style={FONT}>Invoice Schedule</span>
             </div>
             <div className="flex items-start justify-between">
               <div className="flex flex-col gap-2 py-2 items-start">
-                <span className="text-[12px] font-medium uppercase leading-[1.3] text-[#808080]" style={FONT}>Starts</span>
+                <span className="text-[12px] font-medium uppercase leading-[1.3] text-[var(--text-secondary)]" style={FONT}>Starts</span>
                 <span className="body-sm-medium text-[#101828]" style={FONT}>{format(recStart, "d MMM yyyy")}</span>
               </div>
               <div className="flex flex-col gap-2 py-2 items-end">
-                <span className="text-[12px] font-medium uppercase leading-[1.3] text-[#ff4a15]" style={FONT}>Next Invoice</span>
+                <span className="text-[12px] font-medium uppercase leading-[1.3] text-[var(--text-brand)]" style={FONT}>Next Invoice</span>
                 <span className="body-sm-medium text-[#101828]" style={FONT}>{format(nextDates(recStart, recFreq, 2)[1], "d MMM yyyy")}</span>
               </div>
             </div>
           </div>
         )}
 
-        {/* Invoice details */}
+        {/* Invoice details — Figma "Create Invoice" (node 1387-18118): ListCard/ListRow, value +
+            description stacked (e.g. "Next 30 days" / "15 Jul 2026"), Currency gets a flag. Locked
+            rows (limited edit, DES-817) stay dimmed with no chevron/tap, same semantics as before. */}
         <Section title="Invoice Details">
-          <div
-            className="w-full bg-white rounded-xl overflow-hidden border border-dashed border-[rgba(160,160,160,0.2)]"
-            style={{ boxShadow: "var(--shadow-card-soft)" }}
-          >
-            {details.map((d) => {
+          <ListCard onLayer="beige">
+            {details.map((d, i) => {
               const isIssueRow = d.label === "Issue Date";
               const rowError = isIssueRow && issueError && !issuePicked;
               // Unset Issue Date (placeholder mode) reads amber by default to signal it must be re-picked;
               // the required-field error escalates it to red once the CTA is tapped.
               const rowWarning = isIssueRow && !issuePicked && !rowError;
               return (
-                <div key={d.label} ref={isIssueRow ? issueRowRef : undefined} className="scroll-mt-24">
-                  <Item
-                    variant="dropdown"
+                <div key={d.label} ref={isIssueRow ? issueRowRef : undefined} className="scroll-mt-24" style={d.locked ? { opacity: 0.5 } : undefined}>
+                  <ListRow
                     label={d.label}
                     value={d.value}
-                    onClick={d.onClick}
-                    disabled={d.locked}
-                    readOnly={d.readOnly}
+                    valueFlag={d.label === "Currency" ? <CountryFlag name={CURRENCY_COUNTRY[currency]} size={16} /> : undefined}
+                    trailing={d.locked ? "none" : "chevron"}
+                    onClick={d.locked ? undefined : d.onClick}
+                    last={i === details.length - 1}
                     placeholder={(d as { placeholder?: boolean }).placeholder}
                     error={rowError}
                     warning={rowWarning}
+                    caption={rowError ? "Issue date is required" : undefined}
                   />
-                  {rowError && (
-                    <p className="px-4 py-2 text-[13px] font-medium leading-[1.3]" style={{ ...FONT, color: "var(--ds-text-error-primary)" }}>
-                      Issue date is required
-                    </p>
-                  )}
                 </div>
               );
             })}
-          </div>
+          </ListCard>
         </Section>
 
-        {/* Services / products */}
+        {/* Items (Figma "Create Invoice", node 1387-18118 — renamed from "Services / Products" to
+            match) */}
         <div ref={servicesRef} className="scroll-mt-5">
-        <Section title="Services / Products">
+        <Section title="Items">
           {services.length === 0 ? (
-            /* DS Tile on the beige page — tap (chevron) opens the add-service sheet. */
-            <DsTile
-              title="Add your services"
-              text="Name it, set a quantity"
-              onLayer="beige"
-              trailing="chevron"
-              onClick={openAddService}
-            />
+            /* DS Tile on the beige page — tap (chevron) opens the add-service sheet. Red border +
+               caption when Send Invoice was tapped with no items yet (see `itemsError`). */
+            <>
+              <Tile
+                title="Add your items"
+                text="Name it, set a quantity"
+                onLayer="beige"
+                trailing="chevron"
+                error={itemsError}
+                onClick={openAddService}
+              />
+              {itemsError && (
+                <p className="text-[12px] pt-1" style={{ ...FONT, color: "var(--text-error-primary)" }}>
+                  You need to add an item
+                </p>
+              )}
+            </>
           ) : (
-            <div className="flex flex-col gap-2">
+            // ListCard of rows (Figma "Create Invoice", node 1826-15914) — "Add more items" is the
+            // list's own trailing row, not a separate outlined button below it.
+            <ListCard onLayer="beige">
               {services.map((s, idx) => (
                 <ServiceItemCard
                   key={s.id}
@@ -763,94 +815,112 @@ export function AddInvoiceDetails({
                   onDelete={() => setServices((prev) => prev.filter((x) => x.id !== s.id))}
                 />
               ))}
-              <Button hierarchy="secondary" iconLeft={<AddIcon />} fullWidth onClick={openAddService} label="Add Item" />
-            </div>
+              <ListRow label="Add more items" trailing="chevron" onClick={openAddService} last />
+            </ListCard>
           )}
         </Section>
         </div>
 
         {/* Discounts — appears once the first service is added. Editable in the issued limited edit
             (Awaiting/Overdue) too, per the updated story (only invoice number + client stay locked). */}
-        {services.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <DiscountCard
-              currency={currency}
-              enabled={discountOn}
-              onToggle={setDiscountOn}
-              value={discount}
-              onChange={setDiscount}
-              mode={discountMode}
-              onOpenMode={() => setDiscountModeSheetOpen(true)}
-            />
-          </motion.div>
-        )}
+        <AnimatePresence>
+          {services.length > 0 && (
+            <motion.div
+              key="discount-card"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.3 }}
+            >
+              <DiscountCard
+                currency={currency}
+                enabled={discountOn}
+                onToggle={setDiscountOn}
+                value={discount}
+                onChange={setDiscount}
+                mode={discountMode}
+                onOpenMode={() => setDiscountModeSheetOpen(true)}
+                onFocus={() => setKeyboardOpen(true)}
+                onBlur={() => setKeyboardOpen(false)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Auto-send to customer (DES-782) — the recurring counterpart of Automatic Reminders; appears
             once items are added. On generation, send automatically (→ Awaiting) or leave each as a Draft. */}
-        {services.length > 0 && isRecurring && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div
-              className="w-full bg-white border border-dashed border-[rgba(160,160,160,0.2)] rounded-xl p-[17px] flex items-center justify-between gap-3"
-              style={{ boxShadow: "var(--shadow-card-soft)" }}
+        <AnimatePresence>
+          {services.length > 0 && isRecurring && (
+            <motion.div
+              key="auto-send"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.3 }}
             >
-              <span className="min-w-0 flex flex-col gap-1">
-                <span className="card-title-2xs text-[#101828]" style={FONT}>Auto-send to customer</span>
-                <span className="body-sm-medium text-[#808080]" style={FONT}>
-                  {recAutoSend ? "Send invoices automatically" : "Saved as a draft to review"}
+              {/* Bare title+description+toggle row (Figma "Create Invoice", node 1826-15914) — no
+                  card chrome, matching the Discount/Automatic reminders rows below. */}
+              <div className="w-full flex items-center justify-between gap-3">
+                <span className="min-w-0 flex flex-col gap-1">
+                  <span className="body-sm-bold text-[var(--text-primary)]" style={FONT}>Auto-send to customer</span>
+                  <span className="text-[14px] text-[var(--text-secondary)]" style={FONT}>
+                    {recAutoSend ? "Send invoices automatically" : "Saved as a draft to review"}
+                  </span>
                 </span>
-              </span>
-              <Toggle checked={recAutoSend} onChange={setRecAutoSend} aria-label="Auto-send to customer" />
-            </div>
-          </motion.div>
-        )}
+                <Toggle checked={recAutoSend} onChange={setRecAutoSend} aria-label="Auto-send to customer" />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Automated chaser (DES-764 AC5) — per-invoice toggle, seeded from the account default.
-            Discount-card style; backend auto-deactivates it once the invoice is Paid (out of scope).
+            Bare title+description+toggle row (Figma "Create Invoice", node 1826-15914) — no card
+            chrome. Backend auto-deactivates it once the invoice is Paid (out of scope).
             Hidden in recurring mode — the Recurrence section's "Auto-send to customer" covers sending. */}
-        {services.length > 0 && !isRecurring && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div
-              className="w-full bg-white border border-dashed border-[rgba(160,160,160,0.2)] rounded-xl p-[17px] flex items-center justify-between gap-3"
-              style={{ boxShadow: "var(--shadow-card-soft)" }}
+        <AnimatePresence>
+          {services.length > 0 && !isRecurring && (
+            <motion.div
+              key="automatic-reminders"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.3 }}
             >
-              <span className="min-w-0 flex flex-col gap-1">
-                <span className="card-title-2xs text-[#101828]" style={FONT}>Automatic reminders</span>
-                <span className="body-sm-medium text-[#808080]" style={FONT}>Email until invoice is paid</span>
-              </span>
-              <Toggle checked={chaser} onChange={setChaser} aria-label="Automatic reminders" />
-            </div>
-          </motion.div>
-        )}
+              <div className="w-full flex items-center justify-between gap-3">
+                <span className="min-w-0 flex flex-col gap-1">
+                  <span className="body-sm-bold text-[var(--text-primary)]" style={FONT}>Automatic reminders</span>
+                  <span className="text-[14px] text-[var(--text-secondary)]" style={FONT}>Email until invoice is paid</span>
+                </span>
+                <Toggle checked={chaser} onChange={setChaser} aria-label="Automatic reminders" />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Summary — appears with the line items */}
-        {services.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Section title="Summary">
-              <SummaryCard
-                currency={currency}
-                subtotal={subtotal}
-                discount={discountAmount}
-                total={total}
-              />
-            </Section>
-          </motion.div>
-        )}
+        <AnimatePresence>
+          {services.length > 0 && (
+            <motion.div
+              key="summary"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div ref={summaryRef}>
+                <Section title="Summary">
+                  <SummaryCard
+                    currency={currency}
+                    subtotal={subtotal}
+                    discount={discountAmount}
+                    total={total}
+                  />
+                </Section>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        </div>
       </div>
 
         {isRecurring ? (
@@ -873,10 +943,10 @@ export function AddInvoiceDetails({
                       // can't be Awaiting — auto-send moves it to Awaiting on the scheduled date (backend).
                       editingSeries
                         ? undefined
-                        : { ...recentSent, status: "Draft", recurring: true, meta: `— · Scheduled on ${format(recStart, "d MMM yyyy")}` }
+                        : { ...recentSent, status: "Draft", recurring: true, meta: `— · Scheduled ${format(recStart, "d MMM yyyy")}` }
                     )
             }
-            homeIndicator
+            keyboard={keyboardOpen}
           />
         ) : isEditing ? (
           <ButtonDock
@@ -887,7 +957,7 @@ export function AddInvoiceDetails({
             // leave at any time). The limited edit-from-detail flow keeps the items gate.
             primaryDisabled={services.length === 0 && !editExitToList}
             onPrimary={onEditSave}
-            homeIndicator
+            keyboard={keyboardOpen}
           />
         ) : isExtracted && existingInvoice ? (
           // Duplicate number (match by number only): creating a copy is hard-blocked — the only
@@ -897,7 +967,7 @@ export function AddInvoiceDetails({
             sticky
             primaryLabel={existingPrimaryLabel}
             onPrimary={() => onOpenExisting?.(existingInvoice)}
-            homeIndicator
+            keyboard={keyboardOpen}
           />
         ) : isExtracted ? (
           <ButtonDock
@@ -911,17 +981,33 @@ export function AddInvoiceDetails({
             // Locked-period demo: an unset Issue Date shows the required-field error (guardIssueDate
             // scrolls + flags); once picked, lockActions keeps the CTA inert so it never lands.
             onPrimary={() => { if (!guardIssueDate() && !lockActions) onSend?.({ title: "Invoice created successfully" }, recentSent); }}
-            homeIndicator
+            keyboard={keyboardOpen}
           />
         ) : (
+          // Always enabled (Figma "Create Invoice", node 1387-18118) — an empty items list no
+          // longer blocks the button; tapping it with none surfaces the error on the Items Tile
+          // instead of the button just sitting disabled with no explanation.
           <ButtonDock
             type="single"
             sticky
-            primaryLabel="Send Invoice"
-            primaryDisabled={services.length === 0}
+            slot={
+              services.length > 0 && !summaryVisible ? (
+                <SummaryCard bare currency={currency} subtotal={subtotal} discount={discountAmount} total={total} />
+              ) : undefined
+            }
+            primaryLabel="Create Invoice"
+            primaryLoading={sendPending}
             // Locked-period demo: the CTA stays visually enabled but tapping it goes nowhere.
-            onPrimary={() => { if (!lockActions) setSendSheetOpen(true); }}
-            homeIndicator
+            onPrimary={() => {
+              if (lockActions) return;
+              if (services.length === 0) {
+                setItemsError(true);
+                servicesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                return;
+              }
+              handleSendInvoiceClick();
+            }}
+            keyboard={keyboardOpen}
           />
         )}
       </div>
@@ -987,15 +1073,15 @@ export function AddInvoiceDetails({
       />
 
       {/* Recurring-series pickers (DES-782) */}
-      <BottomSheet open={recFreqOpen} title="Frequency" onClose={() => setRecFreqOpen(false)}>
+      <BottomSheet open={recFreqOpen} title="Select Frequency" onClose={() => setRecFreqOpen(false)}>
         <div className="flex flex-col gap-2">
           {FREQUENCIES.map((f) => (
-            <Tile key={f} title={f} selected={recFreq === f} onClick={() => { setRecFreq(f); setRecFreqOpen(false); }} />
+            <Tile key={f} size="sm" title={f} selected={recFreq === f} trailing={recFreq === f ? "check" : "none"} onClick={() => { setRecFreq(f); setRecFreqOpen(false); }} />
           ))}
         </div>
       </BottomSheet>
 
-      <BottomSheet open={recStartOpen} title="Start Date" onClose={() => setRecStartOpen(false)}>
+      <BottomSheet open={recStartOpen} title="Select Start Date" onClose={() => setRecStartOpen(false)}>
         <Calendar value={recStart} disablePast onChange={(d) => { setRecStart(d); setRecStartOpen(false); }} />
       </BottomSheet>
 
@@ -1009,7 +1095,6 @@ export function AddInvoiceDetails({
             primaryLabel="Confirm"
             primaryDisabled={(recEnd.mode === "count" && recEnd.count <= 0) || (recEnd.mode === "date" && !recEnd.date)}
             onPrimary={() => setRecEndOpen(false)}
-            homeIndicator
           />
         }
       >
@@ -1018,31 +1103,30 @@ export function AddInvoiceDetails({
           <button
             type="button"
             onClick={() => { setRecEnd({ mode: "never" }); setRecMaxInput(""); }}
-            className="w-full min-h-[66px] flex items-center gap-3 rounded-[12px] bg-[#faf9f4] px-2 py-4 text-left"
+            className="w-full min-h-[66px] flex items-center gap-3 rounded-[12px] bg-[var(--bg-neutral-secondary)] px-2 py-4 text-left"
           >
             <RadioDot selected={recEnd.mode === "never"} />
-            <span className="card-title-2xs text-[#101828]" style={FONT}>Never ( Run until you cancelled )</span>
+            <span className="card-title-sm text-[#101828]" style={FONT}>Never ( Run until you cancelled )</span>
           </button>
 
           {/* After a certain number of invoices — reveals a max-count field when selected */}
-          <div className="w-full flex flex-col gap-3 rounded-[12px] bg-[#faf9f4] px-2 py-4">
+          <div className="w-full flex flex-col gap-3 rounded-[12px] bg-[var(--bg-neutral-secondary)] px-2 py-4">
             <button
               type="button"
               onClick={() => { const n = parseInt(recMaxInput, 10); setRecEnd({ mode: "count", count: Number.isFinite(n) && n > 0 ? n : 0 }); }}
               className="w-full flex items-center gap-3 text-left"
             >
               <RadioDot selected={recEnd.mode === "count"} />
-              <span className="card-title-2xs text-[#101828]" style={FONT}>After a certain number of invoices</span>
+              <span className="card-title-sm text-[#101828]" style={FONT}>After a certain number of invoices</span>
             </button>
             {recEnd.mode === "count" && (
               <div className="flex flex-col gap-1.5">
-                <TextInput
+                <TextField
                   placeholder="Enter max invoices"
                   inputMode="numeric"
-                  showHint={false}
                   value={recMaxInput}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "");
+                  onChange={(v) => {
+                    const digits = v.replace(/\D/g, "");
                     setRecMaxInput(digits);
                     const n = parseInt(digits, 10);
                     setRecEnd({ mode: "count", count: Number.isFinite(n) && n > 0 ? n : 0 });
@@ -1058,22 +1142,20 @@ export function AddInvoiceDetails({
           </div>
 
           {/* On a specific date — reveals a date field when selected; tapping it opens the calendar */}
-          <div className="w-full flex flex-col gap-3 rounded-[12px] bg-[#faf9f4] px-2 py-4">
+          <div className="w-full flex flex-col gap-3 rounded-[12px] bg-[var(--bg-neutral-secondary)] px-2 py-4">
             <button
               type="button"
               onClick={() => setRecEnd({ mode: "date", date: recEnd.mode === "date" ? recEnd.date : undefined })}
               className="w-full flex items-center gap-3 text-left"
             >
               <RadioDot selected={recEnd.mode === "date"} />
-              <span className="card-title-2xs text-[#101828]" style={FONT}>On a specific date</span>
+              <span className="card-title-sm text-[#101828]" style={FONT}>On a specific date</span>
             </button>
             {recEnd.mode === "date" && (
-              <TextInput
+              <TextField
+                type="date-picker"
                 placeholder="dd/mm/yy"
-                readOnly
-                showHint={false}
                 value={recEnd.date ? format(recEnd.date, "d MMM yyyy") : ""}
-                iconRight={<CalendarTodayIcon style={{ fontSize: 20, color: "#808080" }} />}
                 onClick={() => setRecEndDateOpen(true)}
               />
             )}
@@ -1081,7 +1163,7 @@ export function AddInvoiceDetails({
         </div>
       </BottomSheet>
 
-      <BottomSheet open={recEndDateOpen} title="End Date" onClose={() => setRecEndDateOpen(false)}>
+      <BottomSheet open={recEndDateOpen} title="Select End Date" onClose={() => setRecEndDateOpen(false)}>
         <Calendar value={recEnd.mode === "date" ? recEnd.date : undefined} disablePast onChange={(d) => { setRecEnd({ mode: "date", date: d }); setRecMaxInput(""); setRecEndDateOpen(false); }} />
       </BottomSheet>
 
@@ -1114,48 +1196,19 @@ export function AddInvoiceDetails({
         open={sendSheetOpen}
         customerName={name}
         customerEmail={email}
-        // ✕ on the Delivery method page returns to the (still pre-filled) editor (user, 15/Jul) —
+        companyName={companyName}
+        companyEmail={companyEmail}
+        invoiceNo={invoiceNo}
+        amountLabel={amountLabel}
+        dueDateLabel={dueDateLabel}
+        link={shareLink}
+        // ✕ on the Send Invoice page returns to the (still pre-filled) editor (user, 15/Jul) —
         // autosave already holds the work, so no draft toast / list redirect.
         onClose={() => setSendSheetOpen(false)}
-        onChangeCustomer={() => setCustomerSheetOpen(true)}
-        onConfirm={(method) => {
-          // All methods keep the Delivery method page mounted underneath and open instantly
-          // (no transition): email review / share-link sheet / PDF preview overlay it.
-          if (method === "email") setEmailReviewOpen(true);
-          else if (method === "link") setShareLinkOpen(true); // marked Sent on generate
-          else if (method === "pdf") setPdfPreviewOpen(true); // invoice preview, then download
-        }}
-      />
-
-      {/* Email review — shown instantly over the (still-mounted) Delivery method page; no transition. */}
-      {emailReviewOpen && (
-        <div className="absolute inset-0 z-50">
-          <ReviewEmail
-            customerName={name}
-            customerEmail={email}
-            companyName={companyName}
-            companyEmail={companyEmail}
-            invoiceNo={invoiceNo}
-            amountLabel={amountLabel}
-            dueDateLabel={dueDateLabel}
-            onBack={() => setEmailReviewOpen(false)}
-            onSend={() => {
-              setEmailReviewOpen(false);
-              onSend?.({ title: "Invoice marked as sent" }, recentSent);
-            }}
-          />
-        </div>
-      )}
-
-      <ShareLinkSheet
-        open={shareLinkOpen}
-        link={shareLink}
+        onSend={() => onSend?.({ title: "Invoice marked as sent" }, recentSent)}
         // Marked Sent only if the link was actually copied/shared (option B).
-        onSent={() => {
-          setShareLinkOpen(false);
-          onSend?.({ title: "Invoice marked as sent" }, recentSent);
-        }}
-        onDismiss={() => setShareLinkOpen(false)}
+        onSent={() => onSend?.({ title: "Invoice marked as sent" }, recentSent)}
+        onDownload={() => setPdfPreviewOpen(true)}
       />
 
       {/* Read-only summary of the existing (duplicate) invoice */}

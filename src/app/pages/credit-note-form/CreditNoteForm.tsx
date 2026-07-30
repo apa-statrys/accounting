@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, format } from "date-fns";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import StatusBar from "../../components/StatusBar";
-import { SheetHeader, HeaderIconButton } from "../../components/SheetHeader";
+import { PageAppHeader } from "../../components/PageAppHeader";
+import { PageHeader } from "../../ui/PageHeader";
 import { HorizontalTabs } from "../../ui/HorizontalTabs";
 import { ButtonDock } from "../../components/ButtonDock";
 import { IssueDateSheet } from "../../components/IssueDateSheet";
@@ -132,6 +131,7 @@ export function CreditNoteForm({
   const [focusedLineId, setFocusedLineId] = useState<string | null>(null);
   // While the keypad is up, the content scroll is locked; a scroll gesture closes the keypad.
   const [scrollLocked, setScrollLocked] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const closeKeypad = () => {
     (document.activeElement as HTMLElement | null)?.blur?.();
     setFocusedLineId(null);
@@ -176,6 +176,29 @@ export function CreditNoteForm({
   const [attempted, setAttempted] = useState(false);
   const reasonRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<HTMLDivElement>(null);
+
+  // Sticky dock's summary slot (same idea as Create Invoice, Figma node 1419-52781) — shown
+  // until the real inline Summary card scrolls into view, since it'd be redundant once visible.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const [summaryVisible, setSummaryVisible] = useState(false);
+  useEffect(() => {
+    const root = scrollRef.current;
+    const target = summaryRef.current;
+    if (!root || !target) return;
+    // threshold 1 (not the default 0) — a sliver of the card peeking into view at the bottom
+    // edge shouldn't count as "visible", or the sticky slot disappears before the user can
+    // actually read the real card.
+    const observer = new IntersectionObserver(([entry]) => setSummaryVisible(entry.isIntersecting), { root, threshold: 1 });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
+
+  // On-screen keyboard mock (Figma "IOS controls" = Keyboard) — shown while the Description
+  // field is focused, same convention as every other real text entry point in the app. (Line-item
+  // amounts use the separate NumericKeypad below, not this — different, numeric-only input.)
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
   const reasonInvalid = reason === "";
   const amountInvalid = credited <= 0.001; // nothing credited yet (exceedsCap has its own banner)
   const reasonError = attempted && reasonInvalid;
@@ -306,15 +329,17 @@ export function CreditNoteForm({
   // Optional free-text description (any reason) — rendered below the summary in both flows.
   const descriptionBlock = (
     <div className="flex flex-col gap-[7px]">
-      <label className="text-[16px] font-medium leading-[1.3]" style={{ ...FONT, color: "#090a0a" }}>
+      <label className="body-sm" style={{ ...FONT, color: "#090a0a" }}>
         Description
       </label>
       <textarea
         value={reasonNote}
         onChange={(e) => setReasonNote(e.target.value)}
+        onFocus={() => setKeyboardOpen(true)}
+        onBlur={() => setKeyboardOpen(false)}
         placeholder={`Add a note about this ${refund ? "refund" : "credit note"}`}
         rows={3}
-        className="w-full rounded-[8px] border px-4 py-3 bg-white text-[16px] outline-none resize-none"
+        className="w-full rounded-[8px] border px-4 py-3 bg-white text-[14px] outline-none resize-none"
         style={{ ...FONT, color: "#1b1b1b", borderColor: "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
       />
     </div>
@@ -322,39 +347,36 @@ export function CreditNoteForm({
 
   return (
     <div className="absolute inset-0 z-50 bg-white rounded-[48px] overflow-hidden flex flex-col" style={{ width: 375, height: 812 }}>
-      <StatusBar />
-
-      <SheetHeader
-        title={isEdit ? "Edit Credit Note" : refund ? "New Refund" : "New Credit Note"}
-        type="inside-page"
-        state="fixed"
-        leading={
-          <HeaderIconButton aria-label="Back" onClick={handleBack}>
-            <ChevronLeftIcon />
-          </HeaderIconButton>
-        }
-        trailing={
-          !isEdit ? (
-            <span className="flex items-center gap-1.5 pr-1 text-[12px]" style={{ ...FONT, color: MUTED }}>
-              {saveState === "saving"
-                ? <span className="w-3.5 h-3.5 rounded-full border-2 border-[#e2e2e2] border-t-[#ff4a15] animate-spin" aria-hidden />
-                : <span style={{ color: "#0f9d58" }}>✓</span>}
-              {saveState === "saving" ? "Saving" : "Saved"}
-            </span>
-          ) : (
-            <span className="w-[30px] h-[30px] block" aria-hidden />
-          )
-        }
-      />
-
       <div
-        className={`flex-1 thin-scrollbar bg-white px-4 flex flex-col gap-5 ${scrollLocked ? "overflow-hidden" : "overflow-y-auto"} ${focusedLineId ? "pb-[340px]" : "pb-28"}`}
+        ref={scrollRef}
+        className={`flex-1 thin-scrollbar bg-white ${scrollLocked ? "overflow-hidden" : "overflow-y-auto"}`}
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
         onWheel={() => { if (focusedLineId) closeKeypad(); }}
         onTouchMove={() => { if (focusedLineId) closeKeypad(); }}
       >
+        <PageAppHeader scrolled={scrolled}>
+          <PageHeader
+            type="center"
+            title={isEdit ? "Edit Credit Note" : refund ? "New Refund" : "New Credit Note"}
+            onBack={handleBack}
+            showSearch={false}
+            right={
+              !isEdit ? (
+                <span className="flex items-center gap-1.5 pr-1 text-[12px]" style={{ ...FONT, color: MUTED }}>
+                  {saveState === "saving"
+                    ? <span className="w-3.5 h-3.5 rounded-full border-2 border-[#e2e2e2] border-t-[var(--border-brand-primary)] animate-spin" aria-hidden />
+                    : <span style={{ color: "#0f9d58" }}>✓</span>}
+                  {saveState === "saving" ? "Saving" : "Saved"}
+                </span>
+              ) : undefined
+            }
+          />
+        </PageAppHeader>
+
+        <div className={`px-4 flex flex-col gap-5 ${focusedLineId ? "pb-[340px]" : keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
         {/* Beige zone (DES-719 UI) — details card + customer card + related invoice on #f9f5ea.
             No CN number while creating (decided 2026-07-15) — the real number is assigned on apply. */}
-        <div className="-mx-4 px-4 pt-5 pb-5 bg-[#f9f5ea] flex flex-col gap-4">
+        <div className="-mx-4 px-4 pt-5 pb-5 bg-[var(--bg-beige-primary)] flex flex-col gap-4">
           {/* Details — Credit Issue Date / Due Date (editable) + Receiving Account + Currency (locked). */}
           <div className="rounded-[12px] bg-white border border-dashed border-[rgba(160,160,160,0.2)] overflow-hidden" style={{ boxShadow: "0px 4px 14px 0px rgba(226,220,203,0.3)" }}>
             <button type="button" onClick={() => setIssueDateOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
@@ -391,7 +413,7 @@ export function CreditNoteForm({
           {/* Related invoice — the link this credit note is stored against. */}
           <div className="flex items-center gap-2">
             <span className="text-[14px] font-medium" style={{ ...FONT, color: MUTED }}>Related Invoice:</span>
-            <span className="text-[14px] font-bold" style={{ ...FONT, color: "#1b1b1b" }}>{invoiceNo}</span>
+            <span className="text-[14px] font-bold" style={{ ...FONT, color: "var(--text-primary)" }}>{invoiceNo}</span>
           </div>
 
         </div>
@@ -405,20 +427,22 @@ export function CreditNoteForm({
 
         {/* Reason — white zone (DES-719). Required, chosen from the fixed enum in the sheet. */}
         <div ref={reasonRef} className="flex flex-col gap-[7px] pt-1">
-          <label className="text-[16px] font-medium leading-[1.3]" style={{ ...FONT, color: "#090a0a" }}>Reason For Credit <span style={{ color: "#dc2626" }}>*</span></label>
+          <label className="body-sm" style={{ ...FONT, color: "#090a0a" }}>
+            Reason For Credit <span className="text-[length:var(--fs-body-md)] font-medium">*</span>
+          </label>
           <button
             type="button"
             onClick={() => setReasonSheetOpen(true)}
             className="w-full flex items-center justify-between rounded-[8px] border px-4 h-[48px] bg-white text-left"
             style={{ borderColor: reasonError ? "#dc2626" : "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
           >
-            <span className="text-[16px] truncate" style={{ ...FONT, color: reason ? "#1b1b1b" : "#9ca3af" }}>
+            <span className="text-[14px] truncate" style={{ ...FONT, color: reason ? "var(--text-primary)" : "#9ca3af" }}>
               {reason || "Select a reason"}
             </span>
-            <KeyboardArrowDownIcon style={{ fontSize: 24, color: "#808080" }} />
+            <KeyboardArrowDownIcon style={{ fontSize: 24, color: "var(--text-secondary)" }} />
           </button>
           {reasonError && (
-            <p className="text-[12px] leading-[1.3]" style={{ ...FONT, color: "#dc2626" }}>
+            <p className="text-[12px] leading-[1.3]" style={{ ...FONT, color: "var(--text-error-primary)" }}>
               Please select a reason for this {refund ? "refund" : "credit note"}.
             </p>
           )}
@@ -430,7 +454,7 @@ export function CreditNoteForm({
         {/* Corrected invoice — edit each line to its CORRECT value; the credit is derived automatically. */}
         <div ref={itemsRef} className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2 px-1">
-            <p className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>{refund ? "Items to refund" : "Items"} <span style={{ color: "#b42318" }}>*</span></p>
+            <p className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>{refund ? "Items to refund" : "Items"} <span>*</span></p>
             {!refund && credited > 0 && (
               <span
                 className="px-2 py-0.5 rounded-full border text-[10px] font-bold leading-[15px]"
@@ -445,7 +469,7 @@ export function CreditNoteForm({
             )}
           </div>
           {amountError && (
-            <p className="px-1 text-[12px] leading-[1.3]" style={{ ...FONT, color: "#dc2626" }}>
+            <p className="px-1 text-[12px] leading-[1.3]" style={{ ...FONT, color: "var(--text-error-primary)" }}>
               {refund
                 ? "Set a quantity to refund on at least one item."
                 : "Lower at least one item's amount to credit — the credit can't be zero."}
@@ -540,11 +564,11 @@ export function CreditNoteForm({
         </div>
 
         {/* Summary — auto-derived; the user never types a total. */}
-        <div className="flex flex-col gap-2">
-          <p className="px-1 text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "#a0a0a0" }}>
+        <div ref={summaryRef} className="flex flex-col gap-2">
+          <p className="px-1 text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>
             {refund ? "Refund Summary" : "Summary"}
           </p>
-          <div className="bg-[#faf9f4] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4 py-1">
+          <div className="bg-[var(--bg-neutral-secondary)] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4 py-1">
             <div className="flex items-center justify-between py-2.5">
               {/* Refund: against the amount paid. Credit: against the (possibly already-reduced) balance. */}
               <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>{refund ? "Original paid amount" : alreadyCredited > 0.001 ? "Current balance" : "Invoice Total"}</span>
@@ -606,14 +630,39 @@ export function CreditNoteForm({
 
         {/* Refund: description sits below the summary. */}
         {refund && descriptionBlock}
+        </div>
       </div>
 
       <ButtonDock
         type="single"
         sticky
+        slot={
+          !summaryVisible ? (
+            <div className="flex flex-col">
+              <div className="flex items-start justify-between gap-4 py-2.5">
+                <span className="body-sm text-[var(--text-secondary)]">
+                  {refund ? "Original paid amount" : alreadyCredited > 0.001 ? "Current balance" : "Invoice Total"}
+                </span>
+                <span className="body-sm text-[var(--text-primary)]">{money(invoiceTotal)}</span>
+              </div>
+              {!refund && (
+                <div className="flex items-start justify-between gap-4 py-2.5 border-b border-[rgba(208,208,208,0.4)]">
+                  <span className="body-sm text-[var(--text-secondary)]">Credit Amount</span>
+                  <span className="body-sm text-[#b42318]">− {money(credited)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-4 py-3">
+                <span className="body-sm-bold text-[var(--text-primary)]">{refund ? "Total refund" : "Amount Due"}</span>
+                <span className={`body-sm-bold ${refund ? "text-[#b42318]" : "text-[var(--text-primary)]"}`}>
+                  {refund ? "− " : ""}{money(refund ? credited : amountDue)}
+                </span>
+              </div>
+            </div>
+          ) : undefined
+        }
         primaryLabel={isEdit ? (submitLabel ?? "Save changes") : "Create Credit Note"}
         onPrimary={handleCreate}
-        homeIndicator
+        keyboard={keyboardOpen}
       />
 
       {/* Credit issue date picker */}

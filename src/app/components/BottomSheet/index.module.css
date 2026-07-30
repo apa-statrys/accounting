@@ -1,0 +1,271 @@
+/* BottomSheet — shared modal shell for all pickers. Scrim dims the page with
+   the shared ui/Overlay component (no page recede/scale — see CLAUDE.md "Sheet motion"). */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  /* Matches the app's Tailwind z-40 stacking convention used by sibling
+     overlays (toasts sit at z-50, nav chrome lower) — kept as a literal
+     value since it doesn't correspond to this project's semantic z-index
+     scale (z-index/z-index.css) and must stay in lockstep with the many
+     not-yet-converted files still using the raw Tailwind z-* classes. */
+  z-index: 40;
+}
+
+/* Sliding sheet — sized to its content, capped so long content scrolls.
+   Background + top rounding live here (not on .dsHeader) so the header can be
+   transparent-over-scrolled-content, same recipe as components/PageAppHeader —
+   .scrollArea clips to this radius so scrolled children never poke past the
+   rounded corners. */
+.panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 88%;
+  background: var(--bg-neutral-primary);
+  border-top-left-radius: var(--radius-5xl);
+  border-top-right-radius: var(--radius-5xl);
+  overflow: hidden;
+}
+
+.panelTall {
+  min-height: 78%;
+}
+
+/* Almost-full-page drawer (e.g. the Sales Invoice List's Filters/Customer-search sheet) — a fixed
+   43px gap from the top of the screen, not a percent: the convention (per the user, 2026-07-27)
+   is "43px from the top", computed against the actual frame height so it still leaves the right
+   gap if the phone frame size ever changes — not a hardcoded height like 770px, which only
+   happens to equal that on this app's 812px frame. Same specificity as .panel but declared after
+   it in this module, so it reliably wins the max-height cap (a heightClass Tailwind utility
+   can't: it ties on specificity with .panel and this module's own stylesheet is injected after
+   Tailwind's, so .panel would keep winning that tie). */
+.panelFull {
+  height: calc(100% - 43px);
+  max-height: calc(100% - 43px);
+}
+
+/* Scrollable area — grabber+title header sticks to its top (see .dsHeader)
+   while everything below scrolls underneath it. */
+.scrollArea {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* ===== HEADER (Figma Bottomsheets, node 4038-3018) =====
+   Sticky over .scrollArea's content — transparent at rest (the panel's own
+   background shows through, so it looks identical to the old solid header),
+   frosted glass once content scrolls beneath it. Same White/40 tint + blur +
+   eased bottom-fade mask as components/PageAppHeader — reuse that recipe
+   instead of re-deriving it so both stay visually consistent. */
+.dsHeader {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  /* No overflow:hidden here — the search pill and the back/action icon buttons
+     live inside this header and cast a real box-shadow (--shadow-md); clipping
+     the header itself clipped those shadows too (visible as a "cut off" edge
+     vs. the Figma spec, which shows the shadow in full). Corner-rounding for
+     the frost layer is handled on .frost itself instead — see below. */
+}
+
+/* Header's own content (grabber + title row) sits above the frost layer. */
+.dsHeader > :not(.frost) {
+  position: relative;
+  z-index: 1;
+}
+
+.frost {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  /* Self-contained clip: this layer has no children, so rounding + clipping
+     itself (rather than relying on .dsHeader, which also holds the search pill
+     and icon buttons and would clip their box-shadows) safely rounds its own
+     backdrop-filter in every browser without cutting off a sibling's shadow. */
+  border-top-left-radius: var(--radius-5xl);
+  border-top-right-radius: var(--radius-5xl);
+  overflow: hidden;
+  background: linear-gradient(to bottom, var(--alpha-white-40) 0%, transparent 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 60%, rgba(0, 0, 0, 0.94) 74%, rgba(0, 0, 0, 0.75) 84%, rgba(0, 0, 0, 0.4) 92%, rgba(0, 0, 0, 0.15) 97%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 60%, rgba(0, 0, 0, 0.94) 74%, rgba(0, 0, 0, 0.75) 84%, rgba(0, 0, 0, 0.4) 92%, rgba(0, 0, 0, 0.15) 97%, transparent 100%);
+}
+
+.dsHeader.scrolled .frost {
+  opacity: 1;
+}
+
+.grabberRow {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  height: 24px;
+  padding-top: var(--space-4);
+}
+
+.grabber {
+  width: 48px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  /* Value matches --text-disabled / --icon-disabled numerically, but this is
+     a grabber indicator (not disabled text/icon) — kept literal on purpose. */
+  background: rgba(27, 27, 27, 0.3);
+}
+
+/* Titleless menu sheets (e.g. the ⋯ actions menu) show just the grabber —
+   the 60px title row collapses down when there's no title/back/action. Still
+   needs real breathing room before the content though (no title row means no
+   60px of vertical centering to fall back on) — 32px, not the tight 8px
+   between the grabber and a real title's baseline. */
+.titlelessGap {
+  height: var(--space-16);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  height: 60px;
+  padding: 0 var(--space-8);
+}
+
+/* Extra header content (e.g. a selected-item chip row) — same side padding as .titleRow, sitting
+   inside this SAME sticky/frosted header rather than as its own independent sticky sibling (two
+   top:0 stickies in one scroll container fight over the same position once both are stuck). */
+.headerExtra {
+  padding: 0 var(--space-8) var(--space-8);
+}
+
+/* Frosted 36px action/back button — same recipe (and same tokens) as
+   ui/PageHeader's .glassButton, so the sheet header's buttons match the page
+   header's exactly. (Previously referenced --ds-white-40 / --ds-shadow-menu-page-header,
+   two tokens that don't exist anywhere in styles/ — the button silently
+   rendered with no background/shadow at all.) */
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  background: var(--alpha-white-40);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+}
+
+/* Invisible spacer balances the back button so a centered title stays optically centered. */
+.spacer {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+/* Search-mode title row (Figma "Sales Invoice — Client", node 1333-38370): the title text is
+   replaced by a frosted search pill, back button unchanged — a next-level sheet (e.g. a Filters
+   sheet's Customer search) pushed in place of the sheet's normal content, same as a date-picker
+   step. Same recipe as ui/PageHeader's own type="search" pill, duplicated here (not imported)
+   since CSS modules are per-file and this is a small, self-contained recipe. */
+.searchPill {
+  composes: body-md from global;
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  height: 38px;
+  padding: 0 var(--space-8);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  background: var(--alpha-white-40);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-md);
+}
+.searchPill:focus-within {
+  border-color: var(--field-border-focus);
+}
+.pillIcon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text-primary);
+}
+.pillInput {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  color: var(--text-primary);
+}
+.pillInput::placeholder {
+  color: var(--text-placeholder);
+}
+.pillClear {
+  display: flex;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+/* DS title — Figma "Bottomsheets" (node 4038-2684): the header is literally an
+   embedded instance of ui/PageHeader's "left-on-scroll" variant (same node id,
+   2558:13572), so both the default (left) and centerTitle cases are Card
+   title/md (18px) — only alignment differs, not size. Composes the shared
+   .card-title-md utility so the size tracks --fs-card-md through .mobile-mode
+   (see CLAUDE.md "Mobile-mode typography"), not a hardcoded px value. */
+.dsTitle {
+  composes: card-title-md from global;
+  flex: 1 1 0%;
+  min-width: 0;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.dsTitleCentered {
+  composes: card-title-md from global;
+  flex: 1 1 0%;
+  min-width: 0;
+  margin: 0;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+/* ===== CONTENT =====
+   Lives inside .scrollArea (below the sticky .dsHeader), so it no longer owns
+   its own scrolling/background — just the DS 16px side padding (title row is
+   px-4). No vertical padding by default — the Figma Bottomsheets Content slot
+   (node 4038-2585) has none. */
+.content {
+  padding-left: var(--space-8);
+  padding-right: var(--space-8);
+}
+
+.contentCompact {
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-2);
+}
+
+/* Footer area (in-flow vs. overlap vs. no-dock spacer) is
+   components/BottomsheetsEnd — see that component for the Figma reference. */

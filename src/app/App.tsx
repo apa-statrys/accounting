@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Menu, X, ChevronRight } from "lucide-react";
 import { QuickNavSidebar, type SidebarGroup } from "./components/QuickNavSidebar";
 import { Dashboard } from "./pages/Dashboard";
 import { AccountingHub } from "./pages/AccountingHub";
-import { CreditNotesList } from "./pages/CreditNotesList";
+import { CreditNotesList } from "./pages/credit-note-list/CreditNotesList";
 import { CustomerList } from "./pages/CustomerList";
 import { CustomerDetailPage } from "./pages/CustomerDetailPage";
 import { AddCustomerPage } from "./pages/AddCustomerPage";
@@ -23,7 +23,7 @@ import { SalesInvoiceList } from "./pages/sales-invoice-list/SalesInvoiceList";
 import type { StatusMatch } from "./pages/sales-invoice-list/filters";
 import { NeedAttention } from "./pages/NeedAttention";
 import { DuplicateDecision } from "./pages/DuplicateDecision";
-import { UploadInvoice } from "./pages/UploadInvoice";
+import { UploadInvoice } from "./pages/upload-invoice/UploadInvoice";
 import { InvoiceSettings } from "./pages/InvoiceSettings";
 import { GeneratingInvoice } from "./pages/GeneratingInvoice";
 import { DEMO_EXTRACTION, DEMO_EXTRACTION_MATCHED, DEMO_EXTRACTION_NO_CUSTOMER, BLANK_EXTRACTION, EXISTING_INVOICES } from "./data/extraction";
@@ -78,6 +78,35 @@ const CREDIT_NOTE_TOTAL = 6450;
 
 /** Demo customer + line items for previewing the Send (Delivery method) sheet directly. */
 const DEMO_CUSTOMER: Customer = { id: "marlow", name: "Marlow & Finch Studio", email: "finch@studio.com" };
+
+const SLIDE_TRANSITION = { type: "tween" as const, duration: 0.32, ease: [0.4, 0, 0.2, 1] as const };
+
+/**
+ * Push/pop screen-transition slide (direction-aware — see `navDirection`/`navDepth` in App).
+ * Only the screen "on top" of the stack moves; the one underneath sits still and just gets
+ * covered/revealed — a real stacked push/pop (like iOS), not two screens sliding past each other.
+ * `zIndex` (set per-screen from the visited-screen stack depth, not from these variants) is what
+ * keeps the right one on top: forward pushes a higher zIndex in on top of the current one, back
+ * pops down to a screen whose zIndex was already lower than the one sliding away.
+ *  - forward (push): the incoming (higher-zIndex) screen slides in from the right over a static
+ *    outgoing screen underneath, which holds still until it's fully covered, then unmounts.
+ *  - back (pop): the outgoing (higher-zIndex) screen — the one being left — slides out to the
+ *    right, uncovering a static screen underneath that was there the whole time (no slide-in).
+ */
+const SCREEN_SLIDE = {
+  enter: (direction: "forward" | "back") => ({ x: direction === "back" ? 0 : "100%" }),
+  center: { x: 0, transition: SLIDE_TRANSITION },
+  exit: (direction: "forward" | "back") => ({
+    // The covered screen (forward) is meant to just sit still while the incoming one slides over
+    // it, staying mounted+visible for the full transition instead of disappearing right away — but
+    // an exit target IDENTICAL to `center`'s x:0 has no value to animate, so Motion resolves it
+    // (and unmounts the screen) on the very next tick regardless of `transition.duration`. A
+    // fraction-of-a-pixel offset keeps it a real animation (and the screen mounted + visible) for
+    // the intended duration, while staying visually indistinguishable from "not moving at all."
+    x: direction === "back" ? "100%" : "-0.01%",
+    transition: SLIDE_TRANSITION,
+  }),
+};
 
 /** Map a screen to its top-level nav section (customer + details = the create flow). */
 function navFor(screen: Screen): Screen {
@@ -186,6 +215,37 @@ function QuickNav({ current, onChange, scenario, onScenario }: { current: Screen
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("dashboard");
+
+  // Slide-transition direction (native-app push/pop feel): forward navigation slides the new
+  // screen in from the right, back navigation slides it in from the left. There's no single
+  // `navigate`/`goBack` call site to read this off directly (every screen wires its own onSelect/
+  // onBack straight to `setScreen`), so it's inferred from a simple visited-screen stack — if the
+  // incoming screen is already in the stack, it's a "pop" back to that point; otherwise it's a
+  // "push". Computed inline during render (not an effect) so the direction is known in time for
+  // the very same transition it describes.
+  const screenHistoryRef = useRef<Screen[]>(["dashboard"]);
+  const prevScreenRef = useRef<Screen>("dashboard");
+  const navDirectionRef = useRef<"forward" | "back">("forward");
+  if (screen !== prevScreenRef.current) {
+    const stack = screenHistoryRef.current;
+    const idx = stack.lastIndexOf(screen);
+    if (idx !== -1 && idx < stack.length - 1) {
+      navDirectionRef.current = "back";
+      screenHistoryRef.current = stack.slice(0, idx + 1);
+    } else {
+      navDirectionRef.current = "forward";
+      screenHistoryRef.current = [...stack, screen];
+    }
+    prevScreenRef.current = screen;
+  }
+  const navDirection = navDirectionRef.current;
+  // Stacking order for the slide: each screen's zIndex is its depth in the visited-screen stack
+  // at the time it became current. A push always grows the stack (higher zIndex than whatever was
+  // current before), so the newly-entering screen naturally lands above the one it's covering. A
+  // pop truncates the stack back down to an earlier, already-lower zIndex, so the screen being left
+  // (frozen at its own higher zIndex from when IT was current) stays on top while it slides away.
+  const navDepth = screenHistoryRef.current.length;
+
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [extracted, setExtracted] = useState<ExtractedInvoice | null>(null);
   // Dev-only: QuickNav "Create Invoice" seeds demo items so the editor lands fully pre-filled.
@@ -197,6 +257,11 @@ export default function App() {
   const [toast, setToast] = useState<{ title: string; subtext?: string } | null>(null);
   // Freshly created/saved invoice to surface + highlight at the top of the list.
   const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string; recurring?: boolean } | null>(null);
+  // Whether `recent`'s one-time arrival highlight has already played — `recent` itself stays set
+  // (the card keeps showing) long after that, so without this the highlight would replay every
+  // time the list remounts (e.g. open the invoice, then Back). Reset to false only where a NEW
+  // `recent` is assigned below, never where it's cleared.
+  const [recentHighlighted, setRecentHighlighted] = useState(false);
   // The invoice opened into the detail page (status drives the lifecycle UI).
   const [openInvoice, setOpenInvoice] = useState<{ number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean; cnAwaiting?: boolean; recurring?: boolean; viewCn?: boolean }>({
     number: "INV-2026-000042",
@@ -283,6 +348,22 @@ export default function App() {
   // the invoice number/status don't change. In-page actions never bump it.
   const [detailNavNonce, setDetailNavNonce] = useState(0);
 
+  // QuickNav jumps straight to a deep screen, skipping whatever it would normally take to get
+  // there — so a screen's own Back button (hardcoded to a specific target elsewhere in this file)
+  // can find its target missing from the visited-screen stack and misread a real "back" tap as a
+  // "forward" push (slide-in instead of slide-out). Call this with the chain of screens between
+  // dashboard (always safely on the stack already) and the jump target, in order, before setScreen
+  // — e.g. seedHistory("hub", "customers") before jumping straight to "customerDetail", whose own
+  // Back targets "customers", whose own Back targets "hub". Skip a link already safe on its own
+  // (its target is "dashboard", the permanent stack root) — that's most of them.
+  const seedHistory = (...path: Screen[]) => {
+    let stack = screenHistoryRef.current;
+    for (const s of path) {
+      if (stack[stack.length - 1] !== s) stack = [...stack, s];
+    }
+    screenHistoryRef.current = stack;
+  };
+
   // Sidebar deep link: open the invoice detail seeded with a register demo invoice.
   const jumpDetail = (
     inv: { number: string; client: string; status: DetailStatus; origin?: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean; cnAwaiting?: boolean },
@@ -294,6 +375,9 @@ export default function App() {
     // Back from any QuickNav-opened detail lands on the full (unfiltered) invoice list.
     setListPreset(null);
     setDetailReturn("list");
+    // InvoiceDetailPage's own Back always targets "list", which itself targets "dashboard" (the
+    // permanent stack root) — one link is enough here.
+    seedHistory("list");
     setDetailNavNonce((n) => n + 1);
     setScreen("invoiceDetail");
   };
@@ -320,18 +404,21 @@ export default function App() {
   const sidebarGroups: SidebarGroup[] = [
     {
       title: "Dashboard",
-      items: HERO_SCENARIOS.map((s, i) => ({
-        label: s.label,
-        active: screen === "dashboard" && heroScenario === i,
-        onSelect: () => { setHeroScenario(i); setScreen("dashboard"); },
-      })),
+      items: [
+        ...HERO_SCENARIOS.map((s, i) => ({
+          label: s.label,
+          active: screen === "dashboard" && heroScenario === i,
+          onSelect: () => { setHeroScenario(i); setScreen("dashboard"); },
+        })),
+        { label: "Information Banner (Locked Period)", active: screen === "lockedPeriodBanner", onSelect: () => setScreen("lockedPeriodBanner") },
+      ],
     },
     {
       title: "Customer",
       items: [
-        { label: "Customer List", active: screen === "customers", onSelect: () => setScreen("customers") },
-        { label: "Add New Customer", active: screen === "addCustomer", onSelect: () => { setAddCustomerReturn("customers"); setScreen("addCustomer"); } },
-        { label: "Customer Details", active: screen === "customerDetail", onSelect: () => { setSelectedCustomer(customers[0]); setCustomerFlash(null); setScreen("customerDetail"); } },
+        { label: "Customer List", active: screen === "customers", onSelect: () => { seedHistory("hub"); setScreen("customers"); } },
+        { label: "Add New Customer", active: screen === "addCustomer", onSelect: () => { setAddCustomerReturn("customers"); seedHistory("hub", "customers"); setScreen("addCustomer"); } },
+        { label: "Customer Details", active: screen === "customerDetail", onSelect: () => { setSelectedCustomer(customers[0]); setCustomerFlash(null); seedHistory("hub", "customers"); setScreen("customerDetail"); } },
       ],
     },
     {
@@ -359,6 +446,7 @@ export default function App() {
           items: [
             { label: "Draft (Created)", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "created", onSelect: () => jumpDetail({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Draft", origin: "created" }) },
             { label: "Draft (Uploaded)", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "uploaded", onSelect: () => jumpDetail({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Draft", origin: "uploaded" }) },
+            { label: "Draft (Locked Period)", active: screen === "lockedPeriodInvoiceDraft", onSelect: () => setScreen("lockedPeriodInvoiceDraft") },
             { label: "Awaiting Payment", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000004", onSelect: () => jumpDetail({ number: "INV-2026-000004", client: "Marlow & Finch Studio", status: "Awaiting" }) },
             { label: "Awaiting (Locked Period)", active: screen === "lockedPeriodEditInvoice", onSelect: () => setScreen("lockedPeriodEditInvoice") },
             { label: "Overdue + 1 Applied CN", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000010", onSelect: () => jumpDetail({ number: "INV-2026-000010", client: "Harbor & Co.", status: "Overdue", cnNo: "CN-2026-000003", cnAmount: 2000, cnSent: true }) },
@@ -378,17 +466,18 @@ export default function App() {
       title: "Credit Note",
       items: [
         // Opens the Credit Notes register with no preview overlaid (null clears any prior deep link).
-        { label: "Credit Note List", active: screen === "creditNotes" && cnPreview === null, onSelect: () => { setCnPreview(null); setScreen("creditNotes"); } },
+        { label: "Credit Note List", active: screen === "creditNotes" && cnPreview === null, onSelect: () => { setCnPreview(null); seedHistory("hub"); setScreen("creditNotes"); } },
       ],
       sections: [
         {
           heading: "Unpaid Invoice",
           items: [
             { label: "Create Credit Note", active: screen === "creditNote", onSelect: () => setScreen("creditNote") },
-            { label: "CN Detail — Draft", active: screen === "creditNotes" && cnPreview === "CN-2026-000005", onSelect: () => { setCnPreview("CN-2026-000005"); setScreen("creditNotes"); } },
-            { label: "CN Detail — Applied", active: screen === "creditNotes" && cnPreview === "CN-2026-000003", onSelect: () => { setCnPreview("CN-2026-000003"); setScreen("creditNotes"); } },
-            { label: "CN-Applied (Locked Period)", active: screen === "lockedPeriodCnApplied", onSelect: () => setScreen("lockedPeriodCnApplied") },
-            { label: "CN Detail — Cancelled", active: screen === "creditNotes" && cnPreview === "CN-2026-000009", onSelect: () => { setCnPreview("CN-2026-000009"); setScreen("creditNotes"); } },
+            { label: "CN Detail — Draft", active: screen === "creditNotes" && cnPreview === "CN-2026-000005", onSelect: () => { setCnPreview("CN-2026-000005"); seedHistory("hub"); setScreen("creditNotes"); } },
+            { label: "CN Detail — Draft (Locked Period)", active: screen === "lockedPeriodEditCn", onSelect: () => { seedHistory("hub"); setScreen("lockedPeriodEditCn"); } },
+            { label: "CN Detail — Applied", active: screen === "creditNotes" && cnPreview === "CN-2026-000003", onSelect: () => { setCnPreview("CN-2026-000003"); seedHistory("hub"); setScreen("creditNotes"); } },
+            { label: "CN-Applied (Locked Period)", active: screen === "lockedPeriodCnApplied", onSelect: () => { seedHistory("hub"); setScreen("lockedPeriodCnApplied"); } },
+            { label: "CN Detail — Cancelled", active: screen === "creditNotes" && cnPreview === "CN-2026-000009", onSelect: () => { setCnPreview("CN-2026-000009"); seedHistory("hub"); setScreen("creditNotes"); } },
           ],
         },
         {
@@ -405,6 +494,7 @@ export default function App() {
                 jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false, cnDraft: true }, true);
               },
             },
+            { label: "Refund CN — Draft (Locked Period)", active: screen === "lockedPeriodRefundDraft", onSelect: () => setScreen("lockedPeriodRefundDraft") },
             {
               label: "Refund CN — Applied",
               active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && !openInvoice.cnDraft && !openInvoice.cnAwaiting && !refundState["INV-2026-000015"],
@@ -438,7 +528,22 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#EDEDED] flex flex-col items-center justify-center gap-4 p-4">
+    <div className="mobile-mode min-h-screen bg-[#EDEDED] flex flex-col items-center justify-center gap-4 p-4">
+      {/* Phone-frame-sized clipping box for the push/pop slide — each screen below already renders
+          its own 375x812 rounded frame, so this just gives AnimatePresence somewhere to stack the
+          outgoing (covered/revealed) screen underneath the incoming (moving) one. */}
+      <div className="relative overflow-hidden" style={{ width: 375, height: 812 }}>
+        <AnimatePresence initial={false} custom={navDirection}>
+          <motion.div
+            key={screen}
+            custom={navDirection}
+            variants={SCREEN_SLIDE}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="absolute inset-0"
+            style={{ zIndex: navDepth }}
+          >
       {screen === "dashboard" && (
         <Dashboard
           tab="dashboard"
@@ -675,6 +780,8 @@ export default function App() {
           successSubtext={toast?.subtext}
           onSuccessDone={() => setToast(null)}
           recent={recent}
+          recentHighlighted={recentHighlighted}
+          onRecentShown={() => setRecentHighlighted(true)}
           initialStatus={listPreset?.status}
           onActiveStatusChange={(s) => setListPreset({ status: s === "all" ? undefined : s })}
           refundState={refundState}
@@ -775,7 +882,7 @@ export default function App() {
       )}
 
       {screen === "upload" && (
-        <div className="relative overflow-hidden rounded-[48px]" style={{ width: 375, height: 812 }}>
+        <div className="relative overflow-hidden rounded-[48px] shadow-2xl" style={{ width: 375, height: 812 }}>
           {/* The originating screen, shown dimmed behind the sheet. */}
           <div className="absolute inset-0 pointer-events-none">
             {uploadReturn === "dashboard" ? (
@@ -962,6 +1069,7 @@ export default function App() {
           onChangeCustomer={() => setScreen("customer")}
           onSend={(t, r) => {
             setRecent(r ?? null);
+            setRecentHighlighted(false);
             setEditingSeries(false);
             if (extracted) {
               // Any upload create (OCR-missing, create-new, etc.) → land on the new invoice's
@@ -982,6 +1090,7 @@ export default function App() {
           onSaveDraft={(draft) => {
             setToast({ title: "Saved as draft" });
             setRecent(draft ? { ...draft, status: "Draft" } : null);
+            setRecentHighlighted(false);
             setScreen("list");
           }}
         />
@@ -1004,12 +1113,14 @@ export default function App() {
           onSend={(t, r) => {
             setToast(t ?? { title: "Invoice marked as sent" });
             setRecent(r ?? null);
+            setRecentHighlighted(false);
             setScreen("list");
           }}
           onSendLater={() => setScreen("list")}
           onSaveDraft={(draft) => {
             setToast({ title: "Saved as draft" });
             setRecent(draft ? { ...draft, status: "Draft" } : null);
+            setRecentHighlighted(false);
             setScreen("list");
           }}
         />
@@ -1020,7 +1131,7 @@ export default function App() {
         <RecurringSeriesDetail
           status={seriesScenario === "completed" ? "Completed" : seriesStatus}
           customerName={openInvoice.client}
-          amountLabel="$6,450.00"
+          amountLabel="USD 6,450.00"
           frequency="Monthly"
           startDate="01 Jul 2026"
           nextDate="01 Sep 2026"
@@ -1054,93 +1165,6 @@ export default function App() {
         />
       )}
 
-      {/* Scenario annotation — shown in the white space to the right of the phone frame, only on the
-          voided demo invoice (INV-…008), explaining how it reached the Void state. */}
-      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000008" && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Scenario</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              A user sent an invoice for a website design project.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              Before payment is made, their customer decides to cancel the entire project.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              The user creates a full credit note, and the invoice status changes to{" "}
-              <span className="font-semibold">Voided</span>.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Design-rationale annotation — shown in the white space to the right of the phone frame on the
-          Refund CN — Draft screen (INV-…015), explaining the Apply-vs-Edit CTA gating. */}
-      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && openInvoice.cnDraft && openInvoice.viewCn && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              This draft has all required information, so it leads with{" "}
-              <span className="font-semibold">Apply to invoice</span> as the primary action.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              If a credit-note draft is not completed with all required information, only the{" "}
-              <span className="font-semibold">Edit</span> button is shown instead.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Design-rationale annotation — shown in the white space to the right of the phone frame, only on
-          the created Draft demo invoice (INV-…003), explaining the Send-Invoice gating on the detail page. */}
-      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "created" && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              The <span className="font-semibold">Send Invoice</span> action is shown only when all required
-              fields are completed. This prevents users from sending incomplete invoices and ensures the
-              invoice is ready for delivery.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              Otherwise, the <span className="font-semibold">Edit</span> button is shown as the primary button.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Design-rationale annotation — shown in the white space to the right of the phone frame, only on
-          the uploaded Draft demo invoice (INV-…003), explaining the Mark-as-Sent/Paid actions. */}
-      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "uploaded" && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              Invoices imported through the <span className="font-semibold">Upload Invoice</span> flow may have
-              already been sent to customers outside of Statrys.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              Instead of requiring users to go through the Send Invoice flow again, we provide{" "}
-              <span className="font-semibold">Mark as Sent</span> and{" "}
-              <span className="font-semibold">Mark as Paid</span> actions directly.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Locked Period (DES-751) — how a locked accounting period surfaces on the client app:
           a passive inline banner, and a blocking alert when a locked action is attempted. */}
       {screen === "lockedPeriodBanner" && (
@@ -1151,25 +1175,6 @@ export default function App() {
         />
       )}
 
-      {/* Design-rationale annotation — shown in the white space right of the phone frame on the
-          locked-period banner screen (mirrors the voided-invoice scenario note). */}
-      {screen === "lockedPeriodBanner" && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Why this banner</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              Information will help to let users know about the restriction before they take any action.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              Since it affects creating, editing, voiding, and cancelling, it's better to explain it
-              once upfront.
-            </p>
-          </div>
-        </div>
-      )}
       {/* Locked Period — "closed accounting period" on the Create Invoice flow: the same top alert
           banner as the upload demo, the Issue Date defaults to the first open day (1 Jan 2027), and
           the calendar disables any date in the closed period (with a warning helper). */}
@@ -1195,39 +1200,6 @@ export default function App() {
         />
       )}
 
-      {/* Beside-frame guidance for the Create (Locked Period) demo. Before the calendar opens, a
-          "Click Here" arrow points at the Issue Date row (the only permitted interaction); once it's
-          open, the arrow is replaced by the locked-dates explanation note. */}
-      {screen === "lockedPeriodDialog" && !lockedIssueSheetOpen && (
-        <div
-          className="hidden lg:flex fixed top-[calc(50%-112px)] left-[calc(50%+196px)] items-center gap-3"
-          style={FONT}
-        >
-          {/* Straight arrow pointing left, toward the Issue Date row inside the frame. */}
-          <svg width="56" height="24" viewBox="0 0 56 24" fill="none" aria-hidden="true">
-            <path d="M54 12 L4 12 M4 12 L14 5 M4 12 L14 19" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-          </svg>
-          <span className="text-[20px] font-bold tracking-[-0.2px] text-[#2563eb]">Click Issue Date</span>
-        </div>
-      )}
-      {screen === "lockedPeriodDialog" && lockedIssueSheetOpen && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              The Issue Date defaults to the first available (unlocked) date.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              If the user goes back to a previous, already-closed month, those dates can't be selected —
-              all dates within the locked accounting period are disabled. This prevents confusion and
-              avoids creating invoices in a closed accounting period.
-            </p>
-          </div>
-        </div>
-      )}
       {/* Locked Period — "closed accounting period" on the Upload Invoice flow: the review screen
           shows the amber alert at the top (in place of the OCR coverage banner) and the Issue Date
           reads a muted "Select issue date" placeholder because the extracted date (May 2025) falls
@@ -1260,24 +1232,6 @@ export default function App() {
           onClose={() => setScreen("dashboard")}
           onChangeCustomer={() => {}}
         />
-      )}
-
-      {/* Design-rationale annotation — shown in the white space to the right of the phone frame on the
-          Upload (Locked Period) screen, explaining why the uploaded invoice's Issue Date must be re-picked. */}
-      {screen === "lockedPeriodUpload" && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              If the uploaded invoice has an Issue Date within a locked accounting period, that date can't
-              be used. Users are prompted to select a new Issue Date outside the closed period before
-              creating the invoice.
-            </p>
-          </div>
-        </div>
       )}
 
       {/* Locked Period — Draft credit note in a closed accounting period: the CN detail opens first
@@ -1384,6 +1338,168 @@ export default function App() {
           lockedPeriod
           onBack={() => setScreen("dashboard")}
         />
+      )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Scenario annotation — shown in the white space to the right of the phone frame, only on the
+          voided demo invoice (INV-…008), explaining how it reached the Void state. Deliberately
+          OUTSIDE the sliding wrapper above: it's `fixed`-positioned relative to the viewport, and a
+          `transform`'d ancestor (the slide animation) would re-anchor it and drag it along mid-slide. */}
+      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000008" && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Scenario</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              A user sent an invoice for a website design project.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              Before payment is made, their customer decides to cancel the entire project.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              The user creates a full credit note, and the invoice status changes to{" "}
+              <span className="font-semibold">Voided</span>.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Design-rationale annotation — shown in the white space to the right of the phone frame on the
+          Refund CN — Draft screen (INV-…015), explaining the Apply-vs-Edit CTA gating. */}
+      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && openInvoice.cnDraft && openInvoice.viewCn && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              This draft has all required information, so it leads with{" "}
+              <span className="font-semibold">Apply to invoice</span> as the primary action.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              If a credit-note draft is not completed with all required information, only the{" "}
+              <span className="font-semibold">Edit</span> button is shown instead.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Design-rationale annotation — shown in the white space to the right of the phone frame, only on
+          the created Draft demo invoice (INV-…003), explaining the Send-Invoice gating on the detail page. */}
+      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "created" && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              The <span className="font-semibold">Send Invoice</span> action is shown only when all required
+              fields are completed. This prevents users from sending incomplete invoices and ensures the
+              invoice is ready for delivery.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              Otherwise, the <span className="font-semibold">Edit</span> button is shown as the primary button.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Design-rationale annotation — shown in the white space to the right of the phone frame, only on
+          the uploaded Draft demo invoice (INV-…003), explaining the Mark-as-Sent/Paid actions. */}
+      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "uploaded" && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              Invoices imported through the <span className="font-semibold">Upload Invoice</span> flow may have
+              already been sent to customers outside of Statrys.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              Instead of requiring users to go through the Send Invoice flow again, we provide{" "}
+              <span className="font-semibold">Mark as Sent</span> and{" "}
+              <span className="font-semibold">Mark as Paid</span> actions directly.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Design-rationale annotation — shown in the white space right of the phone frame on the
+          locked-period banner screen (mirrors the voided-invoice scenario note). */}
+      {screen === "lockedPeriodBanner" && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Why this banner</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              Information will help to let users know about the restriction before they take any action.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              Since it affects creating, editing, voiding, and cancelling, it's better to explain it
+              once upfront.
+            </p>
+          </div>
+        </div>
+      )}
+      {/* Beside-frame guidance for the Create (Locked Period) demo. Before the calendar opens, a
+          "Click Here" arrow points at the Issue Date row (the only permitted interaction); once it's
+          open, the arrow is replaced by the locked-dates explanation note. */}
+      {screen === "lockedPeriodDialog" && !lockedIssueSheetOpen && (
+        <div
+          className="hidden lg:flex fixed top-[calc(50%-112px)] left-[calc(50%+196px)] items-center gap-3"
+          style={FONT}
+        >
+          {/* Straight arrow pointing left, toward the Issue Date row inside the frame. */}
+          <svg width="56" height="24" viewBox="0 0 56 24" fill="none" aria-hidden="true">
+            <path d="M54 12 L4 12 M4 12 L14 5 M4 12 L14 19" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          </svg>
+          <span className="text-[20px] font-bold tracking-[-0.2px] text-[#2563eb]">Click Issue Date</span>
+        </div>
+      )}
+      {screen === "lockedPeriodDialog" && lockedIssueSheetOpen && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
+              The Issue Date defaults to the first available (unlocked) date.
+            </p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              If the user goes back to a previous, already-closed month, those dates can't be selected —
+              all dates within the locked accounting period are disabled. This prevents confusion and
+              avoids creating invoices in a closed accounting period.
+            </p>
+          </div>
+        </div>
+      )}
+      {/* Design-rationale annotation — shown in the white space to the right of the phone frame on the
+          Upload (Locked Period) screen, explaining why the uploaded invoice's Issue Date must be re-picked. */}
+      {screen === "lockedPeriodUpload" && (
+        <div
+          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
+          style={FONT}
+        >
+          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
+            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
+              If the uploaded invoice has an Issue Date within a locked accounting period, that date can't
+              be used. Users are prompted to select a new Issue Date outside the closed period before
+              creating the invoice.
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Screen jumper — the collapsible QuickNav sidebar (stakeholder demos), shown in

@@ -1,11 +1,11 @@
 import type { ReceivingAccount } from "../types";
 
 export const RECEIVING_ACCOUNTS: ReceivingAccount[] = [
-  { id: "personal", name: "Personal Saving", number: "HK883-168888-168", flag: "🇭🇰", primary: true,
+  { id: "personal", name: "Personal Saving", number: "HK883-168888-168", country: "Hong Kong", primary: true,
     holder: "Your Company Ltd", bankName: "Statrys (Hong Kong)", swift: "STYSHKHH", currency: "HKD" },
-  { id: "operating", name: "Operating Account", number: "SG6601-2233-4455", flag: "🇸🇬",
+  { id: "operating", name: "Operating Account", number: "SG6601-2233-4455", country: "Singapore",
     holder: "Your Company Ltd", bankName: "Statrys (Singapore)", swift: "STYSSGSGXXX", currency: "SGD" },
-  { id: "france", name: "France Account", number: "FR76 3000 6000 0112 3456 7890 189", flag: "🇫🇷",
+  { id: "france", name: "France Account", number: "FR76 3000 6000 0112 3456 7890 189", country: "France",
     holder: "Your Company Ltd", bankName: "Statrys (France)", swift: "STYSFRPPXXX", currency: "EUR" },
 ];
 
