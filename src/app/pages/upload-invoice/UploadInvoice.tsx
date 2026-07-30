@@ -3,11 +3,12 @@ import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
 import PhotoLibraryOutlinedIcon from "@mui/icons-material/PhotoLibraryOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
 import { Tile } from "../../ui/Tile";
+import { Banner } from "../../ui/Banner";
+import { ListRow } from "../../ui/ListRow";
 import { ScanDocument } from "./ScanDocument";
 
 import { FONT } from "../../lib/theme";
@@ -31,20 +32,6 @@ function typeLabel(f: File): string {
   if (f.type === "image/png") return "PNG";
   if (f.type === "image/jpeg") return "JPG";
   return (f.name.split(".").pop() || "FILE").toUpperCase();
-}
-
-/** File-rule row (label + value), the previous "Accepted file types / Maximum file size" style. */
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between py-3.5 border-b border-[rgba(160,160,160,0.2)] last:border-b-0">
-      <span className="text-[14px] leading-[1.3] text-[var(--text-secondary)]" style={FONT}>
-        {label}
-      </span>
-      <span className="text-[14px] font-medium leading-[1.3] text-[var(--text-primary)]" style={FONT}>
-        {value}
-      </span>
-    </div>
-  );
 }
 
 /** One tappable source row in the picker — DS Tile icon row (icon + label, whole row tappable). */
@@ -132,12 +119,7 @@ export function UploadInvoice({ onBack, onContinue, initialFiles = [] }: UploadI
           {!hasFiles ? (
             <>
               {/* Validation error — shown inline above the sources. */}
-              {error && (
-                <div className="flex items-start gap-2.5 rounded-xl bg-[#fdecea] border border-[#f5c6c0] px-3.5 py-3">
-                  <ErrorOutlineIcon style={{ fontSize: 18, color: "#d92d20", marginTop: 1 }} />
-                  <p className="text-[13px] leading-[1.35] text-[#8a1c12]" style={FONT}>{error}</p>
-                </div>
-              )}
+              {error && <Banner color="error" text={error} />}
 
               {/* Source selection — the picker IS the sheet (no dropzone middle step). */}
               <div className="flex flex-col gap-2">
@@ -160,8 +142,8 @@ export function UploadInvoice({ onBack, onContinue, initialFiles = [] }: UploadI
 
               {/* Accepted types + size — always visible under the sources. */}
               <div className="w-full">
-                <InfoRow label="Accepted file types" value="PDF, JPG, PNG" />
-                <InfoRow label="Maximum file size" value="10 MB" />
+                <ListRow label="Accepted file types" value="PDF, JPG, PNG" />
+                <ListRow label="Maximum file size" value="10 MB" last />
               </div>
             </>
           ) : (

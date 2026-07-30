@@ -9,8 +9,23 @@ import { FONT } from "../../lib/theme";
  */
 
 const TONES = {
-  amber: { bg: "#fff7ed", border: "#ffd9a8", title: "#7a4a12", body: "#7a4a12", icon: "#b45309", link: "#b45309" },
-  neutral: { bg: "#f5f4f1", border: "#e2e0da", title: "#1b1b1b", body: "#5c5c5c", icon: "#6b7280", link: "#5c5c5c" },
+  // Matches ui/Banner's warning rule exactly: only the icon tints amber, text stays ink — no override.
+  amber: {
+    bg: "var(--bg-warning-subtle)",
+    border: "var(--border-warning-subtle)",
+    title: "var(--text-primary)",
+    body: "var(--text-primary)",
+    icon: "var(--icon-warning-primary)",
+    link: "var(--text-primary)",
+  },
+  neutral: {
+    bg: "var(--bg-neutral-tertiary)",
+    border: "var(--border-neutral-secondary)",
+    title: "var(--text-primary)",
+    body: "var(--text-secondary)",
+    icon: "var(--icon-secondary)",
+    link: "var(--text-secondary)",
+  },
 } as const;
 
 export function LockedPeriodBanner({

@@ -5,6 +5,7 @@ import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { ButtonDock } from "../components/ButtonDock";
 import { BottomSheet } from "../components/BottomSheet";
+import { ListRow } from "../ui/ListRow";
 import { FONT } from "../lib/theme";
 import type { DetailStatus } from "../types";
 
@@ -34,21 +35,12 @@ const CARD_SHADOW = "0px 4px 14px 0px rgba(226,220,203,0.3)";
 
 // The series status pill (top card).
 const STATUS_PILL: Record<SeriesStatus, { bg: string; text: string }> = {
-  Active: { bg: "#ebfcef", text: "#006a1d" },
-  Paused: { bg: "#fff7e6", text: "#b45309" },
+  Active: { bg: "var(--bg-success-subtle)", text: "var(--text-success-primary)" },
+  Paused: { bg: "var(--bg-warning-subtle)", text: "var(--text-warning-primary)" },
+  // Completed is a distinct indigo, no semantic token family fits it — kept literal on purpose.
   Completed: { bg: "#eef4ff", text: "#2f5fd0" },
-  Cancelled: { bg: "#f4f4f4", text: "#808080" },
+  Cancelled: { bg: "var(--bg-neutral-tertiary)", text: "var(--text-secondary)" },
 };
-
-/** A label/value row in the Schedule Details card. */
-function Row({ label, value, last }: { label: string; value: string; last?: boolean }) {
-  return (
-    <div className={`flex items-center justify-between gap-3 px-4 pt-4 pb-[17px] ${last ? "" : "border-b border-[rgba(160,160,160,0.2)]"}`}>
-      <span className="text-[14px] leading-[1.3]" style={{ ...FONT, color: "var(--text-primary)" }}>{label}</span>
-      <span className="text-[14px] font-medium leading-[1.3] text-right" style={{ ...FONT, color: "#101828" }}>{value}</span>
-    </div>
-  );
-}
 
 /**
  * Recurring series detail (DES-782, Figma 1039:7613) — opened from the invoice's Recurring card. A status
@@ -122,10 +114,12 @@ export function RecurringSeriesDetail({
             <div className="px-4 pt-2 pb-[9px] border-b border-[rgba(160,160,160,0.2)]">
               <p className="text-[12px] font-bold leading-[16.5px] text-[var(--text-placeholder)]" style={FONT}>SCHEDULE DETAILS</p>
             </div>
-            <Row label="Frequency" value={frequency} />
-            <Row label="Start Date" value={startDate} />
-            <Row label="Ends" value={ends} />
-            <Row label="Auto-send" value={autoSend ? "On" : "Off"} last />
+            <div className="px-4">
+              <ListRow label="Frequency" value={frequency} />
+              <ListRow label="Start Date" value={startDate} />
+              <ListRow label="Ends" value={ends} />
+              <ListRow label="Auto-send" value={autoSend ? "On" : "Off"} last />
+            </div>
           </div>
 
           {/* Invoices log (AC5) — count badge + status pills; tap to open; Show more when >3. */}
@@ -227,7 +221,7 @@ export function RecurringSeriesDetail({
           />
         }
       >
-        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "var(--text-secondary)" }}>
+        <p className="body-sm" style={{ ...FONT, color: "var(--text-secondary)" }}>
           This will stop future invoices from being generated. Existing invoices will remain in your Sales
           Invoice list and won't be affected. This action cannot be undone.
         </p>

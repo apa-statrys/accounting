@@ -19,25 +19,25 @@ export function CoverageBanner({ fieldsExtracted, fieldsTotal }: { fieldsExtract
 /** OCR-failure notice (couldn't read the file) — takes priority over the coverage summary. */
 export function ExtractionFailedBanner({ onReupload, onDismiss }: { onReupload?: () => void; onDismiss: () => void }) {
   return (
-    <div className="flex items-start gap-2.5 rounded-xl bg-[#fffbeb] border border-[#fde68a] px-3.5 py-3">
-      <ErrorOutlineIcon style={{ fontSize: 18, color: "#b45309", marginTop: 1 }} />
+    <div className="flex items-start gap-2.5 rounded-xl border px-3.5 py-3" style={{ background: "var(--bg-warning-subtle)", borderColor: "var(--border-warning-subtle)" }}>
+      <ErrorOutlineIcon style={{ fontSize: 18, color: "var(--icon-warning-primary)", marginTop: 1 }} />
       <div className="flex-1">
-        <p className="text-[13px] leading-[1.35] text-[#92400e]" style={FONT}>
+        <p className="text-[13px] leading-[1.35]" style={{ ...FONT, color: "var(--text-warning-primary)" }}>
           We couldn’t read this file. Please enter the details below.
         </p>
         {onReupload && (
           <button
             type="button"
             onClick={onReupload}
-            className="mt-1 text-[13px] font-medium text-[#b45309] underline"
-            style={FONT}
+            className="mt-1 text-[13px] font-medium underline"
+            style={{ ...FONT, color: "var(--text-warning-primary)" }}
           >
             Upload a clearer file
           </button>
         )}
       </div>
       <button type="button" onClick={onDismiss} aria-label="Dismiss" className="shrink-0">
-        <CloseIcon style={{ fontSize: 16, color: "#b45309" }} />
+        <CloseIcon style={{ fontSize: 16, color: "var(--icon-warning-primary)" }} />
       </button>
     </div>
   );
@@ -46,11 +46,11 @@ export function ExtractionFailedBanner({ onReupload, onDismiss }: { onReupload?:
 /** Duplicate found — informational; the action lives in the dock ("Continue existing draft"). */
 export function DuplicateBanner() {
   return (
-    <div className="flex items-start gap-2.5 rounded-xl bg-[#fff7ed] border border-[#ffd9a8] px-3.5 py-3">
-      <ErrorOutlineIcon style={{ fontSize: 18, color: "#b45309", marginTop: 1 }} />
+    <div className="flex items-start gap-2.5 rounded-xl border px-3.5 py-3" style={{ background: "var(--bg-warning-subtle)", borderColor: "var(--border-warning-subtle)" }}>
+      <ErrorOutlineIcon style={{ fontSize: 18, color: "var(--icon-warning-primary)", marginTop: 1 }} />
       <div className="flex-1 min-w-0">
-        <p className="text-[14px] font-bold leading-[1.3] text-[#7a4a12]" style={FONT}>Duplicate invoice found</p>
-        <p className="text-[12px] leading-[1.35] text-[#7a4a12] mt-0.5" style={FONT}>
+        <p className="text-[14px] font-bold leading-[1.3]" style={{ ...FONT, color: "var(--text-warning-primary)" }}>Duplicate invoice found</p>
+        <p className="text-[12px] leading-[1.35] mt-0.5" style={{ ...FONT, color: "var(--text-warning-primary)" }}>
           An invoice with this number already exists.
         </p>
       </div>

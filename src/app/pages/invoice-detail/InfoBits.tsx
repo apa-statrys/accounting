@@ -1,14 +1,5 @@
 // Shared presentational bits for the invoice detail page.
-import { FONT, INK, MUTED } from "../../lib/theme";
-
-export function MetaRow({ label, value, last }: { label: string; value: string; last?: boolean }) {
-  return (
-    <div className={`flex items-center justify-between py-3 ${last ? "" : "border-b border-[rgba(160,160,160,0.18)]"}`}>
-      <span className="text-[14px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>{label}</span>
-      <span className="text-[14px] font-medium leading-[1.3] text-right" style={{ ...FONT, color: INK }}>{value}</span>
-    </div>
-  );
-}
+import { FONT } from "../../lib/theme";
 
 /** Dashed-border info card (Figma 1209). Section cards are WHITE with the title as the first row
  *  inside (grey uppercase + full-width divider); the `hero` tone is the cream status card. */

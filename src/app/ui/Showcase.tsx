@@ -20,6 +20,7 @@ import { ButtonDock, type ButtonDockType, type ButtonDockStack } from "../compon
 import { SummaryCard } from "../components/SummaryCard";
 import StatusBar from "../components/StatusBar";
 import { Tile, type TileTrailing } from "./Tile";
+import { Banner, type BannerColor } from "./Banner";
 import { Chips } from "./Chips";
 import { CheckboxBase } from "./CheckboxBase";
 import { Checkbox } from "./Checkbox";
@@ -105,6 +106,7 @@ const NAV_GROUPS = [
   {
     category: "Feedback & Status",
     items: [
+      { id: "banner", label: "Banner" },
       { id: "badge", label: "Badge" },
       { id: "noti-badge", label: "Noti Badge" },
       { id: "loading", label: "Loading" },
@@ -299,6 +301,33 @@ function ComponentPage({
 }
 
 const HIERARCHIES = ["primary", "secondary", "tertiary"] as const;
+
+const BANNER_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "color",
+    label: "Color",
+    options: [
+      { value: "success", label: "Success — e.g. a confirmed action" },
+      { value: "warning", label: "Warning — icon tints amber, text stays ink (Figma-exact, not the odd one out)" },
+      { value: "error", label: "Error — e.g. a failed validation" },
+      { value: "info", label: "Info — e.g. a neutral heads-up" },
+    ],
+  },
+];
+
+function BannerOverview() {
+  return (
+    <InteractiveDemo
+      groups={BANNER_CONTROL_GROUPS}
+      defaultValues={{ color: "success" }}
+      render={(v) => (
+        <div className="w-[320px]">
+          <Banner color={v.color as BannerColor} text="Your information is secure and encrypted" />
+        </div>
+      )}
+    />
+  );
+}
 
 const BADGE_CONTROL_GROUPS: ControlGroup[] = [
   {
@@ -2151,6 +2180,13 @@ export function Showcase() {
             </button>
           )}
           <div className="w-full">
+            {activeNav === "banner" && (
+              <ComponentPage
+                title="Banner"
+                description="An inline status message — subtle-tinted row with a 16px icon + one line of text, in success/warning/error/info. Use when a page or sheet needs to surface a persistent status inline (not a toast, not a dismissible alert)."
+                overview={<BannerOverview />}
+              />
+            )}
             {activeNav === "badge" && (
               <ComponentPage
                 title="Badge"

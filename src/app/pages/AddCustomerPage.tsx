@@ -330,7 +330,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
           />
         }
       >
-        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "var(--text-secondary)" }}>
+        <p className="body-sm" style={{ ...FONT, color: "var(--text-secondary)" }}>
           You have unsaved changes. If you go back now, they'll be lost.
         </p>
       </BottomSheet>
@@ -353,7 +353,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         }
       >
         <div className="flex flex-col gap-3">
-          <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: "var(--text-secondary)" }}>
+          <p className="body-sm" style={{ ...FONT, color: "var(--text-secondary)" }}>
             {isEdit
               ? "We found another customer with the same email address. Do you want to save anyway?"
               : "We found an existing customer with the same email address. Do you want to create another customer?"}

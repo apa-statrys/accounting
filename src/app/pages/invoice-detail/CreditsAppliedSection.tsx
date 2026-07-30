@@ -104,7 +104,7 @@ export function CreditsAppliedSection({
                     <span className="block text-[12px] leading-[1.3] mt-0.5 truncate" style={{ ...FONT, color: MUTED }}>Reason: {reasonOf(cn)}</span>
                   )}
                   {!appliedLabel && !isRefundContext && (
-                    <span className="block text-[12px] leading-[1.3] mt-0.5" style={{ ...FONT, color: cn.sent ? MUTED : "#b45309" }}>
+                    <span className="block text-[12px] leading-[1.3] mt-0.5" style={{ ...FONT, color: cn.sent ? MUTED : "var(--text-warning-primary)" }}>
                       {cn.sent ? `Sent ${cn.sentDate}` : "Not sent yet"}
                     </span>
                   )}
@@ -121,15 +121,15 @@ export function CreditsAppliedSection({
                   refund by accountant" line (the method + evidence live on the CN detail). Settled → the
                   green "Refunded" record with method·date + proof. */}
               {proof && (proof.awaiting ? (
-                <div className="mx-4 mb-3 rounded-lg border border-[#fde68a] bg-[#fff7e6] px-2.5 py-2 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#b45309" }} />
-                  <span className="text-[12px] font-semibold" style={{ ...FONT, color: "#b45309" }}>Awaiting refund</span>
+                <div className="mx-4 mb-3 rounded-lg border px-2.5 py-2 flex items-center gap-1.5" style={{ borderColor: "var(--border-warning-subtle)", background: "var(--bg-warning-subtle)" }}>
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--icon-warning-primary)" }} />
+                  <span className="text-[12px] font-semibold" style={{ ...FONT, color: "var(--text-warning-primary)" }}>Awaiting refund</span>
                 </div>
               ) : (
                 <div className="mx-4 mb-3 rounded-lg border border-[rgba(15,157,88,0.25)] bg-[rgba(15,157,88,0.06)] px-2.5 py-2 flex flex-col gap-2">
                   <span className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#0f9d58" }} />
-                    <span className="text-[12px] font-semibold" style={{ ...FONT, color: "#0f9d58" }}>Refunded</span>
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--icon-success-primary)" }} />
+                    <span className="text-[12px] font-semibold" style={{ ...FONT, color: "var(--text-success-primary)" }}>Refunded</span>
                     <span className="text-[12px] ml-auto text-right" style={{ ...FONT, color: MUTED }}>{proof.method} · {fmtDate(proof.date)}</span>
                   </span>
                   {proof.referenceNo && (
@@ -144,7 +144,7 @@ export function CreditsAppliedSection({
                         <Receipt size={16} strokeWidth={1.5} color={MUTED} />
                       </span>
                       <span className="flex-1 min-w-0 text-[12px] font-medium truncate" style={{ ...FONT, color: INK }}>{proof.proofFile}</span>
-                      <span className="text-[12px] font-medium shrink-0" style={{ ...FONT, color: "#0f9d58" }}>View ›</span>
+                      <span className="text-[12px] font-medium shrink-0" style={{ ...FONT, color: "var(--text-success-primary)" }}>View ›</span>
                     </button>
                   )}
                 </div>

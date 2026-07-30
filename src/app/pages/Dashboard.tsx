@@ -50,8 +50,6 @@ interface DashboardProps {
   onOpenOutstanding?: () => void;
   /** Which hero demo state to render (dev — driven by QuickNav). */
   scenario?: number;
-  /** Optional notice rendered directly under the "Sales Invoices" title (e.g. the locked-period banner). */
-  noticeBanner?: React.ReactNode;
 }
 
 /** Section header — Figma "Sales Invoice - Client" SectionTitle (node 1323-15902/15910):
@@ -90,7 +88,7 @@ function SectionHead({ title, subtitle, badge, onViewAll }: { title: string; sub
 }
 
 
-export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, onSettings, onNotifications, onOpenNeedAttention, onOpenInvoice, onCreate, onUpload, onRecurring, onOpenPaid, onOpenOutstanding, scenario = 0, noticeBanner }: DashboardProps) {
+export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, onSettings, onNotifications, onOpenNeedAttention, onOpenInvoice, onCreate, onUpload, onRecurring, onOpenPaid, onOpenOutstanding, scenario = 0 }: DashboardProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   // Scroll interactions: past the big header, the PageHeader collapses to its
   // "left-on-scroll" state (pinned bar) and the pill FAB shrinks to a circle;
@@ -161,10 +159,6 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
         className="flex flex-col items-center gap-2.5 px-4 py-2"
         style={{ background: "linear-gradient(180deg, var(--bg-beige-primary) 0%, var(--bg-neutral-primary) 100%)" }}
       >
-        {/* Optional notice under the title (e.g. locked-period banner) — sits above the hero card. */}
-        {noticeBanner && <div className="w-full">{noticeBanner}</div>}
-
-
         {/* Dark hero card — DS ui/OutstandingCard (Figma node 4141-8627). */}
         <div className="w-full">
           <OutstandingCard

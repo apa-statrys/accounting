@@ -196,7 +196,7 @@ export function CreditNotePreviewPage(props: CreditNotePreviewPageProps) {
                   lines.map((l, idx) => (
                     <div key={idx} className="flex items-start gap-4 px-5 py-4 border-b border-[#eaecf0]">
                       <span className="flex-1 min-w-0 text-[14px] leading-[1.35] text-[#101828]" style={FONT}>{l.name}</span>
-                      <span className="w-36 text-right text-[14px] font-semibold text-[#b42318] whitespace-nowrap" style={FONT}>{neg(l.amount, currency)}</span>
+                      <span className="w-36 text-right text-[14px] font-semibold text-[var(--text-error-primary)] whitespace-nowrap" style={FONT}>{neg(l.amount, currency)}</span>
                     </div>
                   ))
                 )}
@@ -213,7 +213,7 @@ export function CreditNotePreviewPage(props: CreditNotePreviewPageProps) {
                   </div>
                   <div className="flex items-center justify-between border-t-2 border-[#1b1b1b] mt-2 pt-3">
                     <span className="text-[17px] font-bold text-[var(--text-primary)]" style={FONT}>Total Credited</span>
-                    <span className="text-[26px] font-black text-[#b42318]" style={FONT}>{neg(total, currency)}</span>
+                    <span className="text-[26px] font-black text-[var(--text-error-primary)]" style={FONT}>{neg(total, currency)}</span>
                   </div>
                 </div>
               </div>

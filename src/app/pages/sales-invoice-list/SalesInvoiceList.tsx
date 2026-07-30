@@ -716,7 +716,7 @@ export function SalesInvoiceList({ showSuccess, successMessage, successSubtext, 
           />
         }
       >
-        <p className="text-[16px] leading-[1.45] text-[var(--text-secondary)]" style={FONT}>
+        <p className="body-sm text-[var(--text-secondary)]" style={FONT}>
           Are you sure you want to delete this draft invoice? This action cannot be undone.
         </p>
       </BottomSheet>

@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, format } from "date-fns";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { HorizontalTabs } from "../../ui/HorizontalTabs";
+import { Banner } from "../../ui/Banner";
+import { ListCard } from "../../ui/ListCard";
+import { ListRow } from "../../ui/ListRow";
 import { ButtonDock } from "../../components/ButtonDock";
 import { IssueDateSheet } from "../../components/IssueDateSheet";
 import { NumericKeypad } from "../../components/NumericKeypad";
@@ -366,7 +367,7 @@ export function CreditNoteForm({
                 <span className="flex items-center gap-1.5 pr-1 text-[12px]" style={{ ...FONT, color: MUTED }}>
                   {saveState === "saving"
                     ? <span className="w-3.5 h-3.5 rounded-full border-2 border-[#e2e2e2] border-t-[var(--border-brand-primary)] animate-spin" aria-hidden />
-                    : <span style={{ color: "#0f9d58" }}>✓</span>}
+                    : <span style={{ color: "var(--icon-success-primary)" }}>✓</span>}
                   {saveState === "saving" ? "Saving" : "Saved"}
                 </span>
               ) : undefined
@@ -379,37 +380,16 @@ export function CreditNoteForm({
             No CN number while creating (decided 2026-07-15) — the real number is assigned on apply. */}
         <div className="-mx-4 px-4 pt-5 pb-5 bg-[var(--bg-beige-primary)] flex flex-col gap-4">
           {/* Details — Credit Issue Date / Due Date (editable) + Receiving Account + Currency (locked). */}
-          <div className="rounded-[12px] bg-white border border-dashed border-[rgba(160,160,160,0.2)] overflow-hidden" style={{ boxShadow: "0px 4px 14px 0px rgba(226,220,203,0.3)" }}>
-            <button type="button" onClick={() => setIssueDateOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
-              <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Credit Issue Date</span>
-              <span className="flex items-center gap-1.5">
-                <span className="text-[14px] font-medium" style={{ ...FONT, color: "#101828" }}>{formatDMY(issueDate)}</span>
-                <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
-              </span>
-            </button>
+          <ListCard>
+            <ListRow label="Credit Issue Date" value={formatDMY(issueDate)} trailing="chevron" onClick={() => setIssueDateOpen(true)} />
             {/* Due Date shows for both credit + refund (defaults to Next 30 days). The Receiving Account
                 row is cancellation-only — a refund CN's source account is chosen in the refund flow. */}
-            <button type="button" onClick={() => setDueOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
-              <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Due Date</span>
-              <span className="flex items-center gap-1.5">
-                <span className="text-[14px] font-medium" style={{ ...FONT, color: "#101828" }}>{dueLabel}</span>
-                <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
-              </span>
-            </button>
+            <ListRow label="Due Date" value={dueLabel} trailing="chevron" onClick={() => setDueOpen(true)} />
             {!refund && (
-              <button type="button" onClick={() => setAcctSheetOpen(true)} className="w-full flex items-center justify-between px-4 pt-4 pb-[17px] text-left border-b border-[rgba(160,160,160,0.2)]">
-                <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Receiving Account</span>
-                <span className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-[14px] font-medium truncate" style={{ ...FONT, color: "#101828" }}>{formatAccount(accountId)}</span>
-                  <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
-                </span>
-              </button>
+              <ListRow label="Receiving Account" value={formatAccount(accountId)} trailing="chevron" onClick={() => setAcctSheetOpen(true)} />
             )}
-            <div className="w-full flex items-center justify-between px-4 pt-4 pb-[17px]">
-              <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>Currency</span>
-              <span className="text-[14px] font-medium" style={{ ...FONT, color: MUTED }}>{currency}</span>
-            </div>
-          </div>
+            <ListRow label="Currency" value={currency} last />
+          </ListCard>
 
           {/* Related invoice — the link this credit note is stored against. */}
           <div className="flex items-center gap-2">
@@ -461,8 +441,8 @@ export function CreditNoteForm({
                 className="px-2 py-0.5 rounded-full border text-[10px] font-bold leading-[15px]"
                 style={
                   isFull
-                    ? { ...FONT, background: "#fef2f2", borderColor: "#f5c6c0", color: "#b42318" }
-                    : { ...FONT, background: "#fff7e6", borderColor: "#fde68a", color: "#b45309" }
+                    ? { ...FONT, background: "var(--bg-error-subtle)", borderColor: "var(--border-error-subtle)", color: "var(--text-error-primary)" }
+                    : { ...FONT, background: "var(--bg-warning-subtle)", borderColor: "var(--border-warning-subtle)", color: "var(--text-warning-primary)" }
                 }
               >
                 {isFull ? "Full Credit" : "Partial Credit"}
@@ -495,7 +475,7 @@ export function CreditNoteForm({
                     <p className="text-[14px] font-semibold leading-tight" style={{ ...FONT, color: INK }}>{it.name}</p>
                     <p className="text-[12px] mt-0.5" style={{ ...FONT, color: MUTED }}>{it.qty} {it.unit} · {money(it.unitPrice)}</p>
                   </div>
-                  <span className="text-[14px] font-semibold shrink-0" style={{ ...FONT, color: "#b42318" }}>−{money(it.amount)}</span>
+                  <span className="text-[14px] font-semibold shrink-0" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(it.amount)}</span>
                 </div>
               ))}
               {items.length > COLLAPSED_ITEMS && showMoreBtn}
@@ -554,7 +534,7 @@ export function CreditNoteForm({
                 {!refund && lineCredit(l) > 0.001 && (
                   <div className="flex items-center justify-between border-t border-[rgba(160,160,160,0.18)] pt-2.5">
                     <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Credited</span>
-                    <span className="text-[14px] font-medium" style={{ ...FONT, color: "#b42318" }}>−{money(lineCredit(l))}</span>
+                    <span className="text-[14px] font-medium" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(lineCredit(l))}</span>
                   </div>
                 )}
               </div>
@@ -581,7 +561,7 @@ export function CreditNoteForm({
                 <div className="h-px bg-[rgba(160,160,160,0.3)] my-1" />
                 <div className="flex items-center justify-between py-3">
                   <span className="text-[15px] font-black tracking-[-0.3px]" style={{ ...FONT, color: INK }}>Total refund</span>
-                  <span className="text-[18px] font-black tracking-[-0.5px]" style={{ ...FONT, color: "#b42318" }}>− {money(credited)}</span>
+                  <span className="text-[18px] font-black tracking-[-0.5px]" style={{ ...FONT, color: "var(--text-error-primary)" }}>− {money(credited)}</span>
                 </div>
               </>
             ) : (
@@ -589,7 +569,7 @@ export function CreditNoteForm({
                 {/* Auto-calculated: Credit Amount = Original Total − Edited Total. */}
                 <div className="flex items-center justify-between py-2.5">
                   <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Credit Amount</span>
-                  <span className="text-[13px] font-medium" style={{ ...FONT, color: "#b42318" }}>− {money(credited)}</span>
+                  <span className="text-[13px] font-medium" style={{ ...FONT, color: "var(--text-error-primary)" }}>− {money(credited)}</span>
                 </div>
                 <div className="h-px bg-[rgba(160,160,160,0.3)] my-1" />
                 {/* Amount Due = Edited Invoice Total. */}
@@ -604,12 +584,10 @@ export function CreditNoteForm({
 
         {/* Validation — credited amount can't exceed the outstanding (shown inline by the amount) */}
         {exceedsCap && (
-          <div className="flex items-start gap-2 rounded-xl bg-[#fef2f2] border border-[#f5c6c0] px-3.5 py-3">
-            <ErrorOutlineIcon style={{ fontSize: 18, color: "#b42318" }} />
-            <p className="text-[13px] leading-[1.4]" style={{ ...FONT, color: "#b42318" }}>
-              The {refund ? "refund" : "credit"} can't exceed {money(outstanding)} — lower the corrected amounts less.
-            </p>
-          </div>
+          <Banner
+            color="error"
+            text={`The ${refund ? "refund" : "credit"} can't exceed ${money(outstanding)} — lower the corrected amounts less.`}
+          />
         )}
 
         {(() => {
@@ -649,12 +627,12 @@ export function CreditNoteForm({
               {!refund && (
                 <div className="flex items-start justify-between gap-4 py-2.5 border-b border-[rgba(208,208,208,0.4)]">
                   <span className="body-sm text-[var(--text-secondary)]">Credit Amount</span>
-                  <span className="body-sm text-[#b42318]">− {money(credited)}</span>
+                  <span className="body-sm text-[var(--text-error-primary)]">− {money(credited)}</span>
                 </div>
               )}
               <div className="flex items-center justify-between gap-4 py-3">
                 <span className="body-sm-bold text-[var(--text-primary)]">{refund ? "Total refund" : "Amount Due"}</span>
-                <span className={`body-sm-bold ${refund ? "text-[#b42318]" : "text-[var(--text-primary)]"}`}>
+                <span className={`body-sm-bold ${refund ? "text-[var(--text-error-primary)]" : "text-[var(--text-primary)]"}`}>
                   {refund ? "− " : ""}{money(refund ? credited : amountDue)}
                 </span>
               </div>

@@ -26,7 +26,7 @@ interface DuplicateDecisionProps {
 const STATUS_PILL: Record<string, { label: string; bg: string; border: string; text: string }> = {
   Draft: { label: "Draft", bg: "#faf9f4", border: "rgba(160,160,160,0.4)", text: "#808080" },
   Awaiting: { label: "Awaiting Payment", bg: "#f9f5ea", border: "#ff4a15", text: "#ff4a15" },
-  Paid: { label: "Paid", bg: "#ebfcef", border: "#a3e9b6", text: "#006a1d" },
+  Paid: { label: "Paid", bg: "var(--bg-success-subtle)", border: "var(--border-success-subtle)", text: "var(--text-success-primary)" },
 };
 
 function SummaryRow({ label, value, status }: { label: string; value: string; status?: boolean }) {
@@ -71,8 +71,8 @@ export function DuplicateDecision({ existing, file, onBack, onEditExisting, onVi
 
         <div className="px-4 pt-6 pb-44 flex flex-col gap-5">
           <div className="flex flex-col gap-2.5">
-            <div className="w-12 h-12 rounded-full bg-[#fff7ed] border border-[#ffd9a8] flex items-center justify-center">
-              <ErrorOutlineIcon style={{ fontSize: 24, color: "#b45309" }} />
+            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "var(--bg-warning-subtle)", border: "1px solid var(--border-warning-subtle)" }}>
+              <ErrorOutlineIcon style={{ fontSize: 24, color: "var(--icon-warning-primary)" }} />
             </div>
             <p className="text-[20px] font-bold leading-[1.2] text-[var(--text-primary)]" style={FONT}>Duplicate invoice found</p>
             <p className="text-[14px] leading-[1.4]" style={{ ...FONT, color: "var(--text-secondary)" }}>

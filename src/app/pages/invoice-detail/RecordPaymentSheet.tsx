@@ -6,7 +6,8 @@ import { format } from "date-fns";
 import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
-import { Item } from "../../components/Item";
+import { ListCard } from "../../ui/ListCard";
+import { ListRow } from "../../ui/ListRow";
 import { TextField } from "../../ui/TextField";
 import { Calendar } from "../../components/Calendar";
 import { ReceivingAccountSheet } from "../../components/ReceivingAccountSheet";
@@ -62,7 +63,7 @@ export function RecordPaymentSheet({
       >
         <div className="flex flex-col gap-5">
           <motion.div variants={sheetItem} className="flex flex-col gap-3">
-            <p className="body-md leading-[1.45]" style={{ ...FONT, color: MUTED }}>
+            <p className="body-sm" style={{ ...FONT, color: MUTED }}>
               If the amount is less than the invoice total, the invoice will remain Partially Paid.
             </p>
             <TextField
@@ -85,13 +86,17 @@ export function RecordPaymentSheet({
           </motion.div>
 
           {/* Which account received it + optional payment date (reconciliation info, no GL impact). */}
-          <motion.div
-            variants={sheetItem}
-            className="w-full bg-white rounded-xl overflow-hidden border border-dashed border-[rgba(160,160,160,0.2)]"
-            style={{ boxShadow: "var(--shadow-card-soft)" }}
-          >
-            <Item variant="dropdown" label="Received in" value={formatAccount(accountId)} onClick={() => setAccountOpen(true)} />
-            <Item variant="dropdown" label="Payment date" value={date ? format(date, "d MMM yyyy") : "Optional"} onClick={() => setDateOpen(true)} />
+          <motion.div variants={sheetItem}>
+            <ListCard>
+              <ListRow label="Received in" value={formatAccount(accountId)} trailing="chevron" onClick={() => setAccountOpen(true)} />
+              <ListRow
+                label="Payment date"
+                value={date ? format(date, "d MMM yyyy") : "Optional"}
+                trailing="chevron"
+                onClick={() => setDateOpen(true)}
+                last
+              />
+            </ListCard>
           </motion.div>
         </div>
       </BottomSheet>

@@ -24,7 +24,7 @@ import { ITEMS, SUBTOTAL, DISCOUNT, TOTAL, PAID_PARTIAL, SENT_TODAY, REFUND_DATE
 import type { CreditNote, RefundProof } from "./creditNoteTypes";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Repeat, MoreVertical, X } from "lucide-react";
-import { MetaRow, InfoCard } from "./InfoBits";
+import { InfoCard } from "./InfoBits";
 import { Tile } from "../../ui/Tile";
 import { ListCard } from "../../ui/ListCard";
 import { ListRow } from "../../ui/ListRow";
@@ -703,7 +703,7 @@ export function InvoiceDetailPage({
           {effectiveRefundTag && (
             <span
               className="caption-medium"
-              style={{ ...FONT, color: effectiveRefundTag === "Refunded" ? "#4338ca" : "#b45309" }}
+              style={{ ...FONT, color: effectiveRefundTag === "Refunded" ? "#4338ca" : "var(--text-warning-primary)" }}
             >
               {effectiveRefundTag === "Refund pending" ? "Pending Refund" : effectiveRefundTag}
             </span>
@@ -744,7 +744,7 @@ export function InvoiceDetailPage({
         {/* A payment has been recorded and is waiting on the accountant to reconcile it — the invoice
             stays Awaiting Payment until then. Shows the amount the user recorded as "Marked as paid". */}
         {pendingPayment && (
-          <p className="text-[13px] font-medium leading-[1.3]" style={{ ...FONT, color: "#b45309" }}>
+          <p className="text-[13px] font-medium leading-[1.3]" style={{ ...FONT, color: "var(--text-warning-primary)" }}>
             Pending Reconciliation of {money(pendingPayment.amount, currency)}
           </p>
         )}
@@ -803,10 +803,11 @@ export function InvoiceDetailPage({
                     ...(seriesStatus === "Active"
                       ? { background: "var(--bg-success-subtle)", borderColor: "var(--border-success-subtle)", color: "var(--text-success-primary)" }
                       : seriesStatus === "Paused"
-                      ? { background: "#fff7e6", borderColor: "#fde68a", color: "#b45309" }
+                      ? { background: "var(--bg-warning-subtle)", borderColor: "var(--border-warning-subtle)", color: "var(--text-warning-primary)" }
                       : seriesStatus === "Completed"
+                      // Completed is a distinct indigo, no semantic token family fits it — kept literal on purpose.
                       ? { background: "#eef4ff", borderColor: "#c7d8fe", color: "#2f5fd0" }
-                      : { background: "#f4f4f4", borderColor: "#e0e0e0", color: "var(--text-secondary)" }),
+                      : { background: "var(--bg-neutral-tertiary)", borderColor: "var(--border-neutral-secondary)", color: "var(--text-secondary)" }),
                   }}
                 >
                   {seriesStatus}
@@ -814,8 +815,8 @@ export function InvoiceDetailPage({
                 <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5" style={{ fontSize: 18, color: "var(--text-secondary)" }} />
               </span>
             </div>
-            <MetaRow label="Frequency" value={recurringFrequency} />
-            <MetaRow
+            <ListRow label="Frequency" value={recurringFrequency} />
+            <ListRow
               label="Next invoice"
               value={seriesStatus === "Active" ? recurringNextDate : seriesStatus === "Paused" ? "Paused" : seriesStatus === "Completed" ? "Series completed" : "Series cancelled"}
               last
@@ -903,7 +904,7 @@ export function InvoiceDetailPage({
               <>
                 <div className="flex items-center justify-between pb-2.5">
                   <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>{isRefundContext ? "Refunded" : "Credit notes applied"}</span>
-                  <span className="text-[13px] font-medium" style={{ ...FONT, color: "#b42318" }}>−{money(credited, currency)}</span>
+                  <span className="text-[13px] font-medium" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(credited, currency)}</span>
                 </div>
                 <div className="flex items-center justify-between pb-3 pt-3 border-t" style={{ borderColor: "rgba(160,160,160,0.25)" }}>
                   <span className="text-[17px] tracking-[-0.4px]" style={{ ...FONT, fontWeight: "var(--fw-black)", color: INK }}>{isRefundContext ? "Net Paid" : "Amount due"}</span>
@@ -918,8 +919,8 @@ export function InvoiceDetailPage({
             The sectioned layout shows the receiving account as a card up top (DES-817), so skip it here. */}
         {status !== "Cancelled" && !sectionedLayout && (
           <InfoCard title={status === "Paid" ? "Payment received to" : "Receiving account"}>
-            <MetaRow label="Account holder" value={bank.holder} />
-            <MetaRow label="Account number" value={bank.number} />
+            <ListRow label="Account holder" value={bank.holder} />
+            <ListRow label="Account number" value={bank.number} />
             <AnimatePresence initial={false}>
               {bankExpanded && (
                 <motion.div
@@ -929,10 +930,10 @@ export function InvoiceDetailPage({
                   transition={{ duration: 0.22 }}
                   className="overflow-hidden"
                 >
-                  <MetaRow label="Bank" value={bank.bankName} />
-                  <MetaRow label="SWIFT / BIC" value={bank.swift} />
+                  <ListRow label="Bank" value={bank.bankName} />
+                  <ListRow label="SWIFT / BIC" value={bank.swift} />
                   {/* Payment reference only exists once issued (no number on a draft). */}
-                  {issued && <MetaRow label="Payment reference" value={invoiceNo} />}
+                  {issued && <ListRow label="Payment reference" value={invoiceNo} />}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1075,7 +1076,7 @@ export function InvoiceDetailPage({
           />
         }
       >
-        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: MUTED }}>
+        <p className="body-sm" style={{ ...FONT, color: MUTED }}>
           Are you sure you want to delete this draft invoice? This action cannot be undone.
         </p>
       </BottomSheet>

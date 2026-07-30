@@ -17,7 +17,6 @@ import { CreditNoteForm } from "./pages/credit-note-form/CreditNoteForm";
 import { CreateSalesInvoice } from "./pages/CreateSalesInvoice";
 import { RecurringSeriesDetail } from "./pages/RecurringSeriesDetail";
 import { AddInvoiceDetails } from "./pages/add-invoice-details/AddInvoiceDetails";
-import { InformationBanner } from "./pages/locked-period/InformationBanner";
 import { LockedPeriodBanner } from "./pages/locked-period/LockedPeriodBanner";
 import { SalesInvoiceList } from "./pages/sales-invoice-list/SalesInvoiceList";
 import type { StatusMatch } from "./pages/sales-invoice-list/filters";
@@ -410,7 +409,6 @@ export default function App() {
           active: screen === "dashboard" && heroScenario === i,
           onSelect: () => { setHeroScenario(i); setScreen("dashboard"); },
         })),
-        { label: "Information Banner (Locked Period)", active: screen === "lockedPeriodBanner", onSelect: () => setScreen("lockedPeriodBanner") },
       ],
     },
     {
@@ -1165,16 +1163,6 @@ export default function App() {
         />
       )}
 
-      {/* Locked Period (DES-751) — how a locked accounting period surfaces on the client app:
-          a passive inline banner, and a blocking alert when a locked action is attempted. */}
-      {screen === "lockedPeriodBanner" && (
-        <InformationBanner
-          onBack={() => setScreen("dashboard")}
-          onSettings={() => setScreen("settings")}
-          onOpenInvoices={() => { setListPreset(null); setScreen("list"); }}
-        />
-      )}
-
       {/* Locked Period — "closed accounting period" on the Create Invoice flow: the same top alert
           banner as the upload demo, the Issue Date defaults to the first open day (1 Jan 2027), and
           the calendar disables any date in the closed period (with a warning helper). */}
@@ -1432,25 +1420,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Design-rationale annotation — shown in the white space right of the phone frame on the
-          locked-period banner screen (mirrors the voided-invoice scenario note). */}
-      {screen === "lockedPeriodBanner" && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Why this banner</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              Information will help to let users know about the restriction before they take any action.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              Since it affects creating, editing, voiding, and cancelling, it's better to explain it
-              once upfront.
-            </p>
-          </div>
-        </div>
-      )}
       {/* Beside-frame guidance for the Create (Locked Period) demo. Before the calendar opens, a
           "Click Here" arrow points at the Issue Date row (the only permitted interaction); once it's
           open, the arrow is replaced by the locked-dates explanation note. */}

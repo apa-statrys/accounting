@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import CloseIcon from "@mui/icons-material/Close";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import LinkIcon from "@mui/icons-material/Link";
 import CheckIcon from "@mui/icons-material/Check";
 import { FileText, Download } from "lucide-react";
@@ -9,6 +8,7 @@ import { PageAppHeader } from "../PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { SegmentedControls } from "../../ui/SegmentedControls";
 import { Tile } from "../../ui/Tile";
+import { Banner } from "../../ui/Banner";
 import { Button } from "../../ui/Button";
 import { ButtonDock } from "../ButtonDock";
 import { BottomSheet } from "../BottomSheet";
@@ -180,12 +180,7 @@ export function SendInvoiceSheet({
             {tab === 0 ? (
               <div className={`px-4 pt-4 flex flex-col gap-5 ${keyboardOpen ? "pb-[430px]" : "pb-44"}`}>
                 {/* Delivery-failure banner — content is kept so the client can retry */}
-                {sendError && (
-                  <div className="flex items-start gap-2.5 rounded-xl bg-[#fdecea] border border-[#f5c6c0] px-3.5 py-3">
-                    <ErrorOutlineIcon style={{ fontSize: 18, color: "#d92d20", marginTop: 1 }} />
-                    <p className="text-[13px] leading-[1.35] text-[#8a1c12]" style={FONT}>{sendError}</p>
-                  </div>
-                )}
+                {sendError && <Banner color="error" text={sendError} />}
 
                 {/* Send To */}
                 <div className="flex flex-col gap-2">

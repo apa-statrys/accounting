@@ -26,7 +26,6 @@ export type Screen =
   | "addCustomer"
   | "editCustomer"
   | "recurringSeries"
-  | "lockedPeriodBanner"
   | "lockedPeriodDialog"
   | "lockedPeriodUpload"
   | "lockedPeriodEditCn"

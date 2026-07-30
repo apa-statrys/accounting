@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
 import { UploadedFileCard, FilePreviewOverlay } from "../../components/UploadedFile";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CheckIcon from "@mui/icons-material/Check";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { PageAppHeader } from "../../components/PageAppHeader";
@@ -614,7 +613,7 @@ export function AddInvoiceDetails({
                 onBlur={() => setKeyboardOpen(false)}
               />
               {nameMissing && (
-                <p className="text-[12px] leading-[1.4] text-[#b45309]" style={FONT}>
+                <p className="text-[12px] leading-[1.4] text-[var(--text-warning-primary)]" style={FONT}>
                   Couldn't extract this field. Enter it manually.
                 </p>
               )}
@@ -634,7 +633,7 @@ export function AddInvoiceDetails({
                 onBlur={() => setKeyboardOpen(false)}
               />
               {emailMissing && (
-                <p className="text-[12px] leading-[1.4] text-[#b45309]" style={FONT}>
+                <p className="text-[12px] leading-[1.4] text-[var(--text-warning-primary)]" style={FONT}>
                   Couldn't extract this field. Enter it manually.
                 </p>
               )}
@@ -658,7 +657,7 @@ export function AddInvoiceDetails({
               iconRight={
                 existingInvoice ? (
                   <span
-                    className="shrink-0 px-2 py-0.5 rounded-full bg-[#fff4ec] border border-[#ffd9c2] text-[10px] font-bold leading-[15px] text-[#b42318]"
+                    className="shrink-0 px-2 py-0.5 rounded-full bg-[var(--bg-error-subtle)] border border-[var(--border-error-subtle)] text-[10px] font-bold leading-[15px] text-[var(--text-error-primary)]"
                     style={FONT}
                   >
                     Already exists
@@ -704,27 +703,11 @@ export function AddInvoiceDetails({
                   transition={{ duration: 0.25 }}
                   className="overflow-hidden"
                 >
-                  <div className="flex flex-col">
-                    {[
-                      { label: "Frequency", value: recFreq, onClick: () => setRecFreqOpen(true) },
-                      { label: "Start Date", value: format(recStart, "d MMM yyyy"), onClick: () => setRecStartOpen(true) },
-                      { label: "Ends", value: recEndLabel, onClick: () => setRecEndOpen(true) },
-                    ].map((r, i) => (
-                      <button
-                        key={r.label}
-                        type="button"
-                        onClick={r.onClick}
-                        className="flex items-center justify-between gap-3 py-3 text-left"
-                        style={{ borderTop: i === 0 ? "none" : "1px solid rgba(160,160,160,0.2)" }}
-                      >
-                        <span className="body-sm text-[var(--text-secondary)]" style={FONT}>{r.label}</span>
-                        <span className="flex items-center gap-1.5 min-w-0">
-                          <span className="body-sm-medium text-[#101828] truncate" style={FONT}>{r.value}</span>
-                          <ChevronRightIcon style={{ fontSize: 16, color: "var(--icon-primary)" }} />
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                  <ListCard>
+                    <ListRow label="Frequency" value={recFreq} trailing="chevron" onClick={() => setRecFreqOpen(true)} />
+                    <ListRow label="Start Date" value={format(recStart, "d MMM yyyy")} trailing="chevron" onClick={() => setRecStartOpen(true)} />
+                    <ListRow label="Ends" value={recEndLabel} trailing="chevron" onClick={() => setRecEndOpen(true)} last />
+                  </ListCard>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -867,15 +850,14 @@ export function AddInvoiceDetails({
             >
               {/* Bare title+description+toggle row (Figma "Create Invoice", node 1826-15914) — no
                   card chrome, matching the Discount/Automatic reminders rows below. */}
-              <div className="w-full flex items-center justify-between gap-3">
-                <span className="min-w-0 flex flex-col gap-1">
-                  <span className="body-sm-bold text-[var(--text-primary)]" style={FONT}>Auto-send to customer</span>
-                  <span className="text-[14px] text-[var(--text-secondary)]" style={FONT}>
-                    {recAutoSend ? "Send invoices automatically" : "Saved as a draft to review"}
-                  </span>
-                </span>
-                <Toggle checked={recAutoSend} onChange={setRecAutoSend} aria-label="Auto-send to customer" />
-              </div>
+              <ListRow
+                label="Auto-send to customer"
+                description={recAutoSend ? "Send invoices automatically" : "Saved as a draft to review"}
+                trailing="toggle"
+                checked={recAutoSend}
+                onCheckedChange={setRecAutoSend}
+                last
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -893,13 +875,14 @@ export function AddInvoiceDetails({
               exit={{ opacity: 0, y: 8 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="w-full flex items-center justify-between gap-3">
-                <span className="min-w-0 flex flex-col gap-1">
-                  <span className="body-sm-bold text-[var(--text-primary)]" style={FONT}>Automatic reminders</span>
-                  <span className="text-[14px] text-[var(--text-secondary)]" style={FONT}>Email until invoice is paid</span>
-                </span>
-                <Toggle checked={chaser} onChange={setChaser} aria-label="Automatic reminders" />
-              </div>
+              <ListRow
+                label="Automatic reminders"
+                description="Email until invoice is paid"
+                trailing="toggle"
+                checked={chaser}
+                onCheckedChange={setChaser}
+                last
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -1264,7 +1247,7 @@ export function AddInvoiceDetails({
                 currency: a?.currency ?? currency,
               };
             })()}
-            status={{ label: "Pending", bg: "#fff7e6", border: "#fde68a", text: "#b45309" }}
+            status={{ label: "Pending", bg: "var(--bg-warning-subtle)", border: "var(--border-warning-subtle)", text: "var(--text-warning-primary)" }}
             onBack={() => setPdfPreviewOpen(false)}
             onDownloaded={() => {
               setPdfPreviewOpen(false);

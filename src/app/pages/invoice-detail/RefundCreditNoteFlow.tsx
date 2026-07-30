@@ -6,6 +6,7 @@ import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
 import { BottomSheet } from "../../components/BottomSheet";
 import { Tile } from "../../ui/Tile";
+import { ListRow } from "../../ui/ListRow";
 import { CountryFlag } from "../../components/CountryFlag";
 import { RECEIVING_ACCOUNTS, getAccount } from "../../data/receivingAccounts";
 import { money } from "../../lib/format";
@@ -33,15 +34,6 @@ export interface RefundCreditNoteFlowProps {
   /** Chose "Mark as already refunded" → records the captured proof (date, bank account used, amount, and a
    *  file and/or reference number as evidence). */
   onMarkRefunded: (proof: { date: string; method: string; amount: number; proofFile?: string; referenceNo?: string }) => void;
-}
-
-function Row({ label, value, last }: { label: string; value: string; last?: boolean }) {
-  return (
-    <div className={`flex items-center justify-between py-3 ${last ? "" : "border-b border-[rgba(160,160,160,0.18)]"}`}>
-      <span className="text-[14px]" style={{ ...FONT, color: MUTED }}>{label}</span>
-      <span className="text-[14px] font-medium text-right" style={{ ...FONT, color: INK }}>{value}</span>
-    </div>
-  );
 }
 
 /**
@@ -165,17 +157,11 @@ export function RefundCreditNoteFlow({
           <>
             <div className="bg-[var(--bg-neutral-secondary)] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4">
               {/* From — account name + full account number */}
-              <div className="flex items-start justify-between gap-4 py-3 border-b border-[rgba(160,160,160,0.18)]">
-                <span className="text-[14px] shrink-0" style={{ ...FONT, color: MUTED }}>From</span>
-                <span className="min-w-0 text-right">
-                  <span className="block text-[14px] font-medium" style={{ ...FONT, color: INK }}>{fromAcct?.name}</span>
-                  <span className="block text-[12px] leading-[1.3] mt-0.5 break-all" style={{ ...FONT, color: MUTED }}>{fromAcct?.number}</span>
-                </span>
-              </div>
-              <Row label="Currency" value={currency} />
-              <Row label="To" value={customerName} />
-              <Row label="Amount" value={money(amount, currency)} />
-              <Row label="Reference" value={creditNoteNo || invoiceNo} last />
+              <ListRow label="From" value={fromAcct?.name ?? ""} valueDescription={fromAcct?.number} />
+              <ListRow label="Currency" value={currency} />
+              <ListRow label="To" value={customerName} />
+              <ListRow label="Amount" value={money(amount, currency)} />
+              <ListRow label="Reference" value={creditNoteNo || invoiceNo} last />
             </div>
           </>
         )}

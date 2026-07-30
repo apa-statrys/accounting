@@ -1,5 +1,4 @@
 import { useState } from "react";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -15,6 +14,7 @@ import { SendSuccessToast } from "../../components/SendSuccessToast";
 import { CreditNotePreviewPage } from "./CreditNotePreviewPage";
 import { FilePreviewOverlay, type UploadedFileInfo } from "../../components/UploadedFile";
 import { money, fmtDate } from "../../lib/format";
+import { ListRow } from "../../ui/ListRow";
 
 import { FONT, INK, MUTED } from "../../lib/theme";
 
@@ -110,15 +110,6 @@ function Card({ title, tone = "section", children }: { title?: string; tone?: "s
         <p className="-mx-4 px-4 pt-3.5 pb-3 text-[12px] font-bold uppercase tracking-wide leading-[16.5px] border-b border-[rgba(160,160,160,0.2)]" style={{ ...FONT, color: "var(--text-placeholder)" }}>{title}</p>
       )}
       {children}
-    </div>
-  );
-}
-
-function Row({ label, value, last }: { label: string; value: React.ReactNode; last?: boolean }) {
-  return (
-    <div className={`flex items-start justify-between gap-4 py-3 ${last ? "" : "border-b border-[rgba(160,160,160,0.18)]"}`}>
-      <span className="text-[13px] shrink-0" style={{ ...FONT, color: MUTED }}>{label}</span>
-      <span className="min-w-0 text-right text-[13px] font-medium" style={{ ...FONT, color: INK }}>{value}</span>
     </div>
   );
 }
@@ -270,7 +261,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             <span className="self-start flex items-center gap-1.5">
               <span className="px-2.5 py-0.5 rounded-full border text-[11px] font-bold" style={{ ...FONT, background: chip.bg, borderColor: chip.border, color: chip.text }}>{displayStatus}</span>
             </span>
-            <p className="text-[20px] font-black leading-none tracking-[-0.8px]" style={{ ...FONT, color: "#b42318" }}>−{money(total, currency)}</p>
+            <p className="text-[20px] font-black leading-none tracking-[-0.8px]" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(total, currency)}</p>
             {/* Awaiting refund shows no date subline — the payout date isn't known yet. */}
             {displayStatus !== "Awaiting refund" && (
               <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
@@ -295,28 +286,14 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         {/* Credit Details — Credit Issue Date / Due Date / Currency + reason (+ description) + the related
             invoice, all in one card (Figma 1209). The reason row is hidden until the client fills it in. */}
         <Card title="Credit Details">
-          <Row label="Credit Issue Date" value={issueDateLabel} />
-          <Row label="Due Date" value={dueDateLabel ?? "—"} />
-          <Row label="Currency" value={currency} />
-          {reasonText && (
-            <div className="flex items-start justify-between gap-4 py-3 border-b border-[rgba(160,160,160,0.18)]">
-              <span className="text-[13px] shrink-0" style={{ ...FONT, color: MUTED }}>Reason</span>
-              <span className="min-w-0 text-right">
-                <span className="block text-[13px] font-medium" style={{ ...FONT, color: INK }}>{reasonText}</span>
-                {reasonNote && <span className="block text-[12px] leading-[1.35] mt-0.5" style={{ ...FONT, color: MUTED }}>{reasonNote}</span>}
-              </span>
-            </div>
-          )}
+          <ListRow label="Credit Issue Date" value={issueDateLabel} />
+          <ListRow label="Due Date" value={dueDateLabel ?? "—"} />
+          <ListRow label="Currency" value={currency} />
+          {reasonText && <ListRow label="Reason" value={reasonText} valueDescription={reasonNote} />}
           {onViewInvoice ? (
-            <button onClick={onViewInvoice} className="group w-full flex items-center justify-between gap-4 py-3 text-left">
-              <span className="text-[13px] shrink-0" style={{ ...FONT, color: MUTED }}>Related Invoice</span>
-              <span className="flex items-center gap-1 min-w-0">
-                <span className="text-[13px] font-medium truncate" style={{ ...FONT, color: INK }}>{invoiceNo}</span>
-                <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5 shrink-0" style={{ fontSize: 16, color: "var(--text-secondary)" }} />
-              </span>
-            </button>
+            <ListRow label="Related Invoice" value={invoiceNo} trailing="chevron" onClick={onViewInvoice} last />
           ) : (
-            <Row label="Related Invoice" value={invoiceNo} last />
+            <ListRow label="Related Invoice" value={invoiceNo} last />
           )}
         </Card>
 
@@ -386,7 +363,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
                 <div className="flex items-start justify-between gap-3 py-2.5 border-b border-[rgba(160,160,160,0.18)]">
                   <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Credit Amount</span>
                   <span className="text-right">
-                    <span className="block text-[13px] font-medium" style={{ ...FONT, color: "#b42318" }}>−{money(total, currency)}</span>
+                    <span className="block text-[13px] font-medium" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(total, currency)}</span>
                     <span className="block text-[11px] mt-0.5" style={{ ...FONT, color: MUTED }}>(Not Applied Yet)</span>
                   </span>
                 </div>
@@ -405,7 +382,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
                 </div>
                 <div className="flex items-center justify-between py-3">
                   <span className="text-[15px] font-bold" style={{ ...FONT, color: INK }}>Refund Amount</span>
-                  <span className="text-[15px] font-bold shrink-0" style={{ ...FONT, color: "#b42318" }}>−{money(total, currency)}</span>
+                  <span className="text-[15px] font-bold shrink-0" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(total, currency)}</span>
                 </div>
               </>
             ) : isCancellation && invoiceTotal !== undefined ? (
@@ -416,7 +393,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
                 </div>
                 <div className="flex items-center justify-between py-2.5 border-b border-[rgba(160,160,160,0.18)]">
                   <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Credit Amount</span>
-                  <span className="text-[13px] font-medium" style={{ ...FONT, color: "#b42318" }}>−{money(total, currency)}</span>
+                  <span className="text-[13px] font-medium" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(total, currency)}</span>
                 </div>
                 {isApplied ? (
                   // Applied (Partially/Fully) → "Amount Due" (the current balance), highlighted like the design.
@@ -442,7 +419,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
                 </div>
                 <div className="flex items-center justify-between py-3">
                   <span className="text-[15px] font-bold" style={{ ...FONT, color: INK }}>Total credited</span>
-                  <span className="text-[15px] font-bold" style={{ ...FONT, color: "#b42318" }}>−{money(total, currency)}</span>
+                  <span className="text-[15px] font-bold" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(total, currency)}</span>
                 </div>
               </>
             )}
@@ -454,10 +431,10 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             awaiting/refunded status is shown on the hero chip, not here). */}
         {refundProof && (
           <Card title="Refund Method">
-            <Row label="Bank account" value={refundProof.method} />
-            <Row label="Refund date" value={fmtDate(refundProof.date)} last={!refundProof.referenceNo && !refundProof.proofFile} />
+            <ListRow label="Bank account" value={refundProof.method} />
+            <ListRow label="Refund date" value={fmtDate(refundProof.date)} last={!refundProof.referenceNo && !refundProof.proofFile} />
             {refundProof.referenceNo && (
-              <Row label="Reference" value={refundProof.referenceNo} last={!refundProof.proofFile} />
+              <ListRow label="Reference" value={refundProof.referenceNo} last={!refundProof.proofFile} />
             )}
             {refundProof.proofFile && (
               <div className="py-3">
@@ -469,7 +446,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
                     <ReceiptLongOutlinedIcon style={{ fontSize: 16, color: MUTED }} />
                   </span>
                   <span className="flex-1 min-w-0 text-[12px] font-medium truncate" style={{ ...FONT, color: INK }}>{refundProof.proofFile}</span>
-                  <span className="text-[12px] font-medium shrink-0" style={{ ...FONT, color: "#0f9d58" }}>View ›</span>
+                  <span className="text-[12px] font-medium shrink-0" style={{ ...FONT, color: "var(--text-success-primary)" }}>View ›</span>
                 </button>
               </div>
             )}
@@ -599,7 +576,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           />
         }
       >
-        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: MUTED }}>
+        <p className="body-sm" style={{ ...FONT, color: MUTED }}>
           This draft credit note will be permanently deleted. The linked invoice won't be affected.
         </p>
       </BottomSheet>
@@ -623,7 +600,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           />
         }
       >
-        <p className="text-[16px] leading-[1.45]" style={{ ...FONT, color: MUTED }}>
+        <p className="body-sm" style={{ ...FONT, color: MUTED }}>
           {isRefund
             ? "This refund credit note will be cancelled and the invoice will return to Paid."
             : "This credit note will be cancelled and its effect on the invoice reversed."}
