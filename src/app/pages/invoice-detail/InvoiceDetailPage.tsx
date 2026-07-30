@@ -681,7 +681,7 @@ export function InvoiceDetailPage({
         onBack={onBack}
         backIcon={<X size={20} strokeWidth={1} />}
         showSearch={showMenu || paidActionsInMenu}
-        rightIcon={<MoreVertical size={20} strokeWidth={1} />}
+        rightIcon={<MoreVertical size={20} strokeWidth={2} />}
         rightLabel="More actions"
         onRightClick={() => setActionsOpen(true)}
       />
@@ -690,7 +690,7 @@ export function InvoiceDetailPage({
       {/* Status + amount — full-bleed beige→white gradient hero (Figma "Invoice Detail",
           node 1423:63521), edge to edge rather than inset like the cards below it. */}
       <div
-        className="px-4 py-6 flex flex-col gap-3"
+        className="p-4 flex flex-col gap-3"
         style={{ backgroundImage: "linear-gradient(180deg, var(--bg-beige-primary) 1%, var(--bg-neutral-primary) 99%)" }}
       >
         <span className="flex items-center gap-1.5 flex-wrap">
@@ -739,7 +739,7 @@ export function InvoiceDetailPage({
             once issued) — the page header itself always just reads "Invoice Details" (see
             pageHeaderTitle above). A created/recurring draft has no number yet, so nothing shows. */}
         {heroReference && (
-          <p className="body-md" style={{ ...FONT, color: INK }}>{heroReference}</p>
+          <p className="body-sm" style={{ ...FONT, color: INK }}>{heroReference}</p>
         )}
         {/* A payment has been recorded and is waiting on the accountant to reconcile it — the invoice
             stays Awaiting Payment until then. Shows the amount the user recorded as "Marked as paid". */}

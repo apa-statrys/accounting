@@ -45,6 +45,10 @@ interface TileProps {
    *  tints; defaults to Bg/Beige/primary when omitted. */
   avatarColor?: string;
   trailing?: TileTrailing;
+  /** Custom 20px trailing glyph (e.g. a download icon) in place of the chevron/check — for
+   *  one-off instance overrides Figma allows on top of the base trailing/none/chevron/check
+   *  axis (e.g. Send Invoice's Share/Download "Download" row). Takes priority over `trailing`. */
+  trailingIcon?: React.ReactNode;
   /** Skip the reserved 30px trailing slot when trailing="none" — for action lists where no row
    *  ever shows a trailing icon, freeing the width for long titles. Keep the default (reserved)
    *  in lists that mix none with check/chevron so titles stay aligned, per Figma. */
@@ -85,6 +89,7 @@ export function Tile({
   avatar,
   avatarColor,
   trailing = "none",
+  trailingIcon,
   reserveTrailing = true,
   selected = false,
   disabled = false,
@@ -131,13 +136,19 @@ export function Tile({
         )}
         {text && <span className={styles.text}>{text}</span>}
       </span>
-      {(trailing !== "none" || reserveTrailing) && (
+      {(trailingIcon || trailing !== "none" || reserveTrailing) && (
         <span className={styles.trailing}>
-          {trailing === "chevron" && <ChevronRightIcon />}
-          {trailing === "check" && (
-            <span className={styles.check}>
-              <CheckIcon />
-            </span>
+          {trailingIcon ? (
+            trailingIcon
+          ) : (
+            <>
+              {trailing === "chevron" && <ChevronRightIcon />}
+              {trailing === "check" && (
+                <span className={styles.check}>
+                  <CheckIcon />
+                </span>
+              )}
+            </>
           )}
         </span>
       )}

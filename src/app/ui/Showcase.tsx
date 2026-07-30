@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Download } from "lucide-react";
 import { FONT, INK, MUTED } from "../lib/theme";
 import { Toggle } from "./Toggle";
 import { Button, type Hierarchy } from "./Button";
@@ -1739,6 +1740,7 @@ const TILE_CONTROL_GROUPS: ControlGroup[] = [
       { value: "none", label: "None" },
       { value: "chevron", label: "Chevron" },
       { value: "check", label: "Check (selected)" },
+      { value: "download", label: "Download icon — one-off instance override, e.g. Send Invoice's Share/Download tab" },
     ],
   },
   {
@@ -1792,7 +1794,8 @@ function TileTestMe() {
             icon={v.leading === "icon" ? <CircleIcon size={24} /> : undefined}
             flag={v.leading === "flag" ? <USFlag size={30} /> : undefined}
             avatar={v.leading === "avatar" ? "OR" : undefined}
-            trailing={v.trailing as TileTrailing}
+            trailing={v.trailing === "download" ? "none" : (v.trailing as TileTrailing)}
+            trailingIcon={v.trailing === "download" ? <Download size={20} strokeWidth={1} /> : undefined}
             selected={v.trailing === "check"}
             disabled={v.state === "disabled"}
             error={v.state === "error"}

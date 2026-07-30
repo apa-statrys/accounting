@@ -37,6 +37,7 @@ import { formatAccount, getAccount } from "../../data/receivingAccounts";
 import { convert } from "../../lib/currency";
 import { EMAIL_RE } from "../../lib/format";
 import { SHOW_RECURRING } from "../../lib/flags";
+import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import type { Customer, ExistingInvoice, ExtractedInvoice, ServiceLine } from "../../types";
 import { CoverageBanner, DuplicateBanner, ExtractionFailedBanner } from "./Banners";
 import { ExistingInvoiceSheet } from "./ExistingInvoiceSheet";
@@ -609,6 +610,8 @@ export function AddInvoiceDetails({
                 value={editName}
                 onChange={setEditName}
                 highlight={nameMissing}
+                onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
+                onBlur={() => setKeyboardOpen(false)}
               />
               {nameMissing && (
                 <p className="text-[12px] leading-[1.4] text-[#b45309]" style={FONT}>
@@ -627,6 +630,8 @@ export function AddInvoiceDetails({
                 value={editEmail}
                 onChange={setEditEmail}
                 highlight={emailMissing}
+                onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
+                onBlur={() => setKeyboardOpen(false)}
               />
               {emailMissing && (
                 <p className="text-[12px] leading-[1.4] text-[#b45309]" style={FONT}>
@@ -648,6 +653,8 @@ export function AddInvoiceDetails({
               highlight={!!existingInvoice}
               value={editInvoiceNo}
               onChange={setEditInvoiceNo}
+              onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
+              onBlur={() => setKeyboardOpen(false)}
               iconRight={
                 existingInvoice ? (
                   <span
@@ -840,7 +847,7 @@ export function AddInvoiceDetails({
                 onChange={setDiscount}
                 mode={discountMode}
                 onOpenMode={() => setDiscountModeSheetOpen(true)}
-                onFocus={() => setKeyboardOpen(true)}
+                onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
                 onBlur={() => setKeyboardOpen(false)}
               />
             </motion.div>
@@ -1089,12 +1096,14 @@ export function AddInvoiceDetails({
         open={recEndOpen}
         title="Ends Recurring"
         onClose={() => setRecEndOpen(false)}
+        keyboardOpen={keyboardOpen}
         footer={
           <ButtonDock
             type="single"
             primaryLabel="Confirm"
             primaryDisabled={(recEnd.mode === "count" && recEnd.count <= 0) || (recEnd.mode === "date" && !recEnd.date)}
             onPrimary={() => setRecEndOpen(false)}
+            keyboard={keyboardOpen}
           />
         }
       >
@@ -1131,6 +1140,8 @@ export function AddInvoiceDetails({
                     const n = parseInt(digits, 10);
                     setRecEnd({ mode: "count", count: Number.isFinite(n) && n > 0 ? n : 0 });
                   }}
+                  onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
+                  onBlur={() => setKeyboardOpen(false)}
                 />
                 {recEnd.count > 0 && (
                   <span className="text-[12px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>

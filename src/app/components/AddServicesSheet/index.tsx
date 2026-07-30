@@ -6,6 +6,7 @@ import { ButtonDock } from "../ButtonDock";
 import { Tile } from "../../ui/Tile";
 import { CountryFlag } from "../CountryFlag";
 import { CURRENCY_COUNTRY } from "../CurrencySheet";
+import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import type { ServiceLine } from "../../types";
 import styles from "./index.module.css";
 
@@ -49,7 +50,7 @@ export function AddServicesSheet({
 
   const [step, setStep] = useState<"form" | "unit">("form");
   const [keyboardOpen, setKeyboardOpen] = useState(false);
-  const focusKeyboard = () => setKeyboardOpen(true);
+  const focusKeyboard = (e: React.FocusEvent<HTMLElement>) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); };
   const blurKeyboard = () => setKeyboardOpen(false);
 
   // Every line uses the invoice currency — it's shown (read-only) here, not chosen per line.

@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../BottomSheet";
 import { TextField } from "../../ui/TextField";
 import { ButtonDock } from "../ButtonDock";
+import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import styles from "./index.module.css";
 
 interface BankInfoSheetProps {
@@ -28,7 +29,7 @@ export function BankInfoSheet({ open, onBack, onClose, onConfirm }: BankInfoShee
   // Field errors appear only after a failed Confirm; typing in a field clears its error.
   const [errors, setErrors] = useState<{ card?: string; expiry?: string; cvv?: string; holder?: string }>({});
   const [keyboardOpen, setKeyboardOpen] = useState(false);
-  const focusKeyboard = () => setKeyboardOpen(true);
+  const focusKeyboard = (e: React.FocusEvent<HTMLElement>) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); };
   const blurKeyboard = () => setKeyboardOpen(false);
 
   const confirm = () => {

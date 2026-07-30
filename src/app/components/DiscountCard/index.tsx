@@ -18,7 +18,7 @@ interface DiscountCardProps {
   onOpenMode?: () => void;
   /** Focus/blur on the value field — the caller shows the on-screen keyboard mock while typing
    *  (same convention as every other real text entry point, e.g. SendInvoiceSheet's fields). */
-  onFocus?: () => void;
+  onFocus?: React.FocusEventHandler<HTMLInputElement>;
   onBlur?: () => void;
 }
 

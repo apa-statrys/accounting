@@ -11,6 +11,7 @@ import { RECEIVING_ACCOUNTS, getAccount } from "../../data/receivingAccounts";
 import { money } from "../../lib/format";
 
 import { FONT, INK, MUTED } from "../../lib/theme";
+import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 
 
 /** DES-720 refund flow steps: choose method → (BA) pick the source account → review & confirm the draft. */
@@ -185,13 +186,13 @@ export function RefundCreditNoteFlow({
             <div className="flex flex-col gap-1.5">
               <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Amount refunded <span>*</span></label>
               {/* Editable; capped at the outstanding refund amount. */}
-              <div className="flex items-center gap-1 rounded-xl border px-3.5 h-12 bg-white" style={{ borderColor: exceedsOutstanding ? "#dc2626" : "rgba(160,160,160,0.4)" }}>
+              <div className="flex items-center gap-1 rounded-xl border px-3.5 h-12 bg-white" style={{ borderColor: exceedsOutstanding ? "var(--border-error-bold)" : "rgba(160,160,160,0.4)" }}>
                 <span className="text-[15px]" style={{ ...FONT, color: MUTED }}>{currency}</span>
                 <input
                   inputMode="decimal"
                   value={mAmount}
                   onChange={(e) => setMAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                  onFocus={() => setKeyboardOpen(true)}
+                  onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
                   onBlur={() => setKeyboardOpen(false)}
                   className="flex-1 min-w-0 text-right outline-none text-[16px] bg-transparent"
                   style={{ ...FONT, color: INK }}
@@ -224,7 +225,7 @@ export function RefundCreditNoteFlow({
               {mProof ? (
                 <div className="flex items-center justify-between rounded-xl border border-[rgba(160,160,160,0.4)] px-3.5 h-12 bg-white">
                   <span className="text-[14px] truncate" style={{ ...FONT, color: INK }}>{mProof}</span>
-                  <button onClick={() => setMProof(null)} className="text-[13px] font-medium shrink-0 ml-3" style={{ ...FONT, color: "#b42318" }}>Remove</button>
+                  <button onClick={() => setMProof(null)} className="text-[13px] font-medium shrink-0 ml-3" style={{ ...FONT, color: "var(--text-error-primary)" }}>Remove</button>
                 </div>
               ) : (
                 <button onClick={() => setMProof("refund-receipt.pdf")} className="w-full rounded-xl border border-dashed border-[rgba(160,160,160,0.5)] py-3 text-[14px] font-medium" style={{ ...FONT, color: INK }}>+ Upload receipt / screenshot</button>

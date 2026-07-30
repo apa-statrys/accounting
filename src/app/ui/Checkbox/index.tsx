@@ -46,7 +46,7 @@ export function Checkbox({ checked, onChange, label, description, indeterminate 
           toggle();
         }
       }}
-      className={`${styles.row} ${reverse ? styles.reverse : ""} ${disabled ? styles.disabled : ""}`}
+      className={`${styles.row} ${reverse ? styles.reverse : ""} ${disabled ? styles.disabled : ""} ${!description ? styles.textOnly : ""}`}
     >
       {reverse ? (
         <>

@@ -3,6 +3,7 @@ import { BottomSheet } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
 import { TextField } from "../../ui/TextField";
 import { EMAIL_RE } from "../../lib/format";
+import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 
 interface ClientEditSheetProps {
   open: boolean;
@@ -53,7 +54,7 @@ export function ClientEditSheet({ open, onClose, draftName, draftEmail, setDraft
           mandatory
           error={showErrors && !!nameErr}
           caption={showErrors ? nameErr : undefined}
-          onFocus={() => setKeyboardOpen(true)}
+          onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
           onBlur={() => setKeyboardOpen(false)}
         />
         <TextField
@@ -64,7 +65,7 @@ export function ClientEditSheet({ open, onClose, draftName, draftEmail, setDraft
           mandatory
           error={showErrors && !!emailErr}
           caption={showErrors ? emailErr : undefined}
-          onFocus={() => setKeyboardOpen(true)}
+          onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
           onBlur={() => setKeyboardOpen(false)}
         />
       </div>

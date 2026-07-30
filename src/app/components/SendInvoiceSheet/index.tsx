@@ -4,7 +4,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import LinkIcon from "@mui/icons-material/Link";
 import CheckIcon from "@mui/icons-material/Check";
-import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import { FileText, Download } from "lucide-react";
 import { PageAppHeader } from "../PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { SegmentedControls } from "../../ui/SegmentedControls";
@@ -18,6 +18,7 @@ import { Checkbox } from "../../ui/Checkbox";
 import { Toggle } from "../../ui/Toggle";
 import { FONT, avatarTint, initials } from "../../lib/theme";
 import { EMAIL_RE } from "../../lib/format";
+import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import styles from "./index.module.css";
 
 function Label({ children }: { children: React.ReactNode }) {
@@ -99,7 +100,7 @@ export function SendInvoiceSheet({
   // Any of the three text fields (recipients / subject / message) focused → the dock shows
   // the on-screen keyboard (Figma "IOS controls" = Keyboard).
   const [keyboardOpen, setKeyboardOpen] = useState(false);
-  const focusKeyboard = () => setKeyboardOpen(true);
+  const focusKeyboard = (e: React.FocusEvent<HTMLElement>) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); };
   const blurKeyboard = () => setKeyboardOpen(false);
 
   // ===== Share/Download tab state (Figma "Share/Download") =====
@@ -313,13 +314,17 @@ export function SendInvoiceSheet({
                   </p>
                 </div>
 
-                {/* Download */}
-                <Tile
-                  title="Download"
-                  icon={<FileDownloadOutlinedIcon />}
-                  reserveTrailing={false}
-                  onClick={onDownload}
-                />
+                {/* Download (Figma "Sales Invoice - Client" node 1943-12485) */}
+                <div className="flex flex-col gap-3">
+                  <p className="body-sm text-[var(--text-primary)]">Download</p>
+                  <Tile
+                    icon={<FileText size={24} strokeWidth={1.5} />}
+                    title={`${invoiceNo}.pdf`}
+                    text="PDF • 148 KB"
+                    trailingIcon={<Download size={20} strokeWidth={1} />}
+                    onClick={onDownload}
+                  />
+                </div>
               </div>
             )}
           </div>
