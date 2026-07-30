@@ -19,6 +19,7 @@ import { ListCard } from "../ui/ListCard";
 import { ListRow } from "../ui/ListRow";
 
 import { FONT } from "../lib/theme";
+import { scrollFieldIntoView } from "../lib/scrollFieldIntoView";
 import { EMAIL_RE } from "../lib/format";
 
 // Company-logo upload rules (DES-764).
@@ -179,7 +180,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
       onSelectorClick={k === "phone" ? () => setPhoneCodeOpen(true) : undefined}
       value={s[k]}
       onChange={(v) => set(k, v)}
-      onFocus={() => setKeyboardOpen(true)}
+      onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
       onBlur={() => setKeyboardOpen(false)}
     />
   );

@@ -15,6 +15,7 @@ import { CountryFlag } from "../../components/CountryFlag";
 import { money } from "../../lib/format";
 import { formatAccount } from "../../data/receivingAccounts";
 import { FONT, MUTED } from "../../lib/theme";
+import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 
 interface RecordPaymentSheetProps {
   open: boolean;
@@ -78,7 +79,7 @@ export function RecordPaymentSheet({
               value={value}
               caption={`Invoice total: ${money(total, currency)}`}
               onChange={(v) => onChange(v.replace(/[^0-9.]/g, ""))}
-              onFocus={() => setKeyboardOpen(true)}
+              onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
               onBlur={() => setKeyboardOpen(false)}
             />
           </motion.div>

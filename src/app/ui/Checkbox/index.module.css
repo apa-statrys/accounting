@@ -1,6 +1,7 @@
-/* Checkbox — Figma "[APP] Design System" → Checkbox (node 4127-8103).
-   8px gap, top-aligned (the glyph sits at the label's cap-height even when
-   the description wraps to two lines). Colors from styles/theme.css. */
+/* Checkbox — Figma "[APP] Design System" → Checkbox (node 4127-8103 / 4633-439).
+   8px gap. Text + description rows top-align (the glyph sits at the label's
+   cap-height even when the description wraps to two lines); text-only rows
+   center-align instead (node 4633-439). Colors from styles/theme.css. */
 
 .row {
   box-sizing: border-box;
@@ -9,6 +10,9 @@
   gap: 8px;
   cursor: pointer;
   font-family: var(--font-primary);
+}
+.row.textOnly {
+  align-items: center;
 }
 /* List-row pattern (label left, glyph right) — single-line labels only, so the row centers
    instead of top-aligning to a description that never appears here. */
@@ -28,7 +32,7 @@
   justify-content: center;
 }
 .label {
-  composes: body-sm-medium from global;
+  composes: body-sm from global;
   margin: 0;
   color: var(--text-primary);
 }

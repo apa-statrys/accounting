@@ -536,8 +536,8 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           {/* Draft (cancellation or refund) → only Delete Credit Note (confirmed via a prompt). */}
           {(isOpen || isRefundDraft) && onCancel && (
             <button onClick={() => { setActionsOpen(false); setConfirmDelete(true); }} className="w-full flex items-center gap-3 py-3.5 text-left">
-              <DeleteOutlineIcon style={{ fontSize: 20, color: "#b42318" }} />
-              <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Delete Credit Note</span>
+              <DeleteOutlineIcon style={{ fontSize: 20, color: "var(--icon-error-primary)" }} />
+              <span className="text-[15px]" style={{ ...FONT, color: "var(--text-error-primary)" }}>Delete Credit Note</span>
             </button>
           )}
           {/* Applied → Cancel credit note (full reversal) + Preview as PDF. */}
@@ -545,8 +545,8 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             <>
               {onCancel && (
                 <button onClick={() => { setActionsOpen(false); if (lockedPeriod) { setLockedCancelOpen(true); return; } setConfirmCancel(true); }} className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]">
-                  <DeleteOutlineIcon style={{ fontSize: 20, color: "#b42318" }} />
-                  <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Cancel credit note</span>
+                  <DeleteOutlineIcon style={{ fontSize: 20, color: "var(--icon-error-primary)" }} />
+                  <span className="text-[15px]" style={{ ...FONT, color: "var(--text-error-primary)" }}>Cancel credit note</span>
                 </button>
               )}
               <button onClick={openPdfPreview} className="w-full flex items-center gap-3 py-3.5 text-left">
@@ -568,8 +568,8 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             <>
               {isRefundCancellable && onCancel && (
                 <button onClick={() => { setActionsOpen(false); if (lockedPeriod) { setLockedCancelOpen(true); return; } setConfirmCancel(true); }} className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]">
-                  <DeleteOutlineIcon style={{ fontSize: 20, color: "#b42318" }} />
-                  <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Cancel refund</span>
+                  <DeleteOutlineIcon style={{ fontSize: 20, color: "var(--icon-error-primary)" }} />
+                  <span className="text-[15px]" style={{ ...FONT, color: "var(--text-error-primary)" }}>Cancel refund</span>
                 </button>
               )}
               <button onClick={openPdfPreview} className="w-full flex items-center gap-3 py-3.5 text-left">

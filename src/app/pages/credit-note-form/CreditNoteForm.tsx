@@ -12,6 +12,7 @@ import { ButtonDock } from "../../components/ButtonDock";
 import { IssueDateSheet } from "../../components/IssueDateSheet";
 import { NumericKeypad } from "../../components/NumericKeypad";
 import { FONT, INK, MUTED } from "../../lib/theme";
+import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import type { CreditNoteEditSeed, CreditNotePayload, DraftLine, InvoiceLine } from "../../types";
 import { fmtAmount, formatDMY, lineAmount } from "./lineMath";
 import { ReasonSheet } from "./ReasonSheet";
@@ -335,7 +336,7 @@ export function CreditNoteForm({
       <textarea
         value={reasonNote}
         onChange={(e) => setReasonNote(e.target.value)}
-        onFocus={() => setKeyboardOpen(true)}
+        onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
         onBlur={() => setKeyboardOpen(false)}
         placeholder={`Add a note about this ${refund ? "refund" : "credit note"}`}
         rows={3}
@@ -434,7 +435,7 @@ export function CreditNoteForm({
             type="button"
             onClick={() => setReasonSheetOpen(true)}
             className="w-full flex items-center justify-between rounded-[8px] border px-4 h-[48px] bg-white text-left"
-            style={{ borderColor: reasonError ? "#dc2626" : "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
+            style={{ borderColor: reasonError ? "var(--border-error-bold)" : "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
           >
             <span className="text-[14px] truncate" style={{ ...FONT, color: reason ? "var(--text-primary)" : "#9ca3af" }}>
               {reason || "Select a reason"}

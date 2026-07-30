@@ -12,6 +12,7 @@ import { DEFAULT_COUNTRY_CODE } from "../data/countryCodes";
 import type { Customer } from "../types";
 
 import { FONT } from "../lib/theme";
+import { scrollFieldIntoView } from "../lib/scrollFieldIntoView";
 // "Details" / "Address" / "Invoice" section headers (Figma "Sales Invoice - Client" node 1333-30838).
 const SECTION_TITLE_STYLE = { ...FONT, fontWeight: 700, fontSize: 16, lineHeight: 1.3, color: "var(--text-primary)" } as const;
 
@@ -78,7 +79,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
   const [phoneCodeOpen, setPhoneCodeOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
-  const focusKeyboard = () => setKeyboardOpen(true);
+  const focusKeyboard = (e: React.FocusEvent<HTMLElement>) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); };
   const blurKeyboard = () => setKeyboardOpen(false);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {

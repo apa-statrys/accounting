@@ -75,8 +75,8 @@ export function ActionsMenu({
             button in the Credit notes card (relabelling avoids the misleading "Cancel" wording). */}
         {SHOW_CREDIT_NOTES && cancellable && creditNotesCount === 0 && (
           <Tile
-            icon={<Plus size={24} strokeWidth={1.5} color="var(--text-info-primary)" />}
-            title={<span style={{ color: "var(--text-info-primary)" }}>Add credit note</span>}
+            icon={<Plus size={24} strokeWidth={1.5} color="var(--text-error-primary)" />}
+            title={<span style={{ color: "var(--text-error-primary)" }}>Add credit note</span>}
             onClick={onCreateCn}
           />
         )}
