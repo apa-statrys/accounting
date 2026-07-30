@@ -266,7 +266,6 @@ export function InvoiceDetailPage({
   // Created + uploaded drafts share the DES-817 detail layout: Bill To → Receiving account card →
   // Invoice details → Items → Summary. Only the header + hero line differ by source (uploaded shows
   // the UL number + "Uploaded on"; created shows "Invoice Detail" + "Created on").
-  const draftDetail = status === "Draft" && !recurring;
   // The account shown on the created-draft receiving card (default = the primary Statrys account).
   const receivingAcct = RECEIVING_ACCOUNTS.find((a) => a.primary) ?? RECEIVING_ACCOUNTS[0];
   // Read-only states for content. Paid still exposes a ⋯ menu (Refund with Credit Note); Cancelled/
@@ -336,7 +335,11 @@ export function InvoiceDetailPage({
   // (Figma "status + date" format), so it never repeats the badge's own word (no "Overdue" text
   // next to an "Overdue" badge, no "Paid"/"Refunded" text next to those badges either).
   const bannerText: Record<DetailStatus, string> = {
-    Draft: "",
+    // Created drafts show "Created on <date>", uploaded drafts show "Uploaded on <date>" — inline
+    // beside the "Draft" badge (same "status + date" row every other status uses), not a separate
+    // line. Only reached for a non-recurring Draft (scheduledRecurring overrides headlineBanner
+    // with its own "Scheduled on …"/"Paused on …" text before this is ever read).
+    Draft: `${uploaded ? "Uploaded on" : "Created on"} ${issueDateLabel}`,
     // Hero shows the ORIGINAL full total as the big number; the sub-line shows what's actually due —
     // "$X due" once a credit note reduces the balance, otherwise the due date ("Due 5 Jul 2026",
     // same absolute format as the list). All "due" lines share one font weight + size (see render).
@@ -347,11 +350,13 @@ export function InvoiceDetailPage({
     Paid: overpayment > 0 ? `Overpaid by ${money(overpayment, currency)}, flagged for review` : "",
     // Voided invoices show just the badge + amount — no "Voided … on <date>" sub-line.
     Cancelled: "",
-    // DES-720: refund context leads with the amount to refund; remaining paid is the secondary line.
-    PendingRefund: `${money(outstanding, currency)} remaining paid`,
-    // Fully refunded already reads "Refunded" on the badge — nothing more to add (matches Draft/
-    // Cancelled's "badge alone is enough" pattern) instead of repeating the word.
-    Refunded: credited >= TOTAL - 0.001 ? "" : `${money(outstanding, currency)} remaining paid`,
+    // Refund-context statuses are computed directly in headlineBanner below instead (their text
+    // depends on refundAmt/refundVerb/fullyRefunded, not just which status this is — a "Paid"
+    // invoice with a derived refund tag needs the same refund text as a real PendingRefund status).
+    // These two keys are structurally unreachable — isRefundContext is always true whenever
+    // status is actually "PendingRefund" or "Refunded".
+    PendingRefund: "",
+    Refunded: "",
   };
 
   // Refund money model (DES-720, cumulative). `credited` = total committed to refund credit notes;
@@ -394,7 +399,11 @@ export function InvoiceDetailPage({
     ? seriesStatus === "Paused"
       ? `Paused on ${pausedLabel}`
       : `Scheduled on ${issueDateLabel}`
-    : isRefundContext ? "" : bannerText[status];
+    // Refund context: same inline "status + date/amount" row as every other status — fully
+    // refunded already reads "Refunded" on the badge, so nothing more to add there.
+    : isRefundContext
+    ? (fullyRefunded ? "" : `${money(refundAmt, currency)} ${refundVerb}`)
+    : bannerText[status];
   // Refund dock (DES-720): while a payout is due (refundPending > 0) the primary action is "Refund Credit
   // Note"; once everything committed has been paid out the remaining action is sending the credit-note
   // document (AC6) → "Send/Resend Credit Note". A new note raised later re-opens a pending payout.
@@ -703,12 +712,13 @@ export function InvoiceDetailPage({
               {effectiveRefundTag === "Refund pending" ? "Pending Refund" : effectiveRefundTag}
             </span>
           )}
-          {/* Single status sub-line for every status ("$X due" / "Due <date>" / "Overdue since …"),
-              inline beside the badge (Figma "Due in 3 days"). Overdue is the only colour variant
-              (red). Hidden while a payment is pending reconciliation or in refund context — both
-              have their own dedicated line below instead. */}
-          {!pendingPayment && !isRefundContext && headlineBanner && (
-            <span className="caption-medium" style={{ ...FONT, color: status === "Overdue" ? "#b42318" : INK }}>
+          {/* Single status sub-line for EVERY status, incl. refund context ("$X due" / "Due <date>" /
+              "since <date>" / "$X to refund"), inline beside the badge (Figma "Due in 3 days"). Only
+              the badge itself carries the status color — this text is always text-primary, never a
+              second colored element repeating the badge's color. Hidden only while a payment is
+              pending reconciliation, which has its own dedicated line below instead. */}
+          {!pendingPayment && headlineBanner && (
+            <span className="caption-medium" style={{ ...FONT, color: INK }}>
               {headlineBanner}
             </span>
           )}
@@ -739,20 +749,6 @@ export function InvoiceDetailPage({
         {pendingPayment && (
           <p className="text-[13px] font-medium leading-[1.3]" style={{ ...FONT, color: "#b45309" }}>
             Pending Reconciliation of {money(pendingPayment.amount, currency)}
-          </p>
-        )}
-        {/* Draft hero carries a source line under the amount (DES-817 UI): created drafts show
-            "Created on", uploaded drafts show "Uploaded on". */}
-        {draftDetail && (
-          <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
-            {uploaded ? "Uploaded on" : "Created on"} {issueDateLabel}
-          </p>
-        )}
-        {/* Refund context: the refund amount is primary above, so the paid amount drops to a secondary
-            line with a green "Paid on <date>" note beside it. */}
-        {isRefundContext && !fullyRefunded && (
-          <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
-            {money(refundAmt, currency)} {refundVerb}
           </p>
         )}
       </div>
