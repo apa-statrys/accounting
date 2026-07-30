@@ -1,13 +1,8 @@
 // The ⋯ actions sheet — which rows show is driven by status flags computed in the page;
 // every callback both closes the sheet and performs the action (wired in InvoiceDetailPage).
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
-import AddIcon from "@mui/icons-material/Add";
-import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
-import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
+import { Pencil, Trash2, Receipt, Plus, Send, FileText } from "lucide-react";
 import { BottomSheet } from "../../components/BottomSheet";
-import { FONT, INK } from "../../lib/theme";
+import { Tile } from "../../ui/Tile";
 import { SHOW_CREDIT_NOTES } from "../../lib/flags";
 import type { DetailStatus } from "../../types";
 
@@ -49,74 +44,49 @@ export function ActionsMenu({
 }: ActionsMenuProps) {
   return (
     <BottomSheet open={open} title="" onClose={onClose}>
-      <div className="flex flex-col">
-
+      <div className="flex flex-col gap-2 pt-2">
         {/* Plain Paid invoice (no refund yet) → start a refund with a credit note (DES-720). Once a refund
             is in progress, this drops out and the ⋯ shows Duplicate invoice instead. */}
         {SHOW_CREDIT_NOTES && status === "Paid" && creditNotesCount === 0 && (
-          <button
+          <Tile
+            icon={<Receipt size={24} strokeWidth={1.5} color="var(--text-info-primary)" />}
+            title={<span style={{ color: "var(--text-info-primary)" }}>Refund with Credit Note</span>}
             onClick={onRefundWithCn}
-            className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]"
-          >
-            <ReceiptLongOutlinedIcon style={{ fontSize: 20, color: "var(--ds-text-info-primary)" }} />
-            <span className="text-[15px]" style={{ ...FONT, color: "var(--ds-text-info-primary)" }}>Refund with Credit Note</span>
-          </button>
+          />
         )}
 
         {/* Paid invoice: Preview as PDF also lives here (no dock on a paid invoice). */}
         {status === "Paid" && (
-          <button
-            onClick={onPreviewPdf}
-            className="w-full flex items-center gap-3 py-3.5 text-left"
-          >
-            <PictureAsPdfOutlinedIcon style={{ fontSize: 20, color: INK }} />
-            <span className="text-[15px]" style={{ ...FONT, color: INK }}>Preview as PDF</span>
-          </button>
+          <Tile icon={<FileText size={24} strokeWidth={1.5} />} title="Preview as PDF" onClick={onPreviewPdf} />
         )}
 
         {/* Uploaded drafts: sending stays optional (record-only default). */}
         {status === "Draft" && uploaded && (
-          <button
-            onClick={onSendInvoice}
-            className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]"
-          >
-            <SendOutlinedIcon style={{ fontSize: 20, color: INK }} />
-            <span className="text-[15px]" style={{ ...FONT, color: INK }}>Send invoice</span>
-          </button>
+          <Tile icon={<Send size={24} strokeWidth={1.5} />} title="Send invoice" onClick={onSendInvoice} />
         )}
 
         {/* Edit — full for a draft, limited for an issued still-editable invoice. Hidden for a scheduled
             recurring draft (it's the dock's secondary CTA there). */}
         {(status === "Draft" || status === "Awaiting" || status === "Overdue") && !scheduledRecurring && (
-          <button
-            onClick={onEdit}
-            className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]"
-          >
-            <EditOutlinedIcon style={{ fontSize: 20, color: INK }} />
-            <span className="text-[15px]" style={{ ...FONT, color: INK }}>Edit invoice</span>
-          </button>
+          <Tile icon={<Pencil size={24} strokeWidth={1.5} />} title="Edit Invoice" onClick={onEdit} />
         )}
 
         {/* First credit note only — once one exists, adding more moves to the "+ Add credit note"
             button in the Credit notes card (relabelling avoids the misleading "Cancel" wording). */}
         {SHOW_CREDIT_NOTES && cancellable && creditNotesCount === 0 && (
-          <button
+          <Tile
+            icon={<Plus size={24} strokeWidth={1.5} color="var(--text-info-primary)" />}
+            title={<span style={{ color: "var(--text-info-primary)" }}>Add credit note</span>}
             onClick={onCreateCn}
-            className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]"
-          >
-            <AddIcon style={{ fontSize: 20, color: "var(--ds-text-info-primary)" }} />
-            <span className="text-[15px]" style={{ ...FONT, color: "var(--ds-text-info-primary)" }}>Add credit note</span>
-          </button>
+          />
         )}
 
         {status === "Draft" && (
-          <button
+          <Tile
+            icon={<Trash2 size={24} strokeWidth={1.5} color="var(--text-error-primary)" />}
+            title={<span style={{ color: "var(--text-error-primary)" }}>Delete draft</span>}
             onClick={onDeleteDraft}
-            className="w-full flex items-center gap-3 py-3.5 text-left"
-          >
-            <DeleteOutlineIcon style={{ fontSize: 20, color: "#b42318" }} />
-            <span className="text-[15px]" style={{ ...FONT, color: "#b42318" }}>Delete draft</span>
-          </button>
+          />
         )}
       </div>
     </BottomSheet>

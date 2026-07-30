@@ -18,13 +18,18 @@ import { SHOW_CREDIT_NOTES, SHOW_RECURRING } from "../../lib/flags";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { money } from "../../lib/format";
 import { DETAIL_STATUS_META } from "../../lib/status";
-import { FONT, INK, MUTED } from "../../lib/theme";
+import { FONT, INK, MUTED, initials } from "../../lib/theme";
 import type { CreditNotePayload, DraftLine, DetailStatus, InvoiceEditSeed, InvoiceLine } from "../../types";
 import { ITEMS, SUBTOTAL, DISCOUNT, TOTAL, PAID_PARTIAL, SENT_TODAY, REFUND_DATE_ISO, EDITED_TODAY } from "./demoInvoice";
 import type { CreditNote, RefundProof } from "./creditNoteTypes";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { Repeat, Asterisk, MoreHorizontal } from "lucide-react";
+import { Repeat, MoreVertical, X } from "lucide-react";
 import { MetaRow, InfoCard } from "./InfoBits";
+import { Tile } from "../../ui/Tile";
+import { ListCard } from "../../ui/ListCard";
+import { ListRow } from "../../ui/ListRow";
+import { CountryFlag } from "../../components/CountryFlag";
+import { CURRENCY_COUNTRY } from "../../components/CurrencySheet";
 import { CreditsAppliedSection } from "./CreditsAppliedSection";
 import { ActionsMenu } from "./ActionsMenu";
 import { LockedPeriodDialog } from "../locked-period/LockedPeriodDialog";
@@ -239,8 +244,10 @@ export function InvoiceDetailPage({
   // A recurring invoice awaiting its auto-send date reads as "Scheduled" — a display label only; the real
   // status stays Draft so it still filters under Draft (DES-782). It has no number until issued.
   const scheduledRecurring = recurring && status === "Draft";
-  // Page header = the document's number. A draft has no invoice number yet (assigned on issue), so it
-  // carries a separate DF (draft) number; a scheduled recurring draft just reads "Invoice".
+  // A draft has no invoice number yet (assigned on issue), so it carries a separate DF (draft)
+  // number; a scheduled recurring draft just reads "Invoice". Once issued, this is shown in the
+  // hero body (Figma "Invoice Detail", node 1423:63521) — the page header itself just reads the
+  // generic "Invoice Details" (see pageHeaderTitle below), same for every issued status.
   const headerTitle = scheduledRecurring
     ? "Invoice"
     : status === "Draft" && origin === "uploaded"
@@ -250,6 +257,9 @@ export function InvoiceDetailPage({
     : status === "Draft"
     ? (invoiceNo ? invoiceNo.replace(/^INV/, "DF") : "Draft")
     : (invoiceNo || "Invoice");
+  // A draft's own title (above) still carries its DF/UL number/label in the page header, matching
+  // how it always has — only issued invoices move their number down into the hero (Figma).
+  const pageHeaderTitle = status === "Draft" ? headerTitle : "Invoice Details";
   // Uploaded drafts default to "Mark as sent" (already issued externally → Awaiting payment);
   // "Mark as paid" is the secondary path for invoices already settled. Created drafts default to sending.
   const uploaded = origin === "uploaded";
@@ -322,22 +332,26 @@ export function InvoiceDetailPage({
   const sendName = sendContext === "creditNote" && selectedSendCn ? selectedSendCn.name : customerName;
   const sendEmail = sendContext === "creditNote" && selectedSendCn ? selectedSendCn.email : customerEmail;
 
-  // The one-line status explainer under the amount.
+  // The one-line status explainer under the amount — sits right beside the colored status badge
+  // (Figma "status + date" format), so it never repeats the badge's own word (no "Overdue" text
+  // next to an "Overdue" badge, no "Paid"/"Refunded" text next to those badges either).
   const bannerText: Record<DetailStatus, string> = {
     Draft: "",
     // Hero shows the ORIGINAL full total as the big number; the sub-line shows what's actually due —
     // "$X due" once a credit note reduces the balance, otherwise the due date ("Due 5 Jul 2026",
     // same absolute format as the list). All "due" lines share one font weight + size (see render).
     Awaiting: credited > 0 ? `${money(outstanding, currency)} remaining · due ${dueDateLabel}` : `Due ${dueDateLabel}`,
-    Overdue: credited > 0 ? `${money(outstanding, currency)} remaining · overdue since ${dueDateLabel}` : `Overdue since ${dueDateLabel}`,
+    Overdue: credited > 0 ? `${money(outstanding, currency)} remaining · since ${dueDateLabel}` : `since ${dueDateLabel}`,
     PartiallyPaid: `${money(remaining, currency)} remaining · due ${dueDateLabel}`,
     // No "Paid on <date>" line on the hero (removed app-wide); only the overpayment note remains.
-    Paid: overpayment > 0 ? `Paid · overpaid by ${money(overpayment, currency)}, flagged for review` : "",
+    Paid: overpayment > 0 ? `Overpaid by ${money(overpayment, currency)}, flagged for review` : "",
     // Voided invoices show just the badge + amount — no "Voided … on <date>" sub-line.
     Cancelled: "",
     // DES-720: refund context leads with the amount to refund; remaining paid is the secondary line.
     PendingRefund: `${money(outstanding, currency)} remaining paid`,
-    Refunded: credited >= TOTAL - 0.001 ? "Refunded in full" : `${money(outstanding, currency)} remaining paid`,
+    // Fully refunded already reads "Refunded" on the badge — nothing more to add (matches Draft/
+    // Cancelled's "badge alone is enough" pattern) instead of repeating the word.
+    Refunded: credited >= TOTAL - 0.001 ? "" : `${money(outstanding, currency)} remaining paid`,
   };
 
   // Refund money model (DES-720, cumulative). `credited` = total committed to refund credit notes;
@@ -646,24 +660,104 @@ export function InvoiceDetailPage({
   const duplicate = () => { setActionsOpen(false); setLocalToast("Invoice duplicated"); };
 
   return (
-    <div className="relative bg-white rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
+    <div className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812, background: "var(--bg-beige-primary)" }}>
+      {/* No background here (was bg-white) — PageAppHeader is transparent at rest, so it needs
+          the beige of the OUTER frame to show through behind it (Figma), not opaque white.
+          The white "body" further down comes from its own wrapper below instead. */}
       <div
-        className="flex-1 overflow-y-auto thin-scrollbar bg-white"
+        className="flex-1 overflow-y-auto thin-scrollbar"
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
       <PageAppHeader scrolled={scrolled}>
       <PageHeader
         type="center"
-        title={headerTitle}
+        title={pageHeaderTitle}
         onBack={onBack}
+        backIcon={<X size={20} strokeWidth={1} />}
         showSearch={showMenu || paidActionsInMenu}
-        rightIcon={<MoreHorizontal size={20} strokeWidth={1} />}
+        rightIcon={<MoreVertical size={20} strokeWidth={1} />}
         rightLabel="More actions"
         onRightClick={() => setActionsOpen(true)}
       />
       </PageAppHeader>
 
-      <div className="px-4 pt-5 pb-44 flex flex-col gap-6">
+      {/* Status + amount — full-bleed beige→white gradient hero (Figma "Invoice Detail",
+          node 1423:63521), edge to edge rather than inset like the cards below it. */}
+      <div
+        className="px-4 py-6 flex flex-col gap-3"
+        style={{ backgroundImage: "linear-gradient(180deg, var(--bg-beige-primary) 1%, var(--bg-neutral-primary) 99%)" }}
+      >
+        <span className="flex items-center gap-1.5 flex-wrap">
+          {/* The "Paid" status badge is suppressed in refund context — the refund tag below is the
+              primary badge, and the green "Paid on …" line carries the paid state. Figma shows this
+              as plain colored text, not a pill. */}
+          {!effectiveRefundTag && (
+            <span className="caption-medium" style={{ ...FONT, color: meta.text }}>{meta.label}</span>
+          )}
+          {/* Derived refund tag — invoice stays Paid; the refund lives on the credit note (763 model). */}
+          {effectiveRefundTag && (
+            <span
+              className="caption-medium"
+              style={{ ...FONT, color: effectiveRefundTag === "Refunded" ? "#4338ca" : "#b45309" }}
+            >
+              {effectiveRefundTag === "Refund pending" ? "Pending Refund" : effectiveRefundTag}
+            </span>
+          )}
+          {/* Single status sub-line for every status ("$X due" / "Due <date>" / "Overdue since …"),
+              inline beside the badge (Figma "Due in 3 days"). Overdue is the only colour variant
+              (red). Hidden while a payment is pending reconciliation or in refund context — both
+              have their own dedicated line below instead. */}
+          {!pendingPayment && !isRefundContext && headlineBanner && (
+            <span className="caption-medium" style={{ ...FONT, color: status === "Overdue" ? "#b42318" : INK }}>
+              {headlineBanner}
+            </span>
+          )}
+        </span>
+        {/* Headline: refund context → amount to refund; otherwise amount due / total. Currency code
+            and the amount itself carry different weights/sizes per Figma. */}
+        <p className="leading-none" style={{ ...FONT, color: INK }}>
+          <span className="text-[18px] font-bold tracking-[-0.9px]">{currency}</span>
+          <span className="text-[18px]"> </span>
+          {/* Figma's dev-mode code export reported this run at 64px, but the text layer's own
+              stored layout box is only 36px tall (get_metadata: node 0:180, height 36) — 64px
+              can't physically fit at any reasonable line-height, so that figure was a code-gen
+              artifact, not the real design. 40px × leading-0.9 = 36px, matching the actual box.
+              fontWeight set explicitly (not Tailwind's font-black, which is 900) — the app only
+              ships an 800 "Black" cut (--fw-black); at 900 the browser synthesizes a heavier,
+              wider fake-bold on top of it instead of rendering the real face. */}
+          <span className="text-[40px] leading-[0.9] tracking-[-2px]" style={{ fontWeight: "var(--fw-black)" }}>
+            {headlineAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        </p>
+        {/* Once issued, the document's own number moves down here (Figma) — the page header just
+            reads the generic "Invoice Details" for every issued status (see pageHeaderTitle). */}
+        {status !== "Draft" && (
+          <p className="body-md" style={{ ...FONT, color: INK }}>{headerTitle}</p>
+        )}
+        {/* A payment has been recorded and is waiting on the accountant to reconcile it — the invoice
+            stays Awaiting Payment until then. Shows the amount the user recorded as "Marked as paid". */}
+        {pendingPayment && (
+          <p className="text-[13px] font-medium leading-[1.3]" style={{ ...FONT, color: "#b45309" }}>
+            Pending Reconciliation of {money(pendingPayment.amount, currency)}
+          </p>
+        )}
+        {/* Draft hero carries a source line under the amount (DES-817 UI): created drafts show
+            "Created on", uploaded drafts show "Uploaded on". */}
+        {draftDetail && (
+          <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
+            {uploaded ? "Uploaded on" : "Created on"} {issueDateLabel}
+          </p>
+        )}
+        {/* Refund context: the refund amount is primary above, so the paid amount drops to a secondary
+            line with a green "Paid on <date>" note beside it. */}
+        {isRefundContext && !fullyRefunded && (
+          <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
+            {money(refundAmt, currency)} {refundVerb}
+          </p>
+        )}
+      </div>
+
+      <div className="px-4 pt-5 pb-44 flex flex-col gap-6 bg-white">
         {/* Locked-period notice (DES-751) — neutral, non-blocking; Mark as paid still works. */}
         {lockedPeriod && (
           <LockedPeriodBanner
@@ -677,73 +771,6 @@ export function InvoiceDetailPage({
             }
           />
         )}
-
-        {/* Status + amount — cream hero card (Figma 1209). */}
-        <InfoCard tone="hero">
-          <div className="py-3 flex flex-col gap-1.5">
-            <span className="self-start flex items-center gap-1.5">
-              {/* The "Paid" status badge is suppressed in refund context — the refund tag below is the
-                  primary badge, and the green "Paid on …" line carries the paid state. */}
-              {!effectiveRefundTag && (
-                <span
-                  className="px-2.5 py-0.5 rounded-full border text-[11px] font-bold leading-[16px]"
-                  style={{ ...FONT, background: meta.bg, borderColor: meta.border, color: meta.text }}
-                >
-                  {meta.label}
-                </span>
-              )}
-              {/* Derived refund tag — invoice stays Paid; the refund lives on the credit note (763 model). */}
-              {effectiveRefundTag && (
-                <span
-                  className="px-2.5 py-0.5 rounded-full border text-[11px] font-bold leading-[16px]"
-                  style={
-                    effectiveRefundTag === "Refunded"
-                      ? { ...FONT, background: "#eef2ff", borderColor: "#c7d2fe", color: "#4338ca" }
-                      : { ...FONT, background: "#fff7e6", borderColor: "#fde68a", color: "#b45309" }
-                  }
-                >
-                  {effectiveRefundTag === "Refund pending" ? "Pending Refund" : effectiveRefundTag}
-                </span>
-              )}
-            </span>
-            {/* Headline: refund context → amount to refund (with a small label); otherwise amount due / total. */}
-            <div className="flex items-baseline gap-2 flex-wrap">
-              <p className="text-[20px] font-black leading-none tracking-[-0.8px]" style={{ ...FONT, color: INK }}>
-                {money(headlineAmount, currency)}
-              </p>
-            </div>
-            {/* Single status sub-line for every status ("$X due" / "Due <date>" / "Overdue since …" /
-                refund amount). One font weight + size; Overdue is the only colour variant (red).
-                While a payment is pending reconciliation, this line is hidden — the "Pending
-                Reconciliation of $X" line below replaces it (no duplicated amount / stale "remaining"). */}
-            {!pendingPayment && headlineBanner ? (
-              <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: status === "Overdue" ? "#b42318" : MUTED }}>
-                {headlineBanner}
-              </p>
-            ) : null}
-            {/* A payment has been recorded and is waiting on the accountant to reconcile it — the invoice
-                stays Awaiting Payment until then. Shows the amount the user recorded as "Marked as paid". */}
-            {pendingPayment && (
-              <p className="text-[13px] font-medium leading-[1.3]" style={{ ...FONT, color: "#b45309" }}>
-                Pending Reconciliation of {money(pendingPayment.amount, currency)}
-              </p>
-            )}
-            {/* Draft hero carries a source line under the amount (DES-817 UI): created drafts show
-                "Created on", uploaded drafts show "Uploaded on". */}
-            {draftDetail && (
-              <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
-                {uploaded ? "Uploaded on" : "Created on"} {issueDateLabel}
-              </p>
-            )}
-            {/* Refund context: the refund amount is primary above, so the paid amount drops to a secondary
-                line with a green "Paid on <date>" note beside it. */}
-            {isRefundContext && !fullyRefunded && (
-              <p className="text-[13px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
-                {money(refundAmt, currency)} {refundVerb}
-              </p>
-            )}
-          </div>
-        </InfoCard>
 
         {/* Credits Applied — sits above the customer/details for any invoice with a credit note (DES-763).
             Gated off for prod (SHOW_CREDIT_NOTES). */}
@@ -803,106 +830,96 @@ export function InvoiceDetailPage({
           </button>
         )}
 
-        {/* Customer — avatar removed for now (pending invoice-number confirmation).
-            Sectioned layout (DES-817 draft + Awaiting) labels it "Bill To". */}
-        <InfoCard title={sectionedLayout ? "Bill To" : undefined}>
-          <div className="py-3 flex items-center gap-3">
-            <div className="min-w-0">
-              <p className="text-[15px] font-medium leading-tight truncate" style={{ ...FONT, color: INK }}>{customerName}</p>
-              <p className="text-[13px] leading-[1.4] mt-0.5 truncate" style={{ ...FONT, color: MUTED }}>{customerEmail}</p>
-            </div>
-          </div>
-        </InfoCard>
+        {/* Customer — DS Tile (Figma "Invoice Detail", node 1423:63521), matching every other Bill To
+            display in the app. */}
+        <div className="flex flex-col gap-2">
+          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>Bill To</p>
+          <Tile avatar={initials(customerName)} title={customerName} text={customerEmail} />
+        </div>
 
-        {/* Receiving account (DES-817) — title inside the card (Figma 1209); display-only. */}
-        {sectionedLayout && (
-          <InfoCard title="Receiving Account">
-            <div className="py-3">
-              <div className="flex items-center gap-2">
-                {/* Statrys account mark — red circle + white asterisk. */}
-                <span className="shrink-0 w-[22px] h-[22px] rounded-full flex items-center justify-center" style={{ background: "#E4002B" }}>
-                  <Asterisk size={14} strokeWidth={3} color="#fff" />
-                </span>
-                <span className="text-[15px] font-medium truncate" style={{ ...FONT, color: INK }}>{receivingAcct.name}</span>
-                {receivingAcct.primary && (
-                  <span className="ml-auto shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold leading-[14px]" style={{ ...FONT, background: "#101828", color: "var(--text-on-color)" }}>PRIMARY</span>
-                )}
-              </div>
-              <p className="text-[13px] leading-[1.4] mt-1 truncate" style={{ ...FONT, color: MUTED }}>{receivingAcct.number}</p>
-            </div>
-          </InfoCard>
-        )}
+        {/* Receiving account (DES-817) — DS Tile with the account's own country flag (Figma), same
+            pattern as every other receiving-account display in the app. */}
+        <div className="flex flex-col gap-2">
+          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>Receiving Account</p>
+          <Tile
+            flag={<CountryFlag name={receivingAcct.country} size={30} />}
+            title={receivingAcct.name}
+            text={receivingAcct.number}
+            badgeLabel={receivingAcct.primary ? "Primary" : undefined}
+          />
+        </div>
 
-        {/* Details — sectioned layout (DES-817) titles it "Invoice Details" and leads with Currency. */}
-        <InfoCard title={sectionedLayout ? "Invoice Details" : undefined}>
-          {/* Invoice number is shown in the page header only — never repeated inside this card. */}
-          {sectionedLayout ? (
-            <>
-              <MetaRow label="Currency" value={currency} />
-              <MetaRow label="Issue Date" value={issueDateLabel} />
-              {/* A recurring draft has no issue date yet, so its due date is the inherited term. */}
-              <MetaRow label="Due Date" value={recurring && status === "Draft" ? "Next 30 days after issue" : `Next 30 days · ${dueDateLabel}`} last />
-            </>
-          ) : (
-            <>
-              <MetaRow label="Issue date" value={issueDateLabel} />
-              {/* A recurring draft has no issue date yet, so its due date is the inherited default TERM
-                  (DES-782 — each generated invoice is a standard invoice; term applied on issue), not a
-                  fixed date. Once issued, it shows the concrete date like any other invoice. */}
-              <MetaRow label="Due date" value={recurring && status === "Draft" ? "Next 30 days after issue" : `Next 30 days · ${dueDateLabel}`} />
-              <MetaRow label="Currency" value={currency} last />
-            </>
-          )}
-        </InfoCard>
+        {/* Details — DS ListCard/ListRow (Figma), leads with Currency. */}
+        <div className="flex flex-col gap-2">
+          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>Invoice Details</p>
+          <ListCard>
+            <ListRow label="Currency" value={currency} valueFlag={<CountryFlag name={CURRENCY_COUNTRY[currency]} size={16} />} />
+            <ListRow label="Issue Date" value={issueDateLabel} />
+            {/* A recurring draft has no issue date yet, so its due date is the inherited term. */}
+            {recurring && status === "Draft" ? (
+              <ListRow label="Due Date" value="Next 30 days after issue" last />
+            ) : (
+              <ListRow label="Due Date" value="Next 30 days" valueDescription={dueDateLabel} last />
+            )}
+          </ListCard>
+        </div>
 
-        {/* Line items — items only; totals live in their own Summary card below */}
-        <InfoCard title={sectionedLayout ? `Items ( ${ITEMS.length} )` : "Items"}>
-          {ITEMS.map((it, i) => (
-            <div key={it.name} className={`flex items-start justify-between py-2.5 ${i === ITEMS.length - 1 ? "" : "border-b border-[rgba(160,160,160,0.18)]"}`}>
-              <div className="flex-1 min-w-0 pr-3">
-                <p className="text-[14px] font-medium leading-tight" style={{ ...FONT, color: INK }}>{it.name}</p>
-                <p className="text-[12px] leading-[1.3] mt-0.5" style={{ ...FONT, color: MUTED }}>
-                  {it.qty} {it.unit} · {money(it.unitPrice, currency)}
-                </p>
-              </div>
-              <p className="text-[14px] font-medium" style={{ ...FONT, color: INK }}>{money(it.amount, currency)}</p>
-            </div>
-          ))}
-        </InfoCard>
+        {/* Line items — items only; totals live in their own Summary card below. DS ListCard/ListRow
+            (Figma), same shape as every other line-item list in the app. */}
+        <div className="flex flex-col gap-2">
+          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{`Items ( ${ITEMS.length} )`}</p>
+          <ListCard>
+            {ITEMS.map((it, i) => (
+              <ListRow
+                key={it.name}
+                label={it.name}
+                description={`${it.qty} ${it.unit} · ${money(it.unitPrice, currency)}`}
+                value={money(it.amount, currency)}
+                last={i === ITEMS.length - 1}
+              />
+            ))}
+          </ListCard>
+        </div>
 
         {/* Summary — Subtotal, Discount (only if any), Total. Total is always the final amount due;
-            credit notes (DES-719) and partial payments add their own lines below it. */}
-        <InfoCard title="Summary">
-          <div className="flex items-center justify-between py-2.5">
-            <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Subtotal</span>
-            <span className="text-[13px]" style={{ ...FONT, color: INK }}>{money(SUBTOTAL, currency)}</span>
+            credit notes (DES-719) and partial payments add their own lines below it. Card surface
+            matches Figma's Summary card (bg-neutral-secondary, 16px radius). */}
+        <div className="flex flex-col gap-2">
+          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>Summary</p>
+          <div className="rounded-2xl border px-4 py-1" style={{ background: "var(--bg-neutral-secondary)", borderColor: "rgba(208,208,208,0.4)" }}>
+            <div className="flex items-center justify-between py-2.5">
+              <span className="body-sm" style={{ ...FONT, color: MUTED }}>Subtotal</span>
+              <span className="body-sm" style={{ ...FONT, color: INK }}>{money(SUBTOTAL, currency)}</span>
+            </div>
+            {/* Discount row always shown (0.00 when none); its bottom divider separates it from Total
+                (Figma puts the divider here, not above Total). */}
+            <div className="flex items-center justify-between py-2.5 border-b" style={{ borderColor: "rgba(208,208,208,0.4)" }}>
+              <span className="body-sm" style={{ ...FONT, color: MUTED }}>Discount</span>
+              <span className="body-sm" style={{ ...FONT, color: DISCOUNT > 0 ? "var(--text-brand)" : INK }}>{DISCOUNT > 0 ? `−${money(DISCOUNT, currency)}` : money(0, currency)}</span>
+            </div>
+            {/* When credit is APPLIED, Total is just a reference and Amount due is the prominent figure.
+                An UNapplied (Open) credit note isn't shown here — it's surfaced in the Credits Applied card
+                above, and doesn't touch the invoice amount until applied. Figma's dedicated Summary
+                component (node 1927:12169): every row is body-sm (14px) — Total only switches WEIGHT
+                (regular → bold), never size. */}
+            <div className={`flex items-center justify-between ${credited > 0 ? "py-2.5" : "py-3"}`}>
+              <span className={credited > 0 ? "body-sm font-medium" : "body-sm-bold"} style={{ ...FONT, color: credited > 0 ? MUTED : INK }}>Total</span>
+              <span className={credited > 0 ? "body-sm font-medium" : "body-sm-bold"} style={{ ...FONT, color: credited > 0 ? MUTED : INK }}>{money(TOTAL, currency)}</span>
+            </div>
+            {credited > 0 && (
+              <>
+                <div className="flex items-center justify-between pb-2.5">
+                  <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>{isRefundContext ? "Refunded" : "Credit notes applied"}</span>
+                  <span className="text-[13px] font-medium" style={{ ...FONT, color: "#b42318" }}>−{money(credited, currency)}</span>
+                </div>
+                <div className="flex items-center justify-between pb-3 pt-3 border-t" style={{ borderColor: "rgba(160,160,160,0.25)" }}>
+                  <span className="text-[17px] tracking-[-0.4px]" style={{ ...FONT, fontWeight: "var(--fw-black)", color: INK }}>{isRefundContext ? "Net Paid" : "Amount due"}</span>
+                  <span className="text-[17px] tracking-[-0.4px]" style={{ ...FONT, fontWeight: "var(--fw-black)", color: INK }}>{money(outstanding, currency)}</span>
+                </div>
+              </>
+            )}
           </div>
-          {/* Discount row always shown (0.00 when none). Draft detail (DES-817) shows it in the
-              accent colour to echo the Figma. */}
-          <div className="flex items-center justify-between py-2.5">
-            <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Discount</span>
-            <span className="text-[13px] font-medium" style={{ ...FONT, color: sectionedLayout ? "var(--text-brand)" : INK }}>{DISCOUNT > 0 ? `−${money(DISCOUNT, currency)}` : money(0, currency)}</span>
-          </div>
-          {/* When credit is APPLIED, Total is just a reference and Amount due is the prominent figure.
-              An UNapplied (Open) credit note isn't shown here — it's surfaced in the Credits Applied card
-              above, and doesn't touch the invoice amount until applied. */}
-          <div className={`flex items-center justify-between ${credited > 0 ? "pb-1.5" : "pb-3"} ${sectionedLayout && credited === 0 ? "pt-3 mt-1 -mx-4 px-4 rounded-lg bg-[#f2efe4]" : "pt-3 border-t border-[rgba(160,160,160,0.25)]"}`}>
-            <span className={credited > 0 ? "text-[13px] font-medium" : "text-[15px] font-bold"} style={{ ...FONT, color: credited > 0 ? MUTED : INK }}>Total</span>
-            <span className={credited > 0 ? "text-[13px] font-medium" : "text-[15px] font-bold"} style={{ ...FONT, color: credited > 0 ? MUTED : INK }}>{money(TOTAL, currency)}</span>
-          </div>
-          {credited > 0 && (
-            <>
-              <div className="flex items-center justify-between pb-2.5">
-                <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>{isRefundContext ? "Refunded" : "Credit notes applied"}</span>
-                <span className="text-[13px] font-medium" style={{ ...FONT, color: "#b42318" }}>−{money(credited, currency)}</span>
-              </div>
-              <div className="flex items-center justify-between pb-3 pt-3 border-t border-[rgba(160,160,160,0.25)]">
-                <span className="text-[17px] font-black tracking-[-0.4px]" style={{ ...FONT, color: INK }}>{isRefundContext ? "Net Paid" : "Amount due"}</span>
-                <span className="text-[17px] font-black tracking-[-0.4px]" style={{ ...FONT, color: INK }}>{money(outstanding, currency)}</span>
-              </div>
-            </>
-          )}
-        </InfoCard>
+        </div>
 
         {/* Receiving payment details — only the critical fields; rest behind an accordion.
             The sectioned layout shows the receiving account as a card up top (DES-817), so skip it here. */}
