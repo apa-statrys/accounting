@@ -29,6 +29,36 @@ interface CountryCodeSheetProps {
   onSelect?: (country: CountryCode) => void;
 }
 
+interface CountryCodeRowsProps {
+  value?: string;
+  query: string;
+  onSelect?: (country: CountryCode) => void;
+}
+
+/** Just the search-filtered row list — no BottomSheet/header of its own, so a caller that needs
+ *  the picker as a sub-level of ANOTHER sheet (header/content swap, not a stacked sheet — see
+ *  memory: sub-level-drawer-same-sheet) can render it directly instead of nesting a whole
+ *  CountryCodeSheet (which brings its own BottomSheet). */
+export function CountryCodeRows({ value, query, onSelect }: CountryCodeRowsProps) {
+  const filtered = COUNTRY_CODES.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()));
+  return (
+    <div className={styles.list}>
+      {filtered.map((c) => (
+        <motion.div key={c.name} variants={sheetItem}>
+          <Tile
+            size="sm"
+            title={`${c.name} (${c.dialCode})`}
+            flag={<CountryFlag name={c.name} size={30} />}
+            trailing={value === c.name ? "check" : "none"}
+            selected={value === c.name}
+            onClick={() => onSelect?.(c)}
+          />
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Phone country-code picker (Figma "Select Country Code") — same shell/row pattern as
  * CountrySheet (DS Bottomsheet, search toggle, DS Tile country rows), rows read
@@ -37,7 +67,6 @@ interface CountryCodeSheetProps {
 export function CountryCodeSheet({ open, value, onClose, onSelect }: CountryCodeSheetProps) {
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const filtered = COUNTRY_CODES.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()));
 
   const toggleSearch = () => {
     setSearchOpen((prev) => {
@@ -69,20 +98,7 @@ export function CountryCodeSheet({ open, value, onClose, onSelect }: CountryCode
           </motion.div>
         )}
 
-        <div className={styles.list}>
-          {filtered.map((c) => (
-            <motion.div key={c.name} variants={sheetItem}>
-              <Tile
-                size="sm"
-                title={`${c.name} (${c.dialCode})`}
-                flag={<CountryFlag name={c.name} size={30} />}
-                trailing={value === c.name ? "check" : "none"}
-                selected={value === c.name}
-                onClick={() => onSelect?.(c)}
-              />
-            </motion.div>
-          ))}
-        </div>
+        <CountryCodeRows value={value} query={query} onSelect={onSelect} />
       </div>
     </BottomSheet>
   );

@@ -559,10 +559,11 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       </BottomSheet>
 
       {/* Delete-draft confirmation (DES-719 AC7). Dock goes in the sheet footer so it aligns flush
-          like every other ButtonDock (body placement double-pads it). Delete Credit note leads as
-          the filled primary, in red — it's irreversible, not just the recommended choice; Cancel
-          (dismiss this prompt) is the plain outline secondary (see memory:
-          destructive-color-by-reversibility). */}
+          like every other ButtonDock (body placement double-pads it). Both actions are
+          destructive-styled (see memory: destructive-color-by-reversibility): Delete Credit note
+          leads as the filled primary, in red; Cancel (dismiss this prompt) is the destructive
+          secondary, which renders as a plain neutral outline (see ui/Button's `destructive` prop
+          — the strong red is reserved for the primary). */}
       <BottomSheet
         open={confirmDelete}
         title="Delete credit note?"
@@ -574,6 +575,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             primaryLabel="Delete Credit note"
             primaryDestructive
             secondaryLabel="Cancel"
+            secondaryDestructive
             onPrimary={() => { setConfirmDelete(false); onCancel?.(); }}
             onSecondary={() => setConfirmDelete(false)}
           />

@@ -82,7 +82,7 @@
   background: transparent;
   padding-left: 0;
   padding-right: 0;
-  font-weight: var(--fw-bold); /* Text style uses the Bold type ramp per Figma */
+  font-weight: var(--fw-medium); /* Text style uses the Medium type ramp, not Bold (re-checked) */
   color: var(--badge-primary);
 }
 

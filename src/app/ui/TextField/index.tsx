@@ -31,6 +31,10 @@ interface TextFieldProps {
   selectorIcon?: React.ReactNode;
   /** Tap on the country-code / currency / unit selector. */
   onSelectorClick?: () => void;
+  /** Explicit override for whether the mobile/currency/unit selector shows its chevron —
+   *  defaults to auto (shown only when `onSelectorClick` is set, so a read-only selector
+   *  doesn't imply it's tappable). Pass `true`/`false` to show/hide it regardless. */
+  selectorChevron?: boolean;
   /** Tap on a dropdown / date-picker field. */
   onClick?: () => void;
   inputMode?: React.InputHTMLAttributes<HTMLInputElement>["inputMode"];
@@ -107,6 +111,7 @@ export function TextField({
   selectorLabel,
   selectorIcon,
   onSelectorClick,
+  selectorChevron,
   onClick,
   inputMode,
   inputType = "text",
@@ -137,21 +142,28 @@ export function TextField({
     .join(" ");
 
   // No onSelectorClick → nothing to tap (e.g. a currency fixed per invoice, shown read-only) —
-  // render plain text with no chevron rather than a button that implies it's interactive.
-  const selector = hasSelector && (
-    onSelectorClick ? (
-      <button type="button" className={styles.selector} onClick={onSelectorClick} disabled={disabled}>
-        {type !== "unit" && <span className={styles.flag}>{selectorIcon ?? <USFlag />}</span>}
-        <span>{selectorLabel ?? SELECTOR_DEFAULTS[type]}</span>
+  // render plain text rather than a button that implies it's interactive. The chevron itself is
+  // a separate, explicit choice (`selectorChevron`) defaulting to that same auto rule, so a
+  // caller can still show it without wiring a click (or hide it on a tappable selector).
+  const showChevron = selectorChevron ?? !!onSelectorClick;
+  const selectorContent = (
+    <>
+      {type !== "unit" && <span className={styles.flag}>{selectorIcon ?? <USFlag />}</span>}
+      <span>{selectorLabel ?? SELECTOR_DEFAULTS[type]}</span>
+      {showChevron && (
         <span className={styles.chevronSm}>
           <Chevron size={16} />
         </span>
+      )}
+    </>
+  );
+  const selector = hasSelector && (
+    onSelectorClick ? (
+      <button type="button" className={styles.selector} onClick={onSelectorClick} disabled={disabled}>
+        {selectorContent}
       </button>
     ) : (
-      <span className={styles.selector}>
-        {type !== "unit" && <span className={styles.flag}>{selectorIcon ?? <USFlag />}</span>}
-        <span>{selectorLabel ?? SELECTOR_DEFAULTS[type]}</span>
-      </span>
+      <span className={styles.selector}>{selectorContent}</span>
     )
   );
 

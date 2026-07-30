@@ -173,11 +173,11 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
                           style={{ background: "var(--alpha-white-40)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "var(--shadow-md)" } as React.CSSProperties}
                         >
                           <button type="button" aria-label="Add customer" onClick={openAdd} className="flex items-center justify-center text-[var(--text-primary)]">
-                            <UserPlus size={20} />
+                            <UserPlus size={20} strokeWidth={1} />
                           </button>
                           {customers.length >= 5 && (
                             <button type="button" aria-label="Search customers" onClick={startSearch} className="flex items-center justify-center text-[var(--text-primary)]">
-                              <SearchIcon size={20} />
+                              <SearchIcon size={20} strokeWidth={1} />
                             </button>
                           )}
                         </motion.div>

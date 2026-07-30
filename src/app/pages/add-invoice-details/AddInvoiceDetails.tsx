@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
-import { UploadedFileCard, FilePreviewOverlay } from "../../components/UploadedFile";
+import { FilePreviewOverlay } from "../../components/UploadedFile";
+import { FileItemBase } from "../../ui/FileItemBase";
 import CheckIcon from "@mui/icons-material/Check";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { PageAppHeader } from "../../components/PageAppHeader";
@@ -25,7 +26,7 @@ import { CountryFlag } from "../../components/CountryFlag";
 import { Toggle } from "../../ui/Toggle";
 import { DueDateSheet } from "../../components/DueDateSheet";
 import { IssueDateSheet } from "../../components/IssueDateSheet";
-import { BottomSheet } from "../../components/BottomSheet";
+import { BottomSheet, stepSlide } from "../../components/BottomSheet";
 import { Calendar } from "../../components/Calendar";
 import { FREQUENCIES, type Frequency, nextDates } from "./recurrence";
 import { ReceivingAccountSheet } from "../../components/ReceivingAccountSheet";
@@ -447,6 +448,21 @@ export function AddInvoiceDetails({
     if (services.length > 0) setItemsError(false);
   }, [services.length]);
 
+  // Upload review's Create Invoice CTA stays enabled (not silently disabled) — tapping it with
+  // Customer name/email unfilled or an invalid email surfaces the error and scrolls to it, same
+  // convention as the Items error above and guardIssueDate below. Clears itself once fixed, not
+  // just on the next tap.
+  const [customerFieldsError, setCustomerFieldsError] = useState(false);
+  useEffect(() => {
+    if (name.trim() && emailValid) setCustomerFieldsError(false);
+  }, [name, emailValid]);
+  const guardCustomerFields = () => {
+    if (name.trim() && emailValid) return false;
+    setCustomerFieldsError(true);
+    setTimeout(() => flaggedRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+    return true;
+  };
+
   // DES-718 send methods (Shareable Link / Download).
   const shareLink = `https://pay.statrys.com/i/${invoiceNo}`;
 
@@ -574,9 +590,19 @@ export function AddInvoiceDetails({
           <CoverageBanner fieldsExtracted={fieldsExtracted} fieldsTotal={fieldsTotal} />
         )}
 
-        {/* Uploaded file (top) — what the user just uploaded, with a button to preview the original. */}
+        {/* Uploaded file (top) — what the user just uploaded; tap the row to preview the original,
+            or Replace to pick a different file (same re-upload path as the OCR-failure banner's
+            "Upload a clearer file" link). */}
         {isExtracted && uploadedFile && (
-          <UploadedFileCard file={uploadedFile} onPreview={() => setFilePreviewOpen(true)} />
+          <FileItemBase
+            name={uploadedFile.name}
+            size={`${(uploadedFile.size / 1024 / 1024).toFixed(1)} MB`}
+            fileType={uploadedFile.name.split(".").pop()?.toLowerCase() ?? "file"}
+            state="completed"
+            action="replace"
+            onClick={() => setFilePreviewOpen(true)}
+            onReplace={onReupload}
+          />
         )}
 
         {/* Banner — OCR-failure notice (couldn't read the file) takes priority over the summary */}
@@ -600,7 +626,9 @@ export function AddInvoiceDetails({
              pre-filled, editable fields (not a card). An unmatched client is saved to the customer
              list automatically on create; a missing field is flagged until supplied. */
           <div ref={flaggedRef} className="scroll-mt-24 flex flex-col gap-3">
-            {/* Customer name — warning highlight + caption when OCR couldn't read it */}
+            {/* Customer name — amber highlight + caption when OCR couldn't read it (proactive,
+                shown from the moment the review opens); tapping Create Invoice while still empty
+                escalates to a real (red) validation error instead — see guardCustomerFields. */}
             <div className="flex flex-col gap-1">
               <TextField
                 label="Customer name"
@@ -608,18 +636,27 @@ export function AddInvoiceDetails({
                 mandatory
                 value={editName}
                 onChange={setEditName}
-                highlight={nameMissing}
+                highlight={nameMissing && !customerFieldsError}
+                error={customerFieldsError && !editName.trim()}
                 onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
                 onBlur={() => setKeyboardOpen(false)}
               />
-              {nameMissing && (
-                <p className="text-[12px] leading-[1.4] text-[var(--text-warning-primary)]" style={FONT}>
-                  Couldn't extract this field. Enter it manually.
+              {customerFieldsError && !editName.trim() ? (
+                <p className="text-[12px] leading-[1.4] text-[var(--text-error-primary)]" style={FONT}>
+                  Enter the customer name.
                 </p>
+              ) : (
+                nameMissing && (
+                  <p className="text-[12px] leading-[1.4] text-[var(--text-warning-primary)]" style={FONT}>
+                    Couldn't extract this field. Enter it manually.
+                  </p>
+                )
               )}
             </div>
 
-            {/* Email — warning highlight + caption when OCR couldn't read it */}
+            {/* Email — amber highlight + caption when OCR couldn't read it (proactive); tapping
+                Create Invoice while empty or an invalid format escalates to a real (red)
+                validation error instead — see guardCustomerFields. */}
             <div className="flex flex-col gap-1">
               <TextField
                 label="Email address"
@@ -628,14 +665,21 @@ export function AddInvoiceDetails({
                 mandatory
                 value={editEmail}
                 onChange={setEditEmail}
-                highlight={emailMissing}
+                highlight={emailMissing && !customerFieldsError}
+                error={customerFieldsError && !emailValid}
                 onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
                 onBlur={() => setKeyboardOpen(false)}
               />
-              {emailMissing && (
-                <p className="text-[12px] leading-[1.4] text-[var(--text-warning-primary)]" style={FONT}>
-                  Couldn't extract this field. Enter it manually.
+              {customerFieldsError && !emailValid ? (
+                <p className="text-[12px] leading-[1.4] text-[var(--text-error-primary)]" style={FONT}>
+                  {editEmail.trim() ? "Enter a valid email address." : "Enter the email address."}
                 </p>
+              ) : (
+                emailMissing && (
+                  <p className="text-[12px] leading-[1.4] text-[var(--text-warning-primary)]" style={FONT}>
+                    Couldn't extract this field. Enter it manually.
+                  </p>
+                )
               )}
             </div>
           </div>
@@ -964,13 +1008,20 @@ export function AddInvoiceDetails({
             type="single"
             sticky
             primaryLabel="Create Invoice"
-            primaryDisabled={!(name.trim() && emailValid)}
+            // Always enabled (same convention as the manual-create dock below) — tapping with
+            // Customer name/email unfilled or invalid surfaces the error on those fields instead
+            // of the button just sitting disabled with no explanation (guardCustomerFields).
             // Uploaded invoices are record-only by default (DES-716): issuing moves them
             // to Awaiting Payment (sending happened elsewhere). The toast confirms the record
             // action — the Awaiting Payment status is shown by the detail-page badge.
             // Locked-period demo: an unset Issue Date shows the required-field error (guardIssueDate
             // scrolls + flags); once picked, lockActions keeps the CTA inert so it never lands.
-            onPrimary={() => { if (!guardIssueDate() && !lockActions) onSend?.({ title: "Invoice created successfully" }, recentSent); }}
+            onPrimary={() => {
+              if (guardCustomerFields()) return;
+              if (guardIssueDate()) return;
+              if (lockActions) return;
+              onSend?.({ title: "Invoice created successfully" }, recentSent);
+            }}
             keyboard={keyboardOpen}
           />
         ) : (
@@ -1075,12 +1126,18 @@ export function AddInvoiceDetails({
         <Calendar value={recStart} disablePast onChange={(d) => { setRecStart(d); setRecStartOpen(false); }} />
       </BottomSheet>
 
+      {/* "Select End Date" is a sub-level of THIS SAME sheet (header/content swap via
+          `recEndDateOpen`), never a second sheet stacked on top of "Ends Recurring" — see
+          memory: sub-level-drawer-same-sheet. */}
       <BottomSheet
         open={recEndOpen}
-        title="Ends Recurring"
-        onClose={() => setRecEndOpen(false)}
+        title={recEndDateOpen ? "Select End Date" : "Ends Recurring"}
+        centerTitle={recEndDateOpen}
+        onBack={recEndDateOpen ? () => setRecEndDateOpen(false) : undefined}
+        backLabel="Back to ends"
+        onClose={() => { setRecEndOpen(false); setRecEndDateOpen(false); }}
         keyboardOpen={keyboardOpen}
-        footer={
+        footer={recEndDateOpen ? undefined : (
           <ButtonDock
             type="single"
             primaryLabel="Confirm"
@@ -1088,77 +1145,83 @@ export function AddInvoiceDetails({
             onPrimary={() => setRecEndOpen(false)}
             keyboard={keyboardOpen}
           />
-        }
+        )}
       >
-        <div className="flex flex-col gap-4">
-          {/* Never */}
-          <button
-            type="button"
-            onClick={() => { setRecEnd({ mode: "never" }); setRecMaxInput(""); }}
-            className="w-full min-h-[66px] flex items-center gap-3 rounded-[12px] bg-[var(--bg-neutral-secondary)] px-2 py-4 text-left"
-          >
-            <RadioDot selected={recEnd.mode === "never"} />
-            <span className="card-title-sm text-[#101828]" style={FONT}>Never ( Run until you cancelled )</span>
-          </button>
+        <AnimatePresence mode="wait" initial={false}>
+          {recEndDateOpen ? (
+            <motion.div key="date" variants={stepSlide(1)} initial="closed" animate="open" exit="closed">
+              <Calendar value={recEnd.mode === "date" ? recEnd.date : undefined} disablePast onChange={(d) => { setRecEnd({ mode: "date", date: d }); setRecMaxInput(""); setRecEndDateOpen(false); }} />
+            </motion.div>
+          ) : (
+            <motion.div key="ends" variants={stepSlide(-1)} initial="closed" animate="open" exit="closed">
+              <div className="flex flex-col gap-4">
+                {/* Never */}
+                <button
+                  type="button"
+                  onClick={() => { setRecEnd({ mode: "never" }); setRecMaxInput(""); }}
+                  className="w-full min-h-[66px] flex items-center gap-3 rounded-[12px] bg-[var(--bg-neutral-secondary)] px-2 py-4 text-left"
+                >
+                  <RadioDot selected={recEnd.mode === "never"} />
+                  <span className="card-title-sm text-[#101828]" style={FONT}>Never ( Run until you cancelled )</span>
+                </button>
 
-          {/* After a certain number of invoices — reveals a max-count field when selected */}
-          <div className="w-full flex flex-col gap-3 rounded-[12px] bg-[var(--bg-neutral-secondary)] px-2 py-4">
-            <button
-              type="button"
-              onClick={() => { const n = parseInt(recMaxInput, 10); setRecEnd({ mode: "count", count: Number.isFinite(n) && n > 0 ? n : 0 }); }}
-              className="w-full flex items-center gap-3 text-left"
-            >
-              <RadioDot selected={recEnd.mode === "count"} />
-              <span className="card-title-sm text-[#101828]" style={FONT}>After a certain number of invoices</span>
-            </button>
-            {recEnd.mode === "count" && (
-              <div className="flex flex-col gap-1.5">
-                <TextField
-                  placeholder="Enter max invoices"
-                  inputMode="numeric"
-                  value={recMaxInput}
-                  onChange={(v) => {
-                    const digits = v.replace(/\D/g, "");
-                    setRecMaxInput(digits);
-                    const n = parseInt(digits, 10);
-                    setRecEnd({ mode: "count", count: Number.isFinite(n) && n > 0 ? n : 0 });
-                  }}
-                  onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
-                  onBlur={() => setKeyboardOpen(false)}
-                />
-                {recEnd.count > 0 && (
-                  <span className="text-[12px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
-                    Last invoice on {format(nextDates(recStart, recFreq, recEnd.count)[recEnd.count - 1], "d MMM yyyy")}
-                  </span>
-                )}
+                {/* After a certain number of invoices — reveals a max-count field when selected */}
+                <div className="w-full flex flex-col gap-3 rounded-[12px] bg-[var(--bg-neutral-secondary)] px-2 py-4">
+                  <button
+                    type="button"
+                    onClick={() => { const n = parseInt(recMaxInput, 10); setRecEnd({ mode: "count", count: Number.isFinite(n) && n > 0 ? n : 0 }); }}
+                    className="w-full flex items-center gap-3 text-left"
+                  >
+                    <RadioDot selected={recEnd.mode === "count"} />
+                    <span className="card-title-sm text-[#101828]" style={FONT}>After a certain number of invoices</span>
+                  </button>
+                  {recEnd.mode === "count" && (
+                    <div className="flex flex-col gap-1.5">
+                      <TextField
+                        placeholder="Enter max invoices"
+                        inputMode="numeric"
+                        value={recMaxInput}
+                        onChange={(v) => {
+                          const digits = v.replace(/\D/g, "");
+                          setRecMaxInput(digits);
+                          const n = parseInt(digits, 10);
+                          setRecEnd({ mode: "count", count: Number.isFinite(n) && n > 0 ? n : 0 });
+                        }}
+                        onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
+                        onBlur={() => setKeyboardOpen(false)}
+                      />
+                      {recEnd.count > 0 && (
+                        <span className="text-[12px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
+                          Last invoice on {format(nextDates(recStart, recFreq, recEnd.count)[recEnd.count - 1], "d MMM yyyy")}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* On a specific date — reveals a date field when selected; tapping it opens the calendar */}
+                <div className="w-full flex flex-col gap-3 rounded-[12px] bg-[var(--bg-neutral-secondary)] px-2 py-4">
+                  <button
+                    type="button"
+                    onClick={() => setRecEnd({ mode: "date", date: recEnd.mode === "date" ? recEnd.date : undefined })}
+                    className="w-full flex items-center gap-3 text-left"
+                  >
+                    <RadioDot selected={recEnd.mode === "date"} />
+                    <span className="card-title-sm text-[#101828]" style={FONT}>On a specific date</span>
+                  </button>
+                  {recEnd.mode === "date" && (
+                    <TextField
+                      type="date-picker"
+                      placeholder="dd/mm/yy"
+                      value={recEnd.date ? format(recEnd.date, "d MMM yyyy") : ""}
+                      onClick={() => setRecEndDateOpen(true)}
+                    />
+                  )}
+                </div>
               </div>
-            )}
-          </div>
-
-          {/* On a specific date — reveals a date field when selected; tapping it opens the calendar */}
-          <div className="w-full flex flex-col gap-3 rounded-[12px] bg-[var(--bg-neutral-secondary)] px-2 py-4">
-            <button
-              type="button"
-              onClick={() => setRecEnd({ mode: "date", date: recEnd.mode === "date" ? recEnd.date : undefined })}
-              className="w-full flex items-center gap-3 text-left"
-            >
-              <RadioDot selected={recEnd.mode === "date"} />
-              <span className="card-title-sm text-[#101828]" style={FONT}>On a specific date</span>
-            </button>
-            {recEnd.mode === "date" && (
-              <TextField
-                type="date-picker"
-                placeholder="dd/mm/yy"
-                value={recEnd.date ? format(recEnd.date, "d MMM yyyy") : ""}
-                onClick={() => setRecEndDateOpen(true)}
-              />
-            )}
-          </div>
-        </div>
-      </BottomSheet>
-
-      <BottomSheet open={recEndDateOpen} title="Select End Date" onClose={() => setRecEndDateOpen(false)}>
-        <Calendar value={recEnd.mode === "date" ? recEnd.date : undefined} disablePast onChange={(d) => { setRecEnd({ mode: "date", date: d }); setRecMaxInput(""); setRecEndDateOpen(false); }} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </BottomSheet>
 
       <AddServicesSheet

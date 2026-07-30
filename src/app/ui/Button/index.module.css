@@ -108,13 +108,17 @@
   color: var(--text-neutral-inverse-disabled);
 }
 
+/* Destructive secondary stays neutral (not red) — the strong destructive color is reserved for
+   when it's the leading/filled primary action; as an outline secondary it reads as a plain,
+   lower-emphasis button: neutral border, neutral-primary fill, ink text. */
 .destructive.secondary {
-  border-color: var(--border-error-bold);
-  color: var(--text-error-primary);
+  background: var(--bg-neutral-primary);
+  border-color: var(--border-neutral-primary);
+  color: var(--text-primary);
 }
 .destructive.secondary.active {
-  border-color: var(--red-7);
-  color: var(--red-7);
+  background: var(--bg-neutral-primary-active);
+  border-color: var(--border-neutral-primary-active);
 }
 .destructive.tertiary {
   color: var(--text-error-primary);

@@ -690,7 +690,7 @@ export function InvoiceDetailPage({
       {/* Status + amount — full-bleed beige→white gradient hero (Figma "Invoice Detail",
           node 1423:63521), edge to edge rather than inset like the cards below it. */}
       <div
-        className="p-4 flex flex-col gap-1"
+        className="p-4 flex flex-col gap-2"
         style={{ backgroundImage: "linear-gradient(180deg, var(--bg-beige-primary) 1%, var(--bg-neutral-primary) 99%)" }}
       >
         <span className="flex items-center gap-1.5 flex-wrap">
@@ -1061,9 +1061,10 @@ export function InvoiceDetailPage({
         onDeleteDraft={() => { setActionsOpen(false); setConfirmDelete(true); }}
       />
 
-      {/* Delete confirm (Draft only). Delete Draft leads as the filled primary, in red — it's
-          irreversible, not just the recommended choice; Keep Draft is the plain outline secondary
-          (see memory: destructive-color-by-reversibility). */}
+      {/* Delete confirm (Draft only). Both actions are destructive-styled (see memory:
+          destructive-color-by-reversibility): Delete Draft leads as the filled primary, in red;
+          Keep Draft is the destructive secondary, which renders as a plain neutral outline (see
+          ui/Button's `destructive` prop — the strong red is reserved for the primary). */}
       <BottomSheet
         open={confirmDelete}
         title="Delete this draft?"
@@ -1075,6 +1076,7 @@ export function InvoiceDetailPage({
             primaryLabel="Delete Draft"
             primaryDestructive
             secondaryLabel="Keep Draft"
+            secondaryDestructive
             onPrimary={() => { setConfirmDelete(false); onDeleted?.(); }}
             onSecondary={() => setConfirmDelete(false)}
           />

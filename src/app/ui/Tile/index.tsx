@@ -47,8 +47,9 @@ interface TileProps {
   trailing?: TileTrailing;
   /** Custom 20px trailing icon in place of the chevron/check — a one-off instance override
    *  Figma allows on top of the base trailing/none/chevron/check axis, for whatever glyph a
-   *  given row needs (a download icon on Send Invoice's Share/Download row, an external-link
-   *  icon, a status glyph, etc.) — pass any icon node. Takes priority over `trailing`. */
+   *  given row needs (an external-link icon, a status glyph, etc.) — pass any icon node. Takes
+   *  priority over `trailing`. Note: a file/download row belongs on ui/FileItemBase instead
+   *  (action="download") — Send Invoice's Share/Download row moved there. */
   trailingIcon?: React.ReactNode;
   /** Skip the reserved 30px trailing slot when trailing="none" — for action lists where no row
    *  ever shows a trailing icon, freeing the width for long titles. Keep the default (reserved)

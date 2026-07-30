@@ -1,19 +1,12 @@
 // The three informational banners at the top of the invoice editor (upload flow, DES-716).
 import CloseIcon from "@mui/icons-material/Close";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import { BannerAI } from "../../ui/BannerAI";
 import { FONT } from "../../lib/theme";
 
 /** "N out of M extracted" — only when a field couldn't be read (OCR-missing case). */
 export function CoverageBanner({ fieldsExtracted, fieldsTotal }: { fieldsExtracted: number; fieldsTotal: number }) {
-  return (
-    <div className="flex items-start gap-2.5 rounded-xl bg-[#f6f1ff] px-3.5 py-3">
-      <AutoAwesomeIcon style={{ fontSize: 18, color: "#7c3aed", marginTop: 1 }} />
-      <p className="text-[13px] leading-[1.35] text-[#4b3f63]" style={FONT}>
-        {fieldsExtracted} out of {fieldsTotal} extracted. Please review before creating.
-      </p>
-    </div>
-  );
+  return <BannerAI text={`${fieldsExtracted} out of ${fieldsTotal} extracted. Please review before creating.`} />;
 }
 
 /** OCR-failure notice (couldn't read the file) — takes priority over the coverage summary. */

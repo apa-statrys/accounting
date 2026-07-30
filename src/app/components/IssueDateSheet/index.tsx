@@ -35,8 +35,8 @@ export function IssueDateSheet({ open, value, onClose, onSelect, minDate, helper
         {showHelper && (
           <motion.p
             variants={sheetItem}
-            className="text-[13px] font-medium leading-[1.35]"
-            style={{ ...FONT, color: "var(--text-warning-primary)" }}
+            className="text-[13px] font-normal leading-[1.35]"
+            style={{ ...FONT, color: "var(--text-secondary)" }}
           >
             {helperText}
           </motion.p>

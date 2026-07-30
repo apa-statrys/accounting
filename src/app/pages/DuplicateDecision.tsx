@@ -3,7 +3,11 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { ButtonDock } from "../components/ButtonDock";
-import { UploadedFileCard, FilePreviewOverlay, type UploadedFileInfo } from "../components/UploadedFile";
+import { ListCard } from "../ui/ListCard";
+import { ListRow } from "../ui/ListRow";
+import { Badge, type BadgeColor } from "../ui/Badge";
+import { FilePreviewOverlay, type UploadedFileInfo } from "../components/UploadedFile";
+import { FileItemBase } from "../ui/FileItemBase";
 import type { ExistingInvoice } from "../types";
 
 import { FONT } from "../lib/theme";
@@ -22,31 +26,13 @@ interface DuplicateDecisionProps {
   onCreateNew?: () => void;
 }
 
-/** Pill label + palette per matched status (Draft = neutral, Awaiting = brand, Paid = green). */
-const STATUS_PILL: Record<string, { label: string; bg: string; border: string; text: string }> = {
-  Draft: { label: "Draft", bg: "#faf9f4", border: "rgba(160,160,160,0.4)", text: "#808080" },
-  Awaiting: { label: "Awaiting Payment", bg: "#f9f5ea", border: "#ff4a15", text: "#ff4a15" },
-  Paid: { label: "Paid", bg: "var(--bg-success-subtle)", border: "var(--border-success-subtle)", text: "var(--text-success-primary)" },
+/** Badge label + color per matched status — same mapping as the Sales Invoice List's own row
+ *  status (sales-invoice-list/InvoiceCard's rowStatus). */
+const STATUS_BADGE: Record<string, { label: string; color: BadgeColor }> = {
+  Draft: { label: "Draft", color: "neutral" },
+  Awaiting: { label: "Awaiting Payment", color: "warning" },
+  Paid: { label: "Paid", color: "success" },
 };
-
-function SummaryRow({ label, value, status }: { label: string; value: string; status?: boolean }) {
-  const pill = status ? (STATUS_PILL[value] ?? STATUS_PILL.Draft) : null;
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-[rgba(160,160,160,0.18)] last:border-b-0">
-      <span className="text-[14px] leading-[1.3]" style={{ ...FONT, color: "var(--text-secondary)" }}>{label}</span>
-      {pill ? (
-        <span
-          className="px-2 py-0.5 rounded-full border text-[11px] font-bold leading-[16px]"
-          style={{ ...FONT, background: pill.bg, borderColor: pill.border, color: pill.text }}
-        >
-          {pill.label}
-        </span>
-      ) : (
-        <span className="text-[14px] font-medium leading-[1.3] text-right" style={{ ...FONT, color: "var(--text-primary)" }}>{value}</span>
-      )}
-    </div>
-  );
-}
 
 /**
  * Duplicate decision page (DES-716): shown after OCR when an uploaded invoice matches an existing
@@ -54,19 +40,23 @@ function SummaryRow({ label, value, status }: { label: string; value: string; st
  *  • DRAFT   → primary "Edit Existing Draft" (open its editor) + secondary "Create New Invoice".
  *  • ISSUED  → primary "View Invoice" (open its detail) + secondary "Create New Invoice"
  *    (Awaiting Payment / Paid — an issued invoice can't be edited from here).
+ * Beige page + white ListCard, same shell as every other page (InvoiceSettings, CustomerList,
+ * etc.); no page title — the icon/heading/description block below already conveys "duplicate
+ * found", so a repeated title in the header would be redundant.
  */
 export function DuplicateDecision({ existing, file, onBack, onEditExisting, onViewInvoice, onCreateNew }: DuplicateDecisionProps) {
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const isDraft = existing.status === "Draft";
+  const statusBadge = STATUS_BADGE[existing.status] ?? STATUS_BADGE.Draft;
   return (
     <div className="relative bg-[var(--bg-beige-primary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
       <div
-        className="flex-1 overflow-y-auto bg-white"
+        className="flex-1 overflow-y-auto bg-[var(--bg-beige-primary)]"
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          <PageHeader type="center" title="Duplicate found" onBack={onBack} showSearch={false} />
+          <PageHeader type="center" onBack={onBack} showSearch={false} />
         </PageAppHeader>
 
         <div className="px-4 pt-6 pb-44 flex flex-col gap-5">
@@ -83,16 +73,29 @@ export function DuplicateDecision({ existing, file, onBack, onEditExisting, onVi
           </div>
 
           {/* Duplicate match summary — the key fields only (decision page, not the editor). */}
-          <div className="rounded-xl border border-dashed border-[rgba(160,160,160,0.35)] bg-[var(--bg-neutral-secondary)] px-4">
-            <SummaryRow label="Client" value={existing.customer} />
-            <SummaryRow label="Invoice number" value={existing.number} />
-            <SummaryRow label="Issue date" value={existing.issueDate} />
-            <SummaryRow label="Amount" value={existing.amount} />
-            <SummaryRow label="Status" value={existing.status} status />
-          </div>
+          <ListCard onLayer="beige">
+            <ListRow label="Client" value={existing.customer} />
+            <ListRow label="Invoice number" value={existing.number} />
+            <ListRow label="Issue date" value={existing.issueDate} />
+            <ListRow label="Amount" value={existing.amount} />
+            <div className="flex items-center justify-between min-h-[56px] py-3">
+              <span className="body-sm text-[var(--text-primary)]">Status</span>
+              <Badge label={statusBadge.label} color={statusBadge.color} variant="text" />
+            </div>
+          </ListCard>
 
-          {/* The uploaded file, with a button to preview the original. */}
-          {file && <UploadedFileCard file={file} onPreview={() => setFilePreviewOpen(true)} />}
+          {/* The uploaded file — tap the row to preview the original. Read-only decision page, so
+              no delete/replace action (action="none"). */}
+          {file && (
+            <FileItemBase
+              name={file.name}
+              size={`${(file.size / 1024 / 1024).toFixed(1)} MB`}
+              fileType={file.name.split(".").pop()?.toLowerCase() ?? "file"}
+              state="completed"
+              action="none"
+              onClick={() => setFilePreviewOpen(true)}
+            />
+          )}
         </div>
       </div>
 

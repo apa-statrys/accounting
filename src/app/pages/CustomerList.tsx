@@ -5,26 +5,15 @@ import { PageHeader } from "../ui/PageHeader";
 import { Search } from "../ui/Search";
 import { Button } from "../ui/Button";
 import { Toast } from "../components/Toast";
+import { Tile } from "../ui/Tile";
 import type { Customer } from "../types";
 
-import { FONT, INK, MUTED } from "../lib/theme";
+import { FONT, avatarTint } from "../lib/theme";
 
 /** Two-letter initials from a customer name (skips symbols like "&"). */
 function initials(name: string): string {
   const words = name.split(/\s+/).filter((w) => /[a-z0-9]/i.test(w[0] ?? ""));
   return ((words[0]?.[0] ?? "") + (words[1]?.[0] ?? "")).toUpperCase();
-}
-
-/** Beige round avatar with the customer's initials (Bg/Beige/secondary #f3ecda). */
-function Avatar({ name }: { name: string }) {
-  return (
-    <span
-      className="shrink-0 rounded-full flex items-center justify-center"
-      style={{ width: 40, height: 40, background: "var(--bg-beige-secondary)", color: INK, fontFamily: FONT.fontFamily }}
-    >
-      <span className="font-medium" style={{ fontSize: 13, letterSpacing: -0.65 }}>{initials(name)}</span>
-    </span>
-  );
 }
 
 export interface CustomerListProps {
@@ -96,22 +85,17 @@ export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer,
 
         <div className="bg-white px-4">
           {filtered.map((c, i) => (
-            <button
-              key={c.id}
-              onClick={() => onOpenCustomer?.(c)}
-              className="w-full flex items-center gap-3 py-4 text-left"
-              style={{ borderBottom: i < filtered.length - 1 ? "1px solid rgba(160,160,160,0.2)" : "none" }}
-            >
-              <Avatar name={c.name} />
-              <span className="flex-1 min-w-0 flex flex-col">
-                <span className="text-[16px] font-medium leading-[1.1] tracking-[-0.6px] truncate" style={{ color: "#101828", fontFamily: FONT.fontFamily }}>
-                  {c.name}
-                </span>
-                <span className="text-[14px] font-medium leading-[1.3] truncate" style={{ color: MUTED, fontFamily: FONT.fontFamily }}>
-                  {c.email}
-                </span>
-              </span>
-            </button>
+            <div key={c.id} style={{ borderBottom: i < filtered.length - 1 ? "1px solid rgba(160,160,160,0.2)" : "none" }}>
+              <Tile
+                avatar={initials(c.name)}
+                avatarColor={avatarTint(c.id)}
+                title={c.name}
+                text={c.email}
+                onLayer="beige"
+                reserveTrailing={false}
+                onClick={() => onOpenCustomer?.(c)}
+              />
+            </div>
           ))}
 
           {filtered.length === 0 && (

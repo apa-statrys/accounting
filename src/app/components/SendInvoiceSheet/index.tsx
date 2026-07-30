@@ -3,11 +3,11 @@ import { AnimatePresence, motion } from "motion/react";
 import CloseIcon from "@mui/icons-material/Close";
 import LinkIcon from "@mui/icons-material/Link";
 import CheckIcon from "@mui/icons-material/Check";
-import { FileText, Download } from "lucide-react";
 import { PageAppHeader } from "../PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { SegmentedControls } from "../../ui/SegmentedControls";
 import { Tile } from "../../ui/Tile";
+import { FileItemBase } from "../../ui/FileItemBase";
 import { Banner } from "../../ui/Banner";
 import { Button } from "../../ui/Button";
 import { ButtonDock } from "../ButtonDock";
@@ -48,7 +48,7 @@ interface SendInvoiceSheetProps {
   onSend?: () => void;
   /** "Mark as Sent" confirmed on the Share/Download tab. */
   onSent?: () => void;
-  /** "Download" tile tapped — the parent opens the PDF preview page. */
+  /** "Download" row tapped — the parent opens the PDF preview page. */
   onDownload?: () => void;
 }
 
@@ -309,15 +309,19 @@ export function SendInvoiceSheet({
                   </p>
                 </div>
 
-                {/* Download (Figma "Sales Invoice - Client" node 1943-12485) */}
+                {/* Download (Figma "Sales Invoice - Client" node 1943-12485) — reuses the
+                    FileItemBase design-system row (Figma node 4655-4008), same as the
+                    uploaded-file chip, with action="download" swapping in the download icon. */}
                 <div className="flex flex-col gap-3">
                   <p className="body-sm text-[var(--text-primary)]">Download</p>
-                  <Tile
-                    icon={<FileText size={24} strokeWidth={1.5} />}
-                    title={`${invoiceNo}.pdf`}
-                    text="PDF • 148 KB"
-                    trailingIcon={<Download size={20} strokeWidth={1} />}
+                  <FileItemBase
+                    name={`${invoiceNo}.pdf`}
+                    size="148 KB"
+                    fileType="pdf"
+                    state="completed"
+                    action="download"
                     onClick={onDownload}
+                    onDownload={onDownload}
                   />
                 </div>
               </div>

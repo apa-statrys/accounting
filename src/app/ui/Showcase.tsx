@@ -21,6 +21,7 @@ import { SummaryCard } from "../components/SummaryCard";
 import StatusBar from "../components/StatusBar";
 import { Tile, type TileTrailing } from "./Tile";
 import { Banner, type BannerColor } from "./Banner";
+import { BannerAI } from "./BannerAI";
 import { XClose, type XCloseSize } from "./XClose";
 import { ToastMessage, type ToastVariant } from "./ToastMessage";
 import { Chips } from "./Chips";
@@ -39,6 +40,7 @@ import { ListCard } from "./ListCard";
 import { ListText } from "./ListText";
 import { SwipeActions } from "./SwipeActions";
 import { NotificationItem } from "./NotificationItem";
+import { FileItemBase, type FileItemState, type FileItemAction } from "./FileItemBase";
 
 /**
  * Showcase — standalone gallery of the design-system components in `ui/`,
@@ -110,6 +112,7 @@ const NAV_GROUPS = [
     items: [
       { id: "toast-message", label: "Toast Message" },
       { id: "banner", label: "Banner" },
+      { id: "banner-ai", label: "Banner AI" },
       { id: "badge", label: "Badge" },
       { id: "noti-badge", label: "Noti Badge" },
       { id: "loading", label: "Loading" },
@@ -136,6 +139,7 @@ const NAV_GROUPS = [
       { id: "list-row", label: "List Row" },
       { id: "list-card", label: "List Card" },
       { id: "notification-item", label: "Notification Item" },
+      { id: "file-item-base", label: "File Item Base" },
     ],
   },
   {
@@ -407,6 +411,37 @@ function BannerOverview() {
       render={(v) => (
         <div className="w-[320px]">
           <Banner color={v.color as BannerColor} text="Your information is secure and encrypted" />
+        </div>
+      )}
+    />
+  );
+}
+
+const BANNER_AI_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "text",
+    label: "Text",
+    options: [
+      { value: "short", label: "Short — e.g. the extraction-coverage summary" },
+      { value: "long", label: "Long — wraps to 2+ lines" },
+    ],
+  },
+];
+
+function BannerAIOverview() {
+  return (
+    <InteractiveDemo
+      groups={BANNER_AI_CONTROL_GROUPS}
+      defaultValues={{ text: "short" }}
+      render={(v) => (
+        <div className="w-[320px]">
+          <BannerAI
+            text={
+              v.text === "long"
+                ? "8 out of 9 extracted. Please review the highlighted fields below before creating this invoice."
+                : "8 out of 9 extracted. Please review before creating."
+            }
+          />
         </div>
       )}
     />
@@ -1252,10 +1287,10 @@ const BUTTONDOCK_CONTROL_GROUPS: ControlGroup[] = [
   },
   {
     key: "destructive",
-    label: "Primary is destructive",
+    label: "Destructive (both actions)",
     options: [
-      { value: "off", label: "Off — primary is just the recommended safe choice (e.g. Confirm)" },
-      { value: "on", label: "On — primary is irreversible (e.g. Delete Draft) → filled red, secondary becomes the plain safe outline" },
+      { value: "off", label: "Off — a plain safe pair (e.g. Confirm / Cancel)" },
+      { value: "on", label: "On — an irreversible decision (e.g. Delete Draft) → primary fills red; secondary uses the destructive outline (renders plain/neutral — red is reserved for the primary)" },
     ],
   },
 ];
@@ -1292,6 +1327,7 @@ function ButtonDockOverview() {
                 primaryLabel={v.destructive === "on" ? "Delete Draft" : "Confirm"}
                 primaryDestructive={v.destructive === "on"}
                 secondaryLabel={v.type === "ghost" ? "Close" : v.destructive === "on" ? "Keep Draft" : "Cancel"}
+                secondaryDestructive={v.destructive === "on"}
                 tertiaryLabel="Close"
                 keyboard={v.bottom === "keyboard"}
               />
@@ -1553,6 +1589,52 @@ function NotificationItemOverview() {
             showAction={v.action === "on"}
             read={v.read === "read"}
             lastItem
+          />
+        </div>
+      )}
+    />
+  );
+}
+
+const FILEITEMBASE_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "state",
+    label: "State",
+    options: [
+      { value: "completed", label: "Completed — 100%, ready" },
+      { value: "loading", label: "Loading — mid-upload, progress fill behind the row" },
+      { value: "error", label: "Error — upload failed, Try Again link" },
+    ],
+  },
+  {
+    key: "action",
+    label: "Trailing action (completed/error only — loading always shows delete)",
+    options: [
+      { value: "delete", label: "Delete — trash icon; use when the row can be removed (cancel/drop an attachment)" },
+      { value: "replace", label: "Replace — text button; use when the file can be swapped for a new upload" },
+      { value: "download", label: "Download — download icon; use when the row is a read-only completed file the user can save (e.g. Send Invoice's Share/Download tab)" },
+      { value: "none", label: "None — no trailing control; use for a read-only context with nothing to change (e.g. a past decision/summary screen)" },
+    ],
+  },
+];
+
+function FileItemBaseOverview() {
+  return (
+    <InteractiveDemo
+      groups={FILEITEMBASE_CONTROL_GROUPS}
+      defaultValues={{ state: "completed", action: "delete" }}
+      render={(v) => (
+        <div className="w-[320px]">
+          <FileItemBase
+            name="Tech design requirements.pdf"
+            size="200 KB"
+            state={v.state as FileItemState}
+            action={v.action as FileItemAction}
+            progress={40}
+            onDelete={() => {}}
+            onReplace={() => {}}
+            onDownload={() => {}}
+            onRetry={() => {}}
           />
         </div>
       )}
@@ -1871,7 +1953,7 @@ const TILE_CONTROL_GROUPS: ControlGroup[] = [
       { value: "none", label: "None" },
       { value: "chevron", label: "Chevron" },
       { value: "check", label: "Check (selected)" },
-      { value: "download", label: "Custom icon — one-off instance override for any glyph a row needs (e.g. the download icon on Send Invoice's Share/Download tab, an external-link icon, a status glyph)" },
+      { value: "download", label: "Custom icon — one-off instance override for any glyph a row needs (e.g. an external-link icon, a status glyph); a file/download row belongs on ui/FileItemBase instead" },
     ],
   },
   {
@@ -2035,13 +2117,22 @@ const TEXTFIELD_CONTROL_GROUPS: ControlGroup[] = [
       { value: "on", label: "Shown (e.g. a unit picker or status badge)" },
     ],
   },
+  {
+    key: "selectorChevron",
+    label: "Selector chevron (mobile/currency/unit only)",
+    options: [
+      { value: "auto", label: "Auto — shown only when tappable (has a click handler)" },
+      { value: "on", label: "On — always show, even read-only" },
+      { value: "off", label: "Off — always hide, even when tappable" },
+    ],
+  },
 ];
 
 function TextFieldTestMe() {
   return (
     <InteractiveDemo
       groups={TEXTFIELD_CONTROL_GROUPS}
-      defaultValues={{ type: "text", state: "default", label: "off", trailing: "off" }}
+      defaultValues={{ type: "text", state: "default", label: "off", trailing: "off", selectorChevron: "auto" }}
       render={(v) => (
         <div className="w-[280px]">
           <TextField
@@ -2057,6 +2148,8 @@ function TextFieldTestMe() {
             label={v.label === "on" ? "Input Label" : undefined}
             mandatory={v.label === "on"}
             caption={v.label === "on" ? "Caption" : undefined}
+            onSelectorClick={["mobile", "currency", "unit"].includes(v.type) ? () => {} : undefined}
+            selectorChevron={v.selectorChevron === "auto" ? undefined : v.selectorChevron === "on"}
             aria-label="Text field demo"
           />
         </div>
@@ -2296,6 +2389,13 @@ export function Showcase() {
                 overview={<BannerOverview />}
               />
             )}
+            {activeNav === "banner-ai" && (
+              <ComponentPage
+                title="Banner AI"
+                description="An inline callout for AI-generated content — same shell as Banner but one fixed brand-orange border + white fill + gradient sparkle icon, no color variants. Use for a callout ABOUT AI/OCR-generated content (e.g. an invoice editor's extraction-coverage summary), not general status messaging — that's still Banner."
+                overview={<BannerAIOverview />}
+              />
+            )}
             {activeNav === "badge" && (
               <ComponentPage
                 title="Badge"
@@ -2392,6 +2492,13 @@ export function Showcase() {
                 title="Notification Item"
                 description="A single row in a notification list — unread dot, title, description, a clock + relative time, an optional success-green amount, and an optional CTA button. `lastItem` drops the divider."
                 overview={<NotificationItemOverview />}
+              />
+            )}
+            {activeNav === "file-item-base" && (
+              <ComponentPage
+                title="File Item Base"
+                description="A file-attachment row — icon (with a colored format tag), name, size, in one of three states: Completed (just the size), Loading (progress fill behind the row + an upload %), or Error (red border, 'Upload failed', a Try Again link). `action` picks the completed/error trailing control (Delete, Replace, Download, or None) — Loading always shows Delete regardless."
+                overview={<FileItemBaseOverview />}
               />
             )}
             {activeNav === "page-header" && (

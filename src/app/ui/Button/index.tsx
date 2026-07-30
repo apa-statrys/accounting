@@ -45,9 +45,10 @@ interface ButtonProps {
   "aria-label"?: string;
   /** Pin the pressed ("Active") look — for the showcase's static state grid only. */
   forceActive?: boolean;
-  /** Red instead of the default black — filled red for primary (e.g. a "Delete Draft" CTA),
-   *  red border/text for secondary/tertiary — for an irreversible action that shouldn't read
-   *  as neutral/safe. Ignored on `inverse`. */
+  /** Marks an irreversible action (e.g. "Delete Draft"). Only the filled PRIMARY hierarchy turns
+   *  red — that's the one spot the strong destructive color belongs. SECONDARY stays neutral
+   *  instead (neutral border + neutral-primary fill + ink text, same lower-emphasis weight as a
+   *  plain secondary button — red is reserved for the leading action). Ignored on `inverse`. */
   destructive?: boolean;
 }
 

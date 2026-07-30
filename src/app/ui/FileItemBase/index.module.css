@@ -1,0 +1,163 @@
+/* FileItemBase — Figma "[APP] Design System" → FileItemBase (node 4655-4008).
+   10px gap, 16px/12px x/y padding, 12px radius, 1px border, 65px min-height (completed/loading);
+   error grows taller (top-aligned) and swaps the border to error-bold. Colors from theme.css;
+   the file-type tag (#ff1607) is a decorative format-color convention (like an OS file icon),
+   not a semantic state token. */
+
+.root {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 65px;
+  padding: 12px 16px;
+  background: var(--bg-neutral-primary);
+  border: 1px solid var(--border-neutral-primary);
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  font-family: var(--font-primary);
+  text-align: left;
+}
+.clickable {
+  cursor: pointer;
+}
+.error {
+  align-items: flex-start;
+  border-color: var(--border-error-bold);
+}
+
+/* Upload-in-progress fill — a tint growing from the left edge, clipped by the row's own rounded
+   corners (root's overflow: hidden); sits behind the icon/text/trailing (z-index 1). A lighter
+   band sweeps continuously through it (left→right, looping) so the fill reads as "actively
+   uploading", not just a static partial bar. */
+.progressFill {
+  position: absolute;
+  inset: -1px auto -1px -1px;
+  overflow: hidden;
+  background: var(--bg-neutral-secondary);
+  transition: width 0.2s ease;
+  pointer-events: none;
+}
+.progressFill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 60%;
+  background: linear-gradient(90deg, transparent, var(--alpha-white-70), transparent);
+  animation: fileItemShimmer 1.4s ease-in-out infinite;
+}
+@keyframes fileItemShimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(200%);
+  }
+}
+
+.icon {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  display: block;
+  width: 24px;
+  height: 27px;
+}
+.tag {
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  padding: 2px 3px;
+  border-radius: 4px;
+  background: #ff1607;
+  color: white;
+  font-family: var(--font-primary);
+  font-size: 7px;
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  letter-spacing: -0.1px;
+  text-transform: uppercase;
+}
+
+.body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1 1 0%;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+.name {
+  composes: body-sm from global;
+  margin: 0;
+  width: 100%;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.meta {
+  composes: caption from global;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 9px;
+  background: var(--border-neutral-primary);
+}
+.errorCaption {
+  composes: caption from global;
+  margin: 0;
+  color: var(--text-secondary);
+}
+.retry {
+  composes: body-sm-medium from global;
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--link-primary);
+  text-align: left;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+/* Shared 30x30 trailing icon button — delete (trash) and download both use this. */
+.iconBtn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: none;
+  color: var(--icon-secondary);
+  cursor: pointer;
+}
+.replaceBtn {
+  composes: body-sm-medium from global;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  padding: 6px 8px;
+  border: none;
+  background: none;
+  color: var(--btn-primary);
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+}

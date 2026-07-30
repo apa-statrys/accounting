@@ -8,10 +8,11 @@ import { CurrencySheet } from "../components/CurrencySheet";
 import { CountrySheet } from "../components/CountrySheet";
 import { CountryCodeSheet } from "../components/CountryCodeSheet";
 import { CountryFlag } from "../components/CountryFlag";
+import { Tile } from "../ui/Tile";
 import { DEFAULT_COUNTRY_CODE } from "../data/countryCodes";
 import type { Customer } from "../types";
 
-import { FONT } from "../lib/theme";
+import { FONT, avatarTint } from "../lib/theme";
 import { scrollFieldIntoView } from "../lib/scrollFieldIntoView";
 // "Details" / "Address" / "Invoice" section headers (Figma "Sales Invoice - Client" node 1333-30838).
 const SECTION_TITLE_STYLE = { ...FONT, fontWeight: 700, fontSize: 16, lineHeight: 1.3, color: "var(--text-primary)" } as const;
@@ -359,22 +360,13 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
               : "We found an existing customer with the same email address. Do you want to create another customer?"}
           </p>
           {duplicate && (
-            <div className="flex items-center gap-3 rounded-[12px] border border-[#e3e5e5] px-3 py-2.5">
-              <span
-                className="shrink-0 rounded-full flex items-center justify-center text-[15px] font-medium"
-                style={{ width: 40, height: 40, background: "var(--bg-beige-secondary)", color: "var(--text-primary)", ...FONT }}
-              >
-                {initials(duplicate.name)}
-              </span>
-              <span className="flex-1 min-w-0 flex flex-col">
-                <span className="text-[15px] font-medium truncate" style={{ ...FONT, color: "#101828" }}>
-                  {duplicate.name}
-                </span>
-                <span className="text-[13px] truncate" style={{ ...FONT, color: "var(--text-secondary)" }}>
-                  {duplicate.email}
-                </span>
-              </span>
-            </div>
+            <Tile
+              avatar={initials(duplicate.name)}
+              avatarColor={avatarTint(duplicate.id)}
+              title={duplicate.name}
+              text={duplicate.email}
+              reserveTrailing={false}
+            />
           )}
         </div>
       </BottomSheet>

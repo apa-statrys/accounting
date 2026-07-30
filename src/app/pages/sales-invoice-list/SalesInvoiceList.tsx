@@ -582,7 +582,11 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
               )}
 
               <div ref={issueDateRef} className="flex flex-col">
-                <p className="body-sm text-[var(--text-secondary)] pt-6 pb-4">Issue Date</p>
+                {/* pt-6 only when Due Date precedes it (some status tabs hide that section — see
+                    `showDueFilter`) — otherwise Issue Date is the sheet's first section and that
+                    top padding would just be extra dead space under the "Filter Invoices" title,
+                    inconsistent with every other tab where the first section starts flush. */}
+                <p className={`body-sm text-[var(--text-secondary)] pb-4 ${showDueFilter ? "pt-6" : ""}`}>Issue Date</p>
                 <div className="flex items-start gap-3">
                   <TextField
                     type="date-picker"
@@ -698,9 +702,10 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
         </AnimatePresence>
       </BottomSheet>
 
-      {/* Delete-draft confirmation. Delete Draft leads as the filled primary, in red — it's
-          irreversible, not just the recommended choice; Keep Draft is the plain outline secondary
-          (see memory: destructive-color-by-reversibility). */}
+      {/* Delete-draft confirmation. Both actions are destructive-styled (see memory:
+          destructive-color-by-reversibility): Delete Draft leads as the filled primary, in red;
+          Keep Draft is the destructive secondary, which renders as a plain neutral outline (see
+          ui/Button's `destructive` prop — the strong red is reserved for the primary). */}
       <BottomSheet
         open={!!confirmDeleteId}
         title="Delete Draft Invoice?"
@@ -712,6 +717,7 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
             primaryLabel="Delete Draft"
             primaryDestructive
             secondaryLabel="Keep Draft"
+            secondaryDestructive
             onPrimary={() => {
               if (confirmDeleteId) setDeletedIds((prev) => [...prev, confirmDeleteId]);
               setConfirmDeleteId(null);

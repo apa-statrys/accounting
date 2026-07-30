@@ -26,6 +26,21 @@ export const sheetItem = {
   open: { opacity: 1, y: 0, transition: { duration: 0.25 } },
 };
 
+/** Variant pair for a step-swap slide transition — the sub-level pattern where a deeper "level"
+ *  (e.g. a picker opened from within a sheet) swaps the SAME BottomSheet's title/content instead
+ *  of stacking a second sheet on top (see memory: sub-level-drawer-same-sheet). MUST be used with
+ *  string variant labels (`initial="closed" animate="open" exit="closed"`), never object-literal
+ *  targets — an object-literal `animate` on the step wrapper breaks Framer's variant-label
+ *  propagation, so any `sheetItem`-tagged rows nested inside silently stay at `opacity: 0` (they're
+ *  in the DOM, just invisible) instead of fading in. `direction: 1` slides in from the right (a
+ *  "forward" sub-level), `-1` from the left (the "back"/default level). */
+export function stepSlide(direction: 1 | -1) {
+  return {
+    closed: { x: 24 * direction, opacity: 0 },
+    open: { x: 0, opacity: 1, transition: { duration: 0.2, ease: "easeInOut" as const } },
+  };
+}
+
 interface BottomSheetProps {
   open: boolean;
   title: string;

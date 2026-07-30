@@ -3,56 +3,29 @@ import { motion, AnimatePresence } from "motion/react";
 import { StatusBar } from "../components/StatusBar";
 import { Loading } from "../ui/Loading";
 
-const DEFAULT_STEPS = [
-  "Preparing invoice details…",
-  "Applying your branding…",
-  "Calculating totals…",
-  "Finalising your invoice…",
-];
-
 interface GeneratingInvoiceProps {
   onDone: () => void;
+  /** Shown first; swaps to `finalText` shortly before `onDone` fires. */
   title?: string;
-  steps?: string[];
-  /** How long the progress runs before finishing (ms). */
+  finalText?: string;
+  /** Total time before `onDone` fires (ms). */
   durationMs?: number;
 }
 
-export function GeneratingInvoice({ onDone, title = "Generating invoice", steps = DEFAULT_STEPS, durationMs = 3000 }: GeneratingInvoiceProps) {
-  const STEPS = steps;
-  const [stepIndex, setStepIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
+export function GeneratingInvoice({ onDone, title = "Reading your invoice…", finalText = "Almost done…", durationMs = 3000 }: GeneratingInvoiceProps) {
+  const [phase, setPhase] = useState<"reading" | "done">("reading");
 
   useEffect(() => {
-    const totalDuration = durationMs;
-    const stepInterval = totalDuration / STEPS.length;
-
-    const stepTimer = setInterval(() => {
-      setStepIndex((prev) => {
-        if (prev < STEPS.length - 1) return prev + 1;
-        clearInterval(stepTimer);
-        return prev;
-      });
-    }, stepInterval);
-
-    const progressTimer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(progressTimer);
-          return 100;
-        }
-        return prev + 1;
-      });
-    }, totalDuration / 100);
-
-    const doneTimer = setTimeout(onDone, totalDuration + 400);
+    const finalTimer = setTimeout(() => setPhase("done"), Math.max(durationMs - 700, 0));
+    const doneTimer = setTimeout(onDone, durationMs + 400);
 
     return () => {
-      clearInterval(stepTimer);
-      clearInterval(progressTimer);
+      clearTimeout(finalTimer);
       clearTimeout(doneTimer);
     };
   }, [onDone, durationMs]);
+
+  const label = phase === "done" ? finalText : title;
 
   return (
     <div
@@ -62,14 +35,6 @@ export function GeneratingInvoice({ onDone, title = "Generating invoice", steps 
         {/* App status bar — pinned to the top edge; the spinner stays centred below it. */}
         <StatusBar className="absolute top-0 inset-x-0 z-10" />
 
-        {/* Animated background blob */}
-        <motion.div
-          className="absolute w-64 h-64 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(255,74,21,0.12) 0%, transparent 70%)" }}
-          animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
-          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-        />
-
         {/* Loading spinner (ui/Loading) — replaces a hand-rolled icon+ring animation. */}
         <motion.div
           className="relative mb-8"
@@ -77,46 +42,24 @@ export function GeneratingInvoice({ onDone, title = "Generating invoice", steps 
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
-          <Loading size="lg" aria-label={title} />
+          <Loading size="lg" aria-label={label} />
         </motion.div>
 
-        {/* Title */}
-        <motion.p
-          className="text-[20px] font-bold text-gray-900 mb-2"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          {title}
-        </motion.p>
-
-        {/* Animated step label */}
-        <div className="h-6 mb-8 overflow-hidden">
+        {/* Label — just two phases (title, then finalText shortly before onDone), no step list/progress bar. */}
+        <div className="h-6 overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.p
-              key={stepIndex}
-              className="text-[14px] text-gray-400 text-center"
-              initial={{ opacity: 0, y: 10 }}
+              key={phase}
+              className="text-[16px] font-bold text-gray-900 text-center"
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+              exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.3 }}
             >
-              {STEPS[stepIndex]}
+              {label}
             </motion.p>
           </AnimatePresence>
         </div>
-
-        {/* Progress bar */}
-        <div className="w-48 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-[var(--bg-brand-primary)] rounded-full"
-            style={{ width: `${progress}%` }}
-            transition={{ duration: 0.05 }}
-          />
-        </div>
-
-        {/* Percentage */}
-        <p className="text-[12px] text-gray-400 mt-3">{progress}%</p>
     </div>
   );
 }

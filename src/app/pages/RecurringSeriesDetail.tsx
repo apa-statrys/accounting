@@ -6,6 +6,7 @@ import { PageHeader } from "../ui/PageHeader";
 import { ButtonDock } from "../components/ButtonDock";
 import { BottomSheet } from "../components/BottomSheet";
 import { ListRow } from "../ui/ListRow";
+import { Tile } from "../ui/Tile";
 import { FONT } from "../lib/theme";
 import type { DetailStatus } from "../types";
 
@@ -192,16 +193,11 @@ export function RecurringSeriesDetail({
 
       {/* ⋯ menu — Cancel recurring (destructive, irreversible; kept out of the dock). Confirms first. */}
       <BottomSheet open={menuOpen} title="Recurring actions" onClose={() => setMenuOpen(false)}>
-        <div className="flex flex-col">
-          <button
-            type="button"
-            onClick={() => { setMenuOpen(false); setConfirmCancel(true); }}
-            className="w-full flex items-center gap-3 py-3.5 text-left"
-          >
-            <XCircle size={20} style={{ color: "var(--icon-error-primary)" }} />
-            <span className="text-[15px]" style={{ ...FONT, color: "var(--text-error-primary)" }}>Cancel recurring</span>
-          </button>
-        </div>
+        <Tile
+          icon={<XCircle size={24} strokeWidth={1.5} color="var(--icon-error-primary)" />}
+          title={<span style={{ color: "var(--text-error-primary)" }}>Cancel recurring</span>}
+          onClick={() => { setMenuOpen(false); setConfirmCancel(true); }}
+        />
       </BottomSheet>
 
       {/* Cancel confirmation (DES-782 AC5). Dock in the sheet footer so it aligns like every other dock.

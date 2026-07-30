@@ -55,8 +55,9 @@ interface ButtonDockCommonProps extends React.HTMLAttributes<HTMLDivElement> {
   primaryDestructive?: boolean;
   /** Second action: outline for 'double'/'triple', ghost text for 'ghost'. */
   secondaryLabel?: string;
-  /** Red instead of the default black outline — the secondary action is irreversible
-   *  (e.g. "Delete Draft"), not just the non-recommended choice. */
+  /** Marks the secondary action as irreversible (e.g. "Delete Draft") rather than just the
+   *  non-recommended choice — stays neutral (not red); red is reserved for `primaryDestructive`,
+   *  the filled/leading action. See ui/Button's `destructive` prop. */
   secondaryDestructive?: boolean;
   /** Third (ghost) action — 'triple' only. */
   tertiaryLabel?: string;

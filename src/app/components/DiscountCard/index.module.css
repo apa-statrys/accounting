@@ -16,7 +16,8 @@
   justify-content: space-between;
 }
 
-/* Typography via .card-title-sm utility; color only here. */
+/* Typography via .body-sm-medium utility (matches the page's other section labels — see
+   AddInvoiceDetails' own Section component); color only here. */
 .title {
   color: var(--text-primary);
   margin: 0;

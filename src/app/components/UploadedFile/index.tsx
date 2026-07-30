@@ -1,29 +1,9 @@
-import { FileText, Eye } from "lucide-react";
 import { BottomSheet } from "../BottomSheet";
 import styles from "./index.module.css";
 
 export interface UploadedFileInfo {
   name: string;
   size: number;
-}
-
-/** The uploaded-file chip with a Preview button. Render the overlay separately (at page root). */
-export function UploadedFileCard({ file, onPreview }: { file: UploadedFileInfo; onPreview?: () => void }) {
-  return (
-    <div className={styles.card}>
-      <FileText size={20} strokeWidth={1.75} className={styles.icon} />
-      <div className={styles.info}>
-        <p className={`${styles.fileName} body-sm`}>{file.name}</p>
-        <p className={`${styles.fileSize} caption`}>
-          {(file.size / 1024 / 1024).toFixed(1)} MB
-        </p>
-      </div>
-      <button type="button" onClick={onPreview} className={styles.previewButton}>
-        <Eye size={15} strokeWidth={2} />
-        <span className={styles.previewLabel}>Preview</span>
-      </button>
-    </div>
-  );
 }
 
 /**

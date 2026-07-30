@@ -31,14 +31,6 @@ import { DEFAULT_SETTINGS } from "./data/settings";
 import { HERO_SCENARIOS } from "./data/heroScenarios";
 import type { Screen, Customer, DetailStatus, InvoiceEditSeed, InvoiceLine, CompanySettings, ExtractedInvoice, ExistingInvoice, ServiceLine } from "./types";
 
-/** OCR steps shown while an uploaded invoice is being read. */
-const OCR_STEPS = [
-  "Uploading your document…",
-  "Reading the invoice…",
-  "Extracting line items…",
-  "Almost done…",
-];
-
 /** Top-level navigation, grouped by product area. */
 const NAV_GROUPS: { heading: string; items: { id: Screen; label: string }[] }[] = [
   {
@@ -898,8 +890,6 @@ export default function App() {
           one; only QuickNav's per-scenario shortcuts skip this loading step entirely. */}
       {screen === "extracting" && (
         <GeneratingInvoice
-          title="Reading your invoice"
-          steps={OCR_STEPS}
           durationMs={1400}
           onDone={() => {
             // Nothing extracted → drop into the upload form blank (banner + manual fill, DES-716).
