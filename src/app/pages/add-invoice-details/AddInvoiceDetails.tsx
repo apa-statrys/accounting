@@ -370,6 +370,10 @@ export function AddInvoiceDetails({
   const sentMeta = `${invoiceNo} · Due ${dueShort}`;
   const saveDraft = () =>
     onSaveDraft?.({ client: clientLabel, amount: draftAmount, meta: draftMeta });
+  // Tapping back on a fresh create (never on an in-progress edit) confirms the auto-save with a
+  // sheet instead of silently dropping the user onto the list — "Go to invoice list" continues
+  // the existing saveDraft flow, "Keep editing" just dismisses and stays on this page.
+  const [savedDraftSheetOpen, setSavedDraftSheetOpen] = useState(false);
   // Recent (sent/created) card the list highlights when this invoice is issued.
   const recentSent = { client: clientLabel, amount: draftAmount, status: "Awaiting" as const, meta: sentMeta };
 
@@ -544,7 +548,7 @@ export function AddInvoiceDetails({
           <PageHeader
             type="center"
             title={headerTitle ?? (editingSeries ? "Edit recurring series" : isRecurring ? (isEditing ? "Edit invoice" : "New Recurring Invoice") : isEditing ? "Edit invoice" : "Create Invoice")}
-            onBack={lockActions || lockExceptIssueDate ? () => {} : isEditing && !editExitToList ? onEditBack : onSaveDraft ? saveDraft : onClose}
+            onBack={lockActions || lockExceptIssueDate ? () => {} : isEditing && !editExitToList ? onEditBack : onSaveDraft ? () => setSavedDraftSheetOpen(true) : onClose}
             right={
               // Figma "Create Invoice" header (node 1387-18223): the DS Loading spinner, not a
               // hand-rolled spinning border — "Saved" keeps the existing check (Figma's own mock
@@ -1090,6 +1094,28 @@ export function AddInvoiceDetails({
           setDueSheetOpen(false);
         }}
       />
+
+      {/* Back-tap confirm (fresh create/upload-review only, never mid-edit) — the draft is already
+          saved by the time this shows; it's just confirming the exit vs offering to keep going. */}
+      <BottomSheet
+        open={savedDraftSheetOpen}
+        title="Saved as draft"
+        onClose={() => setSavedDraftSheetOpen(false)}
+        compact
+        footer={
+          <ButtonDock
+            type="double"
+            primaryLabel="Go to invoice list"
+            secondaryLabel="Keep editing"
+            onPrimary={() => { setSavedDraftSheetOpen(false); saveDraft(); }}
+            onSecondary={() => setSavedDraftSheetOpen(false)}
+          />
+        }
+      >
+        <p className="body-sm" style={{ ...FONT, color: MUTED }}>
+          Invoice {invoiceNo} has been saved as a draft. You&rsquo;ll find it in your invoice list, ready to edit and send whenever you are.
+        </p>
+      </BottomSheet>
 
       <ReceivingAccountSheet
         open={accountSheetOpen}
