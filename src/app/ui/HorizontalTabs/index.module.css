@@ -1,7 +1,8 @@
-/* HorizontalTabs — Figma "[APP] Design System" → "HorzontalTabs" [sic] (node 2725-16713;
-   re-synced 2026-07-24 against node 2725-16712 — button gap corrected 8px → 12px).
-   A row of TabsBase items. Button style = 12px gaps; Underline style = no gaps on a
-   hairline track spanning the full row. Scrolls horizontally when tabs overflow. */
+/* HorizontalTabs — Figma "[APP] Design System" → "HorzontalTabs" [sic] (node 2725-16713).
+   A row of TabsBase items. Button style = 8px gaps (tightened from the Figma-synced 12px on
+   2026-07-31 — a page-header tab row needs the next tab peeking in further to read as
+   scrollable). Underline style = no gaps on a hairline track spanning the full row. Scrolls
+   horizontally when tabs overflow. */
 
 .scroller {
   overflow-x: auto;
@@ -15,7 +16,7 @@
   width: max-content;
 }
 .buttonRow {
-  gap: 12px;
+  gap: 8px;
 }
 .underlineRow {
   gap: 0;
