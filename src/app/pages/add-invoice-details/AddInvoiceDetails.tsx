@@ -1097,7 +1097,9 @@ export function AddInvoiceDetails({
 
       {/* Back-tap confirm (fresh create/upload-review only, never mid-edit) — nothing is saved yet:
           "Go to invoice list" saves this as a draft on the way out; "Discard" abandons it entirely
-          (no draft ever created) and goes back to the list the same as the plain ✕/close. */}
+          (no draft ever created) and goes back to the list the same as the plain ✕/close;
+          "Keep editing" (tertiary/ghost — least emphasis, it's just dismissing this sheet) resumes
+          right where the user was, same as before this sheet existed. */}
       <BottomSheet
         open={savedDraftSheetOpen}
         title="Saved as draft"
@@ -1105,11 +1107,13 @@ export function AddInvoiceDetails({
         compact
         footer={
           <ButtonDock
-            type="double"
+            type="triple"
             primaryLabel="Go to invoice list"
             secondaryLabel="Discard"
+            tertiaryLabel="Keep editing"
             onPrimary={() => { setSavedDraftSheetOpen(false); saveDraft(); }}
             onSecondary={() => { setSavedDraftSheetOpen(false); onClose?.(); }}
+            onTertiary={() => setSavedDraftSheetOpen(false)}
           />
         }
       >
