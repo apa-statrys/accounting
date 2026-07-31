@@ -177,6 +177,7 @@ chaser auto-deactivation on Paid, real duplicate matching (number-only in protot
 
 ## Repo / deploy
 
-Private GitHub **`apa-statrys/accounting`** (SSH). **The user runs commits/pushes themselves — only
-stage (`git add`).** Vercel uses `pnpm install --frozen-lockfile`: keep `package.json` and
-`pnpm-lock.yaml` in sync; don't add dependencies casually.
+Private GitHub **`apa-statrys/accounting`** (SSH). **Claude commits and pushes directly to `main`**
+(changed 2026-07-31 — no feature branch/PR, no holding changes for the user to commit themselves).
+Vercel uses `pnpm install --frozen-lockfile`: keep `package.json` and `pnpm-lock.yaml` in sync; don't
+add dependencies casually.

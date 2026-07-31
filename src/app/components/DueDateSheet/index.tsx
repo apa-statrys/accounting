@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { addMonths, startOfDay, format } from "date-fns";
 import { AnimatePresence, motion } from "motion/react";
-import { BottomSheet, sheetItem } from "../BottomSheet";
+import { BottomSheet, sheetItem, stepSlide } from "../BottomSheet";
 import { Tile } from "../../ui/Tile";
 import { Calendar } from "../Calendar";
 import styles from "./index.module.css";
@@ -63,13 +63,7 @@ export function DueDateSheet({ open, value, onClose, onSelect }: DueDateSheetPro
             />
           </motion.div>
         ) : (
-          <motion.div
-            key="list"
-            initial={{ x: -24, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -24, opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
-          >
+          <motion.div key="list" variants={stepSlide(-1)} initial="closed" animate="open" exit="closed">
             <div className={styles.optionsList}>
               {DUE_OPTIONS.map((o) => (
                 <motion.div key={o.id} variants={sheetItem}>

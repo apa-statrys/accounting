@@ -45,7 +45,7 @@
 }
 /* Soft attention state (e.g. a value that must be re-picked). */
 .warning {
-  color: #b45309;
+  color: var(--text-warning-primary);
 }
 
 .description {

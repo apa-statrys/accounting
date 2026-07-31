@@ -50,9 +50,14 @@ export function CreditsAppliedSection({
   const cnAppliedLabel = (cn: CreditNote) => {
     if (cn.draft) return "Draft";
     if (cn.cancelled) return "Cancelled";
-    // Refund CN (DES-720): when a payout record (proof) exists, the row below shows it. Otherwise the
-    // chip mirrors the invoice — "Refunded" once the refund has settled, else "Applied" (committed).
-    if (isRefundContext) return cn.refundProof ? null : refundSettled ? "Refunded" : "Applied";
+    // Refund CN (DES-720): a settled payout (proof, not awaiting) shows its own "Refunded" record
+    // below instead, but "Awaiting refund" has no extra proof detail to show — same top label
+    // treatment as every other status, not a separate banner.
+    if (isRefundContext) {
+      if (cn.refundProof?.awaiting) return "Awaiting refund";
+      if (cn.refundProof) return null;
+      return refundSettled ? "Refunded" : "Applied";
+    }
     // Single-invoice model (DES-719): a created cancellation note is simply "Applied" (no
     // Open / Partially / Fully split — Create applies it in full to its one invoice).
     return "Applied";
@@ -65,6 +70,7 @@ export function CreditsAppliedSection({
     Applied: "var(--text-success-primary)",
     Refunded: "var(--text-info-primary)",
     Cancelled: "var(--text-secondary)",
+    "Awaiting refund": "var(--text-warning-primary)",
   };
   const reasonOf = (cn: CreditNote) => (cn.reason === "Others" ? (cn.reasonNote || "Other") : cn.reason);
   const ordered = creditNotes.map((cn, idx) => ({ cn, idx })).reverse();
@@ -113,15 +119,9 @@ export function CreditsAppliedSection({
                   </span>
                 </span>
               </div>
-              {/* DES-720 refund record. Awaiting (BA confirmed / marked refunded) → a compact "Awaiting
-                  refund by accountant" line (the method + evidence live on the CN detail). Settled → the
-                  green "Refunded" record with method·date + proof. */}
-              {proof && (proof.awaiting ? (
-                <div className="mx-4 mb-3 rounded-lg border px-2.5 py-2 flex items-center gap-1.5" style={{ borderColor: "var(--border-warning-subtle)", background: "var(--bg-warning-subtle)" }}>
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--icon-warning-primary)" }} />
-                  <span className="text-[12px] font-semibold" style={{ ...FONT, color: "var(--text-warning-primary)" }}>Awaiting refund</span>
-                </div>
-              ) : (
+              {/* DES-720 settled refund record — method·date + proof. Awaiting refund has no extra
+                  proof detail yet, so it's covered by the top status label above instead (no banner). */}
+              {proof && !proof.awaiting && (
                 <div className="mx-4 mb-3 rounded-lg border border-[rgba(15,157,88,0.25)] bg-[rgba(15,157,88,0.06)] px-2.5 py-2 flex flex-col gap-2">
                   <span className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--icon-success-primary)" }} />
@@ -144,7 +144,7 @@ export function CreditsAppliedSection({
                     </button>
                   )}
                 </div>
-              ))}
+              )}
             </div>
           );
         })}
