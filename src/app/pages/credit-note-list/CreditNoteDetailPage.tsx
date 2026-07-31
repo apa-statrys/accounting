@@ -653,8 +653,9 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             total={total}
             reason={reason}
             reasonNote={reasonNote}
+            hideDownload={pdfFromSend}
             onBack={() => setPdfOpen(false)}
-            onDownloaded={() => (pdfFromSend ? completeSend() : setPdfOpen(false))}
+            onDownloaded={() => setPdfOpen(false)}
           />
         </div>
       )}

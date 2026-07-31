@@ -231,6 +231,11 @@ export function InvoiceDetailPage({
     }, 600);
   };
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  // True only when the preview was reached via the Send sheet's own Download row (or its PDF-segment
+  // Download) — the download already "happened" there, so this hides the redundant Download PDF
+  // dock. "Preview as PDF" / ActionsMenu's "Preview PDF" reach the same page with nothing downloaded
+  // yet, so they keep showing it.
+  const [pdfFromSend, setPdfFromSend] = useState(false);
   // Whether the send sub-flow is sending the invoice or the just-created credit note.
   const [sendContext, setSendContext] = useState<"invoice" | "creditNote">("invoice");
   // Which credit note the send flow targets (index into creditNotes). With several notes on one invoice
@@ -1038,7 +1043,7 @@ export function InvoiceDetailPage({
         // Paid (DES-817): Refund + Preview as PDF live in the ⋯ menu (no dock).
         null
       ) : (
-        <ButtonDock type="single" sticky primaryLabel="Preview as PDF" onPrimary={() => setPdfPreviewOpen(true)} />
+        <ButtonDock type="single" sticky primaryLabel="Preview as PDF" onPrimary={() => { setPdfFromSend(false); setPdfPreviewOpen(true); }} />
       )}
 
       {/* Secondary actions sheet */}
@@ -1052,7 +1057,7 @@ export function InvoiceDetailPage({
         cancellable={cancellable}
         creditNotesCount={activeCnCount}
         onRefundWithCn={() => { setActionsOpen(false); if (lockedPeriod) { setLockedAction("refund"); return; } setRefundFormOpen(true); }}
-        onPreviewPdf={() => { setActionsOpen(false); setPdfPreviewOpen(true); }}
+        onPreviewPdf={() => { setActionsOpen(false); setPdfFromSend(false); setPdfPreviewOpen(true); }}
         onSendInvoice={() => { setActionsOpen(false); setSendSheetOpen(true); }}
         onEdit={openEdit}
         onDuplicate={duplicate}
@@ -1354,7 +1359,7 @@ export function InvoiceDetailPage({
         onClose={() => { setSendSheetOpen(false); setSendContext("invoice"); }}
         onSend={completeSend}
         onSent={completeSend}
-        onDownload={() => setPdfPreviewOpen(true)}
+        onDownload={() => { setPdfFromSend(true); setPdfPreviewOpen(true); }}
       />
 
       {/* PDF preview — shown instantly over the (still-mounted) Send Invoice page; no transition.
@@ -1373,8 +1378,8 @@ export function InvoiceDetailPage({
               total={selectedSendCn.amount}
               reason={selectedSendCn.reason}
               reasonNote={selectedSendCn.reasonNote}
+              hideDownload={pdfFromSend}
               onBack={() => setPdfPreviewOpen(false)}
-              onDownloaded={() => { setPdfPreviewOpen(false); completeSend(); }}
             />
           ) : (
             <InvoicePreviewPage
@@ -1390,10 +1395,13 @@ export function InvoiceDetailPage({
               total={sendTotal}
               bank={bank}
               status={{ label: meta.label, bg: meta.bg, border: meta.border, text: meta.text }}
+              hideDownload={pdfFromSend}
               onBack={() => setPdfPreviewOpen(false)}
               onDownloaded={() => {
-                // From a sendable invoice, download counts as a send channel;
-                // for terminal/read-only invoices it's just a re-download.
+                // Only reachable when NOT from the Send sheet's own Download row (hideDownload hides
+                // the button there — that download is already "just to show", no side effect). From a
+                // sendable invoice, download counts as a send channel; for terminal/read-only invoices
+                // it's just a re-download.
                 setPdfPreviewOpen(false);
                 if (sendable) completeSend();
                 else setLocalToast("Invoice downloaded");

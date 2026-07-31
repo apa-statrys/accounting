@@ -50,6 +50,10 @@ interface InvoicePreviewPageProps {
   onBack?: () => void;
   /** Fired after the PDF download is triggered. */
   onDownloaded?: () => void;
+  /** Skip the "Download PDF" dock — the download already fired before this page opened (e.g.
+   *  tapping the Send sheet's own Download file row). A plain "Preview as PDF" entry still shows
+   *  the button since nothing has downloaded yet. */
+  hideDownload?: boolean;
 }
 
 /** A true IBAN (2 letters + 2 check digits, 15+ chars) is labelled IBAN; a country-prefixed
@@ -78,7 +82,7 @@ const PAGE_MIN_H = 1123;
 
 /** Full-screen invoice preview before downloading a PDF (DES-718 Download method). */
 export function InvoicePreviewPage(props: InvoicePreviewPageProps) {
-  const { invoiceNo, customerName, customerEmail, issueDateLabel, dueDateLabel, currency, items, subtotal, discount, total, bank, fromName, companyName, status, onBack, onDownloaded } = props;
+  const { invoiceNo, customerName, customerEmail, issueDateLabel, dueDateLabel, currency, items, subtotal, discount, total, bank, fromName, companyName, status, onBack, onDownloaded, hideDownload } = props;
 
   // Prototype: skip the actual file save — just confirm + mark sent.
   const download = () => onDownloaded?.();
@@ -126,7 +130,7 @@ export function InvoicePreviewPage(props: InvoicePreviewPageProps) {
           <PageHeader type="center" title="Invoice Preview" onBack={onBack} showSearch={false} />
         </PageAppHeader>
 
-        <div className="p-3 pb-28">
+        <div className={hideDownload ? "p-3 pb-6" : "p-3 pb-28"}>
         {/* Scaled A4 page — the wrapper reserves the scaled footprint; the page itself is full size. */}
         <div style={{ height: wrapH }}>
           <div
@@ -261,12 +265,14 @@ export function InvoicePreviewPage(props: InvoicePreviewPageProps) {
         </div>
       </div>
 
-      <ButtonDock
-        type="single"
-        sticky
-        primaryLabel="Download PDF"
-        onPrimary={download}
-      />
+      {!hideDownload && (
+        <ButtonDock
+          type="single"
+          sticky
+          primaryLabel="Download PDF"
+          onPrimary={download}
+        />
+      )}
     </div>
   );
 }

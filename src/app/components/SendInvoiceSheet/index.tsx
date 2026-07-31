@@ -95,6 +95,10 @@ export function SendInvoiceSheet({
   const [saveDefault, setSaveDefault] = useState(false);
   const [showRecipients, setShowRecipients] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  // Preview sheet's own Email/PDF segment (Figma "Preview" — no separate title, the segmented
+  // control itself frames what's showing). Always reopens on Email; only the PDF segment's
+  // Download row is affected by the flow below.
+  const [previewSegment, setPreviewSegment] = useState(0);
   const [recipientError, setRecipientError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   // Any of the three text fields (recipients / subject / message) focused → the dock shows
@@ -333,51 +337,79 @@ export function SendInvoiceSheet({
             sticky
             secondaryLabel="Preview"
             primaryLabel={tab === 0 ? (sendError ? "Try again" : `Send ${docLabel}`) : "Mark as Sent"}
-            onSecondary={() => setPreviewOpen(true)}
+            onSecondary={() => { setPreviewSegment(0); setPreviewOpen(true); }}
             onPrimary={tab === 0 ? handleSend : onSent}
             keyboard={tab === 0 && keyboardOpen}
           />
 
-          {/* Email preview — bottom sheet */}
-          <BottomSheet open={previewOpen} title="Email Preview" onClose={() => setPreviewOpen(false)}>
-            <div className="rounded-xl overflow-hidden border border-[rgba(160,160,160,0.2)] shadow-sm">
-              {/* Brand bar — the sender company (from Invoice Settings), not Statrys. */}
-              <div className="bg-[var(--bg-neutral-inverse-primary)] px-4 py-3.5 flex items-center gap-2.5">
-                <span className="w-[26px] h-[26px] rounded-[8px] flex items-center justify-center shrink-0" style={{ background: "var(--bg-brand-primary)" }}>
-                  <span className="text-[14px] font-bold text-white" style={FONT}>{companyInitial}</span>
-                </span>
-                <span className="text-[18px] font-bold text-white tracking-[-0.3px]" style={FONT}>{companyName}</span>
+          {/* Preview — Email/PDF segmented control replaces the title (no separate "Email Preview"
+              text; the segments themselves frame what's showing). PDF segment reuses the same
+              Download row as the Share/Download tab — tapping it jumps straight to the Share/Download
+              tab underneath (so Back from the full PDF preview lands there, not back on this sheet
+              or the Email tab) before handing off to the parent's full-screen preview. */}
+          <BottomSheet
+            open={previewOpen}
+            title=""
+            onClose={() => setPreviewOpen(false)}
+            headerExtra={
+              <div className="px-4 pb-3">
+                <SegmentedControls segments={["Email", "PDF"]} activeIndex={previewSegment} onChange={setPreviewSegment} />
               </div>
-              {/* To / Subject band */}
-              <div className="bg-[#f6f1e7] px-4 py-2.5 flex flex-col gap-0.5">
-                <p className="text-[12px] leading-[1.35] text-[#6b6455]" style={FONT}>
-                  To: <span className="text-[var(--text-primary)]">{toLine}</span>
-                </p>
-                {cc && (
+            }
+          >
+            {previewSegment === 0 ? (
+              <div className="rounded-xl overflow-hidden border border-[rgba(160,160,160,0.2)] shadow-sm">
+                {/* Brand bar — the sender company (from Invoice Settings), not Statrys. */}
+                <div className="bg-[var(--bg-neutral-inverse-primary)] px-4 py-3.5 flex items-center gap-2.5">
+                  <span className="w-[26px] h-[26px] rounded-[8px] flex items-center justify-center shrink-0" style={{ background: "var(--bg-brand-primary)" }}>
+                    <span className="text-[14px] font-bold text-white" style={FONT}>{companyInitial}</span>
+                  </span>
+                  <span className="text-[18px] font-bold text-white tracking-[-0.3px]" style={FONT}>{companyName}</span>
+                </div>
+                {/* To / Subject band */}
+                <div className="bg-[#f6f1e7] px-4 py-2.5 flex flex-col gap-0.5">
                   <p className="text-[12px] leading-[1.35] text-[#6b6455]" style={FONT}>
-                    Cc: <span className="text-[var(--text-primary)]">{companyEmail}</span>
+                    To: <span className="text-[var(--text-primary)]">{toLine}</span>
                   </p>
-                )}
-                <p className="text-[12px] leading-[1.35] text-[#6b6455]" style={FONT}>
-                  Subject: <span className="font-bold text-[var(--text-primary)]">{subject}</span>
-                </p>
+                  {cc && (
+                    <p className="text-[12px] leading-[1.35] text-[#6b6455]" style={FONT}>
+                      Cc: <span className="text-[var(--text-primary)]">{companyEmail}</span>
+                    </p>
+                  )}
+                  <p className="text-[12px] leading-[1.35] text-[#6b6455]" style={FONT}>
+                    Subject: <span className="font-bold text-[var(--text-primary)]">{subject}</span>
+                  </p>
+                </div>
+                {/* Body */}
+                <div className="bg-white px-4 py-4 text-[13px] leading-[1.5] text-[var(--text-primary)] whitespace-pre-line" style={FONT}>
+                  {message}
+                </div>
+                {/* Structured invoice content (DES-718 Email Content) — the number/amount/due date
+                    already appear in the subject and body above, so no separate summary box. */}
+                <div className="bg-white px-4 pb-4">
+                  <button
+                    type="button"
+                    className="w-full rounded-lg bg-[var(--bg-neutral-inverse-primary)] text-white py-2.5 text-[14px] font-medium"
+                    style={FONT}
+                  >
+                    {isCreditNote ? "Open credit note" : "Open invoice"}
+                  </button>
+                </div>
               </div>
-              {/* Body */}
-              <div className="bg-white px-4 py-4 text-[13px] leading-[1.5] text-[var(--text-primary)] whitespace-pre-line" style={FONT}>
-                {message}
+            ) : (
+              <div className="flex flex-col gap-3">
+                <p className="body-sm text-[var(--text-primary)]">Download</p>
+                <FileItemBase
+                  name={`${invoiceNo}.pdf`}
+                  size="148 KB"
+                  fileType="pdf"
+                  state="completed"
+                  action="download"
+                  onClick={() => { setTab(1); setPreviewOpen(false); onDownload?.(); }}
+                  onDownload={() => { setTab(1); setPreviewOpen(false); onDownload?.(); }}
+                />
               </div>
-              {/* Structured invoice content (DES-718 Email Content) — the number/amount/due date
-                  already appear in the subject and body above, so no separate summary box. */}
-              <div className="bg-white px-4 pb-4">
-                <button
-                  type="button"
-                  className="w-full rounded-lg bg-[var(--bg-neutral-inverse-primary)] text-white py-2.5 text-[14px] font-medium"
-                  style={FONT}
-                >
-                  {isCreditNote ? "Open credit note" : "Open invoice"}
-                </button>
-              </div>
-            </div>
+            )}
           </BottomSheet>
         </motion.div>
       )}

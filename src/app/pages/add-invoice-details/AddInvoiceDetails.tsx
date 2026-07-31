@@ -1342,11 +1342,11 @@ export function AddInvoiceDetails({
               };
             })()}
             status={{ label: "Pending", bg: "var(--bg-warning-subtle)", border: "var(--border-warning-subtle)", text: "var(--text-warning-primary)" }}
+            // Only ever reached via the Send sheet's own Download row — already "just to show"
+            // (the download already fired there), so no dock button and no side effect here; Back
+            // returns to the Send sheet, which already jumped itself to the Share/Download tab.
+            hideDownload
             onBack={() => setPdfPreviewOpen(false)}
-            onDownloaded={() => {
-              setPdfPreviewOpen(false);
-              onSend?.({ title: "Invoice marked as sent" }, recentSent);
-            }}
           />
         </div>
       )}

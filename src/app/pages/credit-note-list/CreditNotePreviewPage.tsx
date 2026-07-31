@@ -49,6 +49,9 @@ interface CreditNotePreviewPageProps {
   kind?: "cancellation" | "refund";
   onBack?: () => void;
   onDownloaded?: () => void;
+  /** Skip the "Download PDF" dock (preview variant only) — the download already fired before this
+   *  page opened (e.g. tapping the Send sheet's own Download file row). */
+  hideDownload?: boolean;
   /** DES-721 AC3 — open the linked invoice's view screen. */
   onViewInvoice?: () => void;
   /** DES-721 AC4 — send the credit note (reuses the Story-5 send flow). */
@@ -82,7 +85,7 @@ const PAGE_MIN_H = 1123;
 /** Full-screen credit-note document preview before downloading a PDF (DES-719). */
 export function CreditNotePreviewPage(props: CreditNotePreviewPageProps) {
   const { creditNoteNo, invoiceNo, customerName, customerEmail, issueDateLabel, currency, lines, total, reason, reasonNote,
-    variant = "preview", status, kind, onBack, onDownloaded, onViewInvoice, onSend } = props;
+    variant = "preview", status, kind, onBack, onDownloaded, hideDownload, onViewInvoice, onSend } = props;
   const isView = variant === "view";
 
   // Prototype: skip the actual file save — just confirm.
@@ -125,7 +128,7 @@ export function CreditNotePreviewPage(props: CreditNotePreviewPageProps) {
           <PageHeader type="center" title={isView ? "Credit Note" : "Credit Note Preview"} onBack={onBack} showSearch={false} />
         </PageAppHeader>
 
-        <div className="p-3 pb-28">
+        <div className={!isView && hideDownload ? "p-3 pb-6" : "p-3 pb-28"}>
         {/* Scaled A4 page — the wrapper reserves the scaled footprint; the page itself is full size. */}
         <div style={{ height: wrapH }}>
           <div
@@ -268,12 +271,11 @@ export function CreditNotePreviewPage(props: CreditNotePreviewPageProps) {
         </div>
       </div>
 
-      <ButtonDock
-        type="single"
-        sticky
-        primaryLabel={isView ? "Send Credit Note" : "Download PDF"}
-        onPrimary={isView ? (onSend ?? (() => {})) : download}
-      />
+      {isView ? (
+        <ButtonDock type="single" sticky primaryLabel="Send Credit Note" onPrimary={onSend ?? (() => {})} />
+      ) : !hideDownload ? (
+        <ButtonDock type="single" sticky primaryLabel="Download PDF" onPrimary={download} />
+      ) : null}
     </div>
   );
 }
