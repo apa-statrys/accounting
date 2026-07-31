@@ -1095,8 +1095,9 @@ export function AddInvoiceDetails({
         }}
       />
 
-      {/* Back-tap confirm (fresh create/upload-review only, never mid-edit) — the draft is already
-          saved by the time this shows; it's just confirming the exit vs offering to keep going. */}
+      {/* Back-tap confirm (fresh create/upload-review only, never mid-edit) — nothing is saved yet:
+          "Go to invoice list" saves this as a draft on the way out; "Discard" abandons it entirely
+          (no draft ever created) and goes back to the list the same as the plain ✕/close. */}
       <BottomSheet
         open={savedDraftSheetOpen}
         title="Saved as draft"
@@ -1106,9 +1107,10 @@ export function AddInvoiceDetails({
           <ButtonDock
             type="double"
             primaryLabel="Go to invoice list"
-            secondaryLabel="Keep editing"
+            secondaryLabel="Discard"
+            secondaryDestructive
             onPrimary={() => { setSavedDraftSheetOpen(false); saveDraft(); }}
-            onSecondary={() => setSavedDraftSheetOpen(false)}
+            onSecondary={() => { setSavedDraftSheetOpen(false); onClose?.(); }}
           />
         }
       >
