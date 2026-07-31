@@ -1108,7 +1108,6 @@ export function AddInvoiceDetails({
             type="double"
             primaryLabel="Go to invoice list"
             secondaryLabel="Discard"
-            secondaryDestructive
             onPrimary={() => { setSavedDraftSheetOpen(false); saveDraft(); }}
             onSecondary={() => { setSavedDraftSheetOpen(false); onClose?.(); }}
           />
