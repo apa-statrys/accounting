@@ -9,9 +9,9 @@ import { SendInvoiceSheet } from "../../components/SendInvoiceSheet";
 import { CreditNoteForm } from "../credit-note-form/CreditNoteForm";
 import { RefundCreditNoteFlow } from "./RefundCreditNoteFlow";
 import { FilePreviewOverlay, type UploadedFileInfo } from "../../components/UploadedFile";
-import { CreditNotePreviewPage } from "../credit-note-list/CreditNotePreviewPage";
+import { CreditNotePreviewPage, CreditNoteDocumentPreview } from "../credit-note-list/CreditNotePreviewPage";
 import { CreditNoteDetailPage } from "../credit-note-list/CreditNoteDetailPage";
-import { InvoicePreviewPage } from "../shared/InvoicePreviewPage";
+import { InvoicePreviewPage, InvoiceDocumentPreview } from "../shared/InvoicePreviewPage";
 import { Toast } from "../../components/Toast";
 import { getAccount, RECEIVING_ACCOUNTS } from "../../data/receivingAccounts";
 import { SHOW_CREDIT_NOTES, SHOW_RECURRING } from "../../lib/flags";
@@ -1359,7 +1359,44 @@ export function InvoiceDetailPage({
         onClose={() => { setSendSheetOpen(false); setSendContext("invoice"); }}
         onSend={completeSend}
         onSent={completeSend}
-        onDownload={() => { setPdfFromSend(true); setPdfPreviewOpen(true); }}
+        onDownload={() => {
+          setPdfFromSend(true);
+          setPdfPreviewOpen(true);
+          setLocalToast(sendContext === "creditNote" ? "Credit note downloaded" : "Invoice downloaded");
+        }}
+        docPreview={
+          sendContext === "creditNote" && selectedSendCn ? (
+            <CreditNoteDocumentPreview
+              creditNoteNo={selectedSendCn.no}
+              invoiceNo={invoiceNo}
+              customerName={selectedSendCn.name}
+              customerEmail={selectedSendCn.email}
+              issueDateLabel={selectedSendCn.date}
+              currency={currency}
+              lines={selectedSendCn.lines}
+              total={selectedSendCn.amount}
+              reason={selectedSendCn.reason}
+              reasonNote={selectedSendCn.reasonNote}
+              className="p-0"
+            />
+          ) : (
+            <InvoiceDocumentPreview
+              invoiceNo={sendNo}
+              customerName={sendName}
+              customerEmail={sendEmail}
+              issueDateLabel={issueDateLabel}
+              dueDateLabel={dueDateLabel}
+              currency={currency}
+              items={ITEMS}
+              subtotal={SUBTOTAL}
+              discount={DISCOUNT}
+              total={sendTotal}
+              bank={bank}
+              status={{ label: meta.label, bg: meta.bg, border: meta.border, text: meta.text }}
+              className="p-0"
+            />
+          )
+        }
       />
 
       {/* PDF preview — shown instantly over the (still-mounted) Send Invoice page; no transition.

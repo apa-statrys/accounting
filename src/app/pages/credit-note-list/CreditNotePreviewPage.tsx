@@ -26,7 +26,7 @@ export interface CreditNoteLine {
   amount: number;
 }
 
-interface CreditNotePreviewPageProps {
+export interface CreditNoteDocumentPreviewProps {
   creditNoteNo: string;
   /** The invoice this credit note credits — shown as the reference. */
   invoiceNo: string;
@@ -40,11 +40,21 @@ interface CreditNotePreviewPageProps {
   /** Reason for the credit (required field) + optional free-text note — shown on the document. */
   reason?: string;
   reasonNote?: string;
+  /** DES-721 — the credit note's own status (e.g. "Pending Refund" / "Refunded" / "Applied"). */
+  status?: string;
+  /** Wrapper padding — callers size this to their own container (full page vs. an embedded
+   *  preview inside a smaller sheet). Defaults to the full-page page's own gutters. */
+  className?: string;
+  /** Extra content rendered after the scaled page, inside the SAME padded wrapper (e.g. the
+   *  view-mode "Related invoice" button) — so the caller doesn't need a second wrapping div with
+   *  its own gutters. */
+  children?: React.ReactNode;
+}
+
+interface CreditNotePreviewPageProps extends CreditNoteDocumentPreviewProps {
   /** "preview" = the PDF preview inside the send flow (Download PDF dock). "view" = the read-only
    *  View Credit Note screen (DES-721): status + type chips, a Related-invoice action, and Send. */
   variant?: "preview" | "view";
-  /** DES-721 — the credit note's own status (e.g. "Pending Refund" / "Refunded" / "Applied"). */
-  status?: string;
   /** DES-721 — cancellation (unpaid invoice) vs refund (paid invoice) credit note. */
   kind?: "cancellation" | "refund";
   onBack?: () => void;
@@ -78,26 +88,22 @@ const FROM_COMPANY = {
   phone: "+852 1234 5678",
 };
 
-/** A4 page @96dpi — natural document size; scaled to fit the phone so it reads like a real PDF page. */
+/** A4 page @96dpi — natural document size; scaled to fit whatever container it's placed in. */
 const PAGE_W = 794;
 const PAGE_MIN_H = 1123;
 
-/** Full-screen credit-note document preview before downloading a PDF (DES-719). */
-export function CreditNotePreviewPage(props: CreditNotePreviewPageProps) {
-  const { creditNoteNo, invoiceNo, customerName, customerEmail, issueDateLabel, currency, lines, total, reason, reasonNote,
-    variant = "preview", status, kind, onBack, onDownloaded, hideDownload, onViewInvoice, onSend } = props;
-  const isView = variant === "view";
-
-  // Prototype: skip the actual file save — just confirm.
-  const download = () => onDownloaded?.();
+/** The actual scaled document — self-measures its own container width to scale-to-fit, so it
+ *  drops into the full-screen CreditNotePreviewPage OR a narrower embedded spot (e.g. the Send
+ *  sheet's PDF-segment preview) unchanged. This IS the real credit-note document, not a stand-in. */
+export function CreditNoteDocumentPreview(props: CreditNoteDocumentPreviewProps) {
+  const { creditNoteNo, invoiceNo, customerName, customerEmail, issueDateLabel, currency, lines, total, reason, reasonNote, status, className, children } = props;
   const chip = status ? (STATUS_CHIP[status] ?? STATUS_CHIP["Applied"]) : null;
 
-  // Render at natural A4 width, then scale-to-fit the phone (see the invoice preview for the same approach).
+  // Render at natural A4 width, then scale-to-fit its container (see the invoice preview for the same approach).
   const areaRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.43);
   const [wrapH, setWrapH] = useState(PAGE_MIN_H * 0.43);
-  const [scrolled, setScrolled] = useState(false);
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -111,16 +117,155 @@ export function CreditNotePreviewPage(props: CreditNotePreviewPageProps) {
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [lines, reason, reasonNote, status, kind, isView]);
+  }, [lines, reason, reasonNote, status]);
 
   const Lbl = ({ children }: { children: React.ReactNode }) => (
     <p className="text-[11px] tracking-[0.1em] uppercase text-[#98a2b3]" style={FONT}>{children}</p>
   );
 
   return (
+    <div ref={areaRef} className={className ?? "p-3"}>
+      {/* Scaled A4 page — the wrapper reserves the scaled footprint; the page itself is full size. */}
+      <div style={{ height: wrapH }}>
+        <div
+          ref={pageRef}
+          className="bg-white shadow-[0_2px_12px_rgba(0,0,0,0.35)]"
+          style={{ width: PAGE_W, minHeight: PAGE_MIN_H, transform: `scale(${scale})`, transformOrigin: "top left", padding: 56 }}
+        >
+          <div className="flex flex-col gap-9">
+            {/* Header — CREDIT NOTE + number (left) · company identity (right) */}
+            <div className="flex items-start justify-between gap-8">
+              <div className="min-w-0">
+                <p className="text-[40px] font-black leading-none tracking-[-1.5px] text-[var(--text-primary)]" style={FONT}>CREDIT NOTE</p>
+                <p className="text-[18px] font-semibold mt-3 text-[var(--text-brand)]" style={FONT}>{creditNoteNo}</p>
+              </div>
+              <div className="flex flex-col items-end shrink-0 text-right">
+                <div className="flex items-center gap-3">
+                  <p className="text-[22px] font-bold leading-[1.15] text-[var(--text-primary)]" style={FONT}>{FROM_COMPANY.name}</p>
+                  <LogoMark letter={FROM_COMPANY.initial} size={40} />
+                </div>
+                {FROM_COMPANY.addressLines.map((l) => (
+                  <p key={l} className="text-[13px] leading-[1.6] text-[#667085]" style={FONT}>{l}</p>
+                ))}
+                <p className="text-[13px] leading-[1.6] text-[#667085]" style={FONT}>{FROM_COMPANY.email}</p>
+              </div>
+            </div>
+
+            <div className="h-px bg-[#eaecf0]" />
+
+            {/* Credit to (left) · Issue date / For invoice / Status (right) */}
+            <div className="flex items-start justify-between gap-8">
+              <div className="min-w-0">
+                <Lbl>Credit To</Lbl>
+                <p className="text-[17px] font-bold mt-1.5 text-[var(--text-primary)]" style={FONT}>{customerName || "—"}</p>
+                {customerEmail && <p className="text-[13px] leading-[1.6] text-[#667085]" style={FONT}>{customerEmail}</p>}
+              </div>
+              <div className="flex flex-col items-end gap-3 shrink-0 text-right">
+                <div>
+                  <Lbl>Issue Date</Lbl>
+                  <p className="text-[14px] font-semibold mt-0.5 text-[var(--text-primary)]" style={FONT}>{issueDateLabel}</p>
+                </div>
+                <div>
+                  <Lbl>For Invoice</Lbl>
+                  <p className="text-[14px] font-semibold mt-0.5 text-[var(--text-primary)]" style={FONT}>{invoiceNo}</p>
+                </div>
+                {status && chip && (
+                  <div>
+                    <Lbl>Status</Lbl>
+                    <span
+                      className="inline-flex items-center mt-1 px-3 py-1 rounded-full border text-[12px] font-bold uppercase tracking-wide"
+                      style={{ ...FONT, background: chip.bg, borderColor: chip.border, color: chip.text }}
+                    >
+                      {status}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Credited items — amounts shown as negatives */}
+            <div className="flex flex-col">
+              <div className="flex items-center gap-4 bg-[var(--bg-neutral-inverse-primary)] px-5 py-3.5">
+                <span className="flex-1 min-w-0 text-[12px] font-bold uppercase tracking-[0.06em] text-white" style={FONT}>Item Credited</span>
+                <span className="w-36 text-right text-[12px] font-bold uppercase tracking-[0.06em] text-white" style={FONT}>Amount</span>
+              </div>
+              {lines.length === 0 ? (
+                <p className="px-5 py-6 text-[14px] text-[var(--text-placeholder)]" style={FONT}>No credited items</p>
+              ) : (
+                lines.map((l, idx) => (
+                  <div key={idx} className="flex items-start gap-4 px-5 py-4 border-b border-[#eaecf0]">
+                    <span className="flex-1 min-w-0 text-[14px] leading-[1.35] text-[#101828]" style={FONT}>{l.name}</span>
+                    <span className="w-36 text-right text-[14px] font-semibold text-[var(--text-error-primary)] whitespace-nowrap" style={FONT}>{neg(l.amount, currency)}</span>
+                  </div>
+                ))
+              )}
+
+              {/* Total credited — right-aligned column */}
+              <div className="mt-6 ml-auto w-[46%] flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[14px] text-[#667085]" style={FONT}>Subtotal credited</span>
+                  <span className="text-[14px] text-[#475467]" style={FONT}>{neg(total, currency)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[14px] text-[#667085]" style={FONT}>Tax (0%)</span>
+                  <span className="text-[14px] text-[#475467]" style={FONT}>{money(0, currency)}</span>
+                </div>
+                <div className="flex items-center justify-between border-t-2 border-[#1b1b1b] mt-2 pt-3">
+                  <span className="text-[17px] font-bold text-[var(--text-primary)]" style={FONT}>Total Credited</span>
+                  <span className="text-[26px] font-black text-[var(--text-error-primary)]" style={FONT}>{neg(total, currency)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Reason for credit (left) · Notes (right) */}
+            <div className="grid grid-cols-2 gap-8 pt-2">
+              <div className="flex flex-col gap-3">
+                <Lbl>Reason for Credit</Lbl>
+                {reason ? (
+                  <div>
+                    <p className="text-[14px] font-semibold text-[var(--text-primary)]" style={FONT}>{reason === "Others" ? (reasonNote || "Other") : reason}</p>
+                    {reason !== "Others" && reasonNote && (
+                      <p className="text-[13px] leading-[1.6] text-[#667085] mt-1" style={FONT}>{reasonNote}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-[13px] text-[#98a2b3]" style={FONT}>—</p>
+                )}
+              </div>
+              <div className="flex flex-col gap-3">
+                <Lbl>Notes</Lbl>
+                <p className="text-[13px] leading-[1.7] text-[#667085]" style={FONT}>
+                  This credit note is issued against invoice <span className="font-semibold text-[var(--text-primary)]">{invoiceNo}</span> and reduces the amount due by {money(total, currency)}. No payment is required.
+                </p>
+              </div>
+            </div>
+
+            <div className="h-px bg-[#eaecf0] mt-4" />
+
+            {/* Footer */}
+            <p className="text-center text-[15px] font-medium text-[var(--text-primary)]" style={FONT}>Thank you for your business!</p>
+          </div>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Full-screen credit-note document preview before downloading a PDF (DES-719). */
+export function CreditNotePreviewPage(props: CreditNotePreviewPageProps) {
+  const { variant = "preview", kind: _kind, onBack, onDownloaded, hideDownload, onViewInvoice, onSend, ...docProps } = props;
+  const { invoiceNo } = docProps;
+  const isView = variant === "view";
+
+  // Prototype: skip the actual file save — just confirm.
+  const download = () => onDownloaded?.();
+
+  const [scrolled, setScrolled] = useState(false);
+
+  return (
     <div className="absolute inset-0 flex flex-col bg-white rounded-[48px] overflow-hidden">
       <div
-        ref={areaRef}
         className="flex-1 min-h-0 overflow-y-auto thin-scrollbar bg-[#525659]"
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
@@ -128,147 +273,24 @@ export function CreditNotePreviewPage(props: CreditNotePreviewPageProps) {
           <PageHeader type="center" title={isView ? "Credit Note" : "Credit Note Preview"} onBack={onBack} showSearch={false} />
         </PageAppHeader>
 
-        <div className={!isView && hideDownload ? "p-3 pb-6" : "p-3 pb-28"}>
-        {/* Scaled A4 page — the wrapper reserves the scaled footprint; the page itself is full size. */}
-        <div style={{ height: wrapH }}>
-          <div
-            ref={pageRef}
-            className="bg-white shadow-[0_2px_12px_rgba(0,0,0,0.35)]"
-            style={{ width: PAGE_W, minHeight: PAGE_MIN_H, transform: `scale(${scale})`, transformOrigin: "top left", padding: 56 }}
-          >
-            <div className="flex flex-col gap-9">
-              {/* Header — CREDIT NOTE + number (left) · company identity (right) */}
-              <div className="flex items-start justify-between gap-8">
-                <div className="min-w-0">
-                  <p className="text-[40px] font-black leading-none tracking-[-1.5px] text-[var(--text-primary)]" style={FONT}>CREDIT NOTE</p>
-                  <p className="text-[18px] font-semibold mt-3 text-[var(--text-brand)]" style={FONT}>{creditNoteNo}</p>
-                </div>
-                <div className="flex flex-col items-end shrink-0 text-right">
-                  <div className="flex items-center gap-3">
-                    <p className="text-[22px] font-bold leading-[1.15] text-[var(--text-primary)]" style={FONT}>{FROM_COMPANY.name}</p>
-                    <LogoMark letter={FROM_COMPANY.initial} size={40} />
-                  </div>
-                  {FROM_COMPANY.addressLines.map((l) => (
-                    <p key={l} className="text-[13px] leading-[1.6] text-[#667085]" style={FONT}>{l}</p>
-                  ))}
-                  <p className="text-[13px] leading-[1.6] text-[#667085]" style={FONT}>{FROM_COMPANY.email}</p>
-                </div>
-              </div>
-
-              <div className="h-px bg-[#eaecf0]" />
-
-              {/* Credit to (left) · Issue date / For invoice / Status (right) */}
-              <div className="flex items-start justify-between gap-8">
-                <div className="min-w-0">
-                  <Lbl>Credit To</Lbl>
-                  <p className="text-[17px] font-bold mt-1.5 text-[var(--text-primary)]" style={FONT}>{customerName || "—"}</p>
-                  {customerEmail && <p className="text-[13px] leading-[1.6] text-[#667085]" style={FONT}>{customerEmail}</p>}
-                </div>
-                <div className="flex flex-col items-end gap-3 shrink-0 text-right">
-                  <div>
-                    <Lbl>Issue Date</Lbl>
-                    <p className="text-[14px] font-semibold mt-0.5 text-[var(--text-primary)]" style={FONT}>{issueDateLabel}</p>
-                  </div>
-                  <div>
-                    <Lbl>For Invoice</Lbl>
-                    <p className="text-[14px] font-semibold mt-0.5 text-[var(--text-primary)]" style={FONT}>{invoiceNo}</p>
-                  </div>
-                  {status && chip && (
-                    <div>
-                      <Lbl>Status</Lbl>
-                      <span
-                        className="inline-flex items-center mt-1 px-3 py-1 rounded-full border text-[12px] font-bold uppercase tracking-wide"
-                        style={{ ...FONT, background: chip.bg, borderColor: chip.border, color: chip.text }}
-                      >
-                        {status}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Credited items — amounts shown as negatives */}
-              <div className="flex flex-col">
-                <div className="flex items-center gap-4 bg-[var(--bg-neutral-inverse-primary)] px-5 py-3.5">
-                  <span className="flex-1 min-w-0 text-[12px] font-bold uppercase tracking-[0.06em] text-white" style={FONT}>Item Credited</span>
-                  <span className="w-36 text-right text-[12px] font-bold uppercase tracking-[0.06em] text-white" style={FONT}>Amount</span>
-                </div>
-                {lines.length === 0 ? (
-                  <p className="px-5 py-6 text-[14px] text-[var(--text-placeholder)]" style={FONT}>No credited items</p>
-                ) : (
-                  lines.map((l, idx) => (
-                    <div key={idx} className="flex items-start gap-4 px-5 py-4 border-b border-[#eaecf0]">
-                      <span className="flex-1 min-w-0 text-[14px] leading-[1.35] text-[#101828]" style={FONT}>{l.name}</span>
-                      <span className="w-36 text-right text-[14px] font-semibold text-[var(--text-error-primary)] whitespace-nowrap" style={FONT}>{neg(l.amount, currency)}</span>
-                    </div>
-                  ))
-                )}
-
-                {/* Total credited — right-aligned column */}
-                <div className="mt-6 ml-auto w-[46%] flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[14px] text-[#667085]" style={FONT}>Subtotal credited</span>
-                    <span className="text-[14px] text-[#475467]" style={FONT}>{neg(total, currency)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[14px] text-[#667085]" style={FONT}>Tax (0%)</span>
-                    <span className="text-[14px] text-[#475467]" style={FONT}>{money(0, currency)}</span>
-                  </div>
-                  <div className="flex items-center justify-between border-t-2 border-[#1b1b1b] mt-2 pt-3">
-                    <span className="text-[17px] font-bold text-[var(--text-primary)]" style={FONT}>Total Credited</span>
-                    <span className="text-[26px] font-black text-[var(--text-error-primary)]" style={FONT}>{neg(total, currency)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Reason for credit (left) · Notes (right) */}
-              <div className="grid grid-cols-2 gap-8 pt-2">
-                <div className="flex flex-col gap-3">
-                  <Lbl>Reason for Credit</Lbl>
-                  {reason ? (
-                    <div>
-                      <p className="text-[14px] font-semibold text-[var(--text-primary)]" style={FONT}>{reason === "Others" ? (reasonNote || "Other") : reason}</p>
-                      {reason !== "Others" && reasonNote && (
-                        <p className="text-[13px] leading-[1.6] text-[#667085] mt-1" style={FONT}>{reasonNote}</p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-[13px] text-[#98a2b3]" style={FONT}>—</p>
-                  )}
-                </div>
-                <div className="flex flex-col gap-3">
-                  <Lbl>Notes</Lbl>
-                  <p className="text-[13px] leading-[1.7] text-[#667085]" style={FONT}>
-                    This credit note is issued against invoice <span className="font-semibold text-[var(--text-primary)]">{invoiceNo}</span> and reduces the amount due by {money(total, currency)}. No payment is required.
-                  </p>
-                </div>
-              </div>
-
-              <div className="h-px bg-[#eaecf0] mt-4" />
-
-              {/* Footer */}
-              <p className="text-center text-[15px] font-medium text-[var(--text-primary)]" style={FONT}>Thank you for your business!</p>
-            </div>
-          </div>
-        </div>
-
-        {/* DES-721 AC3 — Related invoice action (view screen only). */}
-        {isView && onViewInvoice && (
-          <button
-            onClick={onViewInvoice}
-            className="group mt-3 w-full bg-white rounded-2xl border border-[rgba(0,0,0,0.06)] shadow-sm px-4 py-3.5 flex items-center justify-between gap-3 text-left"
-          >
-            <span className="min-w-0">
-              <span className="block text-[10px] font-bold uppercase tracking-wide text-[var(--text-placeholder)]" style={FONT}>Related invoice</span>
-              <span className="block text-[14px] font-semibold text-[var(--text-primary)] mt-0.5 truncate" style={FONT}>{invoiceNo}</span>
-            </span>
-            <span className="flex items-center gap-0.5 shrink-0 text-[13px] font-medium text-[var(--text-brand)]" style={FONT}>
-              View
-              <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5" style={{ fontSize: 18 }} />
-            </span>
-          </button>
-        )}
-        </div>
+        <CreditNoteDocumentPreview {...docProps} className={!isView && hideDownload ? "p-3 pb-6" : "p-3 pb-28"}>
+          {/* DES-721 AC3 — Related invoice action (view screen only). */}
+          {isView && onViewInvoice && (
+            <button
+              onClick={onViewInvoice}
+              className="group mt-3 w-full bg-white rounded-2xl border border-[rgba(0,0,0,0.06)] shadow-sm px-4 py-3.5 flex items-center justify-between gap-3 text-left"
+            >
+              <span className="min-w-0">
+                <span className="block text-[10px] font-bold uppercase tracking-wide text-[var(--text-placeholder)]" style={FONT}>Related invoice</span>
+                <span className="block text-[14px] font-semibold text-[var(--text-primary)] mt-0.5 truncate" style={FONT}>{invoiceNo}</span>
+              </span>
+              <span className="flex items-center gap-0.5 shrink-0 text-[13px] font-medium text-[var(--text-brand)]" style={FONT}>
+                View
+                <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5" style={{ fontSize: 18 }} />
+              </span>
+            </button>
+          )}
+        </CreditNoteDocumentPreview>
       </div>
 
       {isView ? (

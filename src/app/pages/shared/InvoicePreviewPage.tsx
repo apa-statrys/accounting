@@ -29,7 +29,7 @@ export interface InvoiceBank {
   currency: string;
 }
 
-interface InvoicePreviewPageProps {
+export interface InvoiceDocumentPreviewProps {
   invoiceNo: string;
   customerName: string;
   customerEmail: string;
@@ -47,6 +47,12 @@ interface InvoicePreviewPageProps {
   companyName?: string;
   /** Optional status chip (Issue/Due/Status meta block). */
   status?: { label: string; bg: string; border: string; text: string };
+  /** Wrapper padding — callers size this to their own container (full page vs. an embedded
+   *  preview inside a smaller sheet). Defaults to the full-page page's own gutters. */
+  className?: string;
+}
+
+interface InvoicePreviewPageProps extends InvoiceDocumentPreviewProps {
   onBack?: () => void;
   /** Fired after the PDF download is triggered. */
   onDownloaded?: () => void;
@@ -76,27 +82,27 @@ const FROM_COMPANY = {
 };
 
 
-/** A4 page @96dpi — the natural document width/height; the page is scaled to fit the phone. */
+/** A4 page @96dpi — the natural document width/height; the page is scaled to fit whatever
+ *  container it's placed in (the full-screen preview, or a narrower embedded preview). */
 const PAGE_W = 794;
 const PAGE_MIN_H = 1123;
 
-/** Full-screen invoice preview before downloading a PDF (DES-718 Download method). */
-export function InvoicePreviewPage(props: InvoicePreviewPageProps) {
-  const { invoiceNo, customerName, customerEmail, issueDateLabel, dueDateLabel, currency, items, subtotal, discount, total, bank, fromName, companyName, status, onBack, onDownloaded, hideDownload } = props;
-
-  // Prototype: skip the actual file save — just confirm + mark sent.
-  const download = () => onDownloaded?.();
+/** The actual scaled document — self-measures its own container width to scale-to-fit, so it
+ *  drops into the full-screen InvoicePreviewPage OR a narrower embedded spot (e.g. the Send
+ *  sheet's PDF-segment preview) unchanged. This IS the real invoice document, not a stand-in. */
+export function InvoiceDocumentPreview(props: InvoiceDocumentPreviewProps) {
+  const { invoiceNo, customerName, customerEmail, issueDateLabel, dueDateLabel, currency, items, subtotal, discount, total, bank, fromName, companyName, status, className } = props;
 
   const senderName = companyName || fromName || FROM_COMPANY.name;
   const senderInitial = (senderName.trim()[0] ?? "L").toUpperCase();
 
-  // Render the document at its natural A4 width, then scale-to-fit the phone so it reads like a real PDF
-  // page (not a reflowed mobile layout). The wrapper reserves the SCALED height so the sheet scrolls right.
+  // Render the document at its natural A4 width, then scale-to-fit its container so it reads like
+  // a real PDF page (not a reflowed mobile layout). The wrapper reserves the SCALED height so
+  // whatever scrolls around it does so correctly.
   const areaRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.43);
   const [wrapH, setWrapH] = useState(PAGE_MIN_H * 0.43);
-  const [scrolled, setScrolled] = useState(false);
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -120,9 +126,154 @@ export function InvoicePreviewPage(props: InvoicePreviewPageProps) {
   );
 
   return (
+    <div ref={areaRef} className={className ?? "p-3"}>
+      {/* Scaled A4 page — the wrapper reserves the scaled footprint; the page itself is full size. */}
+      <div style={{ height: wrapH }}>
+        <div
+          ref={pageRef}
+          className="bg-white shadow-[0_2px_12px_rgba(0,0,0,0.35)]"
+          style={{ width: PAGE_W, minHeight: PAGE_MIN_H, transform: `scale(${scale})`, transformOrigin: "top left", padding: 56 }}
+        >
+          <div className="flex flex-col gap-9">
+            {/* Header — INVOICE + number (left) · company identity (right) */}
+            <div className="flex items-start justify-between gap-8">
+              <div className="min-w-0">
+                <p className="text-[46px] font-black leading-none tracking-[-2px] text-[var(--text-primary)]" style={FONT}>INVOICE</p>
+                <p className="text-[18px] font-semibold mt-3 text-[var(--text-brand)]" style={FONT}>{invoiceNo}</p>
+              </div>
+              <div className="flex flex-col items-end shrink-0 text-right">
+                <div className="flex items-center gap-3">
+                  <p className="text-[22px] font-bold leading-[1.15] text-[var(--text-primary)]" style={FONT}>{senderName}</p>
+                  <LogoMark letter={senderInitial} size={40} />
+                </div>
+                {FROM_COMPANY.addressLines.map((l) => (
+                  <p key={l} className="text-[13px] leading-[1.6] text-[#667085]" style={FONT}>{l}</p>
+                ))}
+                <p className="text-[13px] leading-[1.6] text-[#667085]" style={FONT}>{FROM_COMPANY.email}</p>
+              </div>
+            </div>
+
+            <div className="h-px bg-[#eaecf0]" />
+
+            {/* Bill to (left) · Issue / Due / Status (right) */}
+            <div className="flex items-start justify-between gap-8">
+              <div className="min-w-0">
+                <Lbl>Bill To</Lbl>
+                <p className="text-[17px] font-bold mt-1.5 text-[var(--text-primary)]" style={FONT}>{customerName || "—"}</p>
+                {customerEmail && <p className="text-[13px] leading-[1.6] text-[#667085]" style={FONT}>{customerEmail}</p>}
+              </div>
+              <div className="flex flex-col items-end gap-3 shrink-0 text-right">
+                <div>
+                  <Lbl>Issue Date</Lbl>
+                  <p className="text-[14px] font-semibold mt-0.5 text-[var(--text-primary)]" style={FONT}>{issueDateLabel}</p>
+                </div>
+                <div>
+                  <Lbl>Due Date</Lbl>
+                  <p className="text-[14px] font-semibold mt-0.5 text-[var(--text-primary)]" style={FONT}>{dueDateLabel}</p>
+                </div>
+                {status && (
+                  <div>
+                    <Lbl>Status</Lbl>
+                    <span
+                      className="inline-flex items-center mt-1 px-3 py-1 rounded-full border text-[12px] font-bold uppercase tracking-wide"
+                      style={{ ...FONT, background: status.bg, borderColor: status.border, color: status.text }}
+                    >
+                      {status.label}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Items table — Description / Qty / Rate / Amount */}
+            <div className="flex flex-col">
+              <div className="flex items-center gap-4 bg-[var(--bg-neutral-inverse-primary)] px-5 py-3.5">
+                <span className="flex-1 min-w-0 text-[12px] font-bold uppercase tracking-[0.06em] text-white" style={FONT}>Description</span>
+                <span className="w-16 text-right text-[12px] font-bold uppercase tracking-[0.06em] text-white" style={FONT}>Qty</span>
+                <span className="w-32 text-right text-[12px] font-bold uppercase tracking-[0.06em] text-white" style={FONT}>Rate</span>
+                <span className="w-36 text-right text-[12px] font-bold uppercase tracking-[0.06em] text-white" style={FONT}>Amount</span>
+              </div>
+              {items.length === 0 ? (
+                <p className="px-5 py-6 text-[14px] text-[var(--text-placeholder)]" style={FONT}>No line items</p>
+              ) : (
+                items.map((i, idx) => (
+                  <div key={idx} className="flex items-start gap-4 px-5 py-4 border-b border-[#eaecf0]">
+                    <span className="flex-1 min-w-0 flex flex-col gap-1">
+                      <span className="text-[14px] leading-[1.35] text-[#101828]" style={FONT}>{i.name}</span>
+                      {i.description && <span className="text-[12px] leading-[1.35] text-[#98a2b3]" style={FONT}>{i.description}</span>}
+                    </span>
+                    <span className="w-16 text-right text-[14px] text-[#475467]" style={FONT}>{i.qty}</span>
+                    <span className="w-32 text-right text-[14px] text-[#475467] whitespace-nowrap" style={FONT}>{money(i.unitPrice, currency)}</span>
+                    <span className="w-36 text-right text-[14px] font-semibold text-[#101828] whitespace-nowrap" style={FONT}>{money(i.amount, currency)}</span>
+                  </div>
+                ))
+              )}
+
+              {/* Totals — right-aligned column */}
+              <div className="mt-6 ml-auto w-[46%] flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[14px] text-[#667085]" style={FONT}>Subtotal</span>
+                  <span className="text-[14px] text-[#475467]" style={FONT}>{money(subtotal, currency)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[14px] text-[#667085]" style={FONT}>Tax (0%)</span>
+                  <span className="text-[14px] text-[#475467]" style={FONT}>{money(0, currency)}</span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[14px] text-[#667085]" style={FONT}>Discount</span>
+                    <span className="text-[14px] text-[#475467]" style={FONT}>- {money(discount, currency)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between border-t-2 border-[#1b1b1b] mt-2 pt-3">
+                  <span className="text-[17px] font-bold text-[var(--text-primary)]" style={FONT}>Total Due</span>
+                  <span className="text-[26px] font-black text-[var(--text-primary)]" style={FONT}>{money(total, currency)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Details · Notes */}
+            <div className="grid grid-cols-2 gap-8 pt-2">
+              <div className="flex flex-col gap-3">
+                <Lbl>Payment Details</Lbl>
+                <div className="flex flex-col gap-3">
+                  <div><Lbl>Account Name</Lbl><Val>{bank.holder}</Val></div>
+                  <div><Lbl>Bank</Lbl><Val>{bank.bankName}</Val></div>
+                  <div><Lbl>{accountNumberLabel(bank.number)}</Lbl><Val>{bank.number}</Val></div>
+                  <div><Lbl>SWIFT / BIC</Lbl><Val>{bank.swift}</Val></div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-3">
+                <Lbl>Notes</Lbl>
+                <p className="text-[13px] leading-[1.7] text-[#667085]" style={FONT}>
+                  Payment due by {dueDateLabel}. Please use <span className="font-semibold text-[var(--text-primary)]">{invoiceNo}</span> as the payment reference. All amounts are in {currency}.
+                </p>
+              </div>
+            </div>
+
+            <div className="h-px bg-[#eaecf0] mt-4" />
+
+            {/* Footer */}
+            <p className="text-center text-[15px] font-medium text-[var(--text-primary)]" style={FONT}>Thank you for your business!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Full-screen invoice preview before downloading a PDF (DES-718 Download method). */
+export function InvoicePreviewPage(props: InvoicePreviewPageProps) {
+  const { onBack, onDownloaded, hideDownload, ...docProps } = props;
+
+  // Prototype: skip the actual file save — just confirm + mark sent.
+  const download = () => onDownloaded?.();
+
+  const [scrolled, setScrolled] = useState(false);
+
+  return (
     <div className="absolute inset-0 flex flex-col bg-white rounded-[48px] overflow-hidden">
       <div
-        ref={areaRef}
         className="flex-1 min-h-0 overflow-y-auto thin-scrollbar bg-[#525659]"
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
@@ -130,139 +281,7 @@ export function InvoicePreviewPage(props: InvoicePreviewPageProps) {
           <PageHeader type="center" title="Invoice Preview" onBack={onBack} showSearch={false} />
         </PageAppHeader>
 
-        <div className={hideDownload ? "p-3 pb-6" : "p-3 pb-28"}>
-        {/* Scaled A4 page — the wrapper reserves the scaled footprint; the page itself is full size. */}
-        <div style={{ height: wrapH }}>
-          <div
-            ref={pageRef}
-            className="bg-white shadow-[0_2px_12px_rgba(0,0,0,0.35)]"
-            style={{ width: PAGE_W, minHeight: PAGE_MIN_H, transform: `scale(${scale})`, transformOrigin: "top left", padding: 56 }}
-          >
-            <div className="flex flex-col gap-9">
-              {/* Header — INVOICE + number (left) · company identity (right) */}
-              <div className="flex items-start justify-between gap-8">
-                <div className="min-w-0">
-                  <p className="text-[46px] font-black leading-none tracking-[-2px] text-[var(--text-primary)]" style={FONT}>INVOICE</p>
-                  <p className="text-[18px] font-semibold mt-3 text-[var(--text-brand)]" style={FONT}>{invoiceNo}</p>
-                </div>
-                <div className="flex flex-col items-end shrink-0 text-right">
-                  <div className="flex items-center gap-3">
-                    <p className="text-[22px] font-bold leading-[1.15] text-[var(--text-primary)]" style={FONT}>{senderName}</p>
-                    <LogoMark letter={senderInitial} size={40} />
-                  </div>
-                  {FROM_COMPANY.addressLines.map((l) => (
-                    <p key={l} className="text-[13px] leading-[1.6] text-[#667085]" style={FONT}>{l}</p>
-                  ))}
-                  <p className="text-[13px] leading-[1.6] text-[#667085]" style={FONT}>{FROM_COMPANY.email}</p>
-                </div>
-              </div>
-
-              <div className="h-px bg-[#eaecf0]" />
-
-              {/* Bill to (left) · Issue / Due / Status (right) */}
-              <div className="flex items-start justify-between gap-8">
-                <div className="min-w-0">
-                  <Lbl>Bill To</Lbl>
-                  <p className="text-[17px] font-bold mt-1.5 text-[var(--text-primary)]" style={FONT}>{customerName || "—"}</p>
-                  {customerEmail && <p className="text-[13px] leading-[1.6] text-[#667085]" style={FONT}>{customerEmail}</p>}
-                </div>
-                <div className="flex flex-col items-end gap-3 shrink-0 text-right">
-                  <div>
-                    <Lbl>Issue Date</Lbl>
-                    <p className="text-[14px] font-semibold mt-0.5 text-[var(--text-primary)]" style={FONT}>{issueDateLabel}</p>
-                  </div>
-                  <div>
-                    <Lbl>Due Date</Lbl>
-                    <p className="text-[14px] font-semibold mt-0.5 text-[var(--text-primary)]" style={FONT}>{dueDateLabel}</p>
-                  </div>
-                  {status && (
-                    <div>
-                      <Lbl>Status</Lbl>
-                      <span
-                        className="inline-flex items-center mt-1 px-3 py-1 rounded-full border text-[12px] font-bold uppercase tracking-wide"
-                        style={{ ...FONT, background: status.bg, borderColor: status.border, color: status.text }}
-                      >
-                        {status.label}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Items table — Description / Qty / Rate / Amount */}
-              <div className="flex flex-col">
-                <div className="flex items-center gap-4 bg-[var(--bg-neutral-inverse-primary)] px-5 py-3.5">
-                  <span className="flex-1 min-w-0 text-[12px] font-bold uppercase tracking-[0.06em] text-white" style={FONT}>Description</span>
-                  <span className="w-16 text-right text-[12px] font-bold uppercase tracking-[0.06em] text-white" style={FONT}>Qty</span>
-                  <span className="w-32 text-right text-[12px] font-bold uppercase tracking-[0.06em] text-white" style={FONT}>Rate</span>
-                  <span className="w-36 text-right text-[12px] font-bold uppercase tracking-[0.06em] text-white" style={FONT}>Amount</span>
-                </div>
-                {items.length === 0 ? (
-                  <p className="px-5 py-6 text-[14px] text-[var(--text-placeholder)]" style={FONT}>No line items</p>
-                ) : (
-                  items.map((i, idx) => (
-                    <div key={idx} className="flex items-start gap-4 px-5 py-4 border-b border-[#eaecf0]">
-                      <span className="flex-1 min-w-0 flex flex-col gap-1">
-                        <span className="text-[14px] leading-[1.35] text-[#101828]" style={FONT}>{i.name}</span>
-                        {i.description && <span className="text-[12px] leading-[1.35] text-[#98a2b3]" style={FONT}>{i.description}</span>}
-                      </span>
-                      <span className="w-16 text-right text-[14px] text-[#475467]" style={FONT}>{i.qty}</span>
-                      <span className="w-32 text-right text-[14px] text-[#475467] whitespace-nowrap" style={FONT}>{money(i.unitPrice, currency)}</span>
-                      <span className="w-36 text-right text-[14px] font-semibold text-[#101828] whitespace-nowrap" style={FONT}>{money(i.amount, currency)}</span>
-                    </div>
-                  ))
-                )}
-
-                {/* Totals — right-aligned column */}
-                <div className="mt-6 ml-auto w-[46%] flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[14px] text-[#667085]" style={FONT}>Subtotal</span>
-                    <span className="text-[14px] text-[#475467]" style={FONT}>{money(subtotal, currency)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[14px] text-[#667085]" style={FONT}>Tax (0%)</span>
-                    <span className="text-[14px] text-[#475467]" style={FONT}>{money(0, currency)}</span>
-                  </div>
-                  {discount > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-[14px] text-[#667085]" style={FONT}>Discount</span>
-                      <span className="text-[14px] text-[#475467]" style={FONT}>- {money(discount, currency)}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between border-t-2 border-[#1b1b1b] mt-2 pt-3">
-                    <span className="text-[17px] font-bold text-[var(--text-primary)]" style={FONT}>Total Due</span>
-                    <span className="text-[26px] font-black text-[var(--text-primary)]" style={FONT}>{money(total, currency)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Payment Details · Notes */}
-              <div className="grid grid-cols-2 gap-8 pt-2">
-                <div className="flex flex-col gap-3">
-                  <Lbl>Payment Details</Lbl>
-                  <div className="flex flex-col gap-3">
-                    <div><Lbl>Account Name</Lbl><Val>{bank.holder}</Val></div>
-                    <div><Lbl>Bank</Lbl><Val>{bank.bankName}</Val></div>
-                    <div><Lbl>{accountNumberLabel(bank.number)}</Lbl><Val>{bank.number}</Val></div>
-                    <div><Lbl>SWIFT / BIC</Lbl><Val>{bank.swift}</Val></div>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-3">
-                  <Lbl>Notes</Lbl>
-                  <p className="text-[13px] leading-[1.7] text-[#667085]" style={FONT}>
-                    Payment due by {dueDateLabel}. Please use <span className="font-semibold text-[var(--text-primary)]">{invoiceNo}</span> as the payment reference. All amounts are in {currency}.
-                  </p>
-                </div>
-              </div>
-
-              <div className="h-px bg-[#eaecf0] mt-4" />
-
-              {/* Footer */}
-              <p className="text-center text-[15px] font-medium text-[var(--text-primary)]" style={FONT}>Thank you for your business!</p>
-            </div>
-          </div>
-        </div>
-        </div>
+        <InvoiceDocumentPreview {...docProps} className={hideDownload ? "p-3 pb-6" : "p-3 pb-28"} />
       </div>
 
       {!hideDownload && (

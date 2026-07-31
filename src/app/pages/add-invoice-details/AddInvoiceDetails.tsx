@@ -19,7 +19,8 @@ import { DiscountCard, type DiscountMode } from "../../components/DiscountCard";
 import { DiscountModeSheet } from "../../components/DiscountModeSheet";
 import { SummaryCard } from "../../components/SummaryCard";
 import { SendInvoiceSheet } from "../../components/SendInvoiceSheet";
-import { InvoicePreviewPage } from "../shared/InvoicePreviewPage";
+import { InvoicePreviewPage, InvoiceDocumentPreview } from "../shared/InvoicePreviewPage";
+import { Toast } from "../../components/Toast";
 import { BankInfoSheet } from "../../components/BankInfoSheet";
 import { CustomerSheet } from "../../components/CustomerSheet";
 import { CURRENCIES, CURRENCY_COUNTRY, CurrencySheet } from "../../components/CurrencySheet";
@@ -274,6 +275,9 @@ export function AddInvoiceDetails({
     }, 600);
   };
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  // Local success toast (e.g. "Invoice downloaded") — separate from the parent's own toast/nav
+  // since this page stays mounted underneath the Send sheet while it fires.
+  const [localToast, setLocalToast] = useState<string | null>(null);
   const [customerSheetOpen, setCustomerSheetOpen] = useState(false);
 
   const [issueDate, setIssueDate] = useState<Date>(extracted?.issueDate ?? seedIssueDate ?? new Date(2026, 5, 15));
@@ -473,6 +477,20 @@ export function AddInvoiceDetails({
 
   // Line items in the invoice currency, for the PDF preview.
   const previewItems = toPreviewItems(services, currency);
+  // Bank details for the PDF preview's "Payment Details" block — shared by the full preview and
+  // the Send sheet's own compact PDF-segment preview.
+  const previewBank = (() => {
+    const a = getAccount(accountId);
+    return {
+      holder: a?.holder ?? "Your Company Ltd",
+      bankName: a?.bankName ?? "",
+      number: a?.number ?? "",
+      swift: a?.swift ?? "",
+      currency: a?.currency ?? currency,
+    };
+  })();
+  const previewIssueDateLabel = format(issueDate, "d MMM yyyy");
+  const previewStatus = { label: "Pending", bg: "var(--bg-warning-subtle)", border: "var(--border-warning-subtle)", text: "var(--text-warning-primary)" };
 
   // Locked-period upload (DES-751): the OCR Issue Date sat in a closed period, so it must be
   // re-picked. Block the CTA while it's still the "Select issue date" placeholder — flag the row
@@ -1296,7 +1314,25 @@ export function AddInvoiceDetails({
         onSend={() => onSend?.({ title: "Invoice marked as sent" }, recentSent)}
         // Marked Sent only if the link was actually copied/shared (option B).
         onSent={() => onSend?.({ title: "Invoice marked as sent" }, recentSent)}
-        onDownload={() => setPdfPreviewOpen(true)}
+        onDownload={() => { setLocalToast("Invoice downloaded"); setPdfPreviewOpen(true); }}
+        docPreview={
+          <InvoiceDocumentPreview
+            invoiceNo={invoiceNo}
+            customerName={name}
+            customerEmail={email}
+            companyName={companyName}
+            issueDateLabel={previewIssueDateLabel}
+            dueDateLabel={dueDateLabel}
+            currency={currency}
+            items={previewItems}
+            subtotal={subtotal}
+            discount={discountAmount}
+            total={total}
+            bank={previewBank}
+            status={previewStatus}
+            className="p-0"
+          />
+        }
       />
 
       {/* Read-only summary of the existing (duplicate) invoice */}
@@ -1324,24 +1360,15 @@ export function AddInvoiceDetails({
             customerName={name}
             customerEmail={email}
             companyName={companyName}
-            issueDateLabel={format(issueDate, "d MMM yyyy")}
+            issueDateLabel={previewIssueDateLabel}
             dueDateLabel={dueDateLabel}
             currency={currency}
             items={previewItems}
             subtotal={subtotal}
             discount={discountAmount}
             total={total}
-            bank={(() => {
-              const a = getAccount(accountId);
-              return {
-                holder: a?.holder ?? "Your Company Ltd",
-                bankName: a?.bankName ?? "",
-                number: a?.number ?? "",
-                swift: a?.swift ?? "",
-                currency: a?.currency ?? currency,
-              };
-            })()}
-            status={{ label: "Pending", bg: "var(--bg-warning-subtle)", border: "var(--border-warning-subtle)", text: "var(--text-warning-primary)" }}
+            bank={previewBank}
+            status={previewStatus}
             // Only ever reached via the Send sheet's own Download row — already "just to show"
             // (the download already fired there), so no dock button and no side effect here; Back
             // returns to the Send sheet, which already jumped itself to the Share/Download tab.
@@ -1361,6 +1388,10 @@ export function AddInvoiceDetails({
           setCustomerSheetOpen(false);
         }}
       />
+
+      {/* Rendered last so it wins the z-index tie against the full-screen PDF preview above —
+          the download toast needs to show even while that preview is covering everything else. */}
+      <Toast open={!!localToast} message={localToast ?? ""} onDone={() => setLocalToast(null)} />
     </div>
   );
 }

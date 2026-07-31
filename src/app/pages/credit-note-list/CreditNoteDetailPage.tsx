@@ -11,7 +11,7 @@ import { SendInvoiceSheet } from "../../components/SendInvoiceSheet";
 import { LockedPeriodDialog } from "../locked-period/LockedPeriodDialog";
 import { LockedPeriodBanner } from "../locked-period/LockedPeriodBanner";
 import { Toast } from "../../components/Toast";
-import { CreditNotePreviewPage } from "./CreditNotePreviewPage";
+import { CreditNotePreviewPage, CreditNoteDocumentPreview } from "./CreditNotePreviewPage";
 import { FilePreviewOverlay, type UploadedFileInfo } from "../../components/UploadedFile";
 import { money, fmtDate } from "../../lib/format";
 import { ListRow } from "../../ui/ListRow";
@@ -136,10 +136,11 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // Send sub-flow (reused from the invoice send flow).
   const [sendSheetOpen, setSendSheetOpen] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
-  // Whether the PDF preview was opened from the send flow (download = complete send) or ⋯ (just view).
+  // Whether the PDF preview was opened from the send flow's own Download row (hides its redundant
+  // Download PDF button — that download already "happened" there) or the plain ⋯ preview.
   const [pdfFromSend, setPdfFromSend] = useState(false);
   const [proofPreview, setProofPreview] = useState<UploadedFileInfo | null>(null);
-  const [toastOpen, setToastOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
 
   // Status chip: application lifecycle (DES-763) for cancellation, money lifecycle for refund.
@@ -147,6 +148,8 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const chip = STATUS_CHIP[displayStatus] ?? STATUS_CHIP["Open"];
   const reasonText = reason || null;
   const amountLabel = `${currency} ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  // Shared by the full PDF preview and the Send sheet's own compact PDF-segment preview.
+  const previewLines = lines && lines.length > 0 ? lines : [{ name: "Credit note total", amount: total }];
   // Action layout by status (cancellation credit notes):
   //  • Open              → dock: Apply to invoice (primary) + Edit (secondary); ⋯: Cancel, Preview as PDF.
   //  • Partially Applied → dock: Send (primary) + Edit Credit Note (secondary); ⋯: Preview as PDF.
@@ -196,7 +199,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const openSend = () => setSendSheetOpen(true);
 
   const closeSend = () => { setSendSheetOpen(false); setPdfOpen(false); };
-  const completeSend = () => { closeSend(); setSentLocal(true); setToastOpen(true); onSent?.(); };
+  const completeSend = () => { closeSend(); setSentLocal(true); setToastMessage("Credit note sent"); onSent?.(); };
   const openPdfPreview = () => { setActionsOpen(false); setPdfFromSend(false); setPdfOpen(true); };
 
   return (
@@ -637,7 +640,22 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         onClose={() => setSendSheetOpen(false)}
         onSend={completeSend}
         onSent={completeSend}
-        onDownload={() => { setPdfFromSend(true); setPdfOpen(true); }}
+        onDownload={() => { setPdfFromSend(true); setPdfOpen(true); setToastMessage("Credit note downloaded"); }}
+        docPreview={
+          <CreditNoteDocumentPreview
+            creditNoteNo={creditNoteNo}
+            invoiceNo={invoiceNo}
+            customerName={customerName}
+            customerEmail={customerEmail ?? ""}
+            issueDateLabel={issueDateLabel}
+            currency={currency}
+            lines={previewLines}
+            total={total}
+            reason={reason}
+            reasonNote={reasonNote}
+            className="p-0"
+          />
+        }
       />
 
       {pdfOpen && (
@@ -649,7 +667,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             customerEmail={customerEmail ?? ""}
             issueDateLabel={issueDateLabel}
             currency={currency}
-            lines={lines && lines.length > 0 ? lines : [{ name: "Credit note total", amount: total }]}
+            lines={previewLines}
             total={total}
             reason={reason}
             reasonNote={reasonNote}
@@ -662,7 +680,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
 
       <FilePreviewOverlay open={proofPreview !== null} file={proofPreview} onClose={() => setProofPreview(null)} />
 
-      <Toast open={toastOpen} message="Credit note sent" onDone={() => setToastOpen(false)} />
+      <Toast open={!!toastMessage} message={toastMessage ?? ""} onDone={() => setToastMessage(null)} />
     </div>
   );
 }

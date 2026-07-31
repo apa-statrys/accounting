@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import CloseIcon from "@mui/icons-material/Close";
 import LinkIcon from "@mui/icons-material/Link";
 import CheckIcon from "@mui/icons-material/Check";
+import { Download as DownloadIcon } from "lucide-react";
 import { PageAppHeader } from "../PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { SegmentedControls } from "../../ui/SegmentedControls";
@@ -48,8 +49,13 @@ interface SendInvoiceSheetProps {
   onSend?: () => void;
   /** "Mark as Sent" confirmed on the Share/Download tab. */
   onSent?: () => void;
-  /** "Download" row tapped — the parent opens the PDF preview page. */
+  /** "Download" tapped (Share/Download tab's file row, or the Preview sheet's PDF-segment
+   *  Download button) — the parent opens the full PDF preview page. */
   onDownload?: () => void;
+  /** The actual document preview — an `InvoiceDocumentPreview`/`CreditNoteDocumentPreview` built
+   *  by the parent from the same data it already threads to the full-screen preview page. Shown in
+   *  the Preview sheet's PDF segment (not the Share/Download tab, which keeps its own file row). */
+  docPreview?: React.ReactNode;
 }
 
 /**
@@ -74,6 +80,7 @@ export function SendInvoiceSheet({
   onSend,
   onSent,
   onDownload,
+  docPreview,
 }: SendInvoiceSheetProps) {
   const [tab, setTab] = useState(0);
   const [scrolled, setScrolled] = useState(false);
@@ -398,15 +405,16 @@ export function SendInvoiceSheet({
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                <p className="body-sm text-[var(--text-primary)]">Download</p>
-                <FileItemBase
-                  name={`${invoiceNo}.pdf`}
-                  size="148 KB"
-                  fileType="pdf"
-                  state="completed"
-                  action="download"
+                {/* The actual document (InvoiceDocumentPreview/CreditNoteDocumentPreview, built
+                    by the parent from the same data as the full-screen preview) — not a file chip,
+                    this IS the PDF. */}
+                {docPreview}
+                <Button
+                  hierarchy="primary"
+                  fullWidth
+                  iconLeft={<DownloadIcon size={18} strokeWidth={1.67} />}
+                  label="Download"
                   onClick={() => { setTab(1); setPreviewOpen(false); onDownload?.(); }}
-                  onDownload={() => { setTab(1); setPreviewOpen(false); onDownload?.(); }}
                 />
               </div>
             )}
