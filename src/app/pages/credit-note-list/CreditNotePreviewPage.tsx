@@ -77,7 +77,7 @@ const STATUS_CHIP: Record<string, { bg: string; border: string; text: string }> 
 
 const money = (n: number, currency: string) =>
   `${currency} ${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const neg = (n: number, currency: string) => `− ${money(n, currency)}`;
+const neg = (n: number, currency: string) => `−${money(n, currency)}`;
 
 /** Sender identity — the user's company (Lumen Studio demo, from invoice settings). */
 const FROM_COMPANY = {

@@ -52,7 +52,7 @@ export function SummaryCard({ currency, subtotal, discount, total, bare = false 
       {/* Figma (node 1826-15916): the divider sits below Discount, not below Subtotal. */}
       <Row label="Subtotal" value={fmt(currency, subtotal)} last />
       {/* Always shown — 0.00 when there's no discount. */}
-      <Row label="Discount" value={discount > 0 ? `- ${fmt(currency, discount)}` : fmt(currency, 0)} negative={discount > 0} />
+      <Row label="Discount" value={discount > 0 ? `−${fmt(currency, discount)}` : fmt(currency, 0)} negative={discount > 0} />
       <Row label="Total" value={fmt(currency, total)} boldLabel boldValue last />
     </>
   );

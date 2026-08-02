@@ -6,15 +6,16 @@ export function CoverageBanner({ fieldsExtracted, fieldsTotal }: { fieldsExtract
   return <Banner color="info" text={`${fieldsExtracted} out of ${fieldsTotal} extracted. Please review before creating.`} />;
 }
 
-/** OCR-failure notice (couldn't read the file) — takes priority over the coverage summary. */
-export function ExtractionFailedBanner({ onReupload, onDismiss }: { onReupload?: () => void; onDismiss: () => void }) {
+/** OCR-failure notice (couldn't read the file) — takes priority over the coverage summary. Not
+ *  dismissible: the file still needs replacing or the fields still need filling in, so it stays
+ *  until the invoice can actually be created. */
+export function ExtractionFailedBanner({ onReupload }: { onReupload?: () => void }) {
   return (
     <Banner
       color="warning"
-      text="We couldn’t read this file. Please enter the details below."
+      text="We couldn’t read this file. Please replace the file or enter the details manually."
       linkLabel="Upload a clearer file"
       onLinkClick={onReupload}
-      onClose={onDismiss}
     />
   );
 }

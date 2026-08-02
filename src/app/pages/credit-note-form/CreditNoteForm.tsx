@@ -627,13 +627,13 @@ export function CreditNoteForm({
               {!refund && (
                 <div className="flex items-start justify-between gap-4 py-2.5 border-b border-[rgba(208,208,208,0.4)]">
                   <span className="body-sm text-[var(--text-secondary)]">Credit Amount</span>
-                  <span className="body-sm text-[var(--text-error-primary)]">− {money(credited)}</span>
+                  <span className="body-sm text-[var(--text-error-primary)]">−{money(credited)}</span>
                 </div>
               )}
               <div className="flex items-center justify-between gap-4 py-3">
                 <span className="body-sm-bold text-[var(--text-primary)]">{refund ? "Total refund" : "Amount Due"}</span>
                 <span className={`body-sm-bold ${refund ? "text-[var(--text-error-primary)]" : "text-[var(--text-primary)]"}`}>
-                  {refund ? "− " : ""}{money(refund ? credited : amountDue)}
+                  {refund ? "−" : ""}{money(refund ? credited : amountDue)}
                 </span>
               </div>
             </div>

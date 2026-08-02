@@ -56,6 +56,9 @@ interface InvoiceDetailPageProps {
   companyEmail?: string;
   issueDateLabel?: string;
   dueDateLabel?: string;
+  /** Shown next to the "Paid" badge (e.g. "Paid 20 Jun 2026") — same "bare date, no repeated
+   *  status word" convention as Void/Draft. */
+  paidDateLabel?: string;
   currency?: string;
   /** Seed a credit note for an invoice opened from the list. `amount` omitted = full credit (Cancelled);
    *  a smaller `amount` = partial (invoice stays Awaiting, balance reduced). `sent` → Resend. */
@@ -103,6 +106,7 @@ export function InvoiceDetailPage({
   companyEmail = "hello@lumenstudio.co",
   issueDateLabel = "10 Jun 2026",
   dueDateLabel = "10 Jul 2026",
+  paidDateLabel = "20 Jun 2026",
   currency = "USD",
   initialCreditNote,
   onBack,
@@ -351,8 +355,9 @@ export function InvoiceDetailPage({
     Awaiting: credited > 0 ? `${money(outstanding, currency)} remaining · due ${dueDateLabel}` : `Due ${dueDateLabel}`,
     Overdue: credited > 0 ? `${money(outstanding, currency)} remaining · since ${dueDateLabel}` : `since ${dueDateLabel}`,
     PartiallyPaid: `${money(remaining, currency)} remaining · due ${dueDateLabel}`,
-    // No "Paid on <date>" line on the hero (removed app-wide); only the overpayment note remains.
-    Paid: overpayment > 0 ? `Overpaid by ${money(overpayment, currency)}, flagged for review` : "",
+    // Bare "Paid <date>" — same convention as Void's bare date (badge already says "Paid", no
+    // need to repeat it). Overpayment takes priority when it applies.
+    Paid: overpayment > 0 ? `Overpaid by ${money(overpayment, currency)}, flagged for review` : paidDateLabel,
     // Voided invoices show their date too, same as every other status (bare date, no repeated
     // "Void" word next to the badge that already says it — matches the list row).
     Cancelled: issueDateLabel,
@@ -664,7 +669,9 @@ export function InvoiceDetailPage({
     })),
     limited: issued,
   };
-  const openEdit = () => { setActionsOpen(false); if (lockedPeriod) { setLockedAction("edit"); return; } onEdit?.(editSeed); };
+  // A Draft can always be edited — it hasn't been issued yet, so there's no accounting-period
+  // date to protect. The locked-period block only applies once the invoice is actually issued.
+  const openEdit = () => { setActionsOpen(false); if (lockedPeriod && issued) { setLockedAction("edit"); return; } onEdit?.(editSeed); };
   // Locked-period demo: "Send invoice" opens the blocking dialog instead of the send sheet.
   const openSend = () => { if (lockedPeriod) { setLockedAction("send"); return; } handleSendInvoiceClick(); };
   // Mark as paid is allowed even in a locked period — recording a payment doesn't change the invoice's
@@ -723,11 +730,16 @@ export function InvoiceDetailPage({
               "since <date>" / "$X to refund"), inline beside the badge (Figma "Due in 3 days"). Only
               the badge itself carries the status color — this text is always text-primary, never a
               second colored element repeating the badge's color. Hidden only while a payment is
-              pending reconciliation, which has its own dedicated line below instead. */}
+              pending reconciliation, which has its own dedicated line below instead. A "·" separates
+              it from the badge — badge + sub-line are two separate fragments, not one sentence, so
+              they need the same visual break every other "status · date" line in the app uses. */}
           {!pendingPayment && headlineBanner && (
-            <span className="caption-medium" style={{ ...FONT, color: INK }}>
-              {headlineBanner}
-            </span>
+            <>
+              <span className="caption-medium" style={{ ...FONT, color: INK }} aria-hidden="true">·</span>
+              <span className="caption-medium" style={{ ...FONT, color: INK }}>
+                {headlineBanner}
+              </span>
+            </>
           )}
         </span>
         {/* Headline: refund context → amount to refund; otherwise amount due / total. Currency code
@@ -762,8 +774,10 @@ export function InvoiceDetailPage({
       </div>
 
       <div className="px-4 pt-2 pb-44 flex flex-col gap-6 bg-white">
-        {/* Locked-period notice (DES-751) — neutral, non-blocking; Mark as paid still works. */}
-        {lockedPeriod && (
+        {/* Locked-period notice (DES-751) — neutral, non-blocking; Mark as paid still works. A
+            Draft is never actually restricted by this (it can always be edited, and credit notes
+            only ever apply to an issued invoice), so the notice only shows once issued. */}
+        {lockedPeriod && issued && (
           <LockedPeriodBanner
             showContact={false}
             title="Accounting period closed"

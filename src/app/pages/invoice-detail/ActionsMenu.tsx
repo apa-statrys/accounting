@@ -49,8 +49,8 @@ export function ActionsMenu({
             is in progress, this drops out and the ⋯ shows Duplicate invoice instead. */}
         {SHOW_CREDIT_NOTES && status === "Paid" && creditNotesCount === 0 && (
           <Tile
-            icon={<Receipt size={24} strokeWidth={1.5} color="var(--text-info-primary)" />}
-            title={<span style={{ color: "var(--text-info-primary)" }}>Refund with Credit Note</span>}
+            icon={<Receipt size={24} strokeWidth={1.5} />}
+            title="Refund with Credit Note"
             onClick={onRefundWithCn}
           />
         )}

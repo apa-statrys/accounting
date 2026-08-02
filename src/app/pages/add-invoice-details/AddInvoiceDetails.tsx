@@ -211,8 +211,6 @@ export function AddInvoiceDetails({
 }: AddInvoiceDetailsProps) {
   // When `extracted` is present we came from an upload.
   const isExtracted = !!extracted;
-  // OCR read nothing — banner stays until dismissed; the form starts blank.
-  const [failBannerOpen, setFailBannerOpen] = useState(true);
   // `initial` means we opened the form to edit an existing invoice (from the detail page).
   const isEditing = !!initial;
   // NB: an issued-invoice edit (Awaiting/Overdue, `initial.limited`) no longer restricts the form —
@@ -642,9 +640,7 @@ export function AddInvoiceDetails({
         )}
 
         {/* Banner — OCR-failure notice (couldn't read the file) takes priority over the summary */}
-        {extractionFailed && failBannerOpen && (
-          <ExtractionFailedBanner onReupload={onReupload} onDismiss={() => setFailBannerOpen(false)} />
-        )}
+        {extractionFailed && <ExtractionFailedBanner onReupload={onReupload} />}
 
         {/* Customer — matched / unmatched (upload) or the selected card */}
         <Section title="Bill To">
@@ -684,7 +680,7 @@ export function AddInvoiceDetails({
               ) : (
                 nameMissing && (
                   <p className="text-[12px] leading-[1.4] text-[var(--text-warning-primary)]" style={FONT}>
-                    Couldn't extract this field. Enter it manually.
+                    Couldn't extract detail.
                   </p>
                 )
               )}
@@ -713,7 +709,7 @@ export function AddInvoiceDetails({
               ) : (
                 emailMissing && (
                   <p className="text-[12px] leading-[1.4] text-[var(--text-warning-primary)]" style={FONT}>
-                    Couldn't extract this field. Enter it manually.
+                    Couldn't extract detail.
                   </p>
                 )
               )}
@@ -1138,8 +1134,12 @@ export function AddInvoiceDetails({
             primaryLabel="Go to invoice list"
             secondaryLabel="Discard"
             tertiaryLabel="Keep editing"
-            onPrimary={() => { setSavedDraftSheetOpen(false); saveDraft(); }}
-            onSecondary={() => { setSavedDraftSheetOpen(false); onClose?.(); }}
+            // Close the sheet, THEN navigate away once its own close animation (BottomSheet's
+            // 400ms slide-down) actually finishes — navigating in the same tick as setOpen(false)
+            // races the sheet's exit against the incoming screen's enter transition instead of
+            // sequencing them, so the sheet visibly gets cut off mid-close.
+            onPrimary={() => { setSavedDraftSheetOpen(false); setTimeout(saveDraft, 400); }}
+            onSecondary={() => { setSavedDraftSheetOpen(false); setTimeout(() => onClose?.(), 400); }}
             onTertiary={() => setSavedDraftSheetOpen(false)}
           />
         }
