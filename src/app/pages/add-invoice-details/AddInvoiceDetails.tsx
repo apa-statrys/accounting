@@ -570,12 +570,16 @@ export function AddInvoiceDetails({
           }}
         >
         <PageAppHeader scrolled={scrolled}>
-          {/* DS PageHeader (center) — the back chevron plays the old ✕/back role (create flows save a
-              draft on exit); the autosave chip lives in the header's custom right slot. */}
+          {/* DS PageHeader (center) — the back chevron plays the old ✕/back role (fresh creates
+              confirm the auto-save on exit); the autosave chip lives in the header's custom right
+              slot. editExitToList (edit-existing-draft-found-via-duplicate-check) skips that
+              confirm sheet — it's an ALREADY-existing draft being edited, not a fresh one just
+              created, so "Saved as draft" + Discard would misrepresent it; save and leave directly,
+              same as before the confirm sheet existed. */}
           <PageHeader
             type="center"
             title={headerTitle ?? (editingSeries ? "Edit recurring series" : isRecurring ? (isEditing ? "Edit invoice" : "New Recurring Invoice") : isEditing ? "Edit invoice" : "Create Invoice")}
-            onBack={lockActions || lockExceptIssueDate ? () => {} : isEditing && !editExitToList ? onEditBack : onSaveDraft ? () => setSavedDraftSheetOpen(true) : onClose}
+            onBack={lockActions || lockExceptIssueDate ? () => {} : isEditing && !editExitToList ? onEditBack : editExitToList ? saveDraft : onSaveDraft ? () => setSavedDraftSheetOpen(true) : onClose}
             right={
               // Figma "Create Invoice" header (node 1387-18223): the DS Loading spinner, not a
               // hand-rolled spinning border — "Saved" keeps the existing check (Figma's own mock
