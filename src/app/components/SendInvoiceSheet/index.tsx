@@ -327,9 +327,9 @@ export function SendInvoiceSheet({
                 {/* Download (Figma "Sales Invoice - Client" node 1943-12485) — reuses the
                     FileItemBase design-system row (Figma node 4655-4008), same as the
                     uploaded-file chip, with action="download" swapping in the download icon.
-                    Two separate interactions: tapping the row (icon/name/size) just views the
-                    document (opens the same Email/PDF preview sheet, jumped to PDF — no side
-                    effects); tapping the trailing download icon actually downloads (onDownload). */}
+                    Single interaction here (tap anywhere = download) — the Preview sheet already
+                    covers viewing the document separately, so this row doesn't need its own
+                    split view/action split like a real uploaded-file row does. */}
                 <div className="flex flex-col gap-3">
                   <p className="body-sm text-[var(--text-primary)]">Download</p>
                   <FileItemBase
@@ -338,7 +338,7 @@ export function SendInvoiceSheet({
                     fileType="pdf"
                     state="completed"
                     action="download"
-                    onClick={() => { setPreviewSegment(1); setPreviewOpen(true); }}
+                    onClick={onDownload}
                     onDownload={onDownload}
                   />
                 </div>

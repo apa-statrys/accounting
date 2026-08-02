@@ -2,11 +2,13 @@ import { useState } from "react";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { ButtonDock } from "../components/ButtonDock";
+import { BottomSheet } from "../components/BottomSheet";
 import { ListCard } from "../ui/ListCard";
 import { ListRow } from "../ui/ListRow";
 import { Badge, type BadgeColor } from "../ui/Badge";
-import { FilePreviewOverlay, type UploadedFileInfo } from "../components/UploadedFile";
+import type { UploadedFileInfo } from "../components/UploadedFile";
 import { FileItemBase } from "../ui/FileItemBase";
+import { InvoiceDocumentPreview } from "./shared/InvoicePreviewPage";
 import type { ExistingInvoice } from "../types";
 
 import { FONT } from "../lib/theme";
@@ -51,6 +53,11 @@ export function DuplicateDecision({ existing, file, onBack, onEditExisting, onVi
   const [scrolled, setScrolled] = useState(false);
   const isDraft = existing.status === "Draft";
   const statusBadge = STATUS_BADGE[existing.status] ?? STATUS_BADGE.Draft;
+
+  // The match's own total (e.g. "USD 6,450.05") — this decision page only carries the summary
+  // fields (no real line items/bank), so the preview shows one line for the total, same fallback
+  // pattern as CreditNoteDetailPage's own document preview when it has no real lines either.
+  const previewTotal = Number(existing.amount.replace(/[^0-9.]/g, "")) || 0;
   return (
     <div className="relative bg-[var(--bg-beige-primary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
       <div
@@ -110,7 +117,30 @@ export function DuplicateDecision({ existing, file, onBack, onEditExisting, onVi
         onSecondary={onCreateNew}
       />
 
-      <FilePreviewOverlay open={filePreviewOpen} file={file ?? null} onClose={() => setFilePreviewOpen(false)} onReupload={onBack} />
+      {/* Preview — the actual invoice document (same InvoiceDocumentPreview the full PDF preview
+          and Send sheet use), not a generic faux-scan mockup. Title is the uploaded file's own
+          name; "Reupload" goes back to the upload step (same as the page's own back action). */}
+      <BottomSheet
+        open={filePreviewOpen}
+        title={file?.name ?? "Invoice"}
+        onClose={() => setFilePreviewOpen(false)}
+        heightClass="h-[72%]"
+        footer={<ButtonDock type="single" primaryLabel="Reupload" onPrimary={onBack} />}
+      >
+        <InvoiceDocumentPreview
+          invoiceNo={existing.number}
+          customerName={existing.customer}
+          customerEmail=""
+          issueDateLabel={existing.issueDate}
+          dueDateLabel={existing.dueDate}
+          currency={existing.currency}
+          items={[{ name: "Invoice total", qty: 1, unit: "Unit", unitPrice: previewTotal, amount: previewTotal }]}
+          subtotal={previewTotal}
+          discount={0}
+          total={previewTotal}
+          bank={{ holder: "Your Company Ltd", bankName: "", number: "", swift: "", currency: existing.currency }}
+        />
+      </BottomSheet>
     </div>
   );
 }
