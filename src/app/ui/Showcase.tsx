@@ -1097,7 +1097,7 @@ const BUTTON_CONTROL_GROUPS: ControlGroup[] = [
     label: "Destructive",
     options: [
       { value: "off", label: "Off — use for the non-recommended-but-safe choice" },
-      { value: "on", label: "On — use when this action is irreversible (e.g. a \"Delete Draft\" CTA)" },
+      { value: "on", label: "On — use when this action is irreversible (e.g. a \"Delete Draft\" button)" },
     ],
   },
   {
@@ -1334,11 +1334,11 @@ function TabsTestMe() {
       />
       <div className="flex flex-col gap-4 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
         <div>
-          <p className="mb-2 text-[12px]" style={{ ...FONT, color: MUTED }}>HorizontalTabs · button style</p>
+          <p className="mb-2 text-[12px]" style={{ ...FONT, color: MUTED }}>A full row of tabs — button style</p>
           <HorizontalTabs tabs={labels} activeIndex={buttonTab} onChange={setButtonTab} />
         </div>
         <div>
-          <p className="mb-2 text-[12px]" style={{ ...FONT, color: MUTED }}>HorizontalTabs · underline style</p>
+          <p className="mb-2 text-[12px]" style={{ ...FONT, color: MUTED }}>A full row of tabs — underline style</p>
           <HorizontalTabs tabs={labels} variant="underline" activeIndex={underlineTab} onChange={setUnderlineTab} />
         </div>
       </div>
@@ -1382,7 +1382,7 @@ function SegmentedControlsTestMe() {
         }}
       />
       <div className="flex flex-col gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
-        <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>Sub-part — SegmentedControlBase, standalone:</p>
+        <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>A single segment on its own, outside a full row:</p>
         <div className="flex flex-wrap items-center gap-4">
           <SegmentedControlBase label="Label" active />
           <SegmentedControlBase label="Label" />
@@ -1668,8 +1668,8 @@ function ButtonDockOverview() {
           one action is the recommended one (e.g. Cancel/Delete) or there are 3 actions.
         </p>
         <p className="text-[12px] leading-snug" style={{ ...FONT, color: MUTED }}>
-          <strong style={{ color: INK }}>Horizontal</strong> — exactly 2 equal actions side by side (Ghost
-          only). Use for a neutral pair with no "safer" option, e.g. Close/Confirm.
+          <strong style={{ color: INK }}>Horizontal</strong> — exactly 2 equal actions side by side, both
+          plain outlined buttons. Use for a neutral pair with no "safer" option, e.g. Close/Confirm.
         </p>
       </div>
       <InteractiveDemo
@@ -1701,7 +1701,7 @@ function ButtonDockOverview() {
       />
       <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
         <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
-          The frosted dock floating over page content via the sticky prop — the gradient fades in and content blurs underneath (page docks pass sticky; sheet footers stay in-flow):
+          The frosted dock floating over page content as it scrolls underneath — used for a page's own action buttons pinned to the bottom (a sheet's footer buttons stay fixed in place with the sheet instead):
         </p>
         <PhoneDockStage>
           <ButtonDock type="double" sticky primaryLabel="Send Invoice" secondaryLabel="Send Later" />
@@ -2065,10 +2065,10 @@ function ListRowTestMe() {
       <div>
         <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Sub-parts</p>
         <div className="grid grid-cols-4 gap-4">
-          <SwatchCell label="ListText · plain"><ListText text="Next 30 days" /></SwatchCell>
-          <SwatchCell label="ListText · +description"><ListText text="Personal Saving" description="HK883-168888-168" /></SwatchCell>
-          <SwatchCell label="ListText · currency"><ListText text="USD" flag={<USFlag size={16} />} /></SwatchCell>
-          <SwatchCell label="SwipeActions"><SwipeActions /></SwatchCell>
+          <SwatchCell label="Trailing text · plain"><ListText text="Next 30 days" /></SwatchCell>
+          <SwatchCell label="Trailing text · with a description"><ListText text="Personal Saving" description="HK883-168888-168" /></SwatchCell>
+          <SwatchCell label="Trailing text · currency"><ListText text="USD" flag={<USFlag size={16} />} /></SwatchCell>
+          <SwatchCell label="Swipe-to-reveal actions"><SwipeActions /></SwatchCell>
         </div>
       </div>
     </div>
@@ -2109,7 +2109,7 @@ const PAGEHEADER_CONTROL_GROUPS: ControlGroup[] = [
     key: "type",
     label: "Type",
     options: [
-      { value: "left", label: "Left align (22px title)" },
+      { value: "left", label: "Left align (bigger title)" },
       { value: "left-on-scroll", label: "Left align on scroll" },
       { value: "center", label: "Center align" },
       { value: "search", label: "Search" },
@@ -2167,9 +2167,8 @@ function PageHeaderTestMe() {
       />
       <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
         <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
-          "Left" also animates smoothly in place via the <code>collapsed</code> prop — toggle it
-          to see the title slide up next to the back button (drive this from a scroll listener,
-          same pattern as FAB's <code>collapsed</code>):
+          The "Left" style animates smoothly too — toggle this to see the title slide up next to
+          the back button, the same way it would as someone scrolls down the page:
         </p>
         <div className="flex items-center gap-2">
           <Toggle checked={collapsed} onChange={setCollapsed} aria-label="Toggle collapsed" />
@@ -2180,9 +2179,9 @@ function PageHeaderTestMe() {
         </HeaderStrip>
       </div>
       <div>
-        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Code-slot patterns (custom ReactNode content, not plain props)</p>
+        <p className="mb-2 text-[13px] font-medium" style={{ ...FONT, color: INK }}>Custom content examples</p>
         <div className="grid grid-cols-2 gap-4">
-          <AutoCell label="Left align, custom slot">
+          <AutoCell label="Left align, with custom content instead of a title">
             <HeaderStrip>
               <PageHeader type="left">
                 <div className="flex items-baseline gap-2">
@@ -2192,17 +2191,17 @@ function PageHeaderTestMe() {
               </PageHeader>
             </HeaderStrip>
           </AutoCell>
-          <AutoCell label="Custom right action (code slot — settings gear)">
+          <AutoCell label="Custom right action — a settings icon instead of the default">
             <HeaderStrip>
               <PageHeader type="left" title="Title" rightIcon={<SettingsGearIcon />} rightLabel="Settings" />
             </HeaderStrip>
           </AutoCell>
-          <AutoCell label="Custom back icon (code slot — close instead of back)">
+          <AutoCell label="Custom back icon — a close (×) instead of a back arrow">
             <HeaderStrip>
               <PageHeader type="center" title="Title" backIcon={<CloseGlyphIcon />} backLabel="Close" showSearch={false} />
             </HeaderStrip>
           </AutoCell>
-          <AutoCell label="Custom right content (code slot — autosave chip)">
+          <AutoCell label="Custom right content — a 'Saved' confirmation">
             <HeaderStrip>
               <PageHeader
                 type="center"
@@ -2215,7 +2214,7 @@ function PageHeaderTestMe() {
               />
             </HeaderStrip>
           </AutoCell>
-          <AutoCell label="Right slot (Figma MenuPageHeader 'Slot' — frosted pill wraps custom content)">
+          <AutoCell label="A frosted pill on the right that can hold any custom content">
             <HeaderStrip>
               <PageHeader
                 type="center"
@@ -2229,7 +2228,7 @@ function PageHeaderTestMe() {
               />
             </HeaderStrip>
           </AutoCell>
-          <AutoCell label="More actions (Figma MenuPageHeader 'More actions' — glass button + solid primary button)">
+          <AutoCell label="More actions — a secondary icon button plus a solid primary button">
             <HeaderStrip>
               <PageHeader
                 type="left-on-scroll"
@@ -2317,7 +2316,7 @@ const TILE_CONTROL_GROUPS: ControlGroup[] = [
       { value: "none", label: "None" },
       { value: "chevron", label: "Chevron" },
       { value: "check", label: "Check (selected)" },
-      { value: "download", label: "Custom icon — one-off instance override for any glyph a row needs (e.g. an external-link icon, a status glyph); a file/download row belongs on ui/FileItemBase instead" },
+      { value: "download", label: "Custom icon — for any one-off icon a row needs (e.g. an external-link icon, a status icon); a file/download row should use File Item Base instead" },
     ],
   },
   {
@@ -2754,7 +2753,7 @@ export function Showcase() {
             {!isFoundation && activeNav === "toast-message" && (
               <ComponentPage
                 title="Toast Message"
-                description="A bottom-anchored, auto-hiding confirmation card — dark inverse surface, optional status icon, title + subtitle, and an optional 'View Details' link. Use for one-off action confirmations (e.g. 'Invoice sent'). Positioning/timer live in components/Toast, which every screen already renders — this page is the visual/variant reference."
+                description="A confirmation card that appears near the bottom of the screen and hides itself after a few seconds — a dark card with an optional status icon, title, subtitle, and an optional 'View Details' link. Use for one-off action confirmations (e.g. 'Invoice sent'). Every screen already knows how to show one of these; this page is just the visual reference for its variants."
                 whenToUse={[
                   "Confirming a one-off action just completed (e.g. \"Invoice sent\", \"Draft deleted\")",
                   "The message doesn't need to stay on screen or be re-read later",
@@ -2768,7 +2767,7 @@ export function Showcase() {
             {!isFoundation && activeNav === "banner" && (
               <ComponentPage
                 title="Banner"
-                description="An inline status message — subtle-tinted row with a 16px icon + text, in success/warning/error/info, as either a single line (Text only, body-sm) or a medium-weight title (body-sm) + caption-sized detail (Title + Text). Optional trailing 'View Details' text link and dismiss (×). Use when a page or sheet needs to surface a status inline — text/title/link always stay ink, only the icon carries the color."
+                description="An inline status message — a softly tinted row with an icon and text, in success/warning/error/info tones. It can be just one line of text, or a bolder title with a smaller detail line underneath. It can also include a 'View Details' link and a dismiss (×) button. Only the icon carries the color — the text itself always stays the normal ink color."
                 whenToUse={[
                   "Surfacing a status inline within a page or sheet that should stay visible (e.g. a locked-period warning)",
                   "The user may need to re-read or act on it later, not just glance at it once",
@@ -2796,7 +2795,7 @@ export function Showcase() {
             {!isFoundation && activeNav === "noti-badge" && (
               <ComponentPage
                 title="Noti Badge"
-                description="A small unread-count pill that overlays the corner of another element (e.g. Tabs Base). `inverse` flips it to a white pill with a brand border/text for use on brand-colored surfaces."
+                description="A small unread-count pill that sits on the corner of another element, like a tab. It can also flip to a white pill with a brand-colored border and text, for use on top of brand-colored backgrounds."
                 whenToUse={[
                   "Showing an unread or pending count overlaid on the corner of another element (a tab, an icon)",
                 ]}
@@ -2809,7 +2808,7 @@ export function Showcase() {
             {!isFoundation && activeNav === "bottom-sheet" && (
               <ComponentPage
                 title="Bottom Sheet"
-                description="The modal sheet container — grabber, sticky 18px-title header with an optional frosted action button, content slot and 32px bottom pad."
+                description="The sliding panel that pops up from the bottom of the screen for a focused task — a grab handle, a title with an optional action button, and space underneath for whatever content or buttons the moment needs."
                 whenToUse={[
                   "A focused task or choice that should dim/interrupt the page below it (pickers, forms, confirmations)",
                   "Content that benefits from being dismissed by swipe-down or tap-outside, not just an explicit button",
@@ -2890,7 +2889,7 @@ export function Showcase() {
             {!isFoundation && activeNav === "tabs-base" && (
               <ComponentPage
                 title="Tabs Base"
-                description="A single tab item in button or underline style — compose several into a row to switch between views. Optionally shows an unread NotiBadge in the corner (button style) or inline (underline style)."
+                description="A single tab in button or underline style — put several in a row to switch between views. It can optionally show an unread-count badge in the corner (button style) or inline (underline style)."
                 whenToUse={[
                   "Switching between sibling views of the same content (e.g. Overview / Test me / Variants)",
                   "A tab needs to show an unread-count badge",
@@ -2917,7 +2916,7 @@ export function Showcase() {
             {!isFoundation && activeNav === "button-dock" && (
               <ComponentPage
                 title="Button Dock"
-                description="The bottom action dock — frosted, floating over a transparent-to-white gradient with backdrop blur."
+                description="The row of action buttons pinned to the bottom of the screen — it has a soft frosted-glass look, fading from see-through to white as content scrolls underneath it."
                 whenToUse={[
                   "A screen's primary (and optional secondary) action needs to stay reachable at the bottom while the page scrolls",
                 ]}
@@ -2937,7 +2936,7 @@ export function Showcase() {
             {!isFoundation && activeNav === "action-required" && (
               <ComponentPage
                 title="Action Required"
-                description="A single actionable row — title, optional description, and a secondary 'Proceed' button. Stack it (see components/NeedAttentionStack) for the dashboard's Action Required preview."
+                description="A single actionable row — a title, optional description, and a 'Proceed' button. Stack several together for the dashboard's Action Required preview."
                 whenToUse={[
                   "Surfacing one specific thing the user needs to act on, with a single clear next step (e.g. \"Confirm\", \"Review\")",
                 ]}
@@ -2947,7 +2946,7 @@ export function Showcase() {
             {!isFoundation && activeNav === "list-row" && (
               <ComponentPage
                 title="List Row"
-                description="A settings-style list row — label with an optional description, an optional caption line, and a trailing value (via ui/ListText)/chevron/toggle. Also covers ui/ListText and ui/SwipeActions, its sub-parts."
+                description="A settings-style list row — a label with an optional description and small caption line, plus a trailing value, arrow, or switch. This page also covers its two building blocks: the trailing value/text display, and the swipe-to-reveal actions."
                 whenToUse={[
                   "A settings-style row: a label, optional description/caption, and a trailing value, chevron, or toggle",
                 ]}
@@ -2960,9 +2959,9 @@ export function Showcase() {
             {!isFoundation && activeNav === "list-card" && (
               <ComponentPage
                 title="List Card"
-                description="The rounded card that groups ui/ListRow children — onLayer=neutral adds a hairline border for a white page background, onLayer=beige drops it."
+                description="The rounded card that groups a set of List Row items together. It adds a thin border when sitting on a white background, and removes it when sitting on a beige background, so the card's edge stays visible either way."
                 whenToUse={[
-                  "Grouping several List Row items into one rounded card — onLayer picks the border/background for the page underneath",
+                  "Grouping several List Row items into one rounded card that adapts to whatever background it's sitting on",
                 ]}
                 overview={<ListCardTestMe />}
               />
@@ -2970,9 +2969,9 @@ export function Showcase() {
             {!isFoundation && activeNav === "notification-item" && (
               <ComponentPage
                 title="Notification Item"
-                description="A single row in a notification list — unread dot, title, description, a clock + relative time, an optional success-green amount, and an optional CTA button. `lastItem` drops the divider."
+                description="A single row in a notification list — an unread dot, title, description, a clock icon with a relative time (like '2h ago'), an optional green amount, and an optional action button. The last row in a list drops its divider line automatically."
                 whenToUse={[
-                  "A single row in a notification or activity list — unread dot, relative time, optional amount or CTA",
+                  "A single row in a notification or activity list — unread dot, relative time, optional amount or action button",
                 ]}
                 overview={<NotificationItemOverview />}
               />
@@ -2980,7 +2979,7 @@ export function Showcase() {
             {!isFoundation && activeNav === "file-item-base" && (
               <ComponentPage
                 title="File Item Base"
-                description="A file-attachment row — icon (with a colored format tag), name, size, in one of three states: Completed (just the size), Loading (progress fill behind the row + an upload %), or Error (red border, 'Upload failed', a Try Again link). `action` picks the completed/error trailing control (Delete, Reupload, Download, or None) — Loading always shows Delete regardless."
+                description="A file-attachment row — an icon with a colored file-type tag, name, and size, in one of three states: Completed (just the size), Loading (a progress fill behind the row plus an upload percentage), or Error (red border, 'Upload failed', and a Try Again link). The trailing button can be Delete, Reupload, Download, or none at all — Loading always shows Delete."
                 whenToUse={[
                   "Representing one uploaded or attached file and its current state — uploading, completed, or failed",
                 ]}
@@ -2992,7 +2991,7 @@ export function Showcase() {
                 title="Page Header"
                 description="Floating page header with frosted-glass buttons — big left title, compact scrolled state, centered title, or a search pill."
                 whenToUse={[
-                  "Every screen's top bar — it already handles the floating/frosted/collapsing behavior, so build new screens on it rather than a bespoke header",
+                  "Every screen's top bar — it already handles the floating, frosted, and collapsing-on-scroll behavior, so build new screens on it rather than a custom-made header",
                 ]}
                 overview={<PageHeaderTestMe />}
               />
@@ -3068,9 +3067,9 @@ export function Showcase() {
             {!isFoundation && activeNav === "text-area" && (
               <ComponentPage
                 title="Text Area"
-                description="A multi-line input field for longer free text (e.g. an email body) — same field styling as Text Field, height set by the caller via `rows`."
+                description="A multi-line input field for longer free text (e.g. an email body) — same styling as Text Field, just taller, and its height can be set to fit the content."
                 whenToUse={[
-                  "Longer free text that needs more than one line (e.g. an email body, a note) — height is set by the caller via `rows`",
+                  "Longer free text that needs more than one line (e.g. an email body, a note) — its height can be set to fit",
                 ]}
                 whenNotToUse={[
                   "A single-line value — use Text Field instead",
@@ -3104,9 +3103,9 @@ export function Showcase() {
             {!isFoundation && activeNav === "checkbox-base" && (
               <ComponentPage
                 title="Checkbox Base"
-                description="The bare checkbox glyph — unchecked, checked, or indeterminate, in sm/md, each with a disabled state. The hit target is always larger than the visible square. Standalone it's a real role=checkbox button; compose it non-interactively inside a labeled row (see Checkbox)."
+                description="The checkbox shape on its own — unchecked, checked, or a partial (indeterminate) state, in two sizes, with a disabled look too. The tappable area is always a little bigger than the visible square, so it's easy to hit. On its own it can be tapped directly; inside a labeled row (see Checkbox) it's just for display, and the row itself handles the tap."
                 whenToUse={[
-                  "Composing your own custom row where you need just the checkbox glyph, not a full labeled row",
+                  "Building your own custom row where you only need the checkbox shape itself, not a full labeled row",
                 ]}
                 whenNotToUse={[
                   "A standard labeled checkbox row — use Checkbox instead, it already wraps this",
@@ -3117,9 +3116,9 @@ export function Showcase() {
             {!isFoundation && activeNav === "checkbox" && (
               <ComponentPage
                 title="Checkbox"
-                description="A labeled checkbox row — title + optional description, the whole row clickable and keyboard-toggleable, not just the glyph."
+                description="A labeled checkbox row — a title with an optional description, where the whole row can be tapped (not just the checkbox itself) to turn it on or off."
                 whenToUse={[
-                  "A labeled option the user can toggle on/off, where the whole row (not just the glyph) should be tappable",
+                  "A labeled option someone can turn on/off, where the whole row (not just the checkbox) should respond to a tap",
                 ]}
                 overview={<CheckboxOverview />}
               />
@@ -3137,10 +3136,10 @@ export function Showcase() {
             {!isFoundation && activeNav === "x-close" && (
               <ComponentPage
                 title="X Close"
-                description="A square dismiss button with its own momentary hover surface — sm (20px) for compact contexts like Toast Message, md (30px) for a standalone sheet/dialog dismiss. `inverse` swaps to the light-on-dark palette for a dark surface."
+                description="A square dismiss (×) button with a brief highlight on hover — a smaller size for compact spots like Toast Message, and a larger one as a standalone close button on a sheet or dialog. It also has a light-colored version for use on dark backgrounds."
                 whenToUse={[
-                  "Dismissing a Toast, sheet, or dialog — sm for a compact context, md as a standalone dismiss",
-                  "The surface underneath is dark — pass `inverse` for the light-on-dark palette",
+                  "Dismissing a Toast, sheet, or dialog — the small size for a compact spot, the larger size as a standalone dismiss button",
+                  "The background underneath is dark — use the light-colored version instead",
                 ]}
                 overview={<XCloseOverview />}
               />
