@@ -45,6 +45,16 @@ export function QuickNavSidebar({ groups }: { groups: SidebarGroup[] }) {
     const activeGroup = groups.find((g) => allItems(g).some((it) => it.active));
     return activeGroup ? [activeGroup.title] : [];
   });
+  // Which sub-section accordion is open (one at a time, same as groups above) — start with the
+  // section holding the active screen, if any. Section headings are unique enough within a single
+  // open group that a flat (non-per-group) key works fine — only one group is ever open anyway.
+  const [openSection, setOpenSection] = useState<string | null>(() => {
+    for (const g of groups) {
+      const activeSection = (g.sections ?? []).find((s) => s.items.some((it) => it.active));
+      if (activeSection) return activeSection.heading;
+    }
+    return null;
+  });
 
   useEffect(() => {
     localStorage.setItem(COLLAPSED_KEY, collapsed ? "1" : "0");
@@ -53,6 +63,9 @@ export function QuickNavSidebar({ groups }: { groups: SidebarGroup[] }) {
   // Accordion behaviour: opening a group collapses the others (one open at a time).
   const toggleGroup = (title: string) =>
     setOpen((prev) => (prev.includes(title) ? [] : [title]));
+
+  const toggleSection = (heading: string) =>
+    setOpenSection((prev) => (prev === heading ? null : heading));
 
   if (collapsed) {
     return (
@@ -127,12 +140,43 @@ export function QuickNavSidebar({ groups }: { groups: SidebarGroup[] }) {
               {isOpen && (
                 <div className={styles.groupBody}>
                   {(g.items ?? []).map((item) => renderItem(item))}
-                  {(g.sections ?? []).map((section) => (
-                    <div key={section.heading} className={styles.group}>
-                      <p className={styles.sectionHeading}>{section.heading}</p>
-                      {section.items.map((item) => renderItem(item, true))}
-                    </div>
-                  ))}
+                  {(g.sections ?? []).map((section) => {
+                    const sectionOpen = openSection === section.heading;
+                    const sectionActive = section.items.some((it) => it.active);
+                    return (
+                      <div key={section.heading} className={styles.group}>
+                        <button
+                          onClick={() => toggleSection(section.heading)}
+                          className={styles.sectionHeader}
+                        >
+                          <span
+                            className={[
+                              styles.sectionHeading,
+                              sectionActive ? styles.sectionHeadingActive : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                          >
+                            {section.heading}
+                          </span>
+                          <ChevronRight
+                            size={12}
+                            className={[
+                              styles.sectionChevron,
+                              sectionOpen ? styles.sectionChevronOpen : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                          />
+                        </button>
+                        {sectionOpen && (
+                          <div className={styles.sectionBody}>
+                            {section.items.map((item) => renderItem(item, true))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

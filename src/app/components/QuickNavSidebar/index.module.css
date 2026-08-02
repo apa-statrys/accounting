@@ -165,13 +165,50 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
+/* Sub-section header — same collapsible-accordion behavior as a top-level group header (one open
+   at a time, via QuickNavSidebar's `openSection` state), just smaller/indented one level in — so a
+   big group (e.g. "Sales Invoice") doesn't dump every one of its sections' rows at once. */
+.sectionHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-12);
+  text-align: left;
+  transition: background-color var(--transition-base);
+}
+
+.sectionHeader:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
 /* No matching type utility for this size/weight/tracking combo — kept literal. */
 .sectionHeading {
-  padding: var(--space-4) var(--space-4) var(--space-2) var(--space-12);
+  flex: 1 1 auto;
   font-size: var(--text-xs);
   font-weight: var(--fw-medium);
   text-transform: uppercase;
   letter-spacing: 0.025em;
   color: rgba(255, 255, 255, 0.4);
   margin: 0;
+}
+
+.sectionHeadingActive {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.sectionChevron {
+  color: rgba(255, 255, 255, 0.5);
+  transition: transform 200ms;
+  flex-shrink: 0;
+}
+
+.sectionChevronOpen {
+  transform: rotate(90deg);
+}
+
+.sectionBody {
+  display: flex;
+  flex-direction: column;
 }

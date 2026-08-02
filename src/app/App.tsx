@@ -436,24 +436,40 @@ export default function App() {
     },
     {
       title: "Sales Invoice",
+      // Core flow only — the 4 primary happy-path actions stay flat (no expanding needed) so
+      // they're the first thing a dev/PO sees; every edge case and status variant lives in its
+      // own labeled, collapsible section below (2026-08-02 reorg — this group had grown to 20
+      // flat-ish rows and was hard to scan for handoff).
       items: [
         // Clear any pending toast so the dev jump never lands with a stale "Saved as draft" flash.
         { label: "Sales Invoice List", active: screen === "list", onSelect: () => { setToast(null); setListPreset(null); setScreen("list"); } },
         // Dev jump lands on the pre-filled editor (demo customer + demo items), not the picker (user, 15/Jul).
         { label: "Create Invoice", active: screen === "customer" || screen === "details", onSelect: () => { setRecurring(false); setEditingSeries(false); setExtracted(null); setCustomer(DEMO_CUSTOMER); setDevSeedItems(true); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setScreen("details"); } },
-        { label: "Create (Locked Period)", active: screen === "lockedPeriodDialog", onSelect: () => setScreen("lockedPeriodDialog") },
         { label: "Send Invoice", active: screen === "send", onSelect: () => setScreen("send") },
         // Upload is native scan/picker now (no in-app sheet) — dev jump reproduces what a real
         // pick hands back: straight to the "reading your invoice" loading step.
         { label: "Upload Invoice", active: screen === "extracting", onSelect: () => { setUploadReturn("list"); startUpload(); } },
-        { label: "Upload (Locked Period)", active: screen === "lockedPeriodUpload", onSelect: () => setScreen("lockedPeriodUpload") },
-        // Upload scenario shortcuts (jump straight to each OCR outcome, skipping the native picker).
-        { label: "Upload — Error (Too Large)", active: screen === "list" && toast?.variant === "error", onSelect: () => { setToast(null); setScreen("list"); setToast({ title: "This file is larger than 10 MB.", variant: "error" }); } },
-        { label: "Upload — Duplicate", active: screen === "duplicateCheck", onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_MATCHED); setExtracted(DEMO_EXTRACTION_MATCHED); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-scan.png", size: 1258291 }); setDupExisting(EXISTING_INVOICES.find((i) => i.number === DEMO_EXTRACTION_MATCHED.invoiceNumber) ?? null); setScreen("duplicateCheck"); } },
-        { label: "Upload — Manual Entry Needed", active: screen === "details" && extracted === DEMO_EXTRACTION_NO_CUSTOMER, onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_NO_CUSTOMER); setExtracted(DEMO_EXTRACTION_NO_CUSTOMER); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice.pdf", size: 419430 }); setScreen("details"); } },
-        { label: "Upload — Unreadable (Blank)", active: screen === "details" && extracted === BLANK_EXTRACTION, onSelect: () => { setPendingExtraction(null); setExtracted(BLANK_EXTRACTION); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-unreadable.jpg", size: 3565158 }); setScreen("details"); } },
       ],
       sections: [
+        {
+          // Accounting-period-closed edge cases, grouped together rather than interleaved with
+          // the create/upload happy paths above.
+          heading: "Locked Period",
+          items: [
+            { label: "Create (Locked Period)", active: screen === "lockedPeriodDialog", onSelect: () => setScreen("lockedPeriodDialog") },
+            { label: "Upload (Locked Period)", active: screen === "lockedPeriodUpload", onSelect: () => setScreen("lockedPeriodUpload") },
+          ],
+        },
+        {
+          // Upload scenario shortcuts (jump straight to each OCR outcome, skipping the native picker).
+          heading: "Upload Scenarios",
+          items: [
+            { label: "Upload — Error (Too Large)", active: screen === "list" && toast?.variant === "error", onSelect: () => { setToast(null); setScreen("list"); setToast({ title: "This file is larger than 10 MB.", variant: "error" }); } },
+            { label: "Upload — Duplicate", active: screen === "duplicateCheck", onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_MATCHED); setExtracted(DEMO_EXTRACTION_MATCHED); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-scan.png", size: 1258291 }); setDupExisting(EXISTING_INVOICES.find((i) => i.number === DEMO_EXTRACTION_MATCHED.invoiceNumber) ?? null); setScreen("duplicateCheck"); } },
+            { label: "Upload — Manual Entry Needed", active: screen === "details" && extracted === DEMO_EXTRACTION_NO_CUSTOMER, onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_NO_CUSTOMER); setExtracted(DEMO_EXTRACTION_NO_CUSTOMER); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice.pdf", size: 419430 }); setScreen("details"); } },
+            { label: "Upload — Unreadable (Blank)", active: screen === "details" && extracted === BLANK_EXTRACTION, onSelect: () => { setPendingExtraction(null); setExtracted(BLANK_EXTRACTION); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-unreadable.jpg", size: 3565158 }); setScreen("details"); } },
+          ],
+        },
         {
           // One entry per detail-page status — each opens a matching register demo invoice.
           heading: "Invoice Detail",
