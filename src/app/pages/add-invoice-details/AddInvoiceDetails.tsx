@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
 import { Plus } from "lucide-react";
-import { FilePreviewOverlay } from "../../components/UploadedFile";
 import { FileItemBase } from "../../ui/FileItemBase";
 import { Button } from "../../ui/Button";
 import CheckIcon from "@mui/icons-material/Check";
@@ -1354,8 +1353,32 @@ export function AddInvoiceDetails({
       {/* Read-only summary of the existing (duplicate) invoice */}
       <ExistingInvoiceSheet open={existingViewOpen} invoice={existingInvoice} onClose={() => setExistingViewOpen(false)} />
 
-      {/* Original uploaded file — preview overlay (shared component, rendered at page root). */}
-      <FilePreviewOverlay open={filePreviewOpen} file={uploadedFile ?? null} onClose={() => setFilePreviewOpen(false)} />
+      {/* Original uploaded file — shows the actual invoice document (same InvoiceDocumentPreview
+          the full PDF preview and Send sheet use, populated from this page's current field values),
+          not a generic faux-scan mockup. Title is the uploaded file's own name; "Reupload" reuses
+          the row's own re-upload path. */}
+      <BottomSheet
+        open={filePreviewOpen}
+        title={uploadedFile?.name ?? "Invoice"}
+        onClose={() => setFilePreviewOpen(false)}
+        heightClass="h-[72%]"
+        footer={onReupload ? <ButtonDock type="single" primaryLabel="Reupload" onPrimary={onReupload} /> : undefined}
+      >
+        <InvoiceDocumentPreview
+          invoiceNo={invoiceNo}
+          customerName={name}
+          customerEmail={email}
+          companyName={companyName}
+          issueDateLabel={previewIssueDateLabel}
+          dueDateLabel={dueDateLabel}
+          currency={currency}
+          items={previewItems}
+          subtotal={subtotal}
+          discount={discountAmount}
+          total={total}
+          bank={previewBank}
+        />
+      </BottomSheet>
 
       <DiscountModeSheet
         open={discountModeSheetOpen}
