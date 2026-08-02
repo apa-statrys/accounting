@@ -1,0 +1,107 @@
+/* DevInspector — dev-only hover inspector (Figma-dev-mode-style handoff tool).
+   Bespoke dark palette to match the other dev tools (QuickNavSidebar), not the DS. */
+
+.toggle {
+  position: fixed;
+  bottom: var(--space-12);
+  right: var(--space-12);
+  z-index: 60;
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--bg-neutral-inverse-primary);
+  color: var(--text-neutral-inverse-primary);
+  box-shadow: 0 8px 30px rgba(16, 24, 40, 0.25);
+  cursor: pointer;
+}
+
+.toggle[aria-pressed="true"] {
+  background: var(--bg-brand-primary);
+  color: var(--text-on-color);
+}
+
+.highlight {
+  position: fixed;
+  z-index: 55;
+  pointer-events: none;
+  border: 1.5px solid var(--border-brand-primary);
+  background: var(--alpha-brand-10);
+  border-radius: var(--radius-md);
+  transition: top 0.05s ease-out, left 0.05s ease-out, width 0.05s ease-out, height 0.05s ease-out;
+}
+
+.panel {
+  display: none;
+}
+
+@media (min-width: 1180px) {
+  .panel {
+    display: block;
+    position: fixed;
+    top: var(--space-24);
+    left: calc(50% + 230px);
+    width: 300px;
+    max-height: calc(100vh - 2 * var(--space-24));
+    overflow-y: auto;
+    z-index: 60;
+    background: var(--bg-neutral-inverse-primary);
+    color: var(--text-neutral-inverse-primary);
+    border-radius: var(--radius-3xl);
+    box-shadow: 0 8px 30px rgba(16, 24, 40, 0.25);
+    padding: var(--space-10);
+  }
+}
+
+.tagLine {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-neutral-inverse-primary);
+  padding-bottom: var(--space-8);
+  margin-bottom: var(--space-8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  word-break: break-word;
+}
+
+.classLine {
+  font-weight: 400;
+  color: var(--text-neutral-inverse-secondary);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--space-8);
+  row-gap: var(--space-4);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: var(--text-xs);
+}
+
+.grid dt {
+  color: var(--text-neutral-inverse-secondary);
+  white-space: nowrap;
+}
+
+.grid dd {
+  color: var(--text-neutral-inverse-primary);
+  text-align: right;
+  word-break: break-word;
+}
+
+.shadowValue {
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+/* Matched design-token name — shown under the raw value, like Figma dev mode's
+   "bound variable" chip. */
+.tokenName {
+  display: block;
+  color: var(--brand-4);
+  font-size: 10px;
+  margin-top: 2px;
+}

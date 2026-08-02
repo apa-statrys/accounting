@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Menu, X, ChevronRight } from "lucide-react";
 import { QuickNavSidebar, type SidebarGroup } from "./components/QuickNavSidebar";
+import { DevInspector } from "./components/DevInspector";
 import { Dashboard } from "./pages/Dashboard";
 import { AccountingHub } from "./pages/AccountingHub";
 import { CreditNotesList } from "./pages/credit-note-list/CreditNotesList";
@@ -1470,6 +1471,11 @@ export default function App() {
       {/* Screen jumper — the collapsible QuickNav sidebar (stakeholder demos), shown in
           every build for now so the Vercel demo matches localhost. */}
       <QuickNavSidebar groups={sidebarGroups} />
+
+      {/* Dev-mode-style hover inspector for handoff — toggle on (bottom-right), then hover
+          any element to see its computed styling in the right-side gutter. Reads live
+          computed styles, so it works on every screen already with no per-page wiring. */}
+      <DevInspector />
     </div>
   );
 }
