@@ -1,14 +1,13 @@
-import { useMemo, useState } from "react";
-import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
+import { useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { UserPlus, Search as SearchIcon } from "lucide-react";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
-import { Search } from "../ui/Search";
-import { Button } from "../ui/Button";
 import { Toast } from "../components/Toast";
 import { Tile } from "../ui/Tile";
 import type { Customer } from "../types";
 
-import { FONT, avatarTint } from "../lib/theme";
+import { avatarTint } from "../lib/theme";
 
 /** Two-letter initials from a customer name (skips symbols like "&"). */
 function initials(name: string): string {
@@ -30,13 +29,25 @@ export interface CustomerListProps {
 }
 
 /**
- * Customers register (DES-713/714) — "All Customers" heading with a brand-orange count badge, a search,
- * and a divider-separated list of avatar rows (initials + name + email). Tap a row → the detail page;
- * "Add New" opens the full-page Add Client form.
+ * Customers register (DES-713/714) — "Customers" header whose right side always shows an
+ * Add + Search icon pair (DS frosted `rightSlot`, e.g. Dashboard's bell+settings pill), no
+ * scroll-driven reveal. Tapping search morphs the header into a full search field and
+ * collapses the body to a flat "Result N" list (same convention as CreateSalesInvoice's
+ * "Select Customer" picker and every other search list/sheet in the app). Tap a row → the
+ * detail page (no selection/Continue step here, unlike the picker).
  */
 export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer, flash, onFlashDone }: CustomerListProps) {
   const [query, setQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
+  // Search state — activating search replaces the whole header with a search field and
+  // collapses the body to a flat "Results N" list.
+  const [searching, setSearching] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const startSearch = () => {
+    setSearching(true);
+    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const exitSearch = () => { setSearching(false); setQuery(""); };
 
   const sorted = useMemo(() => [...customers].sort((a, b) => a.name.localeCompare(b.name)), [customers]);
   const filtered = useMemo(() => {
@@ -45,63 +56,96 @@ export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer,
     return sorted.filter((c) => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q));
   }, [sorted, query]);
 
+  const renderTile = (c: Customer) => (
+    <Tile
+      key={c.id}
+      size="md"
+      avatar={initials(c.name)}
+      avatarColor={avatarTint(c.id)}
+      title={c.name}
+      text={c.email}
+      onLayer="beige"
+      reserveTrailing={false}
+      onClick={() => onOpenCustomer?.(c)}
+    />
+  );
+
   return (
     <div className="relative bg-[var(--bg-beige-primary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
-      {/* Scrolling list — avatar rows with a thin divider between them. Tap → detail. The header +
-          heading/search chrome stay together as ONE sticky PageAppHeader unit (frosting once the
-          list scrolls beneath them) instead of a separate always-fixed block. */}
       <div
-        className="flex-1 overflow-y-auto bg-white"
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto thin-scrollbar"
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          {/* PageAppHeader's root flex-col has a 12px gap for the StatusBar→content case; wrapping
-              the header + heading/search block in one gap-less div keeps that 12px firing only once
-              (StatusBar→block) instead of stacking again between the header and this block (which
-              already has its own pt-4 padding for that spacing) — same fix as the invoice/credit-note
-              list pages. */}
-          <div className="flex flex-col">
-            <PageHeader type="center" title="Customers" onBack={onBack} showSearch={false} />
-            <div className="bg-white px-4 pt-4 pb-2 flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <p className="text-[18px] font-bold leading-[1.1] text-[var(--text-primary)]" style={FONT}>
-                    {query ? "Results" : "All Customers"}
-                  </p>
-                  <span
-                    className="inline-flex items-center justify-center rounded-[4px] px-2 py-0.5 text-[14px] font-medium leading-[1.3] text-white"
-                    style={{ background: "var(--bg-brand-primary)", fontFamily: FONT.fontFamily }}
-                  >
-                    {query ? filtered.length : customers.length}
-                  </span>
-                </div>
-                <Button hierarchy="secondary" size="sm" iconLeft={<PersonAddAltIcon />} onClick={onAddCustomer} label="Add" />
-              </div>
-
-              <Search placeholder="Search" value={query} onChange={setQuery} showAction={false} />
-            </div>
-          </div>
+          <AnimatePresence mode="wait" initial={false}>
+            {searching ? (
+              <motion.div key="search" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+                <PageHeader
+                  type="search"
+                  searchValue={query}
+                  onSearchChange={setQuery}
+                  searchPlaceholder="Search"
+                  showAction={false}
+                  autoFocusSearch
+                  onBack={exitSearch}
+                />
+              </motion.div>
+            ) : (
+              <motion.div key="default" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+                <PageHeader
+                  type="center"
+                  title="Customers"
+                  onBack={onBack}
+                  showSearch={false}
+                  rightSlot={
+                    <div className="flex items-center gap-4">
+                      <button type="button" className="flex" aria-label="Add customer" onClick={onAddCustomer}>
+                        <UserPlus size={20} strokeWidth={1} />
+                      </button>
+                      <button type="button" className="flex" aria-label="Search customers" onClick={startSearch}>
+                        <SearchIcon size={20} strokeWidth={1} />
+                      </button>
+                    </div>
+                  }
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </PageAppHeader>
 
-        <div className="bg-white px-4">
-          {filtered.map((c, i) => (
-            <div key={c.id} style={{ borderBottom: i < filtered.length - 1 ? "1px solid rgba(160,160,160,0.2)" : "none" }}>
-              <Tile
-                avatar={initials(c.name)}
-                avatarColor={avatarTint(c.id)}
-                title={c.name}
-                text={c.email}
-                onLayer="beige"
-                reserveTrailing={false}
-                onClick={() => onOpenCustomer?.(c)}
-              />
+        {searching ? (
+          /* Search results — one flat "Results N" section; "Results" only appears once
+             there's an actual query that matched something (same convention as every other
+             search list/sheet in the app). */
+          <div className="flex flex-col gap-4 p-4">
+            {query && filtered.length > 0 && (
+              <p className="body-sm text-[var(--text-secondary)]">
+                {filtered.length === 1 ? "Result 1" : `Results ${filtered.length}`}
+              </p>
+            )}
+            <div className="flex flex-col gap-2">
+              {filtered.map(renderTile)}
             </div>
-          ))}
+            {filtered.length === 0 && (
+              <p className="text-center text-[13px] text-[var(--text-placeholder)] pt-10" style={{ fontFamily: "GT Walsheim LC, sans-serif" }}>
+                No customers found
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4 p-4">
+            <div className="flex flex-col gap-2">
+              {filtered.map(renderTile)}
+            </div>
 
-          {filtered.length === 0 && (
-            <p className="text-center text-[13px] text-[var(--text-placeholder)] pt-10" style={FONT}>No customers found</p>
-          )}
-        </div>
+            {filtered.length === 0 && (
+              <p className="text-center text-[13px] text-[var(--text-placeholder)] pt-10" style={{ fontFamily: "GT Walsheim LC, sans-serif" }}>
+                No customers found
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Success confirmation (AC5) — shared toast style. */}
