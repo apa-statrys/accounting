@@ -428,11 +428,14 @@ export function AddInvoiceDetails({
     }
   }, [services.length]);
 
-  // Sticky dock's price-summary slot (Figma "Create Invoice", node 1419-52781) — shown until the
-  // real inline Summary card scrolls into view, since it'd be redundant once the user can see it.
+  // Sticky dock's price-summary slot (Figma "Create Invoice", node 1419-52781) — shown only while
+  // scrolling UP with the real Summary card out of view (redundant once the user can see it, and
+  // not needed while progressing forward down the form — only when heading back to check something).
   const scrollRef = useRef<HTMLDivElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const [summaryVisible, setSummaryVisible] = useState(false);
+  const lastScrollTopRef = useRef(0);
+  const [scrollingUp, setScrollingUp] = useState(false);
   useEffect(() => {
     const root = scrollRef.current;
     const target = summaryRef.current;
@@ -560,7 +563,12 @@ export function AddInvoiceDetails({
         <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto thin-scrollbar"
-          onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+          onScroll={(e) => {
+            const top = e.currentTarget.scrollTop;
+            setScrolled(top > 4);
+            setScrollingUp(top < lastScrollTopRef.current);
+            lastScrollTopRef.current = top;
+          }}
         >
         <PageAppHeader scrolled={scrolled}>
           {/* DS PageHeader (center) — the back chevron plays the old ✕/back role (create flows save a
@@ -1052,7 +1060,7 @@ export function AddInvoiceDetails({
             type="single"
             sticky
             slot={
-              services.length > 0 && !summaryVisible ? (
+              services.length > 0 && !summaryVisible && scrollingUp ? (
                 <SummaryCard bare currency={currency} subtotal={subtotal} discount={discountAmount} total={total} />
               ) : undefined
             }
