@@ -352,9 +352,12 @@ export function InvoiceDetailPage({
     // Hero shows the ORIGINAL full total as the big number; the sub-line shows what's actually due —
     // "$X due" once a credit note reduces the balance, otherwise the due date ("Due 5 Jul 2026",
     // same absolute format as the list). All "due" lines share one font weight + size (see render).
-    Awaiting: credited > 0 ? `${money(outstanding, currency)} remaining · due ${dueDateLabel}` : `Due ${dueDateLabel}`,
-    Overdue: credited > 0 ? `${money(outstanding, currency)} remaining · since ${dueDateLabel}` : `since ${dueDateLabel}`,
-    PartiallyPaid: `${money(remaining, currency)} remaining · due ${dueDateLabel}`,
+    // No inner "·" here — "remaining due/since <date>" is one continuous clause, not two
+    // fragments; the outer "·" added between the badge and this whole sub-line (see render) is
+    // the one separating genuinely disjoint pieces (the badge word vs. this descriptive clause).
+    Awaiting: credited > 0 ? `${money(outstanding, currency)} remaining due ${dueDateLabel}` : `Due ${dueDateLabel}`,
+    Overdue: credited > 0 ? `${money(outstanding, currency)} remaining since ${dueDateLabel}` : `since ${dueDateLabel}`,
+    PartiallyPaid: `${money(remaining, currency)} remaining due ${dueDateLabel}`,
     // Bare "Paid <date>" — same convention as Void's bare date (badge already says "Paid", no
     // need to repeat it). Overpayment takes priority when it applies.
     Paid: overpayment > 0 ? `Overpaid by ${money(overpayment, currency)}, flagged for review` : paidDateLabel,

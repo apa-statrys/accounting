@@ -14,7 +14,7 @@ export function ExtractionFailedBanner({ onReupload }: { onReupload?: () => void
     <Banner
       color="warning"
       text="We couldn’t read this file. Please replace the file or enter the details manually."
-      linkLabel="Upload a clearer file"
+      linkLabel="Reupload"
       onLinkClick={onReupload}
     />
   );
