@@ -364,9 +364,7 @@ export function SendInvoiceSheet({
               sticky
               secondaryLabel="Preview"
               primaryLabel={tab === 0 ? (sent ? `${docLabel} Sent` : sendError ? "Try again" : `Send ${docLabel}`) : "Mark as Sent"}
-              primaryIconRight={tab === 0 && sent ? <CheckIcon style={{ fontSize: 18 }} /> : undefined}
-              primaryDisabled={sent}
-              secondaryDisabled={sent}
+              primaryIconLeft={tab === 0 && sent ? <CheckIcon style={{ fontSize: 18 }} /> : undefined}
               onSecondary={() => { setPreviewSegment(0); setPreviewOpen(true); }}
               onPrimary={tab === 0 ? handleSend : onSent}
               keyboard={tab === 0 && keyboardOpen}

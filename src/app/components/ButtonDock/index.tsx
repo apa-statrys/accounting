@@ -47,6 +47,8 @@ interface ButtonDockCommonProps extends React.HTMLAttributes<HTMLDivElement> {
    *  ~170px double, ~220px triple) so the last element can scroll clear. */
   sticky?: boolean;
   primaryLabel?: string;
+  /** Leading icon on the primary action (e.g. a checkmark confirming a just-completed action). */
+  primaryIconLeft?: React.ReactNode;
   /** Trailing icon on the primary action (e.g. a chevron-right for a "Continue"-style
    *  forward-navigation step — Figma sets this per-instance, not as a StickyButton axis). */
   primaryIconRight?: React.ReactNode;
@@ -112,6 +114,7 @@ export function ButtonDock({
   keyboard = false,
   sticky = false,
   primaryLabel = 'Confirm',
+  primaryIconLeft,
   primaryIconRight,
   primaryDestructive = false,
   secondaryLabel = 'Cancel',
@@ -143,6 +146,7 @@ export function ButtonDock({
       destructive={primaryDestructive}
       onClick={onPrimary}
       label={primaryLabel}
+      iconLeft={primaryIconLeft}
       iconRight={primaryIconRight}
     />
   );
