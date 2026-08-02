@@ -12,15 +12,15 @@ interface IssueDateSheetProps {
   onSelect?: (date: Date) => void;
   /** Disable dates before this day (e.g. a closed accounting period boundary). */
   minDate?: Date;
-  /** Warning-coloured helper line above the calendar (e.g. why early dates are unavailable). Only
-   *  shown while the viewed month actually contains disabled dates — hidden once past the boundary.
-   *  Plain text, no bold heading (2026-08-02: dropped the earlier Title+Subtitle treatment — same
-   *  wording, just not styled as a heading). */
+  /** Warning-coloured helper text above the calendar (e.g. why early dates are unavailable). Only
+   *  shown while the viewed month actually contains disabled dates — hidden once past the
+   *  boundary. Plain text, no bold heading (2026-08-02: dropped the earlier Title+Subtitle
+   *  treatment — same wording, just not styled as a heading). */
   helperText?: string;
-  /** Optional short lead-in line shown above `helperText`, in the exact same plain style (e.g.
-   *  "Accounting period closed" before "Dates on or before 31 Dec 2026 aren't available."). The
-   *  sheet's own "Select Issue Date" title never changes — this is additional context, not a
-   *  retitle. Same viewed-month gating as `helperText`. */
+  /** Optional short lead-in joined onto the SAME line as `helperText` (2026-08-02: was two
+   *  separate lines, now one sentence — e.g. "Accounting period closed. Dates on or before 31 Dec
+   *  2026 aren't available."). The sheet's own "Select Issue Date" title never changes — this is
+   *  additional context, not a retitle. Same viewed-month gating as `helperText`. */
   helperTitle?: string;
   /** Lock the sheet open — tapping ✕ / the scrim won't dismiss it (a valid date must be picked). */
   locked?: boolean;
@@ -43,12 +43,9 @@ export function IssueDateSheet({ open, value, onClose, onSelect, minDate, helper
             since this row still relies on the outer stagger container's propagated "open" for entry. */}
         <AnimatePresence>
           {showHelper && (
-            <motion.div variants={sheetItem} exit="closed" className="flex flex-col gap-0.5">
-              {helperTitle && (
-                <p className="text-[13px] font-normal leading-[1.35]" style={helperStyle}>{helperTitle}</p>
-              )}
-              <p className="text-[13px] font-normal leading-[1.35]" style={helperStyle}>{helperText}</p>
-            </motion.div>
+            <motion.p variants={sheetItem} exit="closed" className="text-[13px] font-normal leading-[1.35]" style={helperStyle}>
+              {helperTitle ? `${helperTitle}. ${helperText}` : helperText}
+            </motion.p>
           )}
         </AnimatePresence>
         <motion.div variants={sheetItem}>
