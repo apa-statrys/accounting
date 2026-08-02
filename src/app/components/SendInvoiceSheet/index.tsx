@@ -112,6 +112,9 @@ export function SendInvoiceSheet({
   const [previewSegment, setPreviewSegment] = useState(0);
   const [recipientError, setRecipientError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
+  // Brief "Invoice Sent ✓" confirmation on the button itself before actually navigating away —
+  // gives the send a felt moment of completion instead of jumping straight to the next screen.
+  const [sent, setSent] = useState(false);
   // Any of the three text fields (recipients / subject / message) focused → the dock shows
   // the on-screen keyboard (Figma "IOS controls" = Keyboard).
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -136,7 +139,8 @@ export function SendInvoiceSheet({
     setDraft(invalid.join(", "));
   };
 
-  /** Validate every address, then send — with a recoverable failure state (DES-718 AC4). */
+  /** Validate every address, then send — with a recoverable failure state (DES-718 AC4). Shows a
+   *  brief "Sent" confirmation on the button itself before actually handing off to the parent. */
   const handleSend = () => {
     setSendError(null);
     const pending = draft.trim();
@@ -147,7 +151,8 @@ export function SendInvoiceSheet({
       setShowRecipients(true);
       return;
     }
-    onSend?.();
+    setSent(true);
+    setTimeout(() => onSend?.(), 900);
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -346,15 +351,27 @@ export function SendInvoiceSheet({
             )}
           </div>
 
-          <ButtonDock
-            type={tab === 0 ? "double" : "single"}
-            sticky
-            secondaryLabel="Preview"
-            primaryLabel={tab === 0 ? (sendError ? "Try again" : `Send ${docLabel}`) : "Mark as Sent"}
-            onSecondary={() => { setPreviewSegment(0); setPreviewOpen(true); }}
-            onPrimary={tab === 0 ? handleSend : onSent}
-            keyboard={tab === 0 && keyboardOpen}
-          />
+          {/* Brief scale-pop when the button flips to its "Sent" confirmation — a felt moment of
+              completion instead of jumping straight to the next screen (see `sent` state above). */}
+          <motion.div
+            key={sent ? "sent" : "idle"}
+            initial={sent ? { scale: 0.94, opacity: 0.6 } : false}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 420, damping: 22 }}
+          >
+            <ButtonDock
+              type={tab === 0 ? "double" : "single"}
+              sticky
+              secondaryLabel="Preview"
+              primaryLabel={tab === 0 ? (sent ? `${docLabel} Sent` : sendError ? "Try again" : `Send ${docLabel}`) : "Mark as Sent"}
+              primaryIconRight={tab === 0 && sent ? <CheckIcon style={{ fontSize: 18 }} /> : undefined}
+              primaryDisabled={sent}
+              secondaryDisabled={sent}
+              onSecondary={() => { setPreviewSegment(0); setPreviewOpen(true); }}
+              onPrimary={tab === 0 ? handleSend : onSent}
+              keyboard={tab === 0 && keyboardOpen}
+            />
+          </motion.div>
 
           {/* Preview — Email/PDF segmented control replaces the title (no separate "Email Preview"
               text; the segments themselves frame what's showing). PDF segment shows the actual
