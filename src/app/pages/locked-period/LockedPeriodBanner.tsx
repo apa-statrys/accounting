@@ -8,7 +8,7 @@ import { Banner } from "../../ui/Banner";
  */
 export function LockedPeriodBanner({
   title = "Accounting period closed",
-  body = "Invoices and credit notes dated on or before DD/MM/YYYY can’t be created, edited, voided, or cancelled because this accounting period has been closed.",
+  body = "Invoices and credit notes dated on or before 31 Dec 2026 can’t be created, edited, voided, or cancelled because this accounting period has been closed.",
   showContact = true,
   onContact,
 }: {

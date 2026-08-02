@@ -1202,7 +1202,7 @@ export default function App() {
           defaultChaser={settings.chaserEnabled}
           defaultAccountId={settings.paymentMethod}
           headerTitle="Upload Invoice"
-          topBanner={<LockedPeriodBanner body="Invoices dated on or before DD/MM/YY can’t be uploaded because this period has been closed." showContact={false} />}
+          topBanner={<LockedPeriodBanner body="Invoices dated on or before 31 Dec 2026 can’t be uploaded because this period has been closed." showContact={false} />}
           issuePlaceholder="Select issue date"
           issueMinDate={new Date(2027, 0, 1)}
           issueSheetHelperTitle="Accounting period closed"

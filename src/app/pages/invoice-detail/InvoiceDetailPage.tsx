@@ -1131,12 +1131,12 @@ export function InvoiceDetailPage({
         }
         body={
           lockedAction === "send"
-            ? "This invoice can’t be sent because it belongs to a closed accounting period (DD/MM/YY)."
+            ? "This invoice can’t be sent because it belongs to a closed accounting period (31 Dec 2026)."
             : lockedAction === "createCn"
-            ? "A credit note can’t be added because this invoice’s date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
+            ? "A credit note can’t be added because this invoice’s date (31 Dec 2026) falls in a closed accounting period. Contact your accountant for assistance."
             : lockedAction === "refund"
-            ? "A refund credit note can’t be added because this invoice’s date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
-            : "This invoice can’t be edited because its date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
+            ? "A refund credit note can’t be added because this invoice’s date (31 Dec 2026) falls in a closed accounting period. Contact your accountant for assistance."
+            : "This invoice can’t be edited because its date (31 Dec 2026) falls in a closed accounting period. Contact your accountant for assistance."
         }
         onClose={() => setLockedAction(null)}
       />
@@ -1284,8 +1284,8 @@ export function InvoiceDetailPage({
               title={lockedCnAction === "apply" ? "Credit note can’t be applied" : "Editing isn’t available"}
               body={
                 lockedCnAction === "apply"
-                  ? "This credit note can’t be applied because its date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
-                  : "This credit note can’t be edited because its date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
+                  ? "This credit note can’t be applied because its date (31 Dec 2026) falls in a closed accounting period. Contact your accountant for assistance."
+                  : "This credit note can’t be edited because its date (31 Dec 2026) falls in a closed accounting period. Contact your accountant for assistance."
               }
               onClose={() => setLockedCnAction(null)}
             />

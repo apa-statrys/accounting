@@ -442,8 +442,8 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               title={lockedNotice === "apply" ? "Credit note can’t be applied" : "Editing isn’t available"}
               body={
                 lockedNotice === "apply"
-                  ? "This credit note can’t be applied because its date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
-                  : "This credit note can’t be edited because its date ([DD/MM/YYYY]) falls in a closed accounting period. Contact your accountant for assistance."
+                  ? "This credit note can’t be applied because its date (31 Dec 2026) falls in a closed accounting period. Contact your accountant for assistance."
+                  : "This credit note can’t be edited because its date (31 Dec 2026) falls in a closed accounting period. Contact your accountant for assistance."
               }
               onClose={() => setLockedNotice(null)}
             />
