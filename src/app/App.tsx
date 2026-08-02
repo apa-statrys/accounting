@@ -1149,7 +1149,8 @@ export default function App() {
           defaultAccountId={settings.paymentMethod}
           seedIssueDate={new Date(2027, 0, 1)}
           issueMinDate={new Date(2027, 0, 1)}
-          issueSheetHelper="Dates on or before 31 Dec 2026 aren't available because accounting period is closed"
+          issueSheetHelperTitle="Accounting period closed"
+          issueSheetHelper="Dates on or before 31 Dec 2026 aren't available."
           lockActions
           onIssueSheetToggle={setLockedIssueSheetOpen}
           onClose={() => setScreen("dashboard")}
@@ -1177,7 +1178,8 @@ export default function App() {
           topBanner={<LockedPeriodBanner body="Invoices dated on or before DD/MM/YY can’t be uploaded because this period has been closed." showContact={false} />}
           issuePlaceholder="Select issue date"
           issueMinDate={new Date(2027, 0, 1)}
-          issueSheetHelper="Dates on or before 31 Dec 2026 aren't available because accounting period is closed"
+          issueSheetHelperTitle="Accounting period closed"
+          issueSheetHelper="Dates on or before 31 Dec 2026 aren't available."
           // Lock every interaction except the Issue Date row + the header Back; the Create Invoice CTA
           // stays live so the user can re-issue once a valid (unlocked) date is picked.
           lockExceptIssueDate

@@ -119,6 +119,9 @@ interface AddInvoiceDetailsProps {
   autoOpenIssueSheet?: boolean;
   issueMinDate?: Date;
   issueSheetHelper?: string;
+  /** Short heading shown above the calendar as a Title + Subtitle pair (issueSheetHelper becomes
+   *  the subtitle) — set alongside issueSheetHelper for the locked-period case. */
+  issueSheetHelperTitle?: string;
   lockIssueSheet?: boolean;
   /** Override the header title (e.g. "Upload Invoice" for the locked-period upload demo). */
   headerTitle?: string;
@@ -201,6 +204,7 @@ export function AddInvoiceDetails({
   autoOpenIssueSheet = false,
   issueMinDate,
   issueSheetHelper,
+  issueSheetHelperTitle,
   lockIssueSheet = false,
   headerTitle,
   topBanner,
@@ -222,6 +226,11 @@ export function AddInvoiceDetails({
   // scheduled recurring draft (combined content + schedule edit) — but never for uploads or a normal edit.
   const [recurringOn, setRecurringOn] = useState(recurring && !isExtracted);
   const isRecurring = editingSeries || (recurringOn && !isExtracted);
+  // The plain "Edit invoice" limited-edit flow (an issued invoice, opened from its detail page) —
+  // excludes edit-from-duplicate (still a draft, autosaves like a fresh create) and recurring-series
+  // editing (its own combined content+schedule flow). No autosave here: an already-issued invoice
+  // shouldn't silently persist changes — the user explicitly Saves or Cancels instead.
+  const editingIssuedInvoice = isEditing && !editExitToList && !isRecurring;
   // The recurring card shows on a fresh create, or when editing a recurring draft (isEditing && recurring).
   // Gated off for prod (SHOW_RECURRING).
   const canToggleRecurring = SHOW_RECURRING && !isExtracted && !editingSeries && (!isEditing || recurring);
@@ -581,17 +590,20 @@ export function AddInvoiceDetails({
             right={
               // Figma "Create Invoice" header (node 1387-18223): the DS Loading spinner, not a
               // hand-rolled spinning border — "Saved" keeps the existing check (Figma's own mock
-              // only shows the "Saving" state).
-              <div className="flex items-center gap-1 whitespace-nowrap" aria-live="polite">
-                {saveState === "saving" ? (
-                  <Loading size="xs" aria-label="Saving" />
-                ) : (
-                  <CheckIcon style={{ fontSize: 15, color: "var(--text-success-primary)" }} />
-                )}
-                <span className="text-[12px] text-[var(--text-secondary)]" style={FONT}>
-                  {saveState === "saving" ? "Saving" : "Saved"}
-                </span>
-              </div>
+              // only shows the "Saving" state). Hidden for the plain Edit Invoice flow — that one
+              // doesn't autosave (see editingIssuedInvoice), so there's nothing to report here.
+              editingIssuedInvoice ? undefined : (
+                <div className="flex items-center gap-1 whitespace-nowrap" aria-live="polite">
+                  {saveState === "saving" ? (
+                    <Loading size="xs" aria-label="Saving" />
+                  ) : (
+                    <CheckIcon style={{ fontSize: 15, color: "var(--text-success-primary)" }} />
+                  )}
+                  <span className="text-[12px] text-[var(--text-secondary)]" style={FONT}>
+                    {saveState === "saving" ? "Saving" : "Saved"}
+                  </span>
+                </div>
+              )
             }
           />
         </PageAppHeader>
@@ -1009,13 +1021,28 @@ export function AddInvoiceDetails({
             }
             keyboard={keyboardOpen}
           />
+        ) : isEditing && editingIssuedInvoice ? (
+          // Plain Edit Invoice (an issued invoice, opened from its detail page) — explicit Save/
+          // Cancel, no autosave. Cancel reuses the same onEditBack the header chevron already
+          // calls: a clean return to the detail page, nothing to confirm since nothing's been
+          // silently saved.
+          <ButtonDock
+            type="double"
+            sticky
+            primaryLabel="Save"
+            secondaryLabel="Cancel"
+            primaryDisabled={services.length === 0}
+            onPrimary={onEditSave}
+            onSecondary={onEditBack}
+            keyboard={keyboardOpen}
+          />
         ) : isEditing ? (
           <ButtonDock
             type="single"
             sticky
             primaryLabel="Save"
             // Edit-existing-from-duplicate is still a draft — Save is always allowed (user can
-            // leave at any time). The limited edit-from-detail flow keeps the items gate.
+            // leave at any time).
             primaryDisabled={services.length === 0 && !editExitToList}
             onPrimary={onEditSave}
             keyboard={keyboardOpen}
@@ -1097,6 +1124,7 @@ export function AddInvoiceDetails({
         value={issueDate}
         minDate={issueMinDate}
         helperText={issueSheetHelper}
+        helperTitle={issueSheetHelperTitle}
         locked={lockIssueSheet}
         onClose={() => setIssueSheetOpen(false)}
         onSelect={(d) => {
