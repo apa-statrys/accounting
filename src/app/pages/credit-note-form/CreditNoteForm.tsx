@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { addDays, format } from "date-fns";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
@@ -422,11 +423,20 @@ export function CreditNoteForm({
             </span>
             <KeyboardArrowDownIcon style={{ fontSize: 24, color: "var(--text-secondary)" }} />
           </button>
-          {reasonError && (
-            <p className="text-[12px] leading-[1.3]" style={{ ...FONT, color: "var(--text-error-primary)" }}>
-              Please select a reason for this {refund ? "refund" : "credit note"}.
-            </p>
-          )}
+          <AnimatePresence initial={false}>
+            {reasonError && (
+              <motion.p
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25 }}
+                className="text-[12px] leading-[1.3] overflow-hidden"
+                style={{ ...FONT, color: "var(--text-error-primary)" }}
+              >
+                Please select a reason for this {refund ? "refund" : "credit note"}.
+              </motion.p>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Credit note: description sits above the items (refund shows it below the summary). */}
@@ -449,13 +459,22 @@ export function CreditNoteForm({
               </span>
             )}
           </div>
-          {amountError && (
-            <p className="px-1 text-[12px] leading-[1.3]" style={{ ...FONT, color: "var(--text-error-primary)" }}>
-              {refund
-                ? "Set a quantity to refund on at least one item."
-                : "Lower at least one item's amount to credit — the credit can't be zero."}
-            </p>
-          )}
+          <AnimatePresence initial={false}>
+            {amountError && (
+              <motion.p
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25 }}
+                className="px-1 text-[12px] leading-[1.3] overflow-hidden"
+                style={{ ...FONT, color: "var(--text-error-primary)" }}
+              >
+                {refund
+                  ? "Set a quantity to refund on at least one item."
+                  : "Lower at least one item's amount to credit — the credit can't be zero."}
+              </motion.p>
+            )}
+          </AnimatePresence>
           {/* Refund only: Full (read-only lines) vs Partial (editable). DS tab control. */}
           {refund && (
             <HorizontalTabs
@@ -583,12 +602,22 @@ export function CreditNoteForm({
         </div>
 
         {/* Validation — credited amount can't exceed the outstanding (shown inline by the amount) */}
-        {exceedsCap && (
-          <Banner
-            color="error"
-            text={`The ${refund ? "refund" : "credit"} can't exceed ${money(outstanding)} — lower the corrected amounts less.`}
-          />
-        )}
+        <AnimatePresence initial={false}>
+          {exceedsCap && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25 }}
+              className="overflow-hidden"
+            >
+              <Banner
+                color="error"
+                text={`The ${refund ? "refund" : "credit"} can't exceed ${money(outstanding)} — lower the corrected amounts less.`}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {(() => {
           const helper = refund

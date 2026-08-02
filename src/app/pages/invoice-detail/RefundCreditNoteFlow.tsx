@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { X } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
@@ -184,11 +185,20 @@ export function RefundCreditNoteFlow({
                   style={{ ...FONT, color: INK }}
                 />
               </div>
-              {exceedsOutstanding && (
-                <p className="text-[12px] leading-[1.4]" style={{ ...FONT, color: "var(--text-error-primary)" }}>
-                  Refund exceed to the refund amount {currency} {amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-              )}
+              <AnimatePresence initial={false}>
+                {exceedsOutstanding && (
+                  <motion.p
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="text-[12px] leading-[1.4] overflow-hidden"
+                    style={{ ...FONT, color: "var(--text-error-primary)" }}
+                  >
+                    Refund exceed to the refund amount {currency} {amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Refund date</label>

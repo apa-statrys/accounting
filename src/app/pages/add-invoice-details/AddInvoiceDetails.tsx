@@ -856,11 +856,20 @@ export function AddInvoiceDetails({
                items) — red caption when Send Invoice was tapped with no items yet (see `itemsError`). */
             <>
               <Button hierarchy="secondary" size="sm" fullWidth iconLeft={<Plus size={18} />} label="Add your items" onClick={openAddService} />
-              {itemsError && (
-                <p className="text-[12px] pt-1" style={{ ...FONT, color: "var(--text-error-primary)" }}>
-                  You need to add an item
-                </p>
-              )}
+              <AnimatePresence initial={false}>
+                {itemsError && (
+                  <motion.p
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="text-[12px] pt-1 overflow-hidden"
+                    style={{ ...FONT, color: "var(--text-error-primary)" }}
+                  >
+                    You need to add an item
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </>
           ) : (
             <div className="flex flex-col gap-3">
