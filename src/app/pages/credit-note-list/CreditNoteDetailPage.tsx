@@ -641,6 +641,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         onSend={completeSend}
         onSent={completeSend}
         onDownload={() => { setPdfFromSend(true); setPdfOpen(true); setToastMessage("Credit note downloaded"); }}
+        onQuickDownload={() => setToastMessage("Credit note downloaded")}
         docPreview={
           <CreditNoteDocumentPreview
             creditNoteNo={creditNoteNo}

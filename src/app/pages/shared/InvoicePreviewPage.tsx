@@ -127,8 +127,9 @@ export function InvoiceDocumentPreview(props: InvoiceDocumentPreviewProps) {
 
   return (
     <div ref={areaRef} className={className ?? "p-3"}>
-      {/* Scaled A4 page — the wrapper reserves the scaled footprint; the page itself is full size. */}
-      <div style={{ height: wrapH }}>
+      {/* Scaled A4 page — the wrapper reserves the scaled footprint (width AND height, centered
+          via margin auto) so the page sits centered in its container instead of flush left. */}
+      <div style={{ height: wrapH, width: PAGE_W * scale, margin: "0 auto" }}>
         <div
           ref={pageRef}
           className="bg-white shadow-[0_2px_12px_rgba(0,0,0,0.35)]"

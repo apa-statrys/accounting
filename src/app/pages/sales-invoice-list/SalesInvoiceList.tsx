@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { parse, parseISO, format, addDays } from "date-fns";
-import { ArrowUpDown, ChevronDown, FilePlus, Search, X } from "lucide-react";
+import { ArrowUpDown, ChevronDown, Plus, Search, X } from "lucide-react";
 import { FAB } from "../../ui/FAB";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
@@ -370,8 +370,16 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
         </div>
       </div>
 
-      {/* Create invoice FAB */}
-      <FAB circle icon={<FilePlus size={20} />} aria-label="Create invoice" className="absolute z-20 bottom-4 right-4" onClick={() => setSheetOpen(true)} />
+      {/* Create invoice FAB — pill with a leading + at rest; on scroll the `collapsed` prop morphs
+          the SAME element into the 46px circle (label folds away), same as Dashboard's FAB. */}
+      <FAB
+        collapsed={scrolled}
+        iconLeft={<Plus size={20} />}
+        label="Create Invoice"
+        aria-label="Create invoice"
+        className="absolute z-20 bottom-4 right-4"
+        onClick={() => setSheetOpen(true)}
+      />
 
       {/* Create bottom sheet */}
       <CreateInvoiceSheet

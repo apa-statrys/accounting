@@ -1315,6 +1315,7 @@ export function AddInvoiceDetails({
         // Marked Sent only if the link was actually copied/shared (option B).
         onSent={() => onSend?.({ title: "Invoice marked as sent" }, recentSent)}
         onDownload={() => { setLocalToast("Invoice downloaded"); setPdfPreviewOpen(true); }}
+        onQuickDownload={() => setLocalToast("Invoice downloaded")}
         docPreview={
           <InvoiceDocumentPreview
             invoiceNo={invoiceNo}

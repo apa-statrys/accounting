@@ -1364,6 +1364,7 @@ export function InvoiceDetailPage({
           setPdfPreviewOpen(true);
           setLocalToast(sendContext === "creditNote" ? "Credit note downloaded" : "Invoice downloaded");
         }}
+        onQuickDownload={() => setLocalToast(sendContext === "creditNote" ? "Credit note downloaded" : "Invoice downloaded")}
         docPreview={
           sendContext === "creditNote" && selectedSendCn ? (
             <CreditNoteDocumentPreview

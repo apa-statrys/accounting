@@ -49,9 +49,12 @@ interface SendInvoiceSheetProps {
   onSend?: () => void;
   /** "Mark as Sent" confirmed on the Share/Download tab. */
   onSent?: () => void;
-  /** "Download" tapped (Share/Download tab's file row, or the Preview sheet's PDF-segment
-   *  Download button) — the parent opens the full PDF preview page. */
+  /** Share/Download tab's file row tapped — the parent opens the full PDF preview page. */
   onDownload?: () => void;
+  /** Preview sheet's PDF-segment Download button tapped — the document is already shown right
+   *  there, so this just closes the sheet; the parent shows its own download toast (no full-page
+   *  preview navigation). */
+  onQuickDownload?: () => void;
   /** The actual document preview — an `InvoiceDocumentPreview`/`CreditNoteDocumentPreview` built
    *  by the parent from the same data it already threads to the full-screen preview page. Shown in
    *  the Preview sheet's PDF segment (not the Share/Download tab, which keeps its own file row). */
@@ -80,6 +83,7 @@ export function SendInvoiceSheet({
   onSend,
   onSent,
   onDownload,
+  onQuickDownload,
   docPreview,
 }: SendInvoiceSheetProps) {
   const [tab, setTab] = useState(0);
@@ -350,10 +354,10 @@ export function SendInvoiceSheet({
           />
 
           {/* Preview — Email/PDF segmented control replaces the title (no separate "Email Preview"
-              text; the segments themselves frame what's showing). PDF segment reuses the same
-              Download row as the Share/Download tab — tapping it jumps straight to the Share/Download
-              tab underneath (so Back from the full PDF preview lands there, not back on this sheet
-              or the Email tab) before handing off to the parent's full-screen preview. */}
+              text; the segments themselves frame what's showing). PDF segment shows the actual
+              document (docPreview) plus its own Download button — the document's already right
+              there, so Download just closes this sheet + fires the parent's toast (onQuickDownload),
+              no full-page preview navigation. */}
           <BottomSheet
             open={previewOpen}
             title=""
@@ -414,7 +418,7 @@ export function SendInvoiceSheet({
                   fullWidth
                   iconLeft={<DownloadIcon size={18} strokeWidth={1.67} />}
                   label="Download"
-                  onClick={() => { setTab(1); setPreviewOpen(false); onDownload?.(); }}
+                  onClick={() => { setPreviewOpen(false); onQuickDownload?.(); }}
                 />
               </div>
             )}
