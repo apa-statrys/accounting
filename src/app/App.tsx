@@ -470,16 +470,28 @@ export default function App() {
             { label: "Upload — Unreadable (Blank)", active: screen === "details" && extracted === BLANK_EXTRACTION, onSelect: () => { setPendingExtraction(null); setExtracted(BLANK_EXTRACTION); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-unreadable.jpg", size: 3565158 }); setScreen("details"); } },
           ],
         },
+        // Invoice Detail split by lifecycle stage (2026-08-02 reorg) rather than one flat 11-item
+        // section — Draft → Unpaid (awaiting/overdue/partial) → Paid & Closed (paid, refund
+        // lifecycle, void). Each opens a matching register demo invoice.
         {
-          // One entry per detail-page status — each opens a matching register demo invoice.
-          heading: "Invoice Detail",
+          heading: "Invoice Detail — Draft",
           items: [
             { label: "Draft (Created)", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "created", onSelect: () => jumpDetail({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Draft", origin: "created" }) },
             { label: "Draft (Uploaded)", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "uploaded", onSelect: () => jumpDetail({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Draft", origin: "uploaded" }) },
+          ],
+        },
+        {
+          heading: "Invoice Detail — Unpaid",
+          items: [
             { label: "Awaiting Payment", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000004", onSelect: () => jumpDetail({ number: "INV-2026-000004", client: "Marlow & Finch Studio", status: "Awaiting" }) },
             { label: "Awaiting (Locked Period)", active: screen === "lockedPeriodEditInvoice", onSelect: () => setScreen("lockedPeriodEditInvoice") },
             { label: "Overdue + 1 Applied CN", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000010", onSelect: () => jumpDetail({ number: "INV-2026-000010", client: "Harbor & Co.", status: "Overdue", cnNo: "CN-2026-000003", cnAmount: 2000, cnSent: true }) },
             { label: "Partially Paid", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000014", onSelect: () => jumpDetail({ number: "INV-2026-000014", client: "Verde Coffee Roasters", status: "PartiallyPaid" }) },
+          ],
+        },
+        {
+          heading: "Invoice Detail — Paid & Closed",
+          items: [
             { label: "Paid", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000005", onSelect: () => jumpDetail({ number: "INV-2026-000005", client: "Atlas Logistics", status: "Paid" }) },
             { label: "Paid (Locked Period)", active: screen === "lockedPeriodPaid", onSelect: () => setScreen("lockedPeriodPaid") },
             { label: "Refund Pending + 1 Applied CN", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000011", onSelect: () => jumpDetail({ number: "INV-2026-000011", client: "Cobalt Systems", status: "Paid", cnNo: "CN-2026-000004", cnAmount: 1200, cnSent: false }) },
