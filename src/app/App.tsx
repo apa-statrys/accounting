@@ -25,6 +25,7 @@ import { NeedAttention } from "./pages/NeedAttention";
 import { DuplicateDecision } from "./pages/DuplicateDecision";
 import { InvoiceSettings } from "./pages/InvoiceSettings";
 import { GeneratingInvoice } from "./pages/GeneratingInvoice";
+import { ScanDocument } from "./components/ScanDocument";
 import { DEMO_EXTRACTION, DEMO_EXTRACTION_MATCHED, DEMO_EXTRACTION_NO_CUSTOMER, BLANK_EXTRACTION, EXISTING_INVOICES } from "./data/extraction";
 import { CUSTOMERS } from "./data/customers";
 import { DEFAULT_SETTINGS } from "./data/settings";
@@ -290,11 +291,11 @@ export default function App() {
   // Where "Upload" was triggered from — real picker is native now, so this is only used to send
   // the user back to the right screen (DuplicateDecision's back arrow, "Upload a clearer file").
   const [uploadReturn, setUploadReturn] = useState<"dashboard" | "list">("list");
-  // Kick off the upload/OCR simulation — the real build hands this to the OS document scanner;
-  // here it jumps straight to the "reading" step with a demo file already "returned" by it. Shared
-  // by the Dashboard/List "Upload Invoice" entry points AND every in-flow "Reupload"/"Upload a
-  // clearer file" action (DuplicateDecision, AddInvoiceDetails) — those re-invoke the same native
-  // scanner rather than just bouncing back to wherever the upload started.
+  // Kick off the upload/OCR simulation once a file's been "captured" — jumps straight to the
+  // "reading" step with a demo file already returned by the scanner/picker. The Dashboard/List
+  // "Upload Invoice" entry points reach this via CreateInvoiceSheet's own ScanDocument; every
+  // in-flow "Reupload"/"Replace" action (DuplicateDecision, AddInvoiceDetails) reaches it via
+  // the standalone scanner below instead of skipping straight past it.
   const startUpload = () => {
     setRecurring(false);
     setEditingSeries(false);
@@ -303,6 +304,11 @@ export default function App() {
     setUploadedFile({ name: "invoice.pdf", size: 419430 });
     setScreen("extracting");
   };
+  // Standalone scanner overlay for in-flow "Reupload"/"Replace" actions (DuplicateDecision,
+  // AddInvoiceDetails) — unlike the FAB's Create-Invoice chooser, there's no sheet to host
+  // ScanDocument here, so it's mounted once at the root and toggled directly.
+  const [reuploadScanOpen, setReuploadScanOpen] = useState(false);
+  const openReuploadScanner = () => setReuploadScanOpen(true);
   // Recurring-series create flow (DES-782) — reuses the customer → details flow with a schedule.
   const [recurring, setRecurring] = useState(false);
   // Series status for the opened recurring invoice — shared by the invoice detail card + series page.
@@ -914,7 +920,7 @@ export default function App() {
           existing={dupExisting}
           file={uploadedFile}
           onBack={() => setScreen(uploadReturn)}
-          onReupload={startUpload}
+          onReupload={openReuploadScanner}
           onEditExisting={() => {
             // Open the existing draft's editor and keep editing it (existing draft unchanged otherwise).
             const inv = dupExisting;
@@ -997,7 +1003,7 @@ export default function App() {
           defaultChaser={settings.chaserEnabled}
           defaultAccountId={settings.paymentMethod}
           extractionFailed={extracted === BLANK_EXTRACTION}
-          onReupload={startUpload}
+          onReupload={openReuploadScanner}
           uploadedFile={uploadedFile}
           numberRecommended={numberRecommended}
           editExitToList={editFromDuplicate}
@@ -1287,6 +1293,16 @@ export default function App() {
       )}
           </motion.div>
         </AnimatePresence>
+
+        {/* Standalone scanner for in-flow "Reupload"/"Replace" (DuplicateDecision, AddInvoiceDetails)
+            — same ScanDocument the FAB's Create-Invoice chooser uses, just without a sheet to host it
+            in; mounted here so it overlays whatever screen triggered it. */}
+        <ScanDocument
+          open={reuploadScanOpen}
+          onClose={() => setReuploadScanOpen(false)}
+          onCapture={() => { setReuploadScanOpen(false); startUpload(); }}
+          onImport={() => { setReuploadScanOpen(false); startUpload(); }}
+        />
       </div>
 
       {/* Scenario annotation — shown in the white space to the right of the phone frame, only on the
