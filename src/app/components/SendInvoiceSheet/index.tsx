@@ -229,7 +229,7 @@ export function SendInvoiceSheet({
                       >
                         <div className="flex flex-col gap-2.5 pt-0.5">
                           <TextField
-                            placeholder="e.g. ayepa@gmail.com"
+                            placeholder="e.g. name@example.com"
                             value={draft}
                             onChange={(v) => {
                               setRecipientError(null);

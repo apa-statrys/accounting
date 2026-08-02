@@ -1,10 +1,9 @@
 // The three informational banners at the top of the invoice editor (upload flow, DES-716).
-import { BannerAI } from "../../ui/BannerAI";
 import { Banner } from "../../ui/Banner";
 
 /** "N out of M extracted" — only when a field couldn't be read (OCR-missing case). */
 export function CoverageBanner({ fieldsExtracted, fieldsTotal }: { fieldsExtracted: number; fieldsTotal: number }) {
-  return <BannerAI text={`${fieldsExtracted} out of ${fieldsTotal} extracted. Please review before creating.`} />;
+  return <Banner color="info" text={`${fieldsExtracted} out of ${fieldsTotal} extracted. Please review before creating.`} />;
 }
 
 /** OCR-failure notice (couldn't read the file) — takes priority over the coverage summary. */

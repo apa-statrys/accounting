@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
+import { Plus } from "lucide-react";
 import { FilePreviewOverlay } from "../../components/UploadedFile";
 import { FileItemBase } from "../../ui/FileItemBase";
+import { Button } from "../../ui/Button";
 import CheckIcon from "@mui/icons-material/Check";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { PageAppHeader } from "../../components/PageAppHeader";
@@ -849,30 +851,33 @@ export function AddInvoiceDetails({
               )}
             </>
           ) : (
-            // ListCard of rows (Figma "Create Invoice", node 1826-15914) — "Add more items" is the
-            // list's own trailing row, not a separate outlined button below it.
-            <ListCard onLayer="beige">
-              <AnimatePresence initial={false}>
-                {services.map((s, idx) => (
-                  <motion.div
-                    key={s.id}
-                    layout
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.25, ease: "easeInOut" }}
-                    style={{ overflow: "hidden" }}
-                  >
-                    <ServiceItemCard
-                      line={s}
-                      invoiceCurrency={currency}
-                      hint={hintFirst && idx === 0}
-                      onClick={() => openEditService(s.id)}
-                      onDelete={() => setServices((prev) => prev.filter((x) => x.id !== s.id))}
-                    />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              <ListRow label="Add more items" trailing="chevron" onClick={openAddService} last />
-            </ListCard>
+            <div className="flex flex-col gap-3">
+              {/* ListCard of rows (Figma "Create Invoice", node 1826-15914). */}
+              <ListCard onLayer="beige">
+                <AnimatePresence initial={false}>
+                  {services.map((s, idx) => (
+                    <motion.div
+                      key={s.id}
+                      layout
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      style={{ overflow: "hidden" }}
+                    >
+                      <ServiceItemCard
+                        line={s}
+                        invoiceCurrency={currency}
+                        hint={hintFirst && idx === 0}
+                        onClick={() => openEditService(s.id)}
+                        onDelete={() => setServices((prev) => prev.filter((x) => x.id !== s.id))}
+                        last={idx === services.length - 1}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </ListCard>
+              {/* "Add more items" as a secondary CTA below the list, not a trailing list row. */}
+              <Button hierarchy="secondary" fullWidth iconLeft={<Plus size={18} />} label="Add more items" onClick={openAddService} />
+            </div>
           )}
         </Section>
         </div>
@@ -1296,6 +1301,15 @@ export function AddInvoiceDetails({
             setTimeout(() => setHintFirst(false), 6000);
           }
         }}
+        onDelete={
+          editingId
+            ? () => {
+                setServices((prev) => prev.filter((s) => s.id !== editingId));
+                setServicesSheetOpen(false);
+                setEditingId(null);
+              }
+            : undefined
+        }
       />
 
       <SendInvoiceSheet

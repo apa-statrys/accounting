@@ -20,6 +20,8 @@ interface AddServicesSheetProps {
   initial?: Omit<ServiceLine, "id"> | null;
   onClose?: () => void;
   onAdd?: (line: Omit<ServiceLine, "id">) => void;
+  /** Edit mode only — removes this line and closes the sheet. */
+  onDelete?: () => void;
 }
 
 /**
@@ -37,6 +39,7 @@ export function AddServicesSheet({
   initial,
   onClose,
   onAdd,
+  onDelete,
 }: AddServicesSheetProps) {
   const [serviceName, setServiceName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -105,11 +108,22 @@ export function AddServicesSheet({
       // own content instead of inheriting the taller form height (which left empty space below it).
       heightClass={step === "unit" ? undefined : SERVICE_SHEET_HEIGHT}
       footer={
-        step === "unit" ? undefined : (
-          // Editing an item: single "Save Changes" CTA — removal is done by swiping the line left.
+        step === "unit" ? undefined : initial ? (
+          // Editing an item: "Save Changes" + a plain "Delete" secondary (swiping the line left
+          // still works too) — Delete isn't marked destructive since the primary here isn't either
+          // (see memory: secondaryDestructive needs a destructive primary).
+          <ButtonDock
+            type="double"
+            primaryLabel="Save Changes"
+            secondaryLabel="Delete"
+            onPrimary={handleAdd}
+            onSecondary={onDelete}
+            keyboard={keyboardOpen}
+          />
+        ) : (
           <ButtonDock
             type="single"
-            primaryLabel={initial ? "Save Changes" : "Add Item"}
+            primaryLabel="Add Item"
             onPrimary={handleAdd}
             keyboard={keyboardOpen}
           />

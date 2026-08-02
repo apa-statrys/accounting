@@ -52,6 +52,13 @@
   color: var(--text-primary);
 }
 
+/* Discount row once it's actually subtracting something — same error/red convention as every
+   other subtracted-amount value in the app (e.g. Credits Applied's "−USD X" line). */
+.valueError {
+  composes: body-sm from global;
+  color: var(--text-error-primary);
+}
+
 .valueBold {
   composes: body-sm-bold from global;
   color: var(--text-primary);

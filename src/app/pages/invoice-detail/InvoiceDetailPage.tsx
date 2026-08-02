@@ -893,7 +893,7 @@ export function InvoiceDetailPage({
                 (Figma puts the divider here, not above Total). */}
             <div className="flex items-center justify-between py-2.5 border-b" style={{ borderColor: "rgba(208,208,208,0.4)" }}>
               <span className="body-sm" style={{ ...FONT, color: MUTED }}>Discount</span>
-              <span className="body-sm" style={{ ...FONT, color: INK }}>{DISCOUNT > 0 ? `−${money(DISCOUNT, currency)}` : money(0, currency)}</span>
+              <span className="body-sm" style={{ ...FONT, color: DISCOUNT > 0 ? "var(--text-error-primary)" : INK }}>{DISCOUNT > 0 ? `−${money(DISCOUNT, currency)}` : money(0, currency)}</span>
             </div>
             {/* When credit is APPLIED, Total is just a reference and Amount due is the prominent figure.
                 An UNapplied (Open) credit note isn't shown here — it's surfaced in the Credits Applied card

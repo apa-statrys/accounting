@@ -21,7 +21,6 @@ import { SummaryCard } from "../components/SummaryCard";
 import StatusBar from "../components/StatusBar";
 import { Tile, type TileTrailing } from "./Tile";
 import { Banner, type BannerColor } from "./Banner";
-import { BannerAI } from "./BannerAI";
 import { XClose, type XCloseSize } from "./XClose";
 import { ToastMessage, type ToastVariant } from "./ToastMessage";
 import { Chips } from "./Chips";
@@ -112,7 +111,6 @@ const NAV_GROUPS = [
     items: [
       { id: "toast-message", label: "Toast Message" },
       { id: "banner", label: "Banner" },
-      { id: "banner-ai", label: "Banner AI" },
       { id: "badge", label: "Badge" },
       { id: "noti-badge", label: "Noti Badge" },
       { id: "loading", label: "Loading" },
@@ -440,37 +438,6 @@ function BannerOverview() {
             text="Your information is secure and encrypted"
             onLinkClick={v.link === "on" ? () => {} : undefined}
             onClose={v.dismiss === "on" ? () => {} : undefined}
-          />
-        </div>
-      )}
-    />
-  );
-}
-
-const BANNER_AI_CONTROL_GROUPS: ControlGroup[] = [
-  {
-    key: "text",
-    label: "Text",
-    options: [
-      { value: "short", label: "Short — e.g. the extraction-coverage summary" },
-      { value: "long", label: "Long — wraps to 2+ lines" },
-    ],
-  },
-];
-
-function BannerAIOverview() {
-  return (
-    <InteractiveDemo
-      groups={BANNER_AI_CONTROL_GROUPS}
-      defaultValues={{ text: "short" }}
-      render={(v) => (
-        <div className="w-[320px]">
-          <BannerAI
-            text={
-              v.text === "long"
-                ? "8 out of 9 extracted. Please review the highlighted fields below before creating this invoice."
-                : "8 out of 9 extracted. Please review before creating."
-            }
           />
         </div>
       )}
@@ -2417,13 +2384,6 @@ export function Showcase() {
                 title="Banner"
                 description="An inline status message — subtle-tinted row with a 16px icon + text, in success/warning/error/info, as either a single line (Text only, body-sm) or a medium-weight title (body-sm) + caption-sized detail (Title + Text). Optional trailing 'View Details' text link and dismiss (×). Use when a page or sheet needs to surface a status inline — text/title/link always stay ink, only the icon carries the color."
                 overview={<BannerOverview />}
-              />
-            )}
-            {activeNav === "banner-ai" && (
-              <ComponentPage
-                title="Banner AI"
-                description="An inline callout for AI-generated content — same shell as Banner but one fixed brand-orange border + white fill + gradient sparkle icon, no color variants. Use for a callout ABOUT AI/OCR-generated content (e.g. an invoice editor's extraction-coverage summary), not general status messaging — that's still Banner."
-                overview={<BannerAIOverview />}
               />
             )}
             {activeNav === "badge" && (

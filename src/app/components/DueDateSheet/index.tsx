@@ -37,7 +37,7 @@ export function DueDateSheet({ open, value, onClose, onSelect }: DueDateSheetPro
   return (
     <BottomSheet
       open={open}
-      title={step === "calendar" ? "Custom Due Date" : "Select Due Date"}
+      title={step === "calendar" ? "Due Date" : "Select Due Date"}
       onBack={step === "calendar" ? () => setStep("list") : undefined}
       onClose={() => {
         onClose?.();

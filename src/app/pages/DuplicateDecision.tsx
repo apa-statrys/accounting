@@ -65,11 +65,9 @@ export function DuplicateDecision({ existing, file, onBack, onEditExisting, onVi
           <div className="flex flex-col gap-4">
             <img src={warningTriangleIcon} alt="" width={52} height={49} />
             <div className="flex flex-col gap-2.5">
-              <p className="card-title-lg" style={{ color: "var(--text-primary)" }}>Duplicate invoice found</p>
+              <p className="card-title-lg" style={{ color: "var(--text-primary)" }}>This invoice already exists</p>
               <p className="text-[14px] leading-[1.4]" style={{ ...FONT, color: "var(--text-secondary)" }}>
-                {isDraft
-                  ? "This upload matches an existing draft invoice. Continue editing the draft or create a new invoice."
-                  : "This upload matches an existing invoice. Review the existing invoice or continue with a new one if needed."}
+                We found an existing invoice with the same number below. You can view it, or continue anyway to create a separate new invoice.
               </p>
             </div>
           </div>
@@ -101,17 +99,18 @@ export function DuplicateDecision({ existing, file, onBack, onEditExisting, onVi
         </div>
       </div>
 
-      {/* Decision — primary depends on the match: DRAFT → Edit Existing Draft, ISSUED → View Invoice. */}
+      {/* Decision — primary opens the match (DRAFT → its editor, ISSUED → its detail page);
+          secondary abandons the match and creates a separate new invoice instead. */}
       <ButtonDock
         type="double"
         sticky
-        primaryLabel={isDraft ? "Edit Existing Draft" : "View Invoice"}
-        secondaryLabel="Create New Invoice"
+        primaryLabel="View Original Invoice"
+        secondaryLabel="Continue Anyway"
         onPrimary={isDraft ? onEditExisting : onViewInvoice}
         onSecondary={onCreateNew}
       />
 
-      <FilePreviewOverlay open={filePreviewOpen} file={file ?? null} onClose={() => setFilePreviewOpen(false)} />
+      <FilePreviewOverlay open={filePreviewOpen} file={file ?? null} onClose={() => setFilePreviewOpen(false)} onReupload={onBack} />
     </div>
   );
 }

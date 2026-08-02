@@ -1,4 +1,5 @@
 import { BottomSheet } from "../BottomSheet";
+import { ButtonDock } from "../ButtonDock";
 import styles from "./index.module.css";
 
 export interface UploadedFileInfo {
@@ -9,10 +10,29 @@ export interface UploadedFileInfo {
 /**
  * Bottom-sheet viewer for the original uploaded file. Render at the PAGE ROOT (not inside a
  * scroll container, which would clip it). Demo: a representative document, no real bytes.
+ * Title is the actual file name, not a generic label. `onReupload` is opt-in (e.g. the
+ * duplicate-invoice decision page) — omit it anywhere reuploading doesn't make sense and the
+ * sheet stays footerless.
  */
-export function FilePreviewOverlay({ open, file, onClose }: { open: boolean; file: UploadedFileInfo | null; onClose?: () => void }) {
+export function FilePreviewOverlay({
+  open,
+  file,
+  onClose,
+  onReupload,
+}: {
+  open: boolean;
+  file: UploadedFileInfo | null;
+  onClose?: () => void;
+  onReupload?: () => void;
+}) {
   return (
-    <BottomSheet open={open} title="Original file" onClose={onClose} heightClass="h-[72%]">
+    <BottomSheet
+      open={open}
+      title={file?.name ?? "Original file"}
+      onClose={onClose}
+      heightClass="h-[72%]"
+      footer={onReupload ? <ButtonDock type="single" primaryLabel="Reupload" onPrimary={onReupload} /> : undefined}
+    >
       <div className={styles.overlayBody}>
         {/* Faux scanned-invoice page standing in for the uploaded document */}
         <div className={styles.docCard}>
@@ -39,7 +59,7 @@ export function FilePreviewOverlay({ open, file, onClose }: { open: boolean; fil
           </div>
         </div>
         <p className={styles.previewCaption}>
-          {file?.name} · preview of your uploaded document
+          Preview of your uploaded document
         </p>
       </div>
     </BottomSheet>
