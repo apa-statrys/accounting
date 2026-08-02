@@ -640,9 +640,12 @@ function ComponentPage({
   whenNotToUse?: string[];
   /** The interactive demo panel — the page's hero, like the reference docs site. */
   overview: React.ReactNode;
-  /** Standing "how to use this correctly" rules — decided conventions a builder should
-   *  reuse rather than re-derive (e.g. Bottom Sheet's sub-level-swap/search/keyboard
-   *  rules). Omit for components with no such conventions beyond their variant props. */
+  /** Standing "how it behaves" rules — decided conventions a builder should reuse rather
+   *  than re-derive (e.g. Bottom Sheet's sub-level/search/keyboard behavior). This page is
+   *  read by non-developers too (PO, stakeholders) — write each title/body in plain,
+   *  everyday language describing what someone SEES happen, never prop names, code terms,
+   *  or library names (no "heightClass", "Framer Motion", "object-literal", etc.). Omit
+   *  for components with no such conventions beyond their variant props. */
   patterns?: { title: string; body: string }[];
   /** The exhaustive variant grid — omit for components whose Overview is an
    *  InteractiveDemo (controls + live preview already cover every combination). */
@@ -661,7 +664,7 @@ function ComponentPage({
       <UsageGuidance whenToUse={whenToUse} whenNotToUse={whenNotToUse} />
       <Section id="overview" title="Overview">{overview}</Section>
       {patterns && patterns.length > 0 && (
-        <Section id="patterns" title="Interaction Patterns">
+        <Section id="patterns" title="How It Behaves">
           <PatternList items={patterns} />
         </Section>
       )}
@@ -2817,32 +2820,32 @@ export function Showcase() {
                 overview={<BottomSheetOverview />}
                 patterns={[
                   {
-                    title: "Sub-level navigation stays in one sheet",
-                    body: "A deeper level (a date picker opened from Filters, a sub-menu, a nested detail) swaps the SAME sheet's title/content — a step state + slide transition + onBack — never a second sheet stacked on top of the first.",
+                    title: "Deeper steps stay in the same sheet",
+                    body: "When a sheet needs to open something more specific — like a date picker inside a Filters sheet — that next step slides in as part of the same sheet, instead of opening a whole new sheet on top of it.",
                   },
                   {
-                    title: "Search-in-header uses the built-in search mode",
-                    body: "Pass searchValue/onSearchChange/onBack (the title morphs into a frosted search pill in place) instead of hand-rolling a static title plus a toggled inline search row.",
+                    title: "Search takes over the title bar",
+                    body: "When a sheet includes a search box, the title turns into the search field right where it is, rather than adding a separate search bar underneath the title.",
                   },
                   {
-                    title: "Step-swap motion defaults to a plain fade-slide",
-                    body: "Use a plain object-literal Framer Motion transition on the step wrapper by default; only reach for the shared stepSlide() string-variant helper when that step's content is a shared component with its own nested sheetItem-variant rows (an object-literal animate breaks their variant propagation).",
+                    title: "Moving between steps always slides smoothly",
+                    body: "Switching from one step to the next inside a sheet is a smooth slide, never an abrupt jump or flash.",
                   },
                   {
-                    title: "Size to content by default",
-                    body: "Leave heightClass unset so the sheet auto-sizes up to the panel's own 88% max-height cap. Reach for fullPage (calc(100% − 43px) from the top) plus compact when a sheet needs to show as much as possible with zero scrolling; only pin a fixed heightClass when a sheet must match a sibling sheet's height exactly.",
+                    title: "The sheet only takes the space it needs",
+                    body: "A sheet sizes itself to fit its content, and can grow close to full-screen when there's a lot to show — so people don't have to scroll more than necessary. It only locks to one fixed size when it needs to line up exactly with a sheet it's replacing.",
                   },
                   {
-                    title: "keyboardOpen overrides a fixed height too",
-                    body: "While the on-screen keyboard mock is open, keyboardOpen drops any pinned heightClass (not just the footer-overlap behavior) so the panel can grow into the freed space instead of leaving it empty.",
+                    title: "Room is made for the keyboard",
+                    body: "When someone is typing and the on-screen keyboard appears, the sheet grows to use the extra space instead of feeling cramped.",
                   },
                   {
-                    title: "Footerless sheets stay plain at the bottom",
-                    body: "No gradient/blur fade on a footerless sheet's bottom edge — that was tried and explicitly reverted; only sticky headers/docks get a frost effect.",
+                    title: "Sheets without buttons stay plain at the bottom",
+                    body: "There's no fade effect at the bottom of a sheet that doesn't have action buttons — only the sticky area at the top gets that frosted-glass look.",
                   },
                   {
-                    title: "Dense Tile lists shrink to size=\"sm\"",
-                    body: "Once a sheet's list of Tile rows reaches 4 or more, every Tile in it uses size=\"sm\" (54px) instead of the default md (65px).",
+                    title: "Long lists use a more compact row size",
+                    body: "Once a list inside a sheet reaches 4 or more items, each row becomes a little smaller so more fits on screen at once.",
                   },
                 ]}
               />
