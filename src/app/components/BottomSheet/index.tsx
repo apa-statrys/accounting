@@ -99,6 +99,16 @@ interface BottomSheetProps {
    *  fixed-size scroll area with a taller footer. Still capped by .panel's own max-height (88%);
    *  content scrolls normally if it genuinely doesn't fit even then. */
   keyboardOpen?: boolean;
+  /** Floor the auto-sized panel at this many px (e.g. a sub-level-swap sheet's own first-level
+   *  step, measured by the caller) so a shorter sub-level step (fewer rows, a smaller picker)
+   *  doesn't shrink the sheet back down — it still grows taller than this when a step needs more
+   *  room, capped as usual at the panel's own 88% max-height. Ignored when `heightClass`/`fullPage`
+   *  already pin an exact height (those already don't shrink either). */
+  minHeightPx?: number;
+  /** Ref to the outer panel div (header + scrollable content + footer) — for a caller that needs
+   *  to measure the sheet's own total rendered height (e.g. to drive `minHeightPx` on a sibling
+   *  render), since that height isn't just the content it passed in via `children`. */
+  panelRef?: React.Ref<HTMLDivElement>;
 }
 
 /** Shared fixed height for the Add-Services sheet and its nested pickers, so they match exactly. */
@@ -109,7 +119,7 @@ export const SERVICE_SHEET_HEIGHT = "h-[68%]";
  * The parent screen handles the "book-page" recede of the page behind.
  * See memory: bottom-sheet-animation.
  */
-export function BottomSheet({ open, title, onClose, children, footer, tall, heightClass, fullPage, action, onAction, actionLabel = "Action", onBack, backLabel = "Back", centerTitle, onContentScroll, compact, searchValue, onSearchChange, searchPlaceholder, autoFocusSearch, headerExtra, keyboardOpen = false }: BottomSheetProps) {
+export function BottomSheet({ open, title, onClose, children, footer, tall, heightClass, fullPage, action, onAction, actionLabel = "Action", onBack, backLabel = "Back", centerTitle, onContentScroll, compact, searchValue, onSearchChange, searchPlaceholder, autoFocusSearch, headerExtra, keyboardOpen = false, minHeightPx, panelRef }: BottomSheetProps) {
   const isSearch = onSearchChange !== undefined;
   // Drives the header's frost — same transparent-at-rest/frosted-on-scroll
   // recipe as components/PageAppHeader, but tracked internally so every sheet
@@ -190,7 +200,9 @@ export function BottomSheet({ open, title, onClose, children, footer, tall, heig
             ]
               .filter(Boolean)
               .join(" ")}
+            style={!fullPage && !effectiveHeightClass && minHeightPx ? { minHeight: minHeightPx } : undefined}
             variants={sheet}
+            ref={panelRef}
           >
             {/* Scrollable area — the grabber+title header sticks to its top (frosting
                 as content scrolls beneath it), everything else scrolls normally. */}

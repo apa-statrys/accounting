@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PageAppHeader } from "../components/PageAppHeader";
@@ -150,6 +150,46 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   const [scrolled, setScrolled] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
+  // Each sheet's own first-level (base form) step, measured so its sub-level (picker/list) step
+  // never shrinks the panel shorter than the base step's height — it can still grow taller than
+  // this when a step needs more room (e.g. a long country list). See BottomSheet's `minHeightPx`.
+  // Measures the whole PANEL (header + content + footer, via BottomSheet's `panelRef`), not just
+  // the base step's own content div — that div's height alone excludes the header/footer, which
+  // undershoots the real floor. The panel node itself persists across step swaps (only the step
+  // content inside it swaps), so one ResizeObserver set up for the sheet's whole open session stays
+  // valid throughout — no stale "disconnected element" zero-size entries to guard against. The
+  // callback just ignores updates while the sub-level is showing (checked via a ref so it always
+  // reads the LATEST value, not the one captured when the observer was created).
+  const companyPanelRef = useRef<HTMLDivElement | null>(null);
+  const [companyBaseHeight, setCompanyBaseHeight] = useState<number | undefined>(undefined);
+  const phoneCodeOpenRef = useRef(phoneCodeOpen);
+  phoneCodeOpenRef.current = phoneCodeOpen;
+  useLayoutEffect(() => {
+    const el = companyPanelRef.current;
+    if (!el) return;
+    if (!phoneCodeOpenRef.current) setCompanyBaseHeight(el.getBoundingClientRect().height);
+    const ro = new ResizeObserver(([entry]) => {
+      if (!phoneCodeOpenRef.current) setCompanyBaseHeight(entry.contentRect.height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [sheet === "company"]);
+
+  const addressPanelRef = useRef<HTMLDivElement | null>(null);
+  const [addressBaseHeight, setAddressBaseHeight] = useState<number | undefined>(undefined);
+  const pickerOpenRef = useRef(!!picker);
+  pickerOpenRef.current = !!picker;
+  useLayoutEffect(() => {
+    const el = addressPanelRef.current;
+    if (!el) return;
+    if (!pickerOpenRef.current) setAddressBaseHeight(el.getBoundingClientRect().height);
+    const ro = new ResizeObserver(([entry]) => {
+      if (!pickerOpenRef.current) setAddressBaseHeight(entry.contentRect.height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [sheet === "address"]);
+
   const openSheet = (k: SheetKey) => { setBaseline(s); setLogoError(null); setSheet(k); };
   const openPicker = (p: { field: "country" | "city" | "state"; title: string; options: string[] }) => { closePickerSearch(); setPicker(p); };
 
@@ -292,7 +332,11 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
           swap as the standalone CountrySheet/CountryCodeSheet (`phoneCodeSearchOpen`), not an
           inline search field in the body. No fixed heightClass at all (either step) — it sizes
           to content and only grows into the panel's own 88% cap, scrolling past that, rather
-          than pinning to a shorter fixed height while there's still room to grow. */}
+          than pinning to a shorter fixed height while there's still room to grow.
+          `minHeightPx={companyBaseHeight}` (the panel's own measured height while on the "details"
+          step — see `companyPanelRef` above) floors the sheet there so the shorter Country Code
+          list doesn't shrink the panel back down — it can still grow past that if the list itself
+          needs more room. */}
       <BottomSheet
         open={sheet === "company"}
         title={phoneCodeOpen ? "Select Country Code" : "Company Details"}
@@ -312,6 +356,8 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         onSearchChange={phoneCodeSearchOpen ? setPhoneCodeQuery : undefined}
         searchPlaceholder="Search Country"
         autoFocusSearch
+        minHeightPx={companyBaseHeight}
+        panelRef={companyPanelRef}
         footer={
           phoneCodeSearchOpen ? <Keyboard /> :
           phoneCodeOpen ? undefined : (
@@ -357,7 +403,10 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
           second sheet stacked on top — see memory: sub-level-drawer-same-sheet. Search (only
           offered once a list has more than 8 rows) is the same title-icon swap as the standalone
           CountrySheet/CountryCodeSheet, not an inline search field in the body. No fixed
-          heightClass at all (either step) — sizes to content, only capped at the panel's own 88%. */}
+          heightClass at all (either step) — sizes to content, only capped at the panel's own 88%.
+          `minHeightPx={addressBaseHeight}` (the panel's own measured height while on the "address"
+          step — see `addressPanelRef` above) floors it there so a shorter city/state list doesn't
+          shrink the panel — still grows past that if needed. */}
       <BottomSheet
         open={sheet === "address"}
         title={picker?.title ?? "Business Address"}
@@ -377,6 +426,8 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         onSearchChange={pickerSearchOpen ? setPickerQuery : undefined}
         searchPlaceholder={`Search ${picker?.title.toLowerCase() ?? ""}`}
         autoFocusSearch
+        minHeightPx={addressBaseHeight}
+        panelRef={addressPanelRef}
         footer={
           pickerSearchOpen ? <Keyboard /> :
           picker ? undefined : (
