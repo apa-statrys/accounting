@@ -6,7 +6,6 @@ import { ButtonDock } from "../components/ButtonDock";
 import { BottomSheet, stepSlide } from "../components/BottomSheet";
 import { TextField } from "../ui/TextField";
 import { Tile } from "../ui/Tile";
-import { Search } from "../ui/Search";
 import { CurrencySheet, CURRENCY_COUNTRY } from "../components/CurrencySheet";
 import { ReceivingAccountSheet } from "../components/ReceivingAccountSheet";
 import { CountryCodeRows } from "../components/CountryCodeSheet";
@@ -56,6 +55,22 @@ function DemoLogo({ size = 72 }: { size?: number }) {
       {/* Two interlocking rounded chevrons — a clean, brand-neutral studio mark. */}
       <path d="M23 25 L37 36 L23 47" fill="none" stroke="var(--icon-on-color)" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M37 25 L51 36 L37 47" fill="none" stroke="var(--icon-on-color)" strokeOpacity="0.55" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Same search-mode header trigger as CountrySheet/CountryCodeSheet — tapping it swaps the
+ *  sheet's title for a frosted search pill in place, same interaction everywhere in the app. */
+function SearchGlyph() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M17.4999 17.5001L13.8833 13.8835M15.8333 9.16667C15.8333 12.8486 12.8486 15.8333 9.16667 15.8333C5.48477 15.8333 2.5 12.8486 2.5 9.16667C2.5 5.48477 5.48477 2.5 9.16667 2.5C12.8486 2.5 15.8333 5.48477 15.8333 9.16667Z"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -120,16 +135,22 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   // Active dropdown (country / city / state) inside the Business Address sheet.
   const [picker, setPicker] = useState<{ field: "country" | "city" | "state"; title: string; options: string[] } | null>(null);
   const [pickerQuery, setPickerQuery] = useState("");
+  // Search-mode header (Figma node 1333-38370, same interaction as CountrySheet/CountryCodeSheet):
+  // the title-row search icon swaps to a frosted search pill in place, back returns to the plain title.
+  const [pickerSearchOpen, setPickerSearchOpen] = useState(false);
+  const closePickerSearch = () => { setPickerSearchOpen(false); setPickerQuery(""); };
   const [phoneCountry, setPhoneCountry] = useState(DEFAULT_COUNTRY_CODE);
   // Country-code picker is a sub-level of the Company Details sheet (same sheet, swapped header/
   // content — see memory: sub-level-drawer-same-sheet), not a second sheet stacked on top.
   const [phoneCodeOpen, setPhoneCodeOpen] = useState(false);
   const [phoneCodeQuery, setPhoneCodeQuery] = useState("");
+  const [phoneCodeSearchOpen, setPhoneCodeSearchOpen] = useState(false);
+  const closePhoneCodeSearch = () => { setPhoneCodeSearchOpen(false); setPhoneCodeQuery(""); };
   const [scrolled, setScrolled] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   const openSheet = (k: SheetKey) => { setBaseline(s); setLogoError(null); setSheet(k); };
-  const openPicker = (p: { field: "country" | "city" | "state"; title: string; options: string[] }) => { setPickerQuery(""); setPicker(p); };
+  const openPicker = (p: { field: "country" | "city" | "state"; title: string; options: string[] }) => { closePickerSearch(); setPicker(p); };
 
   /** Apply a dropdown choice — changing country resets the dependent city + state. */
   const selectOption = (val: string) => {
@@ -181,7 +202,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
       mandatory={FIELD_META[k].required}
       selectorLabel={k === "phone" ? phoneCountry.dialCode : undefined}
       selectorIcon={k === "phone" ? <CountryFlag name={phoneCountry.name} size={20} /> : undefined}
-      onSelectorClick={k === "phone" ? () => { setPhoneCodeQuery(""); setPhoneCodeOpen(true); } : undefined}
+      onSelectorClick={k === "phone" ? () => { closePhoneCodeSearch(); setPhoneCodeOpen(true); } : undefined}
       value={s[k]}
       onChange={(v) => set(k, v)}
       onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
@@ -266,16 +287,31 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
       {/* Company Details — one sheet for all company identity fields: logo, name, email, then
           registration / phone / website. The phone country-code picker is a sub-level of THIS
           SAME sheet (header/content swap via `phoneCodeOpen`), never a second sheet stacked on
-          top — see memory: sub-level-drawer-same-sheet. */}
+          top — see memory: sub-level-drawer-same-sheet. Its own search is the same title-icon
+          swap as the standalone CountrySheet/CountryCodeSheet (`phoneCodeSearchOpen`), not an
+          inline search field in the body. No footer once the list is showing, so it also drops
+          the fixed heightClass to use whatever extra height is available (capped at the panel's
+          own 88%) instead of staying pinned to the height sized for the form step. */}
       <BottomSheet
         open={sheet === "company"}
         title={phoneCodeOpen ? "Select Country Code" : "Company Details"}
         centerTitle={phoneCodeOpen}
-        onBack={phoneCodeOpen ? () => setPhoneCodeOpen(false) : undefined}
+        onBack={
+          phoneCodeSearchOpen ? closePhoneCodeSearch
+          : phoneCodeOpen ? () => setPhoneCodeOpen(false)
+          : undefined
+        }
         backLabel="Back to details"
-        onClose={() => { setSheet(null); setPhoneCodeOpen(false); }}
+        onClose={() => { setSheet(null); setPhoneCodeOpen(false); closePhoneCodeSearch(); }}
         keyboardOpen={keyboardOpen}
-        heightClass="h-[72%]"
+        heightClass={phoneCodeOpen ? undefined : "h-[72%]"}
+        action={phoneCodeOpen && !phoneCodeSearchOpen ? <SearchGlyph /> : undefined}
+        onAction={phoneCodeOpen && !phoneCodeSearchOpen ? () => setPhoneCodeSearchOpen(true) : undefined}
+        actionLabel="Search country"
+        searchValue={phoneCodeSearchOpen ? phoneCodeQuery : undefined}
+        onSearchChange={phoneCodeSearchOpen ? setPhoneCodeQuery : undefined}
+        searchPlaceholder="Search Country"
+        autoFocusSearch
         footer={phoneCodeOpen ? undefined : (
           <ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && companyValid && detailsValid)} onPrimary={() => setSheet(null)} keyboard={keyboardOpen} />
         )}
@@ -283,13 +319,10 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         <AnimatePresence mode="wait" initial={false}>
           {phoneCodeOpen ? (
             <motion.div key="phoneCode" variants={stepSlide(1)} initial="closed" animate="open" exit="closed">
-              <div className="mb-3">
-                <Search placeholder="Search country" value={phoneCodeQuery} onChange={setPhoneCodeQuery} showAction={false} />
-              </div>
               <CountryCodeRows
                 value={phoneCountry.name}
                 query={phoneCodeQuery}
-                onSelect={(c) => { setPhoneCountry(c); setPhoneCodeOpen(false); }}
+                onSelect={(c) => { setPhoneCountry(c); closePhoneCodeSearch(); setPhoneCodeOpen(false); }}
               />
             </motion.div>
           ) : (
@@ -318,16 +351,31 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
 
       {/* Business Address — one sheet for the whole section. The country/city/state dropdown
           picker is a sub-level of THIS SAME sheet (header/content swap via `picker`), never a
-          second sheet stacked on top — see memory: sub-level-drawer-same-sheet. */}
+          second sheet stacked on top — see memory: sub-level-drawer-same-sheet. Search (only
+          offered once a list has more than 8 rows) is the same title-icon swap as the standalone
+          CountrySheet/CountryCodeSheet, not an inline search field in the body. No footer once a
+          picker is showing, so it also drops the fixed heightClass to use whatever extra height
+          is available (capped at the panel's own 88%). */}
       <BottomSheet
         open={sheet === "address"}
         title={picker?.title ?? "Business Address"}
         centerTitle={!!picker}
-        onBack={picker ? () => setPicker(null) : undefined}
+        onBack={
+          pickerSearchOpen ? closePickerSearch
+          : picker ? () => setPicker(null)
+          : undefined
+        }
         backLabel="Back to address"
-        onClose={() => { setSheet(null); setPicker(null); }}
+        onClose={() => { setSheet(null); setPicker(null); closePickerSearch(); }}
         keyboardOpen={keyboardOpen}
-        heightClass="h-[72%]"
+        heightClass={picker ? undefined : "h-[72%]"}
+        action={picker && picker.options.length > 8 && !pickerSearchOpen ? <SearchGlyph /> : undefined}
+        onAction={picker && picker.options.length > 8 && !pickerSearchOpen ? () => setPickerSearchOpen(true) : undefined}
+        actionLabel={`Search ${picker?.title.toLowerCase() ?? ""}`}
+        searchValue={pickerSearchOpen ? pickerQuery : undefined}
+        onSearchChange={pickerSearchOpen ? setPickerQuery : undefined}
+        searchPlaceholder={`Search ${picker?.title.toLowerCase() ?? ""}`}
+        autoFocusSearch
         footer={picker ? undefined : (
           <ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && addressValid)} onPrimary={() => setSheet(null)} keyboard={keyboardOpen} />
         )}
@@ -335,11 +383,6 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         <AnimatePresence mode="wait" initial={false}>
           {picker ? (
             <motion.div key="picker" variants={stepSlide(1)} initial="closed" animate="open" exit="closed">
-              {picker.options.length > 8 && (
-                <div className="mb-3">
-                  <Search placeholder={`Search ${picker.title.toLowerCase()}`} value={pickerQuery} onChange={setPickerQuery} showAction={false} />
-                </div>
-              )}
               <div className="flex flex-col gap-2">
                 {picker.options
                   .filter((o) => o.toLowerCase().includes(pickerQuery.toLowerCase()))
