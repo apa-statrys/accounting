@@ -50,7 +50,8 @@ interface TextFieldProps {
   label?: string;
   /** Appends " *" to the label. */
   mandatory?: boolean;
-  /** Helper text below the field; red when `error` is set. */
+  /** Helper text below the field; red when `error` is set, yellow when `highlight` is set
+   *  (error wins if both are set). */
   caption?: string;
   /** Trailing icon/button after the input (e.g. a unit picker or a status badge) — not a Figma
    *  axis, just a slot for the caller's own trailing control. Mutually exclusive in practice with
@@ -211,7 +212,11 @@ export function TextField({
         </p>
       )}
       {field}
-      {caption && <p className={`${styles.caption} ${error ? styles.captionError : ""}`}>{caption}</p>}
+      {caption && (
+        <p className={`${styles.caption} ${error ? styles.captionError : highlight ? styles.captionHighlight : ""}`}>
+          {caption}
+        </p>
+      )}
     </div>
   );
 }

@@ -673,59 +673,47 @@ export function AddInvoiceDetails({
             {/* Customer name — amber highlight + caption when OCR couldn't read it (proactive,
                 shown from the moment the review opens); tapping Create Invoice while still empty
                 escalates to a real (red) validation error instead — see guardCustomerFields. */}
-            <div className="flex flex-col gap-1">
-              <TextField
-                label="Customer name"
-                placeholder="Customer name"
-                mandatory
-                value={editName}
-                onChange={setEditName}
-                highlight={nameMissing && !customerFieldsError}
-                error={customerFieldsError && !editName.trim()}
-                onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
-                onBlur={() => setKeyboardOpen(false)}
-              />
-              {customerFieldsError && !editName.trim() ? (
-                <p className="text-[12px] leading-[1.4] text-[var(--text-error-primary)]" style={FONT}>
-                  Enter the customer name.
-                </p>
-              ) : (
-                nameMissing && (
-                  <p className="text-[12px] leading-[1.4] text-[var(--text-warning-primary)]" style={FONT}>
-                    Couldn't extract detail.
-                  </p>
-                )
-              )}
-            </div>
+            <TextField
+              label="Customer name"
+              placeholder="Customer name"
+              mandatory
+              value={editName}
+              onChange={setEditName}
+              highlight={nameMissing && !customerFieldsError}
+              error={customerFieldsError && !editName.trim()}
+              caption={
+                customerFieldsError && !editName.trim()
+                  ? "Enter the customer name."
+                  : nameMissing
+                  ? "Couldn't extract detail."
+                  : undefined
+              }
+              onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
+              onBlur={() => setKeyboardOpen(false)}
+            />
 
             {/* Email — amber highlight + caption when OCR couldn't read it (proactive); tapping
                 Create Invoice while empty or an invalid format escalates to a real (red)
                 validation error instead — see guardCustomerFields. */}
-            <div className="flex flex-col gap-1">
-              <TextField
-                label="Email address"
-                inputType="email"
-                placeholder="name@email.com"
-                mandatory
-                value={editEmail}
-                onChange={setEditEmail}
-                highlight={emailMissing && !customerFieldsError}
-                error={customerFieldsError && !emailValid}
-                onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
-                onBlur={() => setKeyboardOpen(false)}
-              />
-              {customerFieldsError && !emailValid ? (
-                <p className="text-[12px] leading-[1.4] text-[var(--text-error-primary)]" style={FONT}>
-                  {editEmail.trim() ? "Enter a valid email address." : "Enter the email address."}
-                </p>
-              ) : (
-                emailMissing && (
-                  <p className="text-[12px] leading-[1.4] text-[var(--text-warning-primary)]" style={FONT}>
-                    Couldn't extract detail.
-                  </p>
-                )
-              )}
-            </div>
+            <TextField
+              label="Email address"
+              inputType="email"
+              placeholder="name@email.com"
+              mandatory
+              value={editEmail}
+              onChange={setEditEmail}
+              highlight={emailMissing && !customerFieldsError}
+              error={customerFieldsError && !emailValid}
+              caption={
+                customerFieldsError && !emailValid
+                  ? editEmail.trim() ? "Enter a valid email address." : "Enter the email address."
+                  : emailMissing
+                  ? "Couldn't extract detail."
+                  : undefined
+              }
+              onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
+              onBlur={() => setKeyboardOpen(false)}
+            />
           </div>
         )}
         </Section>

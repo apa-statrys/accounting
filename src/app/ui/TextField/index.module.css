@@ -151,7 +151,8 @@
 }
 
 /* Label + caption wrapper (Figma "Fields", node 4047-3379). Label stays
-   text-primary in every state (incl. disabled); caption turns red on error. */
+   text-primary in every state (incl. disabled); caption turns red on error,
+   yellow on highlight (error wins if both are set). */
 .labeled {
   display: flex;
   flex-direction: column;
@@ -178,4 +179,7 @@
 }
 .captionError {
   color: var(--text-error-primary);
+}
+.captionHighlight {
+  color: var(--text-warning-primary);
 }
