@@ -229,65 +229,79 @@ export function BottomSheet({ open, title, onClose, children, footer, tall, heig
                   <div className={styles.titlelessGap} />
                 ) : (
                 <div className={styles.titleRow}>
-                  {onBack && (
-                    <button
-                      type="button"
-                      className={styles.iconButton}
-                      onClick={onBack}
-                      aria-label={backLabel}
+                  {/* Crossfade the plain title <-> search pill (same recipe as CreateSalesInvoice's
+                      page-level search header) instead of an instant swap — back/action buttons
+                      cross-fade together with it since they change meaning/presence at the same time. */}
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={isSearch ? "search" : "title"}
+                      className={styles.titleRowFade}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.18 }}
                     >
-                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                        <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                  )}
-                  {isSearch ? (
-                    <div className={styles.searchPill}>
-                      <span className={styles.pillIcon}>
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                          <path d="M17.5 17.5L13.875 13.875M15.833 9.167a6.667 6.667 0 1 1-13.333 0 6.667 6.667 0 0 1 13.333 0Z" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
-                      <input
-                        className={styles.pillInput}
-                        type="text"
-                        value={searchValue}
-                        onChange={(e) => onSearchChange?.(e.target.value)}
-                        placeholder={searchPlaceholder}
-                        aria-label={searchPlaceholder ?? "Search"}
-                        autoFocus={autoFocusSearch}
-                      />
-                      {searchValue && (
+                      {onBack && (
                         <button
                           type="button"
-                          className={styles.pillClear}
-                          aria-label="Clear search"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => onSearchChange?.("")}
+                          className={styles.iconButton}
+                          onClick={onBack}
+                          aria-label={backLabel}
                         >
                           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                            <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         </button>
                       )}
-                    </div>
-                  ) : (
-                    <p className={centerTitle ? styles.dsTitleCentered : styles.dsTitle}>
-                      {title}
-                    </p>
-                  )}
-                  {/* Invisible spacer balances the back button so a centered title stays optically centered. */}
-                  {centerTitle && onBack && !action && !isSearch && <span className={styles.spacer} aria-hidden />}
-                  {action && (
-                    <button
-                      type="button"
-                      className={styles.iconButton}
-                      onClick={onAction}
-                      aria-label={actionLabel}
-                    >
-                      {action}
-                    </button>
-                  )}
+                      {isSearch ? (
+                        <div className={styles.searchPill}>
+                          <span className={styles.pillIcon}>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                              <path d="M17.5 17.5L13.875 13.875M15.833 9.167a6.667 6.667 0 1 1-13.333 0 6.667 6.667 0 0 1 13.333 0Z" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </span>
+                          <input
+                            className={styles.pillInput}
+                            type="text"
+                            value={searchValue}
+                            onChange={(e) => onSearchChange?.(e.target.value)}
+                            placeholder={searchPlaceholder}
+                            aria-label={searchPlaceholder ?? "Search"}
+                            autoFocus={autoFocusSearch}
+                          />
+                          {searchValue && (
+                            <button
+                              type="button"
+                              className={styles.pillClear}
+                              aria-label="Clear search"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => onSearchChange?.("")}
+                            >
+                              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                                <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <p className={centerTitle ? styles.dsTitleCentered : styles.dsTitle}>
+                          {title}
+                        </p>
+                      )}
+                      {/* Invisible spacer balances the back button so a centered title stays optically centered. */}
+                      {centerTitle && onBack && !action && !isSearch && <span className={styles.spacer} aria-hidden />}
+                      {action && (
+                        <button
+                          type="button"
+                          className={styles.iconButton}
+                          onClick={onAction}
+                          aria-label={actionLabel}
+                        >
+                          {action}
+                        </button>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
                 )}
                 {headerExtra && <div className={styles.headerExtra}>{headerExtra}</div>}

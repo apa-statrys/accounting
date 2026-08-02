@@ -139,6 +139,16 @@
   padding: 0 var(--space-8);
 }
 
+/* Crossfade wrapper for the title-row's swappable content (plain title <-> search pill, back/
+   action buttons included) — same flex layout as .titleRow itself, since the motion.div sits
+   inside it as the thing that actually animates (see the title/search AnimatePresence below). */
+.titleRowFade {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  width: 100%;
+}
+
 /* Extra header content (e.g. a selected-item chip row) — same side padding as .titleRow, sitting
    inside this SAME sticky/frosted header rather than as its own independent sticky sibling (two
    top:0 stickies in one scroll container fight over the same position once both are stuck). */
