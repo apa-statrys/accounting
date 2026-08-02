@@ -833,17 +833,10 @@ export function AddInvoiceDetails({
         <div ref={servicesRef} className="scroll-mt-5">
         <Section title={services.length > 0 ? `Items ( ${services.length} )` : "Items"}>
           {services.length === 0 ? (
-            /* DS Tile on the beige page — tap (chevron) opens the add-service sheet. Red border +
-               caption when Send Invoice was tapped with no items yet (see `itemsError`). */
+            /* Secondary CTA on the beige page (same treatment as "Add more items" once there are
+               items) — red caption when Send Invoice was tapped with no items yet (see `itemsError`). */
             <>
-              <Tile
-                title="Add your items"
-                text="Name it, set a quantity"
-                onLayer="beige"
-                trailing="chevron"
-                error={itemsError}
-                onClick={openAddService}
-              />
+              <Button hierarchy="secondary" size="sm" fullWidth iconLeft={<Plus size={18} />} label="Add your items" onClick={openAddService} />
               {itemsError && (
                 <p className="text-[12px] pt-1" style={{ ...FONT, color: "var(--text-error-primary)" }}>
                   You need to add an item
@@ -876,7 +869,7 @@ export function AddInvoiceDetails({
                 </AnimatePresence>
               </ListCard>
               {/* "Add more items" as a secondary CTA below the list, not a trailing list row. */}
-              <Button hierarchy="secondary" fullWidth iconLeft={<Plus size={18} />} label="Add more items" onClick={openAddService} />
+              <Button hierarchy="secondary" size="sm" fullWidth iconLeft={<Plus size={18} />} label="Add more items" onClick={openAddService} />
             </div>
           )}
         </Section>

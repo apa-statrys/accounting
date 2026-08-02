@@ -100,7 +100,7 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
   const renderTile = (c: Customer) => (
     <Tile
       key={c.id}
-      size="sm"
+      size="md"
       avatar={initials(c.name)}
       avatarColor={avatarTint(c.id)}
       title={c.name}
