@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { parse, format, addDays } from "date-fns";
 import { ArrowUpDown, Check, ChevronDown, Search as SearchIcon } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
@@ -347,15 +348,27 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               </button>
             )}
           </div>
-          {customerSearchOpen && (
-            <Search
-              autoFocus
-              placeholder="Search by Customer name"
-              value={customerQuery}
-              onChange={setCustomerQuery}
-              showAction={false}
-            />
-          )}
+          {/* Same reveal-behind-toggle recipe as SendInvoiceSheet's "Add Recipients" field (height +
+              opacity, not an instant show/hide) instead of an unanimated cut. */}
+          <AnimatePresence initial={false}>
+            {customerSearchOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden"
+              >
+                <Search
+                  autoFocus
+                  placeholder="Search by Customer name"
+                  value={customerQuery}
+                  onChange={setCustomerQuery}
+                  showAction={false}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
           {visibleCustomers.length === 0 && (
             <p className="text-center text-[13px] text-[var(--text-placeholder)] py-3" style={FONT}>No customers found</p>
           )}

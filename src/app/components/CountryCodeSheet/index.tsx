@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { motion } from "motion/react";
-import { BottomSheet, sheetItem } from "../BottomSheet";
+import { AnimatePresence, motion } from "motion/react";
+import { BottomSheet, sheetItem, stepSlide } from "../BottomSheet";
 import { Tile } from "../../ui/Tile";
 import { CountryFlag } from "../CountryFlag";
 import { Keyboard } from "../Keyboard";
@@ -91,7 +91,16 @@ export function CountryCodeSheet({ open, value, onClose, onSelect }: CountryCode
       footer={searchOpen ? <Keyboard /> : undefined}
     >
       <div className={styles.body}>
-        <CountryCodeRows value={value} query={query} onSelect={onSelect} />
+        {/* Same content-level step transition as Sales Invoice List's Filters→Customer search —
+            entering/exiting search re-animates the row list too, not just the header's title/pill
+            crossfade. CountryCodeRows has its own nested `sheetItem`-variant rows, so this wrapper
+            uses `stepSlide()`'s STRING labels (not object-literal targets) — see BottomSheet's own
+            doc comment on why that distinction matters for propagation. */}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div key={searchOpen ? "search" : "list"} variants={stepSlide(searchOpen ? 1 : -1)} initial="closed" animate="open" exit="closed">
+            <CountryCodeRows value={value} query={query} onSelect={onSelect} />
+          </motion.div>
+        </AnimatePresence>
       </div>
     </BottomSheet>
   );

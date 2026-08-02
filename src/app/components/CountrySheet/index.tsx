@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { motion } from "motion/react";
-import { BottomSheet, sheetItem } from "../BottomSheet";
+import { AnimatePresence, motion } from "motion/react";
+import { BottomSheet, sheetItem, stepSlide } from "../BottomSheet";
 import { Tile } from "../../ui/Tile";
 import { CountryFlag } from "../CountryFlag";
 import { Keyboard } from "../Keyboard";
@@ -80,20 +80,29 @@ export function CountrySheet({ open, value, onClose, onSelect }: CountrySheetPro
       footer={searchOpen ? <Keyboard /> : undefined}
     >
       <div className={styles.body}>
-        <div className={styles.list}>
-          {filtered.map((c) => (
-            <motion.div key={c} variants={sheetItem}>
-              <Tile
-                size="sm"
-                title={c}
-                flag={<CountryFlag name={c} size={30} />}
-                trailing={value === c ? "check" : "none"}
-                selected={value === c}
-                onClick={() => onSelect?.(c)}
-              />
-            </motion.div>
-          ))}
-        </div>
+        {/* Same content-level step transition as Sales Invoice List's Filters→Customer search —
+            entering/exiting search re-animates the row list too, not just the header's title/pill
+            crossfade. Rows below are a shared shape with their own nested `sheetItem` variants, so
+            this wrapper uses `stepSlide()`'s STRING labels (not object-literal targets) — see
+            BottomSheet's own doc comment on why that distinction matters for propagation. */}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div key={searchOpen ? "search" : "list"} variants={stepSlide(searchOpen ? 1 : -1)} initial="closed" animate="open" exit="closed">
+            <div className={styles.list}>
+              {filtered.map((c) => (
+                <motion.div key={c} variants={sheetItem}>
+                  <Tile
+                    size="sm"
+                    title={c}
+                    flag={<CountryFlag name={c} size={30} />}
+                    trailing={value === c ? "check" : "none"}
+                    selected={value === c}
+                    onClick={() => onSelect?.(c)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </BottomSheet>
   );

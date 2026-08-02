@@ -368,11 +368,18 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         <AnimatePresence mode="wait" initial={false}>
           {phoneCodeOpen ? (
             <motion.div key="phoneCode" variants={stepSlide(1)} initial="closed" animate="open" exit="closed">
-              <CountryCodeRows
-                value={phoneCountry.name}
-                query={phoneCodeQuery}
-                onSelect={(c) => { setPhoneCountry(c); closePhoneCodeSearch(); setPhoneCodeOpen(false); }}
-              />
+              {/* Nested step: entering/exiting search re-animates the row list too (same recipe as
+                  CountrySheet/CountryCodeSheet — stepSlide's STRING labels, since CountryCodeRows
+                  has its own nested `sheetItem`-variant rows that need variant propagation). */}
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div key={phoneCodeSearchOpen ? "search" : "list"} variants={stepSlide(phoneCodeSearchOpen ? 1 : -1)} initial="closed" animate="open" exit="closed">
+                  <CountryCodeRows
+                    value={phoneCountry.name}
+                    query={phoneCodeQuery}
+                    onSelect={(c) => { setPhoneCountry(c); closePhoneCodeSearch(); setPhoneCodeOpen(false); }}
+                  />
+                </motion.div>
+              </AnimatePresence>
             </motion.div>
           ) : (
             <motion.div key="details" variants={stepSlide(-1)} initial="closed" animate="open" exit="closed">
@@ -438,21 +445,28 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         <AnimatePresence mode="wait" initial={false}>
           {picker ? (
             <motion.div key="picker" variants={stepSlide(1)} initial="closed" animate="open" exit="closed">
-              <div className="flex flex-col gap-2">
-                {picker.options
-                  .filter((o) => o.toLowerCase().includes(pickerQuery.toLowerCase()))
-                  .map((o) => (
-                    <Tile
-                      key={o}
-                      size="sm"
-                      title={o}
-                      flag={picker.field === "country" ? <CountryFlag name={o} size={30} /> : undefined}
-                      selected={s[picker.field] === o}
-                      trailing={s[picker.field] === o ? "check" : "none"}
-                      onClick={() => selectOption(o)}
-                    />
-                  ))}
-              </div>
+              {/* Nested step: entering/exiting search re-animates the row list too (same recipe as
+                  CountrySheet/CountryCodeSheet). No nested `sheetItem` rows here, but stepSlide's
+                  STRING labels are used anyway for consistency with the rest of this pattern. */}
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div key={pickerSearchOpen ? "search" : "list"} variants={stepSlide(pickerSearchOpen ? 1 : -1)} initial="closed" animate="open" exit="closed">
+                  <div className="flex flex-col gap-2">
+                    {picker.options
+                      .filter((o) => o.toLowerCase().includes(pickerQuery.toLowerCase()))
+                      .map((o) => (
+                        <Tile
+                          key={o}
+                          size="sm"
+                          title={o}
+                          flag={picker.field === "country" ? <CountryFlag name={o} size={30} /> : undefined}
+                          selected={s[picker.field] === o}
+                          trailing={s[picker.field] === o ? "check" : "none"}
+                          onClick={() => selectOption(o)}
+                        />
+                      ))}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
             </motion.div>
           ) : (
             <motion.div key="address" variants={stepSlide(-1)} initial="closed" animate="open" exit="closed">
