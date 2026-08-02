@@ -1261,28 +1261,38 @@ export function AddInvoiceDetails({
                     <RadioDot selected={recEnd.mode === "count"} />
                     <span className="card-title-sm text-[#101828]" style={FONT}>After a certain number of invoices</span>
                   </button>
-                  {recEnd.mode === "count" && (
-                    <div className="flex flex-col gap-1.5">
-                      <TextField
-                        placeholder="Enter max invoices"
-                        inputMode="numeric"
-                        value={recMaxInput}
-                        onChange={(v) => {
-                          const digits = v.replace(/\D/g, "");
-                          setRecMaxInput(digits);
-                          const n = parseInt(digits, 10);
-                          setRecEnd({ mode: "count", count: Number.isFinite(n) && n > 0 ? n : 0 });
-                        }}
-                        onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
-                        onBlur={() => setKeyboardOpen(false)}
-                      />
-                      {recEnd.count > 0 && (
-                        <span className="text-[12px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
-                          Last invoice on {format(nextDates(recStart, recFreq, recEnd.count)[recEnd.count - 1], "d MMM yyyy")}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  <AnimatePresence initial={false}>
+                    {recEnd.mode === "count" && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex flex-col gap-1.5">
+                          <TextField
+                            placeholder="Enter max invoices"
+                            inputMode="numeric"
+                            value={recMaxInput}
+                            onChange={(v) => {
+                              const digits = v.replace(/\D/g, "");
+                              setRecMaxInput(digits);
+                              const n = parseInt(digits, 10);
+                              setRecEnd({ mode: "count", count: Number.isFinite(n) && n > 0 ? n : 0 });
+                            }}
+                            onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
+                            onBlur={() => setKeyboardOpen(false)}
+                          />
+                          {recEnd.count > 0 && (
+                            <span className="text-[12px] leading-[1.3]" style={{ ...FONT, color: MUTED }}>
+                              Last invoice on {format(nextDates(recStart, recFreq, recEnd.count)[recEnd.count - 1], "d MMM yyyy")}
+                            </span>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* On a specific date — reveals a date field when selected; tapping it opens the calendar */}
@@ -1295,14 +1305,24 @@ export function AddInvoiceDetails({
                     <RadioDot selected={recEnd.mode === "date"} />
                     <span className="card-title-sm text-[#101828]" style={FONT}>On a specific date</span>
                   </button>
-                  {recEnd.mode === "date" && (
-                    <TextField
-                      type="date-picker"
-                      placeholder="dd/mm/yy"
-                      value={recEnd.date ? format(recEnd.date, "d MMM yyyy") : ""}
-                      onClick={() => setRecEndDateOpen(true)}
-                    />
-                  )}
+                  <AnimatePresence initial={false}>
+                    {recEnd.mode === "date" && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="overflow-hidden"
+                      >
+                        <TextField
+                          type="date-picker"
+                          placeholder="dd/mm/yy"
+                          value={recEnd.date ? format(recEnd.date, "d MMM yyyy") : ""}
+                          onClick={() => setRecEndDateOpen(true)}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             </motion.div>

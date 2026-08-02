@@ -200,7 +200,19 @@ export function SendInvoiceSheet({
             {tab === 0 ? (
               <div className={`px-4 pt-4 flex flex-col gap-5 ${keyboardOpen ? "pb-[430px]" : "pb-44"}`}>
                 {/* Delivery-failure banner — content is kept so the client can retry */}
-                {sendError && <Banner color="error" text={sendError} />}
+                <AnimatePresence initial={false}>
+                  {sendError && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <Banner color="error" text={sendError} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Send To */}
                 <div className="flex flex-col gap-2">
@@ -247,9 +259,20 @@ export function SendInvoiceSheet({
                             inputMode="email"
                           />
 
-                          {recipientError && (
-                            <p className="text-[12px] leading-[1.3] text-[#d92d20]" style={FONT}>{recipientError}</p>
-                          )}
+                          <AnimatePresence initial={false}>
+                            {recipientError && (
+                              <motion.p
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.25 }}
+                                className="text-[12px] leading-[1.3] text-[#d92d20] overflow-hidden"
+                                style={FONT}
+                              >
+                                {recipientError}
+                              </motion.p>
+                            )}
+                          </AnimatePresence>
 
                           {recipients.length > 0 && (
                             <div className="flex flex-wrap gap-2">

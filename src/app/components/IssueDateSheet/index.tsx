@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { isBefore, startOfDay } from "date-fns";
 import { BottomSheet, sheetItem } from "../BottomSheet";
 import { Calendar } from "../Calendar";
@@ -46,15 +46,21 @@ export function IssueDateSheet({ open, value, onClose, onSelect, minDate, helper
         <motion.div variants={sheetItem}>
           <Calendar value={value} onChange={(d) => onSelect?.(d)} minDate={minDate} onViewChange={setViewMonth} />
         </motion.div>
-        {showBelowHelper && (
-          <motion.p
-            variants={sheetItem}
-            className="text-[13px] font-normal leading-[1.35]"
-            style={{ ...FONT, color: "var(--text-secondary)" }}
-          >
-            {helperText}
-          </motion.p>
-        )}
+        {/* Local AnimatePresence so browsing past the locked-period boundary fades this out
+            instead of an instant unmount — `exit="closed"` reuses sheetItem's own closed state,
+            since this row still relies on the outer stagger container's propagated "open" for entry. */}
+        <AnimatePresence>
+          {showBelowHelper && (
+            <motion.p
+              variants={sheetItem}
+              exit="closed"
+              className="text-[13px] font-normal leading-[1.35]"
+              style={{ ...FONT, color: "var(--text-secondary)" }}
+            >
+              {helperText}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
     </BottomSheet>
   );

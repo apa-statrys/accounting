@@ -393,7 +393,20 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
                       <span className="text-[16px] font-medium" style={FONT}>Change logo</span>
                     </button>
                   </div>
-                  {logoError && <p className="text-[12px] text-[#d92d20]" style={FONT}>{logoError}</p>}
+                  <AnimatePresence initial={false}>
+                    {logoError && (
+                      <motion.p
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="text-[12px] text-[#d92d20] overflow-hidden"
+                        style={FONT}
+                      >
+                        {logoError}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {field("companyName")}
@@ -496,19 +509,47 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
                   field("city")
                 )}
 
-                {/* State — only shown when the country has states/provinces */}
-                {(COUNTRY_DATA[s.country]?.states.length ?? 0) > 0 && (
-                  <TextField
-                    type="dropdown"
-                    label={FIELD_META.state.label}
-                    placeholder="Select state / province"
-                    value={s.state}
-                    onClick={() => openPicker({ field: "state", title: "State / province", options: COUNTRY_DATA[s.country].states })}
-                  />
-                )}
+                {/* State — only shown when the country has states/provinces. No `initial={false}`
+                    here (unlike a plain toggle-reveal elsewhere): this whole "address" step
+                    remounts fresh every time a country/city/state picker selection returns to it
+                    (the outer step-swap AnimatePresence unmounts+remounts it), so suppressing the
+                    mount-time animation would make this field's reveal invisible on every real
+                    country switch — the one case the fix is actually for. */}
+                <AnimatePresence>
+                  {(COUNTRY_DATA[s.country]?.states.length ?? 0) > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <TextField
+                        type="dropdown"
+                        label={FIELD_META.state.label}
+                        placeholder="Select state / province"
+                        value={s.state}
+                        onClick={() => openPicker({ field: "state", title: "State / province", options: COUNTRY_DATA[s.country].states })}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                {/* Zip — hidden for countries without postal codes (e.g. Hong Kong) */}
-                {zipShown && field("zip")}
+                {/* Zip — hidden for countries without postal codes (e.g. Hong Kong). No
+                    `initial={false}` — same reasoning as the State field above. */}
+                <AnimatePresence>
+                  {zipShown && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      {field("zip")}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Address last */}
                 {field("address")}

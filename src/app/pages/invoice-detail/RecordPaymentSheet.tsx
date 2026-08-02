@@ -96,16 +96,26 @@ export function RecordPaymentSheet({
         ) : step === "date" ? (
           <motion.div key="date" initial={{ x: 24, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 24, opacity: 0 }} transition={{ duration: 0.2, ease: "easeInOut" }}>
             <Calendar value={date ?? undefined} onChange={(d) => { onDateChange(d); setStep("form"); }} />
-            {date && (
-              <button
-                type="button"
-                onClick={() => { onDateChange(null); setStep("form"); }}
-                className="mt-2 w-full text-center text-[13px] font-medium py-2"
-                style={{ ...FONT, color: MUTED }}
-              >
-                Clear date
-              </button>
-            )}
+            <AnimatePresence initial={false}>
+              {date && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-hidden"
+                >
+                  <button
+                    type="button"
+                    onClick={() => { onDateChange(null); setStep("form"); }}
+                    className="mt-2 w-full text-center text-[13px] font-medium py-2"
+                    style={{ ...FONT, color: MUTED }}
+                  >
+                    Clear date
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         ) : (
           <motion.div key="form" initial={{ x: -24, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -24, opacity: 0 }} transition={{ duration: 0.2, ease: "easeInOut" }} className="flex flex-col gap-5">
