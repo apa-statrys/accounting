@@ -62,6 +62,10 @@ interface InvoiceDetailPageProps {
   /** `draft` seeds the note un-applied with a Draft chip (dev deep link for the draft-CN demo). */
   initialCreditNote?: { no: string; amount?: number; sent: boolean; draft?: boolean; awaiting?: boolean };
   onBack?: () => void;
+  /** Header shows a back chevron instead of the usual X — for entry points that are a genuine
+   *  detour with somewhere to return to (e.g. DuplicateDecision's "View Original Invoice"), not
+   *  the normal "tap a row, view its detail" flow. */
+  backChevron?: boolean;
   /** Open the create/edit form prefilled with this invoice (Draft = full edit, issued = limited). */
   onEdit?: (seed: InvoiceEditSeed) => void;
   /** Draft issued → Awaiting Payment; parent shows the toast and returns to list. */
@@ -102,6 +106,7 @@ export function InvoiceDetailPage({
   currency = "USD",
   initialCreditNote,
   onBack,
+  backChevron = false,
   onEdit,
   onIssued,
   onDeleted,
@@ -684,7 +689,8 @@ export function InvoiceDetailPage({
         type="center"
         title={pageHeaderTitle}
         onBack={onBack}
-        backIcon={<X size={20} strokeWidth={1} />}
+        backIcon={backChevron ? undefined : <X size={20} strokeWidth={1} />}
+        backLabel={backChevron ? "Back" : "Close"}
         showSearch={showMenu || paidActionsInMenu}
         rightIcon={<MoreVertical size={20} strokeWidth={2} />}
         rightLabel="More actions"
