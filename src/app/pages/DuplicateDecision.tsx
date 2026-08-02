@@ -93,16 +93,18 @@ export function DuplicateDecision({ existing, file, onBack, onReupload, onEditEx
             </div>
           </ListCard>
 
-          {/* The uploaded file — tap the row to preview the original. Read-only decision page, so
-              no delete/replace action (action="none"). */}
+          {/* The uploaded file — tap the row to preview it; the trailing "Reupload" re-invokes the
+              scanner directly (same action="replace" pattern as AddInvoiceDetails' own upload
+              row, same onReupload as the preview sheet's footer button). */}
           {file && (
             <FileItemBase
               name={file.name}
               size={`${(file.size / 1024 / 1024).toFixed(1)} MB`}
               fileType={file.name.split(".").pop()?.toLowerCase() ?? "file"}
               state="completed"
-              action="none"
+              action="replace"
               onClick={() => setFilePreviewOpen(true)}
+              onReplace={onReupload}
             />
           )}
         </div>
