@@ -351,25 +351,34 @@ export function SendInvoiceSheet({
             )}
           </div>
 
-          {/* Brief scale-pop when the button flips to its "Sent" confirmation — a felt moment of
-              completion instead of jumping straight to the next screen (see `sent` state above). */}
-          <motion.div
-            key={sent ? "sent" : "idle"}
-            initial={sent ? { scale: 0.94, opacity: 0.6 } : false}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 420, damping: 22 }}
-          >
-            <ButtonDock
-              type={tab === 0 ? "double" : "single"}
-              sticky
-              secondaryLabel="Preview"
-              primaryLabel={tab === 0 ? (sent ? `${docLabel} Sent` : sendError ? "Try again" : `Send ${docLabel}`) : "Mark as Sent"}
-              primaryIconLeft={tab === 0 && sent ? <CheckIcon style={{ fontSize: 18 }} /> : undefined}
-              onSecondary={() => { setPreviewSegment(0); setPreviewOpen(true); }}
-              onPrimary={tab === 0 ? handleSend : onSent}
-              keyboard={tab === 0 && keyboardOpen}
-            />
-          </motion.div>
+          <ButtonDock
+            type={tab === 0 ? "double" : "single"}
+            sticky
+            secondaryLabel="Preview"
+            primaryLabel={
+              tab === 0 ? (
+                // Just the label text crossfades to "Invoice Sent" — the button itself doesn't move.
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.span
+                    key={sent ? "sent" : sendError ? "retry" : "send"}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="inline-block"
+                  >
+                    {sent ? `${docLabel} Sent` : sendError ? "Try again" : `Send ${docLabel}`}
+                  </motion.span>
+                </AnimatePresence>
+              ) : (
+                "Mark as Sent"
+              )
+            }
+            primaryIconLeft={tab === 0 && sent ? <CheckIcon style={{ fontSize: 18 }} /> : undefined}
+            onSecondary={() => { setPreviewSegment(0); setPreviewOpen(true); }}
+            onPrimary={tab === 0 ? handleSend : onSent}
+            keyboard={tab === 0 && keyboardOpen}
+          />
 
           {/* Preview — Email/PDF segmented control replaces the title (no separate "Email Preview"
               text; the segments themselves frame what's showing). PDF segment shows the actual

@@ -22,7 +22,9 @@ export function hierarchyClass(hierarchy: Hierarchy, inverse: boolean): string {
 }
 
 interface ButtonProps {
-  label?: string;
+  /** Usually a string; accepts a node so a caller can crossfade the label text in place
+   *  (e.g. a brief "Sent" confirmation) without animating the whole button. */
+  label?: React.ReactNode;
   onClick?: () => void;
   hierarchy?: Hierarchy;
   size?: "md" | "sm";

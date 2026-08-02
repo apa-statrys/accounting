@@ -46,7 +46,7 @@ interface ButtonDockCommonProps extends React.HTMLAttributes<HTMLDivElement> {
    *  scroll container needs bottom padding ≥ the dock height (~110px single,
    *  ~170px double, ~220px triple) so the last element can scroll clear. */
   sticky?: boolean;
-  primaryLabel?: string;
+  primaryLabel?: React.ReactNode;
   /** Leading icon on the primary action (e.g. a checkmark confirming a just-completed action). */
   primaryIconLeft?: React.ReactNode;
   /** Trailing icon on the primary action (e.g. a chevron-right for a "Continue"-style
