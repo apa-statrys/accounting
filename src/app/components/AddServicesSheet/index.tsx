@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { BottomSheet, SERVICE_SHEET_HEIGHT } from "../BottomSheet";
 import { TextField } from "../../ui/TextField";
@@ -56,6 +56,27 @@ export function AddServicesSheet({
   const focusKeyboard = (e: React.FocusEvent<HTMLElement>) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); };
   const blurKeyboard = () => setKeyboardOpen(false);
 
+  // Edit mode only: the form step has no fixed heightClass here (see the heightClass comment
+  // below), so stepping to the shorter Unit list would shrink the sheet the same way InvoiceSettings'
+  // pickers did — floor it at the form step's own measured height instead (still lets it grow if a
+  // step ever needs more room). Add mode's form step stays pinned to SERVICE_SHEET_HEIGHT and its
+  // Unit step deliberately hugs its own shorter content (see that comment) — this floor is gated to
+  // `initial` (edit mode) only so it doesn't undo that.
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [formBaseHeight, setFormBaseHeight] = useState<number | undefined>(undefined);
+  const stepRef = useRef(step);
+  stepRef.current = step;
+  useLayoutEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    if (stepRef.current === "form") setFormBaseHeight(el.getBoundingClientRect().height);
+    const ro = new ResizeObserver(([entry]) => {
+      if (stepRef.current === "form") setFormBaseHeight(entry.contentRect.height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [open]);
+
   // Every line uses the invoice currency — it's shown (read-only) here, not chosen per line.
   const currency = invoiceCurrency;
   const currencyCountry = CURRENCY_COUNTRY[currency];
@@ -109,8 +130,12 @@ export function AddServicesSheet({
       // below it). Edit mode's form step auto-sizes instead — its double "Save Changes"/"Delete"
       // dock is taller than the single "Add Item" dock this fixed height was sized for, and pinning
       // it anyway forced BottomSheet's footer-overlap mode, crowding the dock flush against the
-      // last field with no visual gap.
+      // last field with no visual gap. Edit mode floors both its steps at the form step's own
+      // measured height (minHeightPx/panelRef above) so its Unit step doesn't shrink the sheet —
+      // unlike Add mode's Unit step, which keeps hugging its own shorter content on purpose.
       heightClass={step === "unit" || initial ? undefined : SERVICE_SHEET_HEIGHT}
+      minHeightPx={initial ? formBaseHeight : undefined}
+      panelRef={panelRef}
       footer={
         step === "unit" ? undefined : initial ? (
           // Editing an item: "Save Changes" + a plain "Delete" secondary (swiping the line left
