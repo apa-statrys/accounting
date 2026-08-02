@@ -223,7 +223,9 @@ export function InvoiceDocumentPreview(props: InvoiceDocumentPreviewProps) {
                 {discount > 0 && (
                   <div className="flex items-center justify-between">
                     <span className="text-[14px] text-[#667085]" style={FONT}>Discount</span>
-                    <span className="text-[14px] text-[#475467]" style={FONT}>−{money(discount, currency)}</span>
+                    {/* Brand-colored (decided 2026-08-02) — a discount isn't an error/refund, so it
+                        doesn't share the red "subtracted amount" treatment. */}
+                    <span className="text-[14px] text-[var(--text-brand)]" style={FONT}>−{money(discount, currency)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between border-t-2 border-[#1b1b1b] mt-2 pt-3">
