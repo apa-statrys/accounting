@@ -290,6 +290,19 @@ export default function App() {
   // Where "Upload" was triggered from — real picker is native now, so this is only used to send
   // the user back to the right screen (DuplicateDecision's back arrow, "Upload a clearer file").
   const [uploadReturn, setUploadReturn] = useState<"dashboard" | "list">("list");
+  // Kick off the upload/OCR simulation — the real build hands this to the OS document scanner;
+  // here it jumps straight to the "reading" step with a demo file already "returned" by it. Shared
+  // by the Dashboard/List "Upload Invoice" entry points AND every in-flow "Reupload"/"Upload a
+  // clearer file" action (DuplicateDecision, AddInvoiceDetails) — those re-invoke the same native
+  // scanner rather than just bouncing back to wherever the upload started.
+  const startUpload = () => {
+    setRecurring(false);
+    setEditingSeries(false);
+    setCustomer(null); // customer comes from OCR — don't carry a previously-selected one in
+    setPendingExtraction(DEMO_EXTRACTION);
+    setUploadedFile({ name: "invoice.pdf", size: 419430 });
+    setScreen("extracting");
+  };
   // Recurring-series create flow (DES-782) — reuses the customer → details flow with a schedule.
   const [recurring, setRecurring] = useState(false);
   // Series status for the opened recurring invoice — shared by the invoice detail card + series page.
@@ -426,7 +439,7 @@ export default function App() {
         { label: "Send Invoice", active: screen === "send", onSelect: () => setScreen("send") },
         // Upload is native scan/picker now (no in-app sheet) — dev jump reproduces what a real
         // pick hands back: straight to the "reading your invoice" loading step.
-        { label: "Upload Invoice", active: screen === "extracting", onSelect: () => { setUploadReturn("list"); setRecurring(false); setEditingSeries(false); setCustomer(null); setPendingExtraction(DEMO_EXTRACTION); setUploadedFile({ name: "invoice.pdf", size: 419430 }); setScreen("extracting"); } },
+        { label: "Upload Invoice", active: screen === "extracting", onSelect: () => { setUploadReturn("list"); startUpload(); } },
         { label: "Upload (Locked Period)", active: screen === "lockedPeriodUpload", onSelect: () => setScreen("lockedPeriodUpload") },
         // Upload scenario shortcuts (jump straight to each OCR outcome, skipping the native picker).
         { label: "Upload — Error (Too Large)", active: screen === "list" && toast?.variant === "error", onSelect: () => { setToast(null); setScreen("list"); setToast({ title: "This file is larger than 10 MB.", variant: "error" }); } },
@@ -571,17 +584,7 @@ export default function App() {
             setEditingSeries(false);
             setScreen("customer");
           }}
-          onUpload={() => {
-            // No in-app picker anymore (real build hands this to the OS document scanner) — jump
-            // straight to the "reading" step with a demo file already "returned" by the native picker.
-            setUploadReturn("dashboard");
-            setRecurring(false);
-            setEditingSeries(false);
-            setCustomer(null); // customer comes from OCR — don't carry a previously-selected one in
-            setPendingExtraction(DEMO_EXTRACTION);
-            setUploadedFile({ name: "invoice.pdf", size: 419430 });
-            setScreen("extracting");
-          }}
+          onUpload={() => { setUploadReturn("dashboard"); startUpload(); }}
           onRecurring={() => {
             setExtracted(null);
             setEditInitial(null);
@@ -799,17 +802,7 @@ export default function App() {
             setEditingSeries(false);
             setScreen("customer");
           }}
-          onUpload={() => {
-            // No in-app picker anymore (real build hands this to the OS document scanner) — jump
-            // straight to the "reading" step with a demo file already "returned" by the native picker.
-            setUploadReturn("list");
-            setRecurring(false);
-            setEditingSeries(false);
-            setCustomer(null); // customer comes from OCR — don't carry a previously-selected one in
-            setPendingExtraction(DEMO_EXTRACTION);
-            setUploadedFile({ name: "invoice.pdf", size: 419430 });
-            setScreen("extracting");
-          }}
+          onUpload={() => { setUploadReturn("list"); startUpload(); }}
           onRecurring={() => {
             setExtracted(null);
             setEditInitial(null);
@@ -921,6 +914,7 @@ export default function App() {
           existing={dupExisting}
           file={uploadedFile}
           onBack={() => setScreen(uploadReturn)}
+          onReupload={startUpload}
           onEditExisting={() => {
             // Open the existing draft's editor and keep editing it (existing draft unchanged otherwise).
             const inv = dupExisting;
@@ -1003,7 +997,7 @@ export default function App() {
           defaultChaser={settings.chaserEnabled}
           defaultAccountId={settings.paymentMethod}
           extractionFailed={extracted === BLANK_EXTRACTION}
-          onReupload={() => setScreen(uploadReturn)}
+          onReupload={startUpload}
           uploadedFile={uploadedFile}
           numberRecommended={numberRecommended}
           editExitToList={editFromDuplicate}

@@ -22,6 +22,8 @@ interface DuplicateDecisionProps {
   /** The file the user uploaded — shown here with a Preview button. */
   file?: UploadedFileInfo | null;
   onBack?: () => void;
+  /** Preview sheet's "Reupload" — re-invokes the native scanner, not just a back navigation. */
+  onReupload?: () => void;
   /** Primary (DRAFT match) — open the existing draft's editor to keep editing it. */
   onEditExisting?: () => void;
   /** Primary (issued match — Awaiting/Paid) — open the existing invoice's detail page. */
@@ -48,7 +50,7 @@ const STATUS_BADGE: Record<string, { label: string; color: BadgeColor }> = {
  * etc.); no page title — the icon/heading/description block below already conveys "duplicate
  * found", so a repeated title in the header would be redundant.
  */
-export function DuplicateDecision({ existing, file, onBack, onEditExisting, onViewInvoice, onCreateNew }: DuplicateDecisionProps) {
+export function DuplicateDecision({ existing, file, onBack, onReupload, onEditExisting, onViewInvoice, onCreateNew }: DuplicateDecisionProps) {
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const isDraft = existing.status === "Draft";
@@ -119,13 +121,13 @@ export function DuplicateDecision({ existing, file, onBack, onEditExisting, onVi
 
       {/* Preview — the actual invoice document (same InvoiceDocumentPreview the full PDF preview
           and Send sheet use), not a generic faux-scan mockup. Title is the uploaded file's own
-          name; "Reupload" goes back to the upload step (same as the page's own back action). */}
+          name; "Reupload" re-invokes the native scanner (onReupload), not just a back navigation. */}
       <BottomSheet
         open={filePreviewOpen}
         title={file?.name ?? "Invoice"}
         onClose={() => setFilePreviewOpen(false)}
         heightClass="h-[72%]"
-        footer={<ButtonDock type="single" primaryLabel="Reupload" onPrimary={onBack} />}
+        footer={<ButtonDock type="single" primaryLabel="Reupload" onPrimary={onReupload} />}
       >
         <InvoiceDocumentPreview
           invoiceNo={existing.number}
