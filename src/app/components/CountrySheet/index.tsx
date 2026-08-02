@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { BottomSheet, sheetItem } from "../BottomSheet";
 import { Tile } from "../../ui/Tile";
 import { CountryFlag } from "../CountryFlag";
+import { Keyboard } from "../Keyboard";
 import styles from "./index.module.css";
 
 /** Curated country list (prototype) — flag icons looked up by name via components/CountryFlag,
@@ -73,6 +74,10 @@ export function CountrySheet({ open, value, onClose, onSelect }: CountrySheetPro
       onSearchChange={searchOpen ? setQuery : undefined}
       searchPlaceholder="Search Country"
       autoFocusSearch
+      // Decorative on-screen keyboard fills the space below the focused search field — same
+      // stand-in as Sales Invoice List's Filters→Customer search (components/Keyboard, since a
+      // desktop web view never shows the real OS keyboard).
+      footer={searchOpen ? <Keyboard /> : undefined}
     >
       <div className={styles.body}>
         <div className={styles.list}>

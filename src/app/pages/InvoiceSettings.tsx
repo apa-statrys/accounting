@@ -10,6 +10,7 @@ import { CurrencySheet, CURRENCY_COUNTRY } from "../components/CurrencySheet";
 import { ReceivingAccountSheet } from "../components/ReceivingAccountSheet";
 import { CountryCodeRows } from "../components/CountryCodeSheet";
 import { CountryFlag } from "../components/CountryFlag";
+import { Keyboard } from "../components/Keyboard";
 import { getAccount } from "../data/receivingAccounts";
 import { DEFAULT_SETTINGS } from "../data/settings";
 import { DEFAULT_COUNTRY_CODE } from "../data/countryCodes";
@@ -289,9 +290,9 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
           SAME sheet (header/content swap via `phoneCodeOpen`), never a second sheet stacked on
           top — see memory: sub-level-drawer-same-sheet. Its own search is the same title-icon
           swap as the standalone CountrySheet/CountryCodeSheet (`phoneCodeSearchOpen`), not an
-          inline search field in the body. No footer once the list is showing, so it also drops
-          the fixed heightClass to use whatever extra height is available (capped at the panel's
-          own 88%) instead of staying pinned to the height sized for the form step. */}
+          inline search field in the body. No fixed heightClass at all (either step) — it sizes
+          to content and only grows into the panel's own 88% cap, scrolling past that, rather
+          than pinning to a shorter fixed height while there's still room to grow. */}
       <BottomSheet
         open={sheet === "company"}
         title={phoneCodeOpen ? "Select Country Code" : "Company Details"}
@@ -304,7 +305,6 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         backLabel="Back to details"
         onClose={() => { setSheet(null); setPhoneCodeOpen(false); closePhoneCodeSearch(); }}
         keyboardOpen={keyboardOpen}
-        heightClass={phoneCodeOpen ? undefined : "h-[72%]"}
         action={phoneCodeOpen && !phoneCodeSearchOpen ? <SearchGlyph /> : undefined}
         onAction={phoneCodeOpen && !phoneCodeSearchOpen ? () => setPhoneCodeSearchOpen(true) : undefined}
         actionLabel="Search country"
@@ -312,9 +312,12 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         onSearchChange={phoneCodeSearchOpen ? setPhoneCodeQuery : undefined}
         searchPlaceholder="Search Country"
         autoFocusSearch
-        footer={phoneCodeOpen ? undefined : (
-          <ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && companyValid && detailsValid)} onPrimary={() => setSheet(null)} keyboard={keyboardOpen} />
-        )}
+        footer={
+          phoneCodeSearchOpen ? <Keyboard /> :
+          phoneCodeOpen ? undefined : (
+            <ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && companyValid && detailsValid)} onPrimary={() => setSheet(null)} keyboard={keyboardOpen} />
+          )
+        }
       >
         <AnimatePresence mode="wait" initial={false}>
           {phoneCodeOpen ? (
@@ -353,9 +356,8 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
           picker is a sub-level of THIS SAME sheet (header/content swap via `picker`), never a
           second sheet stacked on top — see memory: sub-level-drawer-same-sheet. Search (only
           offered once a list has more than 8 rows) is the same title-icon swap as the standalone
-          CountrySheet/CountryCodeSheet, not an inline search field in the body. No footer once a
-          picker is showing, so it also drops the fixed heightClass to use whatever extra height
-          is available (capped at the panel's own 88%). */}
+          CountrySheet/CountryCodeSheet, not an inline search field in the body. No fixed
+          heightClass at all (either step) — sizes to content, only capped at the panel's own 88%. */}
       <BottomSheet
         open={sheet === "address"}
         title={picker?.title ?? "Business Address"}
@@ -368,7 +370,6 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         backLabel="Back to address"
         onClose={() => { setSheet(null); setPicker(null); closePickerSearch(); }}
         keyboardOpen={keyboardOpen}
-        heightClass={picker ? undefined : "h-[72%]"}
         action={picker && picker.options.length > 8 && !pickerSearchOpen ? <SearchGlyph /> : undefined}
         onAction={picker && picker.options.length > 8 && !pickerSearchOpen ? () => setPickerSearchOpen(true) : undefined}
         actionLabel={`Search ${picker?.title.toLowerCase() ?? ""}`}
@@ -376,9 +377,12 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         onSearchChange={pickerSearchOpen ? setPickerQuery : undefined}
         searchPlaceholder={`Search ${picker?.title.toLowerCase() ?? ""}`}
         autoFocusSearch
-        footer={picker ? undefined : (
-          <ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && addressValid)} onPrimary={() => setSheet(null)} keyboard={keyboardOpen} />
-        )}
+        footer={
+          pickerSearchOpen ? <Keyboard /> :
+          picker ? undefined : (
+            <ButtonDock type="single" primaryLabel="Save changes" primaryDisabled={!(dirty && addressValid)} onPrimary={() => setSheet(null)} keyboard={keyboardOpen} />
+          )
+        }
       >
         <AnimatePresence mode="wait" initial={false}>
           {picker ? (
