@@ -1540,7 +1540,7 @@ function OverlayOverview() {
   return (
     <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
       <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
-        Full-bleed scrim behind a modal or bottom sheet — dims the page, no recede/scale:
+        Dims the page behind a sheet or pop-up — the page itself stays put, it doesn't shrink or shift:
       </p>
       <div
         className="mobile-mode relative flex flex-col overflow-hidden rounded-[48px] bg-[#f9f5ea] shadow-2xl"
@@ -2853,9 +2853,9 @@ export function Showcase() {
             {!isFoundation && activeNav === "overlay" && (
               <ComponentPage
                 title="Overlay"
-                description="The full-bleed scrim behind a modal or bottom sheet — a single flat color/opacity, no variants. Used by every BottomSheet in the app."
+                description="The dark, semi-see-through backdrop that dims the page behind a sheet or pop-up. One plain tint, nothing to configure — every Bottom Sheet in the app shows it automatically."
                 whenToUse={[
-                  "Always paired with Bottom Sheet (or any other modal) to dim the page behind it — not used on its own",
+                  "Always paired with Bottom Sheet (or any other pop-up) to dim the page behind it — never used on its own",
                 ]}
                 overview={<OverlayOverview />}
               />
