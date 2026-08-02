@@ -605,12 +605,29 @@ function UsageGuidance({ whenToUse, whenNotToUse }: { whenToUse: string[]; whenN
   );
 }
 
+/** One "rule" in a component's Interaction Patterns list — a short bold lead (the rule)
+ *  plus one sentence of body (why / how it's implemented). Distinct from UsageGuidance,
+ *  which answers "should I reach for this component at all" — this answers "how do I use
+ *  it correctly once I have", e.g. Bottom Sheet's sub-level/search/sizing conventions. */
+function PatternList({ items }: { items: { title: string; body: string }[] }) {
+  return (
+    <ul className="flex max-w-[720px] flex-col gap-3">
+      {items.map((item, i) => (
+        <li key={i} className="text-[14px] leading-snug" style={{ ...FONT, color: INK }}>
+          <span className="font-semibold">{item.title}.</span> <span style={{ color: MUTED }}>{item.body}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function ComponentPage({
   title,
   description,
   whenToUse,
   whenNotToUse,
   overview,
+  patterns,
   variants,
 }: {
   title: string;
@@ -623,6 +640,10 @@ function ComponentPage({
   whenNotToUse?: string[];
   /** The interactive demo panel — the page's hero, like the reference docs site. */
   overview: React.ReactNode;
+  /** Standing "how to use this correctly" rules — decided conventions a builder should
+   *  reuse rather than re-derive (e.g. Bottom Sheet's sub-level-swap/search/keyboard
+   *  rules). Omit for components with no such conventions beyond their variant props. */
+  patterns?: { title: string; body: string }[];
   /** The exhaustive variant grid — omit for components whose Overview is an
    *  InteractiveDemo (controls + live preview already cover every combination). */
   variants?: React.ReactNode;
@@ -639,6 +660,11 @@ function ComponentPage({
       <p className="mt-2 max-w-[720px] text-[16px] leading-snug" style={{ ...FONT, color: MUTED }}>{description}</p>
       <UsageGuidance whenToUse={whenToUse} whenNotToUse={whenNotToUse} />
       <Section id="overview" title="Overview">{overview}</Section>
+      {patterns && patterns.length > 0 && (
+        <Section id="patterns" title="Interaction Patterns">
+          <PatternList items={patterns} />
+        </Section>
+      )}
       {variants && <Section id="variants" title="Variants">{variants}</Section>}
     </div>
   );
@@ -2789,6 +2815,36 @@ export function Showcase() {
                   "A full page-level destination the user should be able to navigate back from — push a real screen instead",
                 ]}
                 overview={<BottomSheetOverview />}
+                patterns={[
+                  {
+                    title: "Sub-level navigation stays in one sheet",
+                    body: "A deeper level (a date picker opened from Filters, a sub-menu, a nested detail) swaps the SAME sheet's title/content — a step state + slide transition + onBack — never a second sheet stacked on top of the first.",
+                  },
+                  {
+                    title: "Search-in-header uses the built-in search mode",
+                    body: "Pass searchValue/onSearchChange/onBack (the title morphs into a frosted search pill in place) instead of hand-rolling a static title plus a toggled inline search row.",
+                  },
+                  {
+                    title: "Step-swap motion defaults to a plain fade-slide",
+                    body: "Use a plain object-literal Framer Motion transition on the step wrapper by default; only reach for the shared stepSlide() string-variant helper when that step's content is a shared component with its own nested sheetItem-variant rows (an object-literal animate breaks their variant propagation).",
+                  },
+                  {
+                    title: "Size to content by default",
+                    body: "Leave heightClass unset so the sheet auto-sizes up to the panel's own 88% max-height cap. Reach for fullPage (calc(100% − 43px) from the top) plus compact when a sheet needs to show as much as possible with zero scrolling; only pin a fixed heightClass when a sheet must match a sibling sheet's height exactly.",
+                  },
+                  {
+                    title: "keyboardOpen overrides a fixed height too",
+                    body: "While the on-screen keyboard mock is open, keyboardOpen drops any pinned heightClass (not just the footer-overlap behavior) so the panel can grow into the freed space instead of leaving it empty.",
+                  },
+                  {
+                    title: "Footerless sheets stay plain at the bottom",
+                    body: "No gradient/blur fade on a footerless sheet's bottom edge — that was tried and explicitly reverted; only sticky headers/docks get a frost effect.",
+                  },
+                  {
+                    title: "Dense Tile lists shrink to size=\"sm\"",
+                    body: "Once a sheet's list of Tile rows reaches 4 or more, every Tile in it uses size=\"sm\" (54px) instead of the default md (65px).",
+                  },
+                ]}
               />
             )}
             {!isFoundation && activeNav === "overlay" && (

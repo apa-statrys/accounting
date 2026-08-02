@@ -102,6 +102,11 @@ Rules for new code:
   **differently on purpose** — don't merge. Dashboard's `RECENT_PILL` and CustomerDetailPage's
   local `STATUS_PILL` are intentionally different palettes from `lib/status.ts` — keep local.
 - Keep export names stable when moving code; update every importer in the same change (no shims).
+- **Pages stay Tailwind, not CSS-module** (decided 2026-07-17) — pages are one-off composed screens
+  with heavy dynamic/motion/scroll inline styling that can't live in a single CSS module; CSS
+  modules are the pattern for `ui/` + `components/` only. Tailwind's spacing/radius scale already
+  equals the tokens (`px-4` = `--space-8` = 16px, `rounded-[12px]` = `--radius-2xl`) — don't
+  rewrite Tailwind utilities to `p-[var(--space-8)]` for the sake of it.
 
 ## Screens (`Screen` union in types.ts → rendered by App.tsx)
 
@@ -159,6 +164,75 @@ in-session only — a reload resets it (expected prototype limit).
   lead with a verb ("Select Currency", "Select Due Date", "Select Country"), not a bare noun
   ("Currency", "Due Date"); doesn't apply to purely informational sheets (e.g. "Bank Information",
   "Email Preview") that aren't a choice/action.
+
+## UI & interaction conventions (decided — general rules, apply proactively without being asked)
+
+**Styling**
+- Bind everything to design tokens, never raw hex/px: colors/spacing/radii/effects → CSS vars from
+  `styles/tokens/*.css` + `styles/theme.css`; typography → the classes in `styles/fonts.css`
+  (`.h0`–`.h6`, `.body-*`, `.caption`, `.card-title-*`, `.link-*`) instead of hand-rolled
+  font-size/line-height/letter-spacing. `Alpha/<Color>/<N>` tokens are the same base hex at N%
+  opacity (fixed 10%-step suffix table), not independently-sourced colors per step.
+- Icons: `lucide-react`, `strokeWidth={1}` or `{1.67}` (not lucide's default of 2, which reads too
+  heavy), never `@mui/icons-material` in new/touched code. `ui/`'s own hand-drawn SVGs are
+  pixel-matched to Figma — don't convert those to lucide.
+- Never use emoji anywhere in the UI — icons, flags, decoration in copy. Flags go through
+  `components/CountryFlag`; any other pictograph need is a lucide/hand-drawn SVG icon.
+- Before building any UI primitive, check `ui/` and `components/` first and import the existing
+  one — never hand-roll a duplicate (this app was built screen-by-screen before the DS rollout, so
+  un-migrated local copies still turn up — migrate + delete them when found).
+- Red is reserved for destructive/irreversible actions, not for "touches a credit note" or any
+  other feature-area grouping — check whether the action cancels/deletes/reverses (→ red,
+  `--text-error-primary`/`--icon-error-primary`) vs. starts/creates something new (→ default ink).
+  `ButtonDock`'s `secondaryDestructive` only belongs on a secondary paired with a **destructive
+  primary** (e.g. Delete Draft/Keep Draft) — not just because the secondary's own action happens to
+  be irreversible (e.g. a plain "Discard" next to a neutral primary stays undecorated).
+- Field labels (including the mandatory `*`) never turn red, even on error — only the hint/caption
+  below the field does. Warning-toned components (banners, badges, callouts) tint only the icon
+  amber (`--icon-warning-primary`) — title/body/link text always stays `--text-primary`.
+- Every phone-frame screen must be inside `.mobile-mode` scope (already applied on App.tsx's root
+  wrapper, so all in-app screens inherit it) so typography tokens resolve to mobile sizes — the
+  responsive `@media` breakpoint keys off the real browser viewport, not the 375px frame, so any
+  new phone frame mounted outside App.tsx (e.g. showcase) must add the class itself.
+
+**Sheets & interaction**
+- A deeper "level" inside a sheet (a date picker opened from Filters, a sub-menu, a nested detail)
+  swaps content in the SAME `BottomSheet` instance (a `step` state + slide transition + `onBack`) —
+  never a second sheet stacked on top of the first.
+- An "almost full page" drawer leaves exactly `calc(100% - 43px)` from the top of the screen — not
+  a fixed pixel height or a plain percent (percents don't reliably land on 43px if the frame size
+  changes).
+- `BottomSheet`'s `keyboardOpen` must drop any fixed `heightClass` too (not just footer-overlap) so
+  the panel can grow into the space instead of leaving dead space above it while the keyboard mock
+  is open.
+- Footerless sheets keep a plain, fully opaque bottom — no gradient/blur fade (tried once, reverted
+  after review; only sticky headers/docks get a frost effect).
+- A sheet's search-in-header trigger uses `BottomSheet`'s built-in `searchValue`/`onSearchChange`/
+  `onBack` props (title morphs into a frosted search pill) — don't hand-roll a static title +
+  toggled inline search row. Step-swap content between levels defaults to plain object-literal
+  Framer Motion (`initial`/`animate`/`exit` on one wrapping `motion.div`); only reach for the shared
+  `stepSlide()` string-variant helper when a step's content is a shared component with its own
+  nested `sheetItem`-variant rows (object-literal breaks their variant propagation).
+- Opening a new subpage or a modal/sheet always starts scrolled to top — never remember/restore a
+  prior scroll position (exception: toggling an inline "searching" sub-view within the same scroll
+  container only resets on entering search, not on exiting it).
+- Search pages/sheets hide the "Result 1"/"Results N" count until the user has typed a non-empty
+  query; zero matches show only the centered empty-state message, never "Results 0" alongside it.
+- Any `BottomSheet` listing `Tile` rows uses `size="sm"` once it has 4 or more rows.
+- Sticky headers reuse `components/PageAppHeader` rather than re-deriving frost/blur inline:
+  transparent at rest, a White/40→transparent gradient + blur + bottom mask on scroll (the mask is
+  required — background alpha alone can't soften the blur's hard bottom edge).
+- Pages built with bold section-title grouping (e.g. AddCustomerPage's Details/Address/Invoice)
+  collapse `PageHeader` to left-aligned + show the current section's name as a scroll-driven
+  subtitle — apply to new sectioned pages by default.
+
+**Consistency**
+- A fix, restyle, or Figma re-sync applied to one page/component must be applied to every other
+  page/component sharing that same style or structure in the same pass — even without shared code
+  — not left to drift. Grep for similar class names, comments ("same style as X"), or duplicated
+  JSX shapes before calling a visual fix done.
+- Component/Showcase usage docs must pair each option with a concrete "use when ..." clause, not
+  just describe its shape.
 
 ## Specs / tickets
 
