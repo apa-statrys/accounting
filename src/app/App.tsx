@@ -460,7 +460,6 @@ export default function App() {
           items: [
             { label: "Draft (Created)", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "created", onSelect: () => jumpDetail({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Draft", origin: "created" }) },
             { label: "Draft (Uploaded)", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "uploaded", onSelect: () => jumpDetail({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Draft", origin: "uploaded" }) },
-            { label: "Draft (Locked Period)", active: screen === "lockedPeriodInvoiceDraft", onSelect: () => setScreen("lockedPeriodInvoiceDraft") },
             { label: "Awaiting Payment", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000004", onSelect: () => jumpDetail({ number: "INV-2026-000004", client: "Marlow & Finch Studio", status: "Awaiting" }) },
             { label: "Awaiting (Locked Period)", active: screen === "lockedPeriodEditInvoice", onSelect: () => setScreen("lockedPeriodEditInvoice") },
             { label: "Overdue + 1 Applied CN", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000010", onSelect: () => jumpDetail({ number: "INV-2026-000010", client: "Harbor & Co.", status: "Overdue", cnNo: "CN-2026-000003", cnAmount: 2000, cnSent: true }) },
@@ -1221,18 +1220,6 @@ export default function App() {
 
       {/* Locked Period — "Invoice Draft" in a closed accounting period: a normal Draft invoice detail
           where "Send invoice" (dock) and "Edit invoice" (⋯ menu) open the locked-period dialog. */}
-      {screen === "lockedPeriodInvoiceDraft" && (
-        <InvoiceDetailPage
-          key="locked-period-invoicedraft-demo"
-          initialStatus="Draft"
-          invoiceNo="INV-2026-000003"
-          customerName="Bright Harbor Co."
-          companyEmail={settings.email}
-          lockedPeriod
-          onBack={() => setScreen("dashboard")}
-        />
-      )}
-
       {/* Locked Period — "Edit Invoice" on an Awaiting Payment invoice in a closed accounting period:
           the normal detail page, but "Edit invoice" (⋯ menu) opens the locked-period dialog. */}
       {screen === "lockedPeriodEditInvoice" && (

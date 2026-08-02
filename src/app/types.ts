@@ -28,7 +28,6 @@ export type Screen =
   | "lockedPeriodDialog"
   | "lockedPeriodUpload"
   | "lockedPeriodEditCn"
-  | "lockedPeriodInvoiceDraft"
   | "lockedPeriodEditInvoice"
   | "lockedPeriodPaid"
   | "lockedPeriodRefundDraft"
