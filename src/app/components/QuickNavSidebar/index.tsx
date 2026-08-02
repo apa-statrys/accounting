@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { ChevronRight, ChevronsLeft, ChevronsRight, ExternalLink } from "lucide-react";
 import styles from "./index.module.css";
 
 /**
@@ -183,6 +183,13 @@ export function QuickNavSidebar({ groups }: { groups: SidebarGroup[] }) {
           );
         })}
       </nav>
+
+      {/* Persistent footer link — opens the design-system component gallery (/#showcase) in a
+          new tab, for handoff (dev team can look up any component's states/props there). */}
+      <a href="#showcase" target="_blank" rel="noopener noreferrer" className={styles.footerLink}>
+        <span>Component Library</span>
+        <ExternalLink size={14} />
+      </a>
     </aside>
   );
 }

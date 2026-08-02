@@ -212,3 +212,22 @@
   display: flex;
   flex-direction: column;
 }
+
+/* ===== FOOTER LINK ===== */
+.footerLink {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-8);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  color: rgba(255, 255, 255, 0.85);
+  transition: background-color var(--transition-base);
+}
+
+.footerLink:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-on-color);
+}
