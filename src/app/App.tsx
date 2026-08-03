@@ -28,6 +28,7 @@ import { DuplicateDecision } from "./pages/DuplicateDecision";
 import { InvoiceSettings } from "./pages/InvoiceSettings";
 import { GeneratingInvoice } from "./pages/GeneratingInvoice";
 import { ScanDocument } from "./components/ScanDocument";
+import { UploadErrorDialog } from "./components/UploadErrorDialog";
 import { DEMO_EXTRACTION, DEMO_EXTRACTION_MATCHED, DEMO_EXTRACTION_NO_CUSTOMER, BLANK_EXTRACTION, EXISTING_INVOICES } from "./data/extraction";
 import { CUSTOMERS } from "./data/customers";
 import { DEFAULT_SETTINGS } from "./data/settings";
@@ -273,6 +274,9 @@ export default function App() {
   const [pendingExtraction, setPendingExtraction] = useState<ExtractedInvoice | null>(DEMO_EXTRACTION);
   // Toast shown on the list after returning from the create flow.
   const [toast, setToast] = useState<{ title: string; subtext?: string; variant?: ToastVariant } | null>(null);
+  // Blocking notice for an upload that never reached OCR (file too large / unsupported type) —
+  // a sheet (UploadErrorDialog) rather than a toast, so there's a clear "Re-upload" next step.
+  const [uploadError, setUploadError] = useState<{ title: string; body: string } | null>(null);
   // Freshly created/saved invoice to surface + highlight at the top of the list.
   const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string; recurring?: boolean } | null>(null);
   // Whether `recent`'s one-time arrival highlight has already played — `recent` itself stays set
@@ -493,8 +497,8 @@ export default function App() {
           // Upload scenario shortcuts (jump straight to each OCR outcome, skipping the native picker).
           heading: "Upload Scenarios",
           items: [
-            { label: "Upload — Error (Too Large)", active: screen === "list" && toast?.variant === "error" && toast?.title === "This file is larger than 10 MB.", onSelect: () => { setToast(null); setScreen("list"); setToast({ title: "This file is larger than 10 MB.", variant: "error" }); } },
-            { label: "Upload — Error (Unsupported Type)", active: screen === "list" && toast?.variant === "error" && toast?.title === "This file type isn’t supported.", onSelect: () => { setToast(null); setScreen("list"); setToast({ title: "This file type isn’t supported.", variant: "error" }); } },
+            { label: "Upload — Error (Too Large)", active: screen === "list" && uploadError?.title === "File too large", onSelect: () => { setUploadError(null); setScreen("list"); setUploadError({ title: "File too large", body: "This file is larger than 10 MB. Please upload a smaller file." }); } },
+            { label: "Upload — Error (Unsupported Type)", active: screen === "list" && uploadError?.title === "Unsupported file type", onSelect: () => { setUploadError(null); setScreen("list"); setUploadError({ title: "Unsupported file type", body: "This file type isn’t supported. Please upload a PDF, JPG, or PNG." }); } },
             { label: "Upload — Duplicate", active: screen === "duplicateCheck", onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_MATCHED); setExtracted(DEMO_EXTRACTION_MATCHED); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-scan.png", size: 1258291 }); setDupExisting(EXISTING_INVOICES.find((i) => i.number === DEMO_EXTRACTION_MATCHED.invoiceNumber) ?? null); setScreen("duplicateCheck"); } },
             { label: "Upload — Manual Entry Needed", active: screen === "details" && extracted === DEMO_EXTRACTION_NO_CUSTOMER, onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_NO_CUSTOMER); setExtracted(DEMO_EXTRACTION_NO_CUSTOMER); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice.pdf", size: 419430 }); setScreen("details"); } },
             { label: "Upload — Unreadable (Blank)", active: screen === "details" && extracted === BLANK_EXTRACTION, onSelect: () => { setPendingExtraction(null); setExtracted(BLANK_EXTRACTION); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-unreadable.jpg", size: 3565158 }); setScreen("details"); } },
@@ -1355,6 +1359,17 @@ export default function App() {
           onClose={() => setReuploadScanOpen(false)}
           onCapture={() => { setReuploadScanOpen(false); startUpload(); }}
           onImport={() => { setReuploadScanOpen(false); startUpload(); }}
+        />
+
+        {/* Blocking notice for an upload that never reached OCR (file too large / unsupported
+            type) — mounted at the root, same as the standalone scanner above, so it overlays
+            whichever screen triggered it (currently only the QuickNav dev scenarios). */}
+        <UploadErrorDialog
+          open={!!uploadError}
+          title={uploadError?.title}
+          body={uploadError?.body}
+          onClose={() => setUploadError(null)}
+          onReupload={() => { setUploadError(null); openReuploadScanner(); }}
         />
       </div>
 
