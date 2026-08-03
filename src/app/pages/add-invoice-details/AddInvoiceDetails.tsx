@@ -70,6 +70,9 @@ interface AddInvoiceDetailsProps {
   ) => void;
   /** Dev preview — open the Delivery method sheet on mount. */
   autoOpenSend?: boolean;
+  /** Dev preview (QuickNav "Send Invoice — Failed") — force the Send Invoice sheet's send
+   *  action to always fail, for reviewing the delivery-failure banner/retry state. */
+  forceSendError?: boolean;
   /** Dev preview — seed the invoice with demo line items. */
   seedServices?: ServiceLine[];
   /** Prefill the manual form when editing an existing invoice (from the detail page). */
@@ -184,6 +187,7 @@ export function AddInvoiceDetails({
   onSaveDraft,
   onSend,
   autoOpenSend,
+  forceSendError,
   seedServices,
   initial,
   onEditBack,
@@ -1347,6 +1351,7 @@ export function AddInvoiceDetails({
         amountLabel={amountLabel}
         dueDateLabel={dueDateLabel}
         link={shareLink}
+        forceError={forceSendError}
         // ✕ on the Send Invoice page returns to the (still pre-filled) editor (user, 15/Jul) —
         // autosave already holds the work, so no draft toast / list redirect.
         onClose={() => setSendSheetOpen(false)}

@@ -59,6 +59,10 @@ interface SendInvoiceSheetProps {
    *  by the parent from the same data it already threads to the full-screen preview page. Shown in
    *  the Preview sheet's PDF segment (not the Share/Download tab, which keeps its own file row). */
   docPreview?: React.ReactNode;
+  /** Dev-only (QuickNav "Send Invoice — Failed"): make every Send attempt fail with a delivery-
+   *  failure banner, so the recoverable-failure state (DES-718 AC4) can be reviewed without a real
+   *  backend error. Never set from the real send flow. */
+  forceError?: boolean;
 }
 
 /**
@@ -85,6 +89,7 @@ export function SendInvoiceSheet({
   onDownload,
   onQuickDownload,
   docPreview,
+  forceError = false,
 }: SendInvoiceSheetProps) {
   const [tab, setTab] = useState(0);
   const [scrolled, setScrolled] = useState(false);
@@ -143,6 +148,12 @@ export function SendInvoiceSheet({
    *  brief "Sent" confirmation on the button itself before actually handing off to the parent. */
   const handleSend = () => {
     setSendError(null);
+    // Dev-only forced-failure scenario (QuickNav "Send Invoice — Failed") — skip validation
+    // entirely and always land on the delivery-failure banner + "Try again" state.
+    if (forceError) {
+      setSendError("Something went wrong. Please try again.");
+      return;
+    }
     const pending = draft.trim();
     const all = [customerEmail, ...recipients, ...(pending ? [pending] : [])];
     const bad = all.find((e) => !EMAIL_RE.test(e));

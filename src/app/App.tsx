@@ -376,6 +376,8 @@ export default function App() {
   const [lockedIssueSheetOpen, setLockedIssueSheetOpen] = useState(false);
   // Dev: which hero demo state the dashboard renders (switched from QuickNav).
   const [heroScenario, setHeroScenario] = useState(0);
+  // Dev: QuickNav "Send Invoice — Failed" — forces the Send Invoice sheet's send action to fail.
+  const [sendFailScenario, setSendFailScenario] = useState(false);
   // Dev sidebar deep link: CN detail to open when jumping to the Credit Notes list (null = plain list).
   const [cnPreview, setCnPreview] = useState<string | null>(null);
   // Bumped on every sidebar detail jump so the detail page remounts (fresh state) even when
@@ -471,7 +473,8 @@ export default function App() {
         { label: "Sales Invoice List", active: screen === "list", onSelect: () => { setToast(null); setListPreset(null); setScreen("list"); } },
         // Dev jump lands on the pre-filled editor (demo customer + demo items), not the picker (user, 15/Jul).
         { label: "Create Invoice", active: screen === "customer" || screen === "details", onSelect: () => { setRecurring(false); setEditingSeries(false); setExtracted(null); setCustomer(DEMO_CUSTOMER); setDevSeedItems(true); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setScreen("details"); } },
-        { label: "Send Invoice", active: screen === "send", onSelect: () => setScreen("send") },
+        { label: "Send Invoice", active: screen === "send" && !sendFailScenario, onSelect: () => { setSendFailScenario(false); setScreen("send"); } },
+        { label: "Send Invoice — Failed", active: screen === "send" && sendFailScenario, onSelect: () => { setSendFailScenario(true); setScreen("send"); } },
         // Upload is native scan/picker now (no in-app sheet) — dev jump reproduces what a real
         // pick hands back: straight to the "reading your invoice" loading step.
         { label: "Upload Invoice", active: screen === "extracting", onSelect: () => { setUploadReturn("list"); startUpload(); } },
@@ -1125,6 +1128,7 @@ export default function App() {
           companyEmail={settings.email}
           extracted={null}
           autoOpenSend
+          forceSendError={sendFailScenario}
           defaultChaser={settings.chaserEnabled}
           defaultAccountId={settings.paymentMethod}
           seedServices={DEMO_EXTRACTION.services}
