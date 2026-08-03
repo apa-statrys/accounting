@@ -13,6 +13,7 @@ import { Tile } from "../../ui/Tile";
 import { ListCard } from "../../ui/ListCard";
 import { ListRow } from "../../ui/ListRow";
 import { ButtonDock } from "../../components/ButtonDock";
+import { SummaryDock } from "../../components/SummaryDock";
 import { TextField } from "../../ui/TextField";
 import { Badge } from "../../ui/Badge";
 import { ServiceItemCard } from "../../components/ServiceItemCard";
@@ -434,28 +435,7 @@ export function AddInvoiceDetails({
     }
   }, [services.length]);
 
-  // Sticky dock's price-summary slot (Figma "Create Invoice", node 1419-52781) — shown only while
-  // scrolling UP with the real Summary card out of view (redundant once the user can see it, and
-  // not needed while progressing forward down the form — only when heading back to check something).
   const scrollRef = useRef<HTMLDivElement>(null);
-  const summaryRef = useRef<HTMLDivElement>(null);
-  const [summaryVisible, setSummaryVisible] = useState(false);
-  const lastScrollTopRef = useRef(0);
-  const [scrollingUp, setScrollingUp] = useState(false);
-  useEffect(() => {
-    const root = scrollRef.current;
-    const target = summaryRef.current;
-    if (!root || !target) {
-      setSummaryVisible(false);
-      return;
-    }
-    // threshold 1 (not the default 0) — a sliver of the card peeking into view at the bottom
-    // edge shouldn't count as "visible", or the sticky slot disappears before the user can
-    // actually read the real card.
-    const observer = new IntersectionObserver(([entry]) => setSummaryVisible(entry.isIntersecting), { root, threshold: 1 });
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [services.length > 0]);
 
   // On-screen keyboard mock (Figma "IOS controls" = Keyboard) — shown while the Discount amount
   // field is focused, same convention as every other real text entry point in the app.
@@ -569,12 +549,7 @@ export function AddInvoiceDetails({
         <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto thin-scrollbar"
-          onScroll={(e) => {
-            const top = e.currentTarget.scrollTop;
-            setScrolled(top > 4);
-            setScrollingUp(top < lastScrollTopRef.current);
-            lastScrollTopRef.current = top;
-          }}
+          onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
         >
         <PageAppHeader scrolled={scrolled}>
           {/* DS PageHeader (center) — the back chevron plays the old ✕/back role (fresh creates
@@ -977,16 +952,14 @@ export function AddInvoiceDetails({
               exit={{ opacity: 0, y: 8 }}
               transition={{ duration: 0.3 }}
             >
-              <div ref={summaryRef}>
-                <Section title="Summary">
-                  <SummaryCard
-                    currency={currency}
-                    subtotal={subtotal}
-                    discount={discountAmount}
-                    total={total}
-                  />
-                </Section>
-              </div>
+              <Section title="Summary">
+                <SummaryCard
+                  currency={currency}
+                  subtotal={subtotal}
+                  discount={discountAmount}
+                  total={total}
+                />
+              </Section>
             </motion.div>
           )}
         </AnimatePresence>
@@ -1078,15 +1051,14 @@ export function AddInvoiceDetails({
         ) : (
           // Always enabled (Figma "Create Invoice", node 1387-18118) — an empty items list no
           // longer blocks the button; tapping it with none surfaces the error on the Items Tile
-          // instead of the button just sitting disabled with no explanation.
-          <ButtonDock
-            type="single"
-            sticky
-            slot={
-              services.length > 0 && !summaryVisible && scrollingUp ? (
-                <SummaryCard bare currency={currency} subtotal={subtotal} discount={discountAmount} total={total} />
-              ) : undefined
-            }
+          // instead of the button just sitting disabled with no explanation. SummaryDock (Figma
+          // "Sales Invoice - Client" node 2004:12766/2004:13021) replaces the old scroll-triggered
+          // ButtonDock slot with a persistent total + tap-to-expand Subtotal/Discount/Total panel.
+          <SummaryDock
+            currency={currency}
+            subtotal={subtotal}
+            discount={discountAmount}
+            total={total}
             primaryLabel="Create Invoice"
             primaryLoading={sendPending}
             // Locked-period demo: the CTA stays visually enabled but tapping it goes nowhere.
