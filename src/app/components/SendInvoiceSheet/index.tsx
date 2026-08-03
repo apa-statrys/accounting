@@ -493,7 +493,7 @@ export function SendInvoiceSheet({
             open={forceErrorToastOpen}
             message="Failed to send invoice"
             variant="error"
-            bottomOffset={210}
+            bottomOffset={150}
             onDone={() => setForceErrorToastOpen(false)}
           />
         </motion.div>
