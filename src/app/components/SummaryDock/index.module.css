@@ -14,12 +14,16 @@
   background: var(--bg-neutral-primary);
   border-top: 1px solid var(--border-neutral-primary);
   border-radius: 0;
-  transition: border-radius 0.25s ease, border-color 0.25s ease;
+  box-shadow: none;
+  transition: border-radius 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
+/* Same elevation as ButtonDock's .opaque (Figma "Bottomsheets" shadow) — a real content panel
+   (the Summary breakdown) needs to read as raised above the page, not flush with it. */
 .expanded {
   border-top-color: transparent;
   border-radius: var(--radius-3xl) var(--radius-3xl) 0 0;
+  box-shadow: 0px 10px 30px 0px rgba(0, 0, 0, 0.2);
 }
 
 .panel {
