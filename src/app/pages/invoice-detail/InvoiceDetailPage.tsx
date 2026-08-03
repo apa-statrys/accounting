@@ -356,6 +356,10 @@ export function InvoiceDetailPage({
     // fragments; the outer "·" added between the badge and this whole sub-line (see render) is
     // the one separating genuinely disjoint pieces (the badge word vs. this descriptive clause).
     Awaiting: credited > 0 ? `${money(outstanding, currency)} remaining due ${dueDateLabel}` : `Due ${dueDateLabel}`,
+    // Lowercase "since" on purpose in the plain (no credit note) case — it's not an independent
+    // fact the way "Due <date>"/"Paid"/"Created <date>" are (those read fine on their own next to
+    // the badge); "since <date>" only makes sense as a continuation of "Overdue", so render() skips
+    // the "·" for this one case and lets it read as a single sentence, "Overdue since <date>".
     Overdue: credited > 0 ? `${money(outstanding, currency)} remaining since ${dueDateLabel}` : `since ${dueDateLabel}`,
     PartiallyPaid: `${money(remaining, currency)} remaining due ${dueDateLabel}`,
     // Bare "Paid <date>" — same convention as Void's bare date (badge already says "Paid", no
@@ -419,6 +423,11 @@ export function InvoiceDetailPage({
     : isRefundContext
     ? (fullyRefunded ? (lastCreditNote?.date ?? "") : `${money(refundAmt, currency)} ${refundVerb}`)
     : bannerText[status];
+  // Only the plain (no credit note) Overdue sub-line is a grammatical continuation of the badge
+  // word rather than its own disjoint fact — every other case (Due/Paid/Uploaded/Created/Paused/
+  // Scheduled/refund amount, and Overdue's own credited>0 case) reads fine as a standalone fragment
+  // next to the "·". render() skips the "·" only here so it reads as one sentence: "Overdue since <date>".
+  const bannerIsContinuation = status === "Overdue" && credited <= 0.001;
   // Refund dock (DES-720): while a payout is due (refundPending > 0) the primary action is "Refund Credit
   // Note"; once everything committed has been paid out the remaining action is sending the credit-note
   // document (AC6) → "Send/Resend Credit Note". A new note raised later re-opens a pending payout.
@@ -735,10 +744,14 @@ export function InvoiceDetailPage({
               second colored element repeating the badge's color. Hidden only while a payment is
               pending reconciliation, which has its own dedicated line below instead. A "·" separates
               it from the badge — badge + sub-line are two separate fragments, not one sentence, so
-              they need the same visual break every other "status · date" line in the app uses. */}
+              they need the same visual break every other "status · date" line in the app uses —
+              except plain Overdue (bannerIsContinuation), which reads as one sentence with the badge
+              word so the "·" is dropped there instead of splitting it mid-sentence. */}
           {!pendingPayment && headlineBanner && (
             <>
-              <span className="caption-medium" style={{ ...FONT, color: INK }} aria-hidden="true">·</span>
+              {!bannerIsContinuation && (
+                <span className="caption-medium" style={{ ...FONT, color: INK }} aria-hidden="true">·</span>
+              )}
               <span className="caption-medium" style={{ ...FONT, color: INK }}>
                 {headlineBanner}
               </span>
