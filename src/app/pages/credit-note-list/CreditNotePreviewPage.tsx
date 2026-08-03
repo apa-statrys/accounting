@@ -240,11 +240,6 @@ export function CreditNoteDocumentPreview(props: CreditNoteDocumentPreviewProps)
                 </p>
               </div>
             </div>
-
-            <div className="h-px bg-[#eaecf0] mt-4" />
-
-            {/* Footer */}
-            <p className="text-center text-[15px] font-medium text-[var(--text-primary)]" style={FONT}>Thank you for your business!</p>
           </div>
         </div>
       </div>
