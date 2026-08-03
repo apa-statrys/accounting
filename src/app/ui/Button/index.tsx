@@ -52,6 +52,10 @@ interface ButtonProps {
    *  instead (neutral border + neutral-primary fill + ink text, same lower-emphasis weight as a
    *  plain secondary button — red is reserved for the leading action). Ignored on `inverse`. */
   destructive?: boolean;
+  /** Marks a just-completed confirmation (e.g. "Invoice Sent"). Same scope as `destructive` —
+   *  only the filled PRIMARY hierarchy turns green; ignored on `inverse`. Takes precedence over
+   *  `destructive` if both are somehow set (mutually exclusive in practice). */
+  success?: boolean;
 }
 
 export function Button({
@@ -72,6 +76,7 @@ export function Button({
   "aria-label": ariaLabel,
   forceActive = false,
   destructive = false,
+  success = false,
 }: ButtonProps) {
   const [pressed, setPressed] = useState(false);
   const classes = [
@@ -79,6 +84,7 @@ export function Button({
     square ? (size === "md" ? styles.squareMd : styles.squareSm) : size === "md" ? styles.md : styles.sm,
     hierarchyClass(hierarchy, inverse),
     destructive && !inverse ? styles.destructive : "",
+    success && !inverse && !destructive ? styles.success : "",
     (pressed || forceActive || loading) && !disabled ? styles.active : "",
     fullWidth ? styles.fullWidth : "",
     className ?? "",

@@ -55,6 +55,9 @@ interface ButtonDockCommonProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Red instead of the default filled black — the primary action is irreversible
    *  (e.g. "Delete Draft" leading as the recommended-looking CTA). */
   primaryDestructive?: boolean;
+  /** Green instead of the default filled black — a just-completed confirmation
+   *  (e.g. "Invoice Sent"). Ignored if `primaryDestructive` is also set. */
+  primarySuccess?: boolean;
   /** Second action: outline for 'double'/'triple', ghost text for 'ghost'. */
   secondaryLabel?: string;
   /** Marks the secondary action as irreversible (e.g. "Delete Draft") rather than just the
@@ -117,6 +120,7 @@ export function ButtonDock({
   primaryIconLeft,
   primaryIconRight,
   primaryDestructive = false,
+  primarySuccess = false,
   secondaryLabel = 'Cancel',
   secondaryDestructive = false,
   tertiaryLabel = 'Close',
@@ -144,6 +148,7 @@ export function ButtonDock({
       disabled={primaryDisabled}
       loading={primaryLoading}
       destructive={primaryDestructive}
+      success={primarySuccess}
       onClick={onPrimary}
       label={primaryLabel}
       iconLeft={primaryIconLeft}

@@ -108,6 +108,23 @@
   color: var(--text-neutral-inverse-disabled);
 }
 
+/* Success override — green instead of the default black, for a just-completed confirmation
+   like "Invoice Sent". Same shape as the destructive override above. */
+.success.primary {
+  background: var(--bg-success-bold);
+  border-color: var(--bg-success-bold);
+  color: var(--text-neutral-inverse-primary);
+}
+.success.primary.active {
+  background: var(--green-7);
+  border-color: var(--green-7);
+}
+.success.primary:disabled {
+  background: var(--btn-disabled);
+  border-color: transparent;
+  color: var(--text-neutral-inverse-disabled);
+}
+
 /* Destructive secondary stays neutral (not red) — the strong destructive color is reserved for
    when it's the leading/filled primary action; as an outline secondary it reads as a plain,
    lower-emphasis button: neutral border, neutral-primary fill, ink text. */

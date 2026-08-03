@@ -118,12 +118,18 @@ export function SendInvoiceSheet({
   const [previewSegment, setPreviewSegment] = useState(0);
   const [recipientError, setRecipientError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
-  // Dev-only forced-failure scenario (QuickNav "Send Invoice — Failed") — an error toast on top
-  // of the unchanged screen, not the inline banner/"Try again" state real validation failures use.
+  // Dev-only forced-failure scenario (QuickNav "Send Invoice — Failed") — an error toast
+  // alongside the button's own red "Try again" state (see sendFailed below).
   const [forceErrorToastOpen, setForceErrorToastOpen] = useState(false);
-  // Brief "Invoice Sent ✓" confirmation on the button itself before actually navigating away —
-  // gives the send a felt moment of completion instead of jumping straight to the next screen.
+  // Brief loading state on the primary button (dots) before it resolves to either the green
+  // "Invoice Sent" confirmation or (forced-failure only) the red "Try again" state.
+  const [sending, setSending] = useState(false);
+  // Brief "Invoice Sent ✓" confirmation on the button itself (green) before actually navigating
+  // away — gives the send a felt moment of completion instead of jumping straight to the next screen.
   const [sent, setSent] = useState(false);
+  // Forced-failure scenario only (see forceErrorToastOpen) — turns the button red with a
+  // "Try again" label instead of navigating away.
+  const [sendFailed, setSendFailed] = useState(false);
   // Any of the three text fields (recipients / subject / message) focused → the dock shows
   // the on-screen keyboard (Figma "IOS controls" = Keyboard).
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -149,13 +155,21 @@ export function SendInvoiceSheet({
   };
 
   /** Validate every address, then send — with a recoverable failure state (DES-718 AC4). Shows a
-   *  brief "Sent" confirmation on the button itself before actually handing off to the parent. */
+   *  brief loading state on the button, then either the green "Invoice Sent" confirmation before
+   *  handing off to the parent, or (forced-failure only) the red "Try again" state + error toast. */
   const handleSend = () => {
     setSendError(null);
-    // Dev-only forced-failure scenario (QuickNav "Send Invoice — Failed") — an error toast, same
-    // screen/button as a normal send (no inline banner, no "Try again" relabel).
+    setSendFailed(false);
+    setSent(false);
+    // Dev-only forced-failure scenario (QuickNav "Send Invoice — Failed") — same loading beat as a
+    // real send, then the button turns red/"Try again" and an error toast fires.
     if (forceError) {
-      setForceErrorToastOpen(true);
+      setSending(true);
+      setTimeout(() => {
+        setSending(false);
+        setSendFailed(true);
+        setForceErrorToastOpen(true);
+      }, 900);
       return;
     }
     const pending = draft.trim();
@@ -166,8 +180,12 @@ export function SendInvoiceSheet({
       setShowRecipients(true);
       return;
     }
-    setSent(true);
-    setTimeout(() => onSend?.(), 900);
+    setSending(true);
+    setTimeout(() => {
+      setSending(false);
+      setSent(true);
+      setTimeout(() => onSend?.(), 900);
+    }, 900);
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -395,17 +413,17 @@ export function SendInvoiceSheet({
             secondaryLabel="Preview"
             primaryLabel={
               tab === 0 ? (
-                // Just the label text crossfades to "Invoice Sent" — the button itself doesn't move.
+                // Just the label text crossfades between states — the button itself doesn't move.
                 <AnimatePresence mode="wait" initial={false}>
                   <motion.span
-                    key={sent ? "sent" : sendError ? "retry" : "send"}
+                    key={sent ? "sent" : sendFailed ? "failed" : "send"}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
                     className="inline-block"
                   >
-                    {sent ? `${docLabel} Sent` : sendError ? "Try again" : `Send ${docLabel}`}
+                    {sent ? `${docLabel} Sent` : sendFailed ? "Try again" : `Send ${docLabel}`}
                   </motion.span>
                 </AnimatePresence>
               ) : (
@@ -413,6 +431,9 @@ export function SendInvoiceSheet({
               )
             }
             primaryIconLeft={tab === 0 && sent ? <CheckIcon style={{ fontSize: 18 }} /> : undefined}
+            primaryLoading={tab === 0 && sending}
+            primarySuccess={tab === 0 && sent}
+            primaryDestructive={tab === 0 && sendFailed}
             onSecondary={() => { setPreviewSegment(0); setPreviewOpen(true); }}
             onPrimary={tab === 0 ? handleSend : onSent}
             keyboard={tab === 0 && keyboardOpen}

@@ -1095,11 +1095,12 @@ const BUTTON_CONTROL_GROUPS: ControlGroup[] = [
     ],
   },
   {
-    key: "destructive",
-    label: "Destructive",
+    key: "color",
+    label: "Color",
     options: [
-      { value: "off", label: "Off — use for the non-recommended-but-safe choice" },
-      { value: "on", label: "On — use when this action is irreversible (e.g. a \"Delete Draft\" button)" },
+      { value: "default", label: "Default — use for the standard, non-recommended-but-safe choice" },
+      { value: "destructive", label: "Destructive — use when this action is irreversible (e.g. a \"Delete Draft\" button); only the filled primary hierarchy turns red" },
+      { value: "success", label: "Success — use for a just-completed confirmation (e.g. \"Invoice Sent\"); only the filled primary hierarchy turns green" },
     ],
   },
   {
@@ -1116,7 +1117,7 @@ function ButtonOverview() {
   return (
     <InteractiveDemo
       groups={BUTTON_CONTROL_GROUPS}
-      defaultValues={{ hierarchy: "secondary", size: "md", shape: "rec", icon: "none", state: "default", destructive: "off", surface: "light" }}
+      defaultValues={{ hierarchy: "secondary", size: "md", shape: "rec", icon: "none", state: "default", color: "default", surface: "light" }}
       canvasBg={(v) => (v.surface === "dark" ? "#222222" : "#f4f4f2")}
       render={(v) => (
         <Button
@@ -1130,7 +1131,8 @@ function ButtonOverview() {
           disabled={v.state === "disabled"}
           loading={v.state === "loading"}
           forceActive={v.state === "active"}
-          destructive={v.destructive === "on"}
+          destructive={v.color === "destructive"}
+          success={v.color === "success"}
           inverse={v.surface === "dark"}
           aria-label={v.shape === "square" ? "Square button" : undefined}
         />
@@ -1652,11 +1654,12 @@ const BUTTONDOCK_CONTROL_GROUPS: ControlGroup[] = [
     ],
   },
   {
-    key: "destructive",
-    label: "Destructive (both actions)",
+    key: "primaryColor",
+    label: "Primary color",
     options: [
-      { value: "off", label: "Off — a plain safe pair (e.g. Confirm / Cancel)" },
-      { value: "on", label: "On — an irreversible decision (e.g. Delete Draft) → primary fills red; secondary uses the destructive outline (renders plain/neutral — red is reserved for the primary)" },
+      { value: "default", label: "Default — a plain safe pair (e.g. Confirm / Cancel)" },
+      { value: "destructive", label: "Destructive — an irreversible decision (e.g. Delete Draft) → primary fills red; secondary uses the destructive outline (renders plain/neutral — red is reserved for the primary)" },
+      { value: "success", label: "Success — a just-completed confirmation (e.g. Invoice Sent) → primary fills green" },
     ],
   },
 ];
@@ -1676,7 +1679,7 @@ function ButtonDockOverview() {
       </div>
       <InteractiveDemo
         groups={BUTTONDOCK_CONTROL_GROUPS}
-        defaultValues={{ type: "double", stack: "vertical", accessory: "off", slot: "off", bottom: "none", destructive: "off" }}
+        defaultValues={{ type: "double", stack: "vertical", accessory: "off", slot: "off", bottom: "none", primaryColor: "default" }}
         render={(v) => {
           const typeStack =
             v.type === "ghost"
@@ -1690,10 +1693,11 @@ function ButtonDockOverview() {
                 slot={v.slot === "on" ? <SummaryCard bare currency="USD" subtotal={110} discount={80} total={30} /> : undefined}
                 accessory={v.accessory === "on"}
                 checked
-                primaryLabel={v.destructive === "on" ? "Delete Draft" : "Confirm"}
-                primaryDestructive={v.destructive === "on"}
-                secondaryLabel={v.type === "ghost" ? "Close" : v.destructive === "on" ? "Keep Draft" : "Cancel"}
-                secondaryDestructive={v.destructive === "on"}
+                primaryLabel={v.primaryColor === "destructive" ? "Delete Draft" : v.primaryColor === "success" ? "Invoice Sent" : "Confirm"}
+                primaryDestructive={v.primaryColor === "destructive"}
+                primarySuccess={v.primaryColor === "success"}
+                secondaryLabel={v.type === "ghost" ? "Close" : v.primaryColor === "destructive" ? "Keep Draft" : "Cancel"}
+                secondaryDestructive={v.primaryColor === "destructive"}
                 tertiaryLabel="Close"
                 keyboard={v.bottom === "keyboard"}
               />
