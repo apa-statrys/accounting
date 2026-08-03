@@ -13,6 +13,7 @@ import { Banner } from "../../ui/Banner";
 import { Button } from "../../ui/Button";
 import { ButtonDock } from "../ButtonDock";
 import { BottomSheet } from "../BottomSheet";
+import { Toast } from "../Toast";
 import { TextField } from "../../ui/TextField";
 import { TextArea } from "../../ui/TextArea";
 import { Checkbox } from "../../ui/Checkbox";
@@ -59,9 +60,9 @@ interface SendInvoiceSheetProps {
    *  by the parent from the same data it already threads to the full-screen preview page. Shown in
    *  the Preview sheet's PDF segment (not the Share/Download tab, which keeps its own file row). */
   docPreview?: React.ReactNode;
-  /** Dev-only (QuickNav "Send Invoice — Failed"): make every Send attempt fail with a delivery-
-   *  failure banner, so the recoverable-failure state (DES-718 AC4) can be reviewed without a real
-   *  backend error. Never set from the real send flow. */
+  /** Dev-only (QuickNav "Send Invoice — Failed"): make every Send attempt fail with an error
+   *  toast — screen and button stay identical to a normal send, no inline banner/relabel. Never
+   *  set from the real send flow. */
   forceError?: boolean;
 }
 
@@ -117,6 +118,9 @@ export function SendInvoiceSheet({
   const [previewSegment, setPreviewSegment] = useState(0);
   const [recipientError, setRecipientError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
+  // Dev-only forced-failure scenario (QuickNav "Send Invoice — Failed") — an error toast on top
+  // of the unchanged screen, not the inline banner/"Try again" state real validation failures use.
+  const [forceErrorToastOpen, setForceErrorToastOpen] = useState(false);
   // Brief "Invoice Sent ✓" confirmation on the button itself before actually navigating away —
   // gives the send a felt moment of completion instead of jumping straight to the next screen.
   const [sent, setSent] = useState(false);
@@ -148,10 +152,10 @@ export function SendInvoiceSheet({
    *  brief "Sent" confirmation on the button itself before actually handing off to the parent. */
   const handleSend = () => {
     setSendError(null);
-    // Dev-only forced-failure scenario (QuickNav "Send Invoice — Failed") — skip validation
-    // entirely and always land on the delivery-failure banner + "Try again" state.
+    // Dev-only forced-failure scenario (QuickNav "Send Invoice — Failed") — an error toast, same
+    // screen/button as a normal send (no inline banner, no "Try again" relabel).
     if (forceError) {
-      setSendError("Something went wrong. Please try again.");
+      setForceErrorToastOpen(true);
       return;
     }
     const pending = draft.trim();
@@ -484,6 +488,14 @@ export function SendInvoiceSheet({
               </div>
             )}
           </BottomSheet>
+
+          <Toast
+            open={forceErrorToastOpen}
+            message="Failed to send invoice"
+            variant="error"
+            bottomOffset={210}
+            onDone={() => setForceErrorToastOpen(false)}
+          />
         </motion.div>
       )}
     </AnimatePresence>
