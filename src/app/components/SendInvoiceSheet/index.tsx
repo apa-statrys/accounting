@@ -119,16 +119,17 @@ export function SendInvoiceSheet({
   const [recipientError, setRecipientError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   // Dev-only forced-failure scenario (QuickNav "Send Invoice — Failed") — an error toast
-  // alongside the button's own red "Try again" state (see sendFailed below).
+  // alongside the button's own red "Send Failed" state (see sendFailed below).
   const [forceErrorToastOpen, setForceErrorToastOpen] = useState(false);
   // Brief loading state on the primary button (dots) before it resolves to either the green
-  // "Invoice Sent" confirmation or (forced-failure only) the red "Try again" state.
+  // "Invoice Sent" confirmation or (forced-failure only) the red "Send Failed" state.
   const [sending, setSending] = useState(false);
   // Brief "Invoice Sent ✓" confirmation on the button itself (green) before actually navigating
   // away — gives the send a felt moment of completion instead of jumping straight to the next screen.
   const [sent, setSent] = useState(false);
   // Forced-failure scenario only (see forceErrorToastOpen) — turns the button red with a
-  // "Try again" label instead of navigating away.
+  // "Send Failed" label for a couple seconds, then settles back to "Send Invoice" so the
+  // scenario can be replayed instead of getting stuck red.
   const [sendFailed, setSendFailed] = useState(false);
   // Any of the three text fields (recipients / subject / message) focused → the dock shows
   // the on-screen keyboard (Figma "IOS controls" = Keyboard).
@@ -156,19 +157,22 @@ export function SendInvoiceSheet({
 
   /** Validate every address, then send — with a recoverable failure state (DES-718 AC4). Shows a
    *  brief loading state on the button, then either the green "Invoice Sent" confirmation before
-   *  handing off to the parent, or (forced-failure only) the red "Try again" state + error toast. */
+   *  handing off to the parent, or (forced-failure only) the red "Send Failed" state + error toast,
+   *  which settles back to normal after a couple seconds instead of staying red. */
   const handleSend = () => {
     setSendError(null);
     setSendFailed(false);
     setSent(false);
     // Dev-only forced-failure scenario (QuickNav "Send Invoice — Failed") — same loading beat as a
-    // real send, then the button turns red/"Try again" and an error toast fires.
+    // real send, then the button turns red/"Send Failed" + an error toast fires, before settling
+    // back to its normal "Send Invoice" state so the scenario can be replayed.
     if (forceError) {
       setSending(true);
       setTimeout(() => {
         setSending(false);
         setSendFailed(true);
         setForceErrorToastOpen(true);
+        setTimeout(() => setSendFailed(false), 2000);
       }, 900);
       return;
     }
@@ -423,7 +427,7 @@ export function SendInvoiceSheet({
                     transition={{ duration: 0.15 }}
                     className="inline-block"
                   >
-                    {sent ? `${docLabel} Sent` : sendFailed ? "Try again" : `Send ${docLabel}`}
+                    {sent ? `${docLabel} Sent` : sendFailed ? "Send Failed" : `Send ${docLabel}`}
                   </motion.span>
                 </AnimatePresence>
               ) : (
