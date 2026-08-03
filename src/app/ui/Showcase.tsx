@@ -18,6 +18,7 @@ import { Loading, LoadingSize } from "./Loading";
 import { PageHeader, type PageHeaderType } from "./PageHeader";
 import { ButtonDock, type ButtonDockType, type ButtonDockStack } from "../components/ButtonDock";
 import { SummaryCard } from "../components/SummaryCard";
+import { SummaryDock } from "../components/SummaryDock";
 import StatusBar from "../components/StatusBar";
 import { Tile, type TileTrailing } from "./Tile";
 import { Banner, type BannerColor } from "./Banner";
@@ -90,6 +91,7 @@ const NAV_GROUPS = [
     items: [
       { id: "button", label: "Button" },
       { id: "button-dock", label: "Button Dock" },
+      { id: "summary-dock", label: "Summary Dock" },
       { id: "fab", label: "FAB" },
     ],
   },
@@ -1711,6 +1713,54 @@ function ButtonDockOverview() {
   );
 }
 
+const SUMMARYDOCK_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "bottom",
+    label: "iOS controls",
+    options: [
+      { value: "none", label: "None — default state" },
+      { value: "keyboard", label: "Keyboard — use when the dock sits above a focused text field" },
+    ],
+  },
+];
+
+function SummaryDockOverview() {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1.5 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-3.5">
+        <p className="text-[12px] leading-snug" style={{ ...FONT, color: MUTED }}>
+          Tap <strong style={{ color: INK }}>View details</strong> below to expand the Subtotal/Discount/Total
+          breakdown in place — a self-contained tap interaction, not driven by a prop.
+        </p>
+      </div>
+      <InteractiveDemo
+        groups={SUMMARYDOCK_CONTROL_GROUPS}
+        defaultValues={{ bottom: "none" }}
+        render={(v) => (
+          <DockStage>
+            <SummaryDock
+              currency="USD"
+              subtotal={110}
+              discount={80}
+              total={30}
+              primaryLabel="Create Invoice"
+              keyboard={v.bottom === "keyboard"}
+            />
+          </DockStage>
+        )}
+      />
+      <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
+        <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
+          Pinned to the bottom of the phone frame, in the manual Create Invoice flow:
+        </p>
+        <PhoneDockStage>
+          <SummaryDock currency="USD" subtotal={2200} discount={0} total={2200} primaryLabel="Create Invoice" />
+        </PhoneDockStage>
+      </div>
+    </div>
+  );
+}
+
 /** 375px phone-bg strip so the frosted-glass buttons/pill read like in the app. */
 function HeaderStrip({ children }: { children: React.ReactNode }) {
   return <div className="mobile-mode w-full max-w-[375px] rounded-[12px] bg-[#f9f5ea] py-2">{children}</div>;
@@ -2921,6 +2971,19 @@ export function Showcase() {
                   "A screen's primary (and optional secondary) action needs to stay reachable at the bottom while the page scrolls",
                 ]}
                 overview={<ButtonDockOverview />}
+              />
+            )}
+            {!isFoundation && activeNav === "summary-dock" && (
+              <ComponentPage
+                title="Summary Dock"
+                description="A persistent total + 'View details' row beside an inline primary button, pinned to the bottom of the screen — tapping 'View details' expands it in place into a Subtotal/Discount/Total breakdown with its own 'Summary' header and close button."
+                whenToUse={[
+                  "A form builds up a running total (e.g. Create Invoice's line items) and the primary action should sit right beside that total, not stacked full-width below it",
+                ]}
+                whenNotToUse={[
+                  "The primary action doesn't need a total/breakdown alongside it — use Button Dock instead",
+                ]}
+                overview={<SummaryDockOverview />}
               />
             )}
             {!isFoundation && activeNav === "outstanding-card" && (
