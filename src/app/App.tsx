@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Menu, X, ChevronRight } from "lucide-react";
 import { QuickNavSidebar, type SidebarGroup } from "./components/QuickNavSidebar";
@@ -13,6 +13,7 @@ import { CREDIT_NOTES } from "./data/creditNotes";
 import { INVOICES } from "./data/invoices";
 import { fmtDate } from "./lib/format";
 import { FONT } from "./lib/theme";
+import { pathForScreen, screenForPath } from "./lib/routes";
 import { InvoiceDetailPage } from "./pages/invoice-detail/InvoiceDetailPage";
 import { CreditNoteForm } from "./pages/credit-note-form/CreditNoteForm";
 import { CreateSalesInvoice } from "./pages/CreateSalesInvoice";
@@ -207,7 +208,31 @@ function QuickNav({ current, onChange, scenario, onScenario }: { current: Screen
 }
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>("dashboard");
+  // Initial screen comes from the URL path (shallow routing, see lib/routes.ts) so a shared/
+  // refreshed link lands on the right screen — just not with the same invoice/customer open.
+  const [screen, setScreen] = useState<Screen>(() => screenForPath(window.location.pathname));
+
+  // Keeps the address bar in sync with `screen` — every one of the ~100 `setScreen` call sites
+  // across this file stays untouched, since this observes the state instead of wrapping the
+  // setter. Skips the very first run (the initial screen already came FROM the path above; no
+  // need to push a redundant history entry for it).
+  const isFirstPathSync = useRef(true);
+  useEffect(() => {
+    const path = pathForScreen(screen);
+    if (isFirstPathSync.current) {
+      isFirstPathSync.current = false;
+      if (window.location.pathname !== path) window.history.replaceState(null, "", path);
+      return;
+    }
+    if (window.location.pathname !== path) window.history.pushState(null, "", path);
+  }, [screen]);
+
+  // Browser back/forward buttons — reads the path popstate landed on and syncs `screen` to match.
+  useEffect(() => {
+    const onPopState = () => setScreen(screenForPath(window.location.pathname));
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   // Slide-transition direction (native-app push/pop feel): forward navigation slides the new
   // screen in from the right, back navigation slides it in from the left. There's no single
