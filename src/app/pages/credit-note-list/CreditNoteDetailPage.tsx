@@ -202,6 +202,20 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const completeSend = () => { closeSend(); setSentLocal(true); setToastMessage("Credit note sent"); onSent?.(); };
   const openPdfPreview = () => { setActionsOpen(false); setPdfFromSend(false); setPdfOpen(true); };
 
+  // Mirrors the status-driven dock ternary below (Toast needs its type before that JSX renders) —
+  // keep in sync: "double" clears with bottomOffset 150, "single" with the Toast default (96), no
+  // dock at all (Cancelled) with 16, matching this app's Toast convention.
+  const stickyDockKind: "single" | "double" | "none" = canApply
+    ? "double"
+    : (isOpen || isRefundDraft) && onEdit
+      ? "single"
+      : isApplied
+        ? (isPartiallyApplied && onEdit ? "double" : "single")
+        : isCancelled
+          ? "none"
+          : "single";
+  const toastBottomOffset = stickyDockKind === "double" ? 150 : stickyDockKind === "none" ? 16 : undefined;
+
   return (
     <div className="absolute inset-0 z-40 bg-white rounded-[48px] overflow-hidden flex flex-col" style={{ width: 375, height: 812 }}>
       {/* Scenario annotation — shown in the white space to the right of the phone frame, only on a
@@ -681,7 +695,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
 
       <FilePreviewOverlay open={proofPreview !== null} file={proofPreview} onClose={() => setProofPreview(null)} />
 
-      <Toast open={!!toastMessage} message={toastMessage ?? ""} onDone={() => setToastMessage(null)} />
+      <Toast open={!!toastMessage} message={toastMessage ?? ""} bottomOffset={toastBottomOffset} onDone={() => setToastMessage(null)} />
     </div>
   );
 }

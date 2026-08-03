@@ -694,6 +694,27 @@ export function InvoiceDetailPage({
   const requiredComplete = !!customerName && ITEMS.length > 0 && !!dueDateLabel;
   const duplicate = () => { setActionsOpen(false); setLocalToast("Invoice duplicated"); };
 
+  // Mirrors the sticky primary-dock ternary below (Toast needs its type before that JSX renders) —
+  // keep in sync: "double" clears with bottomOffset 150, "single" with the Toast default (96), no
+  // dock at all (Cancelled / Paid with no CN) with 16, matching this app's Toast convention.
+  const stickyDockKind: "single" | "double" | "none" =
+    status === "Cancelled"
+      ? "none"
+      : status === "Draft"
+        ? scheduledRecurring
+          ? "double"
+          : uploaded
+            ? (pendingPayment ? "single" : "double")
+            : "single"
+        : sendable
+          ? (pendingPayment ? "single" : "double")
+          : isRefundContext
+            ? ((refundDone || refundSubmitted) ? "single" : "double")
+            : (status === "Paid" && activeCnCount === 0)
+              ? "none"
+              : "single";
+  const toastBottomOffset = stickyDockKind === "double" ? 150 : stickyDockKind === "none" ? 16 : undefined;
+
   return (
     <div className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812, background: "var(--bg-beige-primary)" }}>
       {/* No background here (was bg-white) — PageAppHeader is transparent at rest, so it needs
@@ -1488,7 +1509,7 @@ export function InvoiceDetailPage({
       )}
 
       {/* Local toast for in-page outcomes (void / re-download) */}
-      <Toast open={!!localToast} message={localToast ?? ""} onDone={() => setLocalToast(null)} />
+      <Toast open={!!localToast} message={localToast ?? ""} bottomOffset={toastBottomOffset} onDone={() => setLocalToast(null)} />
     </div>
   );
 }
