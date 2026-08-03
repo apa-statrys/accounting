@@ -1385,14 +1385,14 @@ export function AddInvoiceDetails({
 
       {/* Original uploaded file — shows the actual invoice document (same InvoiceDocumentPreview
           the full PDF preview and Send sheet use, populated from this page's current field values),
-          not a generic faux-scan mockup. Title is the uploaded file's own name; "Reupload" reuses
+          not a generic faux-scan mockup. Title is the uploaded file's own name; "Re-upload" reuses
           the row's own re-upload path. */}
       <BottomSheet
         open={filePreviewOpen}
         title={uploadedFile?.name ?? "Invoice"}
         onClose={() => setFilePreviewOpen(false)}
         heightClass="h-[72%]"
-        footer={onReupload ? <ButtonDock type="single" primaryLabel="Reupload" onPrimary={onReupload} /> : undefined}
+        footer={onReupload ? <ButtonDock type="single" primaryLabel="Re-upload" onPrimary={onReupload} /> : undefined}
       >
         <InvoiceDocumentPreview
           invoiceNo={invoiceNo}

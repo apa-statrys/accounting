@@ -2029,7 +2029,7 @@ const FILEITEMBASE_CONTROL_GROUPS: ControlGroup[] = [
     label: "Trailing action (completed/error only — loading always shows delete)",
     options: [
       { value: "delete", label: "Delete — trash icon; use when the row can be removed (cancel/drop an attachment)" },
-      { value: "replace", label: "Reupload — text button; use when the file can be re-scanned/swapped for a new upload" },
+      { value: "replace", label: "Re-upload — text button; use when the file can be re-scanned/swapped for a new upload" },
       { value: "download", label: "Download — download icon; use when the row is a read-only completed file the user can save (e.g. Send Invoice's Share/Download tab)" },
       { value: "none", label: "None — no trailing control; use for a read-only context with nothing to change (e.g. a past decision/summary screen)" },
     ],
@@ -3046,7 +3046,7 @@ export function Showcase() {
             {!isFoundation && activeNav === "file-item-base" && (
               <ComponentPage
                 title="File Item Base"
-                description="A file-attachment row — an icon with a colored file-type tag, name, and size, in one of three states: Completed (just the size), Loading (a progress fill behind the row plus an upload percentage), or Error (red border, 'Upload failed', and a Try Again link). The trailing button can be Delete, Reupload, Download, or none at all — Loading always shows Delete."
+                description="A file-attachment row — an icon with a colored file-type tag, name, and size, in one of three states: Completed (just the size), Loading (a progress fill behind the row plus an upload percentage), or Error (red border, 'Upload failed', and a Try Again link). The trailing button can be Delete, Re-upload, Download, or none at all — Loading always shows Delete."
                 whenToUse={[
                   "Representing one uploaded or attached file and its current state — uploading, completed, or failed",
                 ]}

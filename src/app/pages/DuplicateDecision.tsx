@@ -22,7 +22,7 @@ interface DuplicateDecisionProps {
   /** The file the user uploaded — shown here with a Preview button. */
   file?: UploadedFileInfo | null;
   onBack?: () => void;
-  /** Preview sheet's "Reupload" — re-invokes the native scanner, not just a back navigation. */
+  /** Preview sheet's "Re-upload" — re-invokes the native scanner, not just a back navigation. */
   onReupload?: () => void;
   /** Primary (DRAFT match) — open the existing draft's editor to keep editing it. */
   onEditExisting?: () => void;
@@ -93,7 +93,7 @@ export function DuplicateDecision({ existing, file, onBack, onReupload, onEditEx
             </div>
           </ListCard>
 
-          {/* The uploaded file — tap the row to preview it; the trailing "Reupload" re-invokes the
+          {/* The uploaded file — tap the row to preview it; the trailing "Re-upload" re-invokes the
               scanner directly (same action="replace" pattern as AddInvoiceDetails' own upload
               row, same onReupload as the preview sheet's footer button). */}
           {file && (
@@ -123,13 +123,13 @@ export function DuplicateDecision({ existing, file, onBack, onReupload, onEditEx
 
       {/* Preview — the actual invoice document (same InvoiceDocumentPreview the full PDF preview
           and Send sheet use), not a generic faux-scan mockup. Title is the uploaded file's own
-          name; "Reupload" re-invokes the native scanner (onReupload), not just a back navigation. */}
+          name; "Re-upload" re-invokes the native scanner (onReupload), not just a back navigation. */}
       <BottomSheet
         open={filePreviewOpen}
         title={file?.name ?? "Invoice"}
         onClose={() => setFilePreviewOpen(false)}
         heightClass="h-[72%]"
-        footer={<ButtonDock type="single" primaryLabel="Reupload" onPrimary={onReupload} />}
+        footer={<ButtonDock type="single" primaryLabel="Re-upload" onPrimary={onReupload} />}
       >
         <InvoiceDocumentPreview
           invoiceNo={existing.number}

@@ -31,7 +31,7 @@ export function FilePreviewOverlay({
       title={file?.name ?? "Original file"}
       onClose={onClose}
       heightClass="h-[72%]"
-      footer={onReupload ? <ButtonDock type="single" primaryLabel="Reupload" onPrimary={onReupload} /> : undefined}
+      footer={onReupload ? <ButtonDock type="single" primaryLabel="Re-upload" onPrimary={onReupload} /> : undefined}
     >
       <div className={styles.overlayBody}>
         {/* Faux scanned-invoice page standing in for the uploaded document */}

@@ -10,7 +10,7 @@ import styles from "./index.module.css";
  *   error     — red border, "Upload failed, please try again." + a "Try Again" link, stacked
  *               top-aligned since the row grows taller
  * `action` picks the non-loading trailing control: "delete" (trash icon), "replace" (a
- * "Reupload" text button, for a re-scan/re-upload flow), "download" (download icon, e.g. a
+ * "Re-upload" text button, for a re-scan/re-upload flow), "download" (download icon, e.g. a
  * completed file the user can save — Send Invoice's Share/Download tab), or "none" (no trailing
  * control at all — not a Figma axis, for a read-only context with nothing to change, e.g. a past
  * decision/summary screen). Pass `onClick` to make the whole row tappable (e.g. open a preview) —
@@ -131,7 +131,7 @@ export function FileItemBase({
         className={styles.replaceBtn}
         onClick={(e) => { e.stopPropagation(); onReplace?.(); }}
       >
-        Reupload
+        Re-upload
       </button>
     ) : !isLoading && action === "download" ? (
       <button
