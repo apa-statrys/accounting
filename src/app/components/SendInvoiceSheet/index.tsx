@@ -101,7 +101,7 @@ export function SendInvoiceSheet({
   const [message, setMessage] = useState(
     isCreditNote
       ? `Hi,\n\nPlease find attached Credit Note #${invoiceNo} for ${amountLabel}.\n\nYou can view your credit note using the button below.\n\nThank you for your business.`
-      : `Hi,\n\nPlease find attached Invoice #${invoiceNo} for ${amountLabel}, due on ${dueDateLabel}.\n\nYou can view and pay your invoice using the button below.\n\nThank you for your business.`
+      : `Dear ${customerName},\n\nPlease find attached Invoice #${invoiceNo} in the amount of ${amountLabel}, due on ${dueDateLabel}.\n\nYou can open the invoice by clicking the button below.\n\nThank you for your continued business.\n\nKind regards,\n\n${companyName}`
   );
   const [saveDefault, setSaveDefault] = useState(false);
   const [showRecipients, setShowRecipients] = useState(false);
@@ -453,7 +453,7 @@ export function SendInvoiceSheet({
                     className="w-full rounded-lg bg-[var(--bg-neutral-inverse-primary)] text-white py-2.5 text-[14px] font-medium"
                     style={FONT}
                   >
-                    {isCreditNote ? "Open credit note" : "Open invoice"}
+                    {isCreditNote ? "Open Credit Note" : "Open Invoice"}
                   </button>
                 </div>
               </div>

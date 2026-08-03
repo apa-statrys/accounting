@@ -556,7 +556,7 @@ export function AddInvoiceDetails({
               confirm the auto-save on exit); the autosave chip lives in the header's custom right
               slot. editExitToList (edit-existing-draft-found-via-duplicate-check) skips that
               confirm sheet — it's an ALREADY-existing draft being edited, not a fresh one just
-              created, so "Saved as draft" + Discard would misrepresent it; save and leave directly,
+              created, so "Saved as draft" + Delete Draft would misrepresent it; save and leave directly,
               same as before the confirm sheet existed. */}
           <PageHeader
             type="center"
@@ -1120,8 +1120,8 @@ export function AddInvoiceDetails({
       />
 
       {/* Back-tap confirm (fresh create/upload-review only, never mid-edit) — nothing is saved yet:
-          "Go to invoice list" saves this as a draft on the way out; "Discard" abandons it entirely
-          (no draft ever created) and goes back to the list the same as the plain ✕/close;
+          "Go to invoice list" saves this as a draft on the way out; "Delete Draft" abandons it
+          entirely (no draft ever created) and goes back to the list the same as the plain ✕/close;
           "Keep editing" (tertiary/ghost — least emphasis, it's just dismissing this sheet) resumes
           right where the user was, same as before this sheet existed. */}
       <BottomSheet
@@ -1133,7 +1133,7 @@ export function AddInvoiceDetails({
           <ButtonDock
             type="triple"
             primaryLabel="Go to invoice list"
-            secondaryLabel="Discard"
+            secondaryLabel="Delete Draft"
             tertiaryLabel="Keep editing"
             // Close the sheet, THEN navigate away once its own close animation (BottomSheet's
             // 400ms slide-down) actually finishes — navigating in the same tick as setOpen(false)
