@@ -562,6 +562,10 @@ export function AddInvoiceDetails({
             type="center"
             title={headerTitle ?? (editingSeries ? "Edit recurring series" : isRecurring ? (isEditing ? "Edit invoice" : "New Recurring Invoice") : isEditing ? "Edit invoice" : "Create Invoice")}
             onBack={lockActions || lockExceptIssueDate ? () => {} : isEditing && !editExitToList ? onEditBack : editExitToList ? saveDraft : onSaveDraft ? () => setSavedDraftSheetOpen(true) : onClose}
+            // No right-side search action anywhere on this page — editingIssuedInvoice has no
+            // custom `right` content (it doesn't autosave), which would otherwise fall through to
+            // PageHeader's default search button.
+            showSearch={false}
             right={
               // Figma "Create Invoice" header (node 1387-18223): the DS Loading spinner, not a
               // hand-rolled spinning border — "Saved" keeps the existing check (Figma's own mock
