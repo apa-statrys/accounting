@@ -576,8 +576,11 @@ export function AddInvoiceDetails({
               : undefined
           }
         >
-          {/* Custom top banner (e.g. the locked-period alert) — replaces the OCR coverage banner. */}
-          {topBanner}
+          {/* Custom top banner (e.g. the locked-period alert) — replaces the OCR coverage banner.
+              Locked-period demo: once the user picks a valid issue date (issueMinDate guarantees
+              it's outside the closed period), the "period closed" warning no longer applies — hide
+              it instead of leaving it up after the blocking condition is already resolved. */}
+          {(!issuePlaceholder || !issuePicked) && topBanner}
 
 
         {/* Duplicate found — shown at the very top, above the uploaded-file preview. */}
