@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Menu, X, ChevronRight } from "lucide-react";
 import { QuickNavSidebar, type SidebarGroup } from "./components/QuickNavSidebar";
@@ -275,8 +275,9 @@ export default function App() {
   // Toast shown on the list after returning from the create flow.
   const [toast, setToast] = useState<{ title: string; subtext?: string; variant?: ToastVariant } | null>(null);
   // Blocking notice for an upload that never reached OCR (file too large / unsupported type) —
-  // a sheet (UploadErrorDialog) rather than a toast, so there's a clear "Re-upload" next step.
-  const [uploadError, setUploadError] = useState<{ title: string; body: string } | null>(null);
+  // a sheet (UploadErrorDialog) rather than a toast, so there's a clear "Choose Another File"
+  // next step. `kind` disambiguates the two scenarios (their title copy is identical).
+  const [uploadError, setUploadError] = useState<{ kind: "tooLarge" | "unsupportedType"; title: string; body: ReactNode } | null>(null);
   // Freshly created/saved invoice to surface + highlight at the top of the list.
   const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string; recurring?: boolean } | null>(null);
   // Whether `recent`'s one-time arrival highlight has already played — `recent` itself stays set
@@ -497,8 +498,8 @@ export default function App() {
           // Upload scenario shortcuts (jump straight to each OCR outcome, skipping the native picker).
           heading: "Upload Scenarios",
           items: [
-            { label: "Upload — Error (Too Large)", active: screen === "list" && uploadError?.title === "File too large", onSelect: () => { setUploadError(null); setScreen("list"); setUploadError({ title: "File too large", body: "This file is larger than 10 MB. Please upload a smaller file." }); } },
-            { label: "Upload — Error (Unsupported Type)", active: screen === "list" && uploadError?.title === "Unsupported file type", onSelect: () => { setUploadError(null); setScreen("list"); setUploadError({ title: "Unsupported file type", body: "This file type isn’t supported. Please upload a PDF, JPG, or PNG." }); } },
+            { label: "Upload — Error (Too Large)", active: screen === "list" && uploadError?.kind === "tooLarge", onSelect: () => { setUploadError(null); setScreen("list"); setUploadError({ kind: "tooLarge", title: "Unsupported file format", body: <>This file can’t be uploaded. Please upload your invoice as a PDF, JPG, JPEG, or PNG file up to <strong>5 MB</strong>.</> }); } },
+            { label: "Upload — Error (Unsupported Type)", active: screen === "list" && uploadError?.kind === "unsupportedType", onSelect: () => { setUploadError(null); setScreen("list"); setUploadError({ kind: "unsupportedType", title: "Unsupported file format", body: "This file can’t be uploaded. Please upload your invoice as a PDF, JPG, JPEG, or PNG." }); } },
             { label: "Upload — Duplicate", active: screen === "duplicateCheck", onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_MATCHED); setExtracted(DEMO_EXTRACTION_MATCHED); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-scan.png", size: 1258291 }); setDupExisting(EXISTING_INVOICES.find((i) => i.number === DEMO_EXTRACTION_MATCHED.invoiceNumber) ?? null); setScreen("duplicateCheck"); } },
             { label: "Upload — Manual Entry Needed", active: screen === "details" && extracted === DEMO_EXTRACTION_NO_CUSTOMER, onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_NO_CUSTOMER); setExtracted(DEMO_EXTRACTION_NO_CUSTOMER); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice.pdf", size: 419430 }); setScreen("details"); } },
             { label: "Upload — Unreadable (Blank)", active: screen === "details" && extracted === BLANK_EXTRACTION, onSelect: () => { setPendingExtraction(null); setExtracted(BLANK_EXTRACTION); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-unreadable.jpg", size: 3565158 }); setScreen("details"); } },
