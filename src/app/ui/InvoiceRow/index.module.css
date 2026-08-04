@@ -65,6 +65,23 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Title + inline badge (e.g. a "New" ui/Badge on a just-created record) — same shape as
+   ui/Tile's .titleRow: title truncates, the badge next to it never shrinks. */
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+.titleRow .title {
+  width: auto;
+  flex-shrink: 1;
+  min-width: 0;
+}
+.titleRow > :last-child {
+  flex-shrink: 0;
+}
 .invoiceNo {
   composes: caption from global;
   margin: 0;

@@ -5,9 +5,11 @@ import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { Toast } from "../components/Toast";
 import { Tile } from "../ui/Tile";
-import type { Customer } from "../types";
+import { Badge } from "../ui/Badge";
+import type { Customer, NewFlag } from "../types";
 
 import { avatarTint } from "../lib/theme";
+import { pinNew } from "../lib/pinNew";
 
 /** Two-letter initials from a customer name (skips symbols like "&"). */
 function initials(name: string): string {
@@ -26,6 +28,9 @@ export interface CustomerListProps {
   /** One-off success confirmation after a client is added (AC5). */
   flash?: string | null;
   onFlashDone?: () => void;
+  /** The app-wide "just created" flag — pins a newly added customer to the top with a "New" badge
+   *  for 5s (see lib/pinNew.ts). */
+  newFlag?: NewFlag;
 }
 
 /**
@@ -36,7 +41,7 @@ export interface CustomerListProps {
  * "Select Customer" picker and every other search list/sheet in the app). Tap a row → the
  * detail page (no selection/Continue step here, unlike the picker).
  */
-export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer, flash, onFlashDone }: CustomerListProps) {
+export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer, flash, onFlashDone, newFlag }: CustomerListProps) {
   const [query, setQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
   // Search state — activating search replaces the whole header with a search field and
@@ -49,12 +54,17 @@ export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer,
   };
   const exitSearch = () => { setSearching(false); setQuery(""); };
 
-  const sorted = useMemo(() => [...customers].sort((a, b) => a.name.localeCompare(b.name)), [customers]);
+  // Newest-created first — customers has no timestamp field, but new ones are always appended to
+  // the end of the register (App.tsx), so reversing the array is exactly "most recently created
+  // first" without needing one.
+  const sorted = useMemo(() => [...customers].reverse(), [customers]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return sorted;
-    return sorted.filter((c) => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q));
-  }, [sorted, query]);
+    const base = q ? sorted.filter((c) => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)) : sorted;
+    // Pinned after the search filter — pinNew no-ops if the new customer doesn't match an active
+    // query, so a pin can't make a search result set show something that doesn't match what was typed.
+    return pinNew(base, newFlag, "customer", (c) => c.id);
+  }, [sorted, query, newFlag]);
 
   const renderTile = (c: Customer) => (
     <Tile
@@ -63,6 +73,7 @@ export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer,
       avatar={initials(c.name)}
       avatarColor={avatarTint(c.id)}
       title={c.name}
+      titleBadge={newFlag?.kind === "customer" && newFlag.id === c.id ? <Badge label="New" color="custom" variant="bold" size="sm" /> : undefined}
       text={c.email}
       onLayer="gray"
       reserveTrailing={false}

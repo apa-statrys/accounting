@@ -11,7 +11,7 @@ import { PageHeader } from "../../ui/PageHeader";
 import { HorizontalTabs } from "../../ui/HorizontalTabs";
 import { InvoiceRow } from "../../ui/InvoiceRow";
 import { Tile } from "../../ui/Tile";
-import type { BadgeColor } from "../../ui/Badge";
+import { Badge, type BadgeColor } from "../../ui/Badge";
 import { CreditNoteDetailPage } from "./CreditNoteDetailPage";
 import { LockedPeriodDialog } from "../locked-period/LockedPeriodDialog";
 import { CreditNoteForm } from "../credit-note-form/CreditNoteForm";
@@ -19,9 +19,10 @@ import type { CreditNotePayload, DraftLine } from "../../types";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { RECEIVING_ACCOUNTS } from "../../data/receivingAccounts";
 import { matchesIssueRange } from "../sales-invoice-list/filters";
-import type { CNStatus, CreditNote } from "../../types";
+import type { CNStatus, CreditNote, NewFlag } from "../../types";
 
 import { FONT } from "../../lib/theme";
+import { pinNew } from "../../lib/pinNew";
 
 // The register stores display dates ("22 Jun 2026"); convert to ISO so the shared invoice-list
 // date-range filter (matchesIssueRange, which expects YYYY-MM-DD) can be reused as-is.
@@ -102,6 +103,12 @@ interface CreditNotesListProps {
   /** Locked-period demo (DES-751): a Draft CN detail whose "Edit" opens a locked-period dialog
    *  (the note is dated in a closed accounting period) instead of the edit form. */
   lockedPeriod?: boolean;
+  /** Freshly created/saved credit note (dev-flow only — this list has no real backing array to
+   *  append into today, so this mirrors the Sales Invoice List's ephemeral `recent` pattern). */
+  recentCn?: { no: string; customer: string; amount: number; status: CNStatus; date: string } | null;
+  /** The app-wide "just created" flag (see lib/pinNew.ts) — pins the matching row to the top
+   *  regardless of sort/filter and shows its "New" badge for 5s. */
+  newFlag?: NewFlag;
 }
 
 /**
@@ -110,7 +117,7 @@ interface CreditNotesListProps {
  * Statuses are Draft / Applied / Cancelled. Tap a row → the shared CreditNoteDetailPage, wired with the
  * same per-status actions as the invoice-detail flow (Draft: Edit/Delete · Applied: Send/Cancel · Cancelled: Preview).
  */
-export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, companyEmail, lockedPeriod = false }: CreditNotesListProps) {
+export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, companyEmail, lockedPeriod = false, recentCn, newFlag }: CreditNotesListProps) {
   const [active, setActive] = useState(0);
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [sortOpen, setSortOpen] = useState(false);
@@ -146,24 +153,38 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
   // Apply a complete Draft to its invoice (Draft → Applied) — mirrors the invoice-detail applyDraft.
   const applyFromList = (no: string) => setNotes((prev) => prev.map((c) => (c.no === no ? { ...c, status: "Applied", applied: c.original } : c)));
 
+  // The freshly created/saved credit note (if any), prepended as a real row — same ephemeral-slot
+  // pattern as Sales Invoice List's recentRow. Only affects counts/the rendered list, never the
+  // real `notes` state or its mutation helpers above.
+  const recentCnRow: CreditNote | null = recentCn
+    ? { no: recentCn.no, customer: recentCn.customer, email: "", invoiceNo: "", original: recentCn.amount, invoiceTotal: recentCn.amount, applied: 0, kind: "cancellation", status: recentCn.status, date: recentCn.date, reason: "" }
+    : null;
+  const allNotes = useMemo(
+    () => (recentCnRow ? [recentCnRow, ...notes] : notes),
+    [recentCnRow?.customer, recentCnRow?.status, recentCnRow?.date, recentCnRow?.original, notes]
+  );
+
   const counts = useMemo(
-    () => FILTERS.map((f) => (f.match === "all" ? notes.length : notes.filter((c) => c.status === f.match).length)),
-    [notes]
+    () => FILTERS.map((f) => (f.match === "all" ? allNotes.length : allNotes.filter((c) => c.status === f.match).length)),
+    [allNotes]
   );
 
   const list = useMemo(() => {
     const match = FILTERS[active].match;
-    let rows = notes.filter((c) => (match === "all" ? true : c.status === match));
+    let rows = allNotes.filter((c) => (match === "all" ? true : c.status === match));
     if (selectedCustomers.length) rows = rows.filter((c) => selectedCustomers.includes(c.customer));
     if (issueFrom || issueTo) rows = rows.filter((c) => matchesIssueRange(toISO(c.date), issueFrom, issueTo));
     const sorted = [...rows];
+    let ordered: CreditNote[];
     switch (sortKey) {
-      case "oldest": return sorted.reverse();
-      case "amount-desc": return sorted.sort((a, b) => b.original - a.original);
-      case "amount-asc": return sorted.sort((a, b) => a.original - b.original);
-      default: return sorted; // newest = authored order
+      case "oldest": ordered = sorted.reverse(); break;
+      case "amount-desc": ordered = sorted.sort((a, b) => b.original - a.original); break;
+      case "amount-asc": ordered = sorted.sort((a, b) => a.original - b.original); break;
+      default: ordered = sorted; // newest = authored order
     }
-  }, [active, sortKey, selectedCustomers, issueFrom, issueTo, notes]);
+    // Pin runs strictly AFTER sort, same reasoning as the invoice list's fix (lib/pinNew.ts).
+    return pinNew(ordered, newFlag, "creditNote", (c) => c.no);
+  }, [active, sortKey, selectedCustomers, issueFrom, issueTo, allNotes, newFlag]);
 
   const toggleCustomer = (c: string) => setSelectedCustomers((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
 
@@ -251,6 +272,7 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
             <InvoiceRow
               key={cn.no}
               title={cn.customer}
+              titleBadge={newFlag?.kind === "creditNote" && newFlag.id === cn.no ? <Badge label="New" color="custom" variant="bold" size="sm" /> : undefined}
               // Drafts have no CN number yet (assigned on issue) — hide it until then.
               invoiceNo={cn.status === "Draft" ? undefined : cn.no}
               status={cn.status}

@@ -5,11 +5,13 @@ import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { Search } from "../ui/Search";
 import { Tile } from "../ui/Tile";
+import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { ButtonDock } from "../components/ButtonDock";
 import { CUSTOMERS } from "../data/customers";
 import { avatarTint } from "../lib/theme";
-import type { Customer } from "../types";
+import { pinNew } from "../lib/pinNew";
+import type { Customer, NewFlag } from "../types";
 
 /**
  * Quick-access shortcuts to the most-billed customers. These are NOT a separate
@@ -33,13 +35,16 @@ interface CreateSalesInvoiceProps {
   onSelectCustomer?: (customer: Customer) => void;
   /** Open the full-page Add Customer flow (App navigates; returns here with the new one selected). */
   onAddCustomer?: () => void;
+  /** The app-wide "just created" flag — pins a newly added customer to the top of "All customers"
+   *  with a "New" badge for 5s (see lib/pinNew.ts). */
+  newFlag?: NewFlag;
 }
 
 /**
  * Create Sales Invoice — step 1: "Add a customer".
  * Choosing a customer advances the flow.
  */
-export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onClose, onSelectCustomer, onAddCustomer }: CreateSalesInvoiceProps) {
+export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onClose, onSelectCustomer, onAddCustomer, newFlag }: CreateSalesInvoiceProps) {
   const [query, setQuery] = useState("");
   // Selecting a tile only highlights it; "Continue" advances the flow.
   const [pendingId, setPendingId] = useState<string>(selectedId);
@@ -89,9 +94,12 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
   );
 
   // Frequently used = the most-billed customers pulled to the top as shortcuts;
-  // Others = everyone else. Both render the same Tile card for visual consistency.
+  // Others = everyone else, newest-created first (customers has no timestamp field, but new ones
+  // are always appended to the end of the register, so reversing is exactly "newest first").
+  // A just-created customer pins to the top of "All customers" specifically — "Frequently used"
+  // is a distinct, curated by-billing shortcut list, not the general list a new customer joins.
   const frequent = filtered.filter((c) => FREQUENT_IDS.includes(c.id));
-  const others = filtered.filter((c) => !FREQUENT_IDS.includes(c.id));
+  const others = pinNew([...filtered].reverse().filter((c) => !FREQUENT_IDS.includes(c.id)), newFlag, "customer", (c) => c.id);
 
   // DS Tile avatar row (Figma Select Customer): initials avatar + name/email, brand
   // border + check when selected; borderless white card on the beige page.
@@ -102,6 +110,7 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
       avatar={initials(c.name)}
       avatarColor={avatarTint(c.id)}
       title={c.name}
+      titleBadge={newFlag?.kind === "customer" && newFlag.id === c.id ? <Badge label="New" color="custom" variant="bold" size="sm" /> : undefined}
       text={c.email}
       onLayer="gray"
       selected={pendingId === c.id}

@@ -5,7 +5,7 @@ import { money } from "../../lib/format";
 import type { Invoice } from "../../types";
 import { InvoiceRow } from "../../ui/InvoiceRow";
 import { SwipeActions } from "../../ui/SwipeActions";
-import type { BadgeColor } from "../../ui/Badge";
+import { Badge, type BadgeColor } from "../../ui/Badge";
 import { effectiveStatus, metaLine, type EffectiveStatus } from "./filters";
 // Prototype: every invoice's detail page shows the same shared demo total (demoInvoice.TOTAL =
 // $6,450). The list card's big amount mirrors it so each row's "original full amount" matches what
@@ -35,10 +35,11 @@ function rowStatus(eff: EffectiveStatus, refundChip?: string): { label: string; 
 /**
  * A single Sales Invoice List row, built on the DS InvoiceRow (client + number, a status Badge
  * with its date caption, the amount, and an optional credit-note strip). Drafts add swipe-left
- * to reveal Delete; a freshly created invoice gets the arrival highlight. `lastItem` drops the divider
- * on the final row of the card.
+ * to reveal Delete; a freshly created invoice (`isNew`) gets both the arrival highlight wash and a
+ * "New" title badge, driven by the same single flag/timer (App.tsx's newFlag — see lib/pinNew.ts).
+ * `lastItem` drops the divider on the final row of the card.
  */
-export function InvoiceCard({ inv, highlighted, lastItem, onClick, onDelete, onOpenCN, refundOverride }: { inv: Invoice; highlighted?: boolean; lastItem?: boolean; onClick?: () => void; onDelete?: () => void; onOpenCN?: (inv: Invoice) => void; refundOverride?: "partial" | "full" }) {
+export function InvoiceCard({ inv, isNew, lastItem, onClick, onDelete, onOpenCN, refundOverride }: { inv: Invoice; isNew?: boolean; lastItem?: boolean; onClick?: () => void; onDelete?: () => void; onOpenCN?: (inv: Invoice) => void; refundOverride?: "partial" | "full" }) {
   const eff = effectiveStatus(inv);
   const meta = metaLine(inv, eff);
   const isDraft = inv.status === "Draft";
@@ -71,6 +72,7 @@ export function InvoiceCard({ inv, highlighted, lastItem, onClick, onDelete, onO
   const row = (
     <InvoiceRow
       title={inv.client}
+      titleBadge={isNew ? <Badge label="New" color="custom" variant="bold" size="sm" /> : undefined}
       invoiceNo={meta.number || undefined}
       status={status.label}
       statusColor={status.color}
@@ -84,21 +86,15 @@ export function InvoiceCard({ inv, highlighted, lastItem, onClick, onDelete, onO
     />
   );
 
-  // The recent-arrival highlight wash — a soft warm background behind the row.
-  const highlightBg = highlighted ? "#fffaf3" : "transparent";
-
-  // Non-drafts: plain row (with the arrival highlight).
+  // Non-drafts: plain row. (A just-created row is called out via its "New" title badge alone —
+  // no background wash, per 2026-08-04 feedback.)
   if (!isDraft) {
-    return (
-      <div className="shrink-0 transition-colors duration-500 rounded-lg" style={{ background: highlightBg }}>
-        {row}
-      </div>
-    );
+    return <div className="shrink-0 rounded-lg">{row}</div>;
   }
 
   // Drafts: swipe left to reveal a delete action; tap to open.
   return (
-    <DraftSwipeRow highlightBg={highlightBg} onDelete={onDelete} onClick={onClick}>
+    <DraftSwipeRow onDelete={onDelete} onClick={onClick}>
       {row}
     </DraftSwipeRow>
   );
@@ -107,7 +103,7 @@ export function InvoiceCard({ inv, highlighted, lastItem, onClick, onDelete, onO
 /** Swipe-left-to-delete wrapper for draft rows (pointer events + CSS transform — framer `drag` renders
  *  blank inside overflow-hidden). The foreground carries a solid background so it covers the Delete
  *  action until swiped; tap while open just closes it. */
-function DraftSwipeRow({ children, highlightBg, onDelete, onClick }: { children: React.ReactNode; highlightBg: string; onDelete?: () => void; onClick?: () => void }) {
+function DraftSwipeRow({ children, onDelete, onClick }: { children: React.ReactNode; onDelete?: () => void; onClick?: () => void }) {
   const [tx, setTx] = useState(0);
   const [dragging, setDragging] = useState(false);
   const press = useRef<{ x: number; base: number } | null>(null);
@@ -154,9 +150,9 @@ function DraftSwipeRow({ children, highlightBg, onDelete, onClick }: { children:
           onClick?.();
         }}
         style={{
-          background: highlightBg === "transparent" ? "#ffffff" : highlightBg,
+          background: "#ffffff",
           transform: `translateX(${tx}px)`,
-          transition: dragging ? "none" : "transform 0.25s ease, background-color 0.5s",
+          transition: dragging ? "none" : "transform 0.25s ease",
           touchAction: "pan-y",
           cursor: "pointer",
           userSelect: "none",

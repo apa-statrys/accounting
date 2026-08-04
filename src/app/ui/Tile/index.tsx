@@ -37,6 +37,10 @@ interface TileProps {
    *  has no matching color for it). Was previously (incorrectly) built with a corner-
    *  pinned ui/Badge — Figma's Tile has no corner-badge variant, only this inline one. */
   badgeLabel?: string;
+  /** Arbitrary node rendered right after the title, sharing the same flex row as badgeLabel (title
+   *  still shrinks/truncates, this doesn't) — e.g. a real ui/Badge like <Badge label="New" .../> on
+   *  a just-created record. Unlike badgeLabel's fixed pill, the caller owns this node's styling. */
+  titleBadge?: React.ReactNode;
   /** 24px leading icon (Figma icon-swap slot; inherits the state color). */
   icon?: React.ReactNode;
   /** 30px leading country flag (e.g. <USFlag size={30} />). */
@@ -88,6 +92,7 @@ export function Tile({
   size = "md",
   text,
   badgeLabel,
+  titleBadge,
   icon,
   flag,
   avatar,
@@ -130,10 +135,11 @@ export function Tile({
         <span className={styles.icon}>{icon}</span>
       ) : null}
       <span className={styles.textBlock}>
-        {badgeLabel ? (
+        {badgeLabel || titleBadge ? (
           <span className={styles.titleRow}>
             <span className={styles.title}>{title}</span>
-            <span className={styles.badgePill}>{badgeLabel}</span>
+            {badgeLabel && <span className={styles.badgePill}>{badgeLabel}</span>}
+            {titleBadge}
           </span>
         ) : (
           <span className={styles.title}>{title}</span>

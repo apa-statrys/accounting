@@ -23,7 +23,8 @@ import { CreditNoteDetailPage } from "../credit-note-list/CreditNoteDetailPage";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { INVOICES } from "../../data/invoices";
 import { FONT, avatarTint } from "../../lib/theme";
-import type { CreditNote, DetailStatus, Invoice, Status } from "../../types";
+import { pinNew } from "../../lib/pinNew";
+import type { CreditNote, DetailStatus, Invoice, NewFlag, Status } from "../../types";
 import { InvoiceCard } from "./InvoiceCard";
 import {
   CLIENTS,
@@ -109,15 +110,11 @@ interface SalesInvoiceListProps {
   /** Toast muted subline (e.g. "Marked as sent"). */
   successSubtext?: string;
   onSuccessDone?: () => void;
-  /** A just-created/saved invoice to surface + temporarily highlight at the top of the list. */
+  /** A just-created/saved invoice to surface at the top of the list. */
   recent?: { client: string; amount: string; status: Status; meta: string } | null;
-  /** Whether `recent`'s arrival highlight has already played once — `recent` itself stays set (the
-   *  card keeps showing) well past that, so without this the highlight replays on every later
-   *  remount of this list (e.g. open the invoice, then Back). */
-  recentHighlighted?: boolean;
-  /** Fires once the highlight has run its course — the caller should flip `recentHighlighted` to
-   *  true (never clear `recent`; the card is meant to keep showing). */
-  onRecentShown?: () => void;
+  /** The app-wide "just created" flag (see lib/pinNew.ts) — pins the recent row to the top
+   *  regardless of sort/filter and drives its "New" badge + arrival highlight for 5s. */
+  newFlag?: NewFlag;
   onBack?: () => void;
   /** Open an invoice's detail page. */
   onOpenInvoice?: (inv: { number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean }) => void;
@@ -133,7 +130,7 @@ interface SalesInvoiceListProps {
   refundState?: Record<string, "partial" | "full">;
 }
 
-export function SalesInvoiceList({ showSuccess, successVariant, successMessage, successSubtext, onSuccessDone, recent, recentHighlighted, onRecentShown, onBack, onOpenInvoice, onManual, onUpload, initialStatus, onActiveStatusChange, initialDue, refundState }: SalesInvoiceListProps) {
+export function SalesInvoiceList({ showSuccess, successVariant, successMessage, successSubtext, onSuccessDone, recent, newFlag, onBack, onOpenInvoice, onManual, onUpload, initialStatus, onActiveStatusChange, initialDue, refundState }: SalesInvoiceListProps) {
   const initialActive = initialStatus ? Math.max(0, FILTERS.findIndex((f) => f.match === initialStatus)) : 0;
   const [active, setActive] = useState(initialActive);
   // Keep the selected status tab scrolled into view (e.g. when opened pre-filtered from the hero).
@@ -242,18 +239,9 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
   };
   const allInvoices = useMemo(() => allRows.filter((inv) => !deletedIds.includes(inv.id)), [allRows, deletedIds]);
 
-  // Highlight the recent card on arrival, then let it settle after a moment.
-  const [highlightRecent, setHighlightRecent] = useState(false);
-  useEffect(() => {
-    if (!recent || recentHighlighted) return;
-    setHighlightRecent(true);
-    const t = setTimeout(() => {
-      setHighlightRecent(false);
-      onRecentShown?.();
-    }, 2600);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recent?.client, recent?.amount, recent?.status, recentHighlighted]);
+  // Whether an invoice row is the just-created one — drives both its "New" badge and its arrival
+  // highlight tint from the SAME app-wide flag/timer (App.tsx's newFlag), never a separate timer.
+  const isNewInvoice = (inv: Invoice) => newFlag?.kind === "invoice" && newFlag.id === inv.id;
 
   // Live count per chip, derived from the data.
   const counts = useMemo(
@@ -272,8 +260,10 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
       const matchesRef = matchesRefund(inv, refundFilters, refundState);
       return matchesChip && matchesClient && matchesDate && matchesIssue && matchesRef;
     });
-    return sortInvoices(visible, sortKey);
-  }, [active, selectedClients, dueFilter, refundFilters, issueFrom, issueTo, sortKey, allInvoices, refundState]);
+    // Pin runs strictly AFTER sort — an active sort (e.g. "Oldest", which reverses) must never be
+    // able to bury the just-created row (see lib/pinNew.ts).
+    return pinNew(sortInvoices(visible, sortKey), newFlag, "invoice", (inv) => inv.id);
+  }, [active, selectedClients, dueFilter, refundFilters, issueFrom, issueTo, sortKey, allInvoices, refundState, newFlag]);
 
   const toggleClient = (c: string) =>
     setSelectedClients((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
@@ -354,7 +344,7 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
             <InvoiceCard
               key={inv.id}
               inv={inv}
-              highlighted={highlightRecent && inv.id === "recent-new"}
+              isNew={isNewInvoice(inv)}
               lastItem={i === list.length - 1}
               onClick={() => onOpenInvoice?.({ number: inv.id.replace(/[a-z]$/, ""), client: inv.client, status: effectiveStatus(inv), origin: inv.origin ?? "created", cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent })}
               onDelete={() => setConfirmDeleteId(inv.id)}

@@ -22,6 +22,7 @@ import { LockedPeriodBanner } from "./pages/locked-period/LockedPeriodBanner";
 import { SalesInvoiceList } from "./pages/sales-invoice-list/SalesInvoiceList";
 import type { ToastVariant } from "./ui/ToastMessage";
 import type { StatusMatch } from "./pages/sales-invoice-list/filters";
+import { TODAY_ISO } from "./pages/sales-invoice-list/filters";
 import { NeedAttention } from "./pages/NeedAttention";
 import { DuplicateDecision } from "./pages/DuplicateDecision";
 import { InvoiceSettings } from "./pages/InvoiceSettings";
@@ -32,7 +33,7 @@ import { DEMO_EXTRACTION, DEMO_EXTRACTION_MATCHED, DEMO_EXTRACTION_NO_CUSTOMER, 
 import { CUSTOMERS } from "./data/customers";
 import { DEFAULT_SETTINGS } from "./data/settings";
 import { HERO_SCENARIOS } from "./data/heroScenarios";
-import type { Screen, Customer, DetailStatus, InvoiceEditSeed, InvoiceLine, CompanySettings, ExtractedInvoice, ExistingInvoice } from "./types";
+import type { Screen, Customer, DetailStatus, InvoiceEditSeed, InvoiceLine, CompanySettings, ExtractedInvoice, ExistingInvoice, CNStatus, EntityKind, NewFlag } from "./types";
 
 /** Top-level navigation, grouped by product area. */
 const NAV_GROUPS: { heading: string; items: { id: Screen; label: string }[] }[] = [
@@ -272,13 +273,24 @@ export default function App() {
   // a sheet (UploadErrorDialog) rather than a toast, so there's a clear "Choose Another File"
   // next step. `kind` disambiguates the two scenarios (their title copy is identical).
   const [uploadError, setUploadError] = useState<{ kind: "tooLarge" | "unsupportedType"; title: string; body: ReactNode } | null>(null);
-  // Freshly created/saved invoice to surface + highlight at the top of the list.
+  // Freshly created/saved invoice to surface at the top of the list (payload only — the pin/badge
+  // lifecycle itself is driven entirely by `newFlag` below, not by this state).
   const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string } | null>(null);
-  // Whether `recent`'s one-time arrival highlight has already played — `recent` itself stays set
-  // (the card keeps showing) long after that, so without this the highlight would replay every
-  // time the list remounts (e.g. open the invoice, then Back). Reset to false only where a NEW
-  // `recent` is assigned below, never where it's cleared.
-  const [recentHighlighted, setRecentHighlighted] = useState(false);
+  // Freshly created/saved credit note (dev-flow only — Credit Notes List has no real backing array
+  // to append into today, so this mirrors `recent`'s ephemeral-slot pattern for CreditNote).
+  const [recentCn, setRecentCn] = useState<{ no: string; customer: string; amount: number; status: CNStatus; date: string } | null>(null);
+  // Single app-wide "just created" flag — pins that one record to the top of its list and shows a
+  // "New" badge for 5s, then both revert together in one step (one flag, one timer, never two
+  // independent timeouts — see lib/pinNew.ts). Only one record is ever flagged app-wide at a time;
+  // flagging a new one cancels the previous timer. `recent`/`recentCn` above keep the record showing
+  // in the list at its natural sorted position long after the flag clears.
+  const [newFlag, setNewFlag] = useState<NewFlag>(null);
+  const newFlagTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flagNew = (kind: EntityKind, id: string) => {
+    if (newFlagTimerRef.current) clearTimeout(newFlagTimerRef.current);
+    setNewFlag({ kind, id });
+    newFlagTimerRef.current = setTimeout(() => setNewFlag(null), 5000);
+  };
   // The invoice opened into the detail page (status drives the lifecycle UI).
   const [openInvoice, setOpenInvoice] = useState<{ number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean; cnAwaiting?: boolean; viewCn?: boolean }>({
     number: "INV-2026-000042",
@@ -631,6 +643,8 @@ export default function App() {
           initialPreviewNo={cnPreview}
           companyEmail={settings.email}
           refundState={refundState}
+          recentCn={recentCn}
+          newFlag={newFlag}
           onBack={() => setScreen("hub")}
           onOpenInvoice={(no) => {
             // Open the CN's related invoice; look it up in the register (ids may carry an a/b suffix).
@@ -655,6 +669,7 @@ export default function App() {
         <CustomerList
           customers={customers}
           flash={customerFlash}
+          newFlag={newFlag}
           onFlashDone={() => setCustomerFlash(null)}
           onBack={() => setScreen("hub")}
           onOpenCustomer={(c) => { setSelectedCustomer(c); setScreen("customerDetail"); }}
@@ -672,6 +687,7 @@ export default function App() {
           onBack={() => setScreen(addCustomerReturn)}
           onAdd={(cust) => {
             setCustomers((prev) => [...prev, cust]);
+            flagNew("customer", cust.id);
             if (addCustomerReturn === "customer") {
               // In-invoice add → return to the picker with the new customer selected.
               setCustomer(cust);
@@ -753,12 +769,16 @@ export default function App() {
             onSaveDraft={(p) => {
               jumpDetail({ number: "INV-2026-000007", client: "Northwind Traders", status: "Awaiting", cnNo: "CN-2026-000001", cnAmount: p.amount, cnSent: false, cnDraft: true }, true);
               setDetailFlash("Saved as draft");
+              setRecentCn({ no: "CN-2026-000099", customer: "Northwind Traders", amount: p.amount, status: "Draft", date: fmtDate(TODAY_ISO) });
+              flagNew("creditNote", "CN-2026-000099");
             }}
             // Apply → open the related invoice's detail with the new credit note applied (full → Void).
             onCreate={(p) => {
               const full = p.amount >= CREDIT_NOTE_TOTAL - 0.001;
               jumpDetail({ number: "INV-2026-000007", client: "Northwind Traders", status: full ? "Cancelled" : "Awaiting", cnNo: "CN-2026-000001", cnAmount: p.amount, cnSent: false });
               setDetailFlash(full ? "Invoice voided with a credit note" : "Credit note applied");
+              setRecentCn({ no: "CN-2026-000099", customer: "Northwind Traders", amount: p.amount, status: "Applied", date: fmtDate(TODAY_ISO) });
+              flagNew("creditNote", "CN-2026-000099");
             }}
           />
         </div>
@@ -785,11 +805,15 @@ export default function App() {
             onSaveDraft={(p) => {
               jumpDetail({ number: "INV-2026-000005", client: "Atlas Logistics", status: "Paid", cnNo: "CN-2026-000010", cnAmount: p.amount, cnSent: false, cnDraft: true }, true);
               setDetailFlash("Saved as draft");
+              setRecentCn({ no: "CN-2026-000099", customer: "Atlas Logistics", amount: p.amount, status: "Draft", date: fmtDate(TODAY_ISO) });
+              flagNew("creditNote", "CN-2026-000099");
             }}
             // Apply → open the related invoice's detail with the refund credit note applied (Pending Refund).
             onCreate={(p) => {
               jumpDetail({ number: "INV-2026-000005", client: "Atlas Logistics", status: "PendingRefund", cnNo: "CN-2026-000010", cnAmount: p.amount, cnSent: false });
               setDetailFlash("Refund credit note applied");
+              setRecentCn({ no: "CN-2026-000099", customer: "Atlas Logistics", amount: p.amount, status: "Awaiting refund", date: fmtDate(TODAY_ISO) });
+              flagNew("creditNote", "CN-2026-000099");
             }}
           />
         </div>
@@ -803,8 +827,7 @@ export default function App() {
           successSubtext={toast?.subtext}
           onSuccessDone={() => setToast(null)}
           recent={recent}
-          recentHighlighted={recentHighlighted}
-          onRecentShown={() => setRecentHighlighted(true)}
+          newFlag={newFlag}
           initialStatus={listPreset?.status}
           onActiveStatusChange={(s) => setListPreset({ status: s === "all" ? undefined : s })}
           refundState={refundState}
@@ -974,6 +997,7 @@ export default function App() {
         <CreateSalesInvoice
           selectedId={customer?.id ?? ""}
           customers={customers}
+          newFlag={newFlag}
           onAddCustomer={() => { setAddCustomerReturn("customer"); setScreen("addCustomer"); }}
           onClose={() => setScreen("list")}
           onSelectCustomer={(c) => {
@@ -1031,7 +1055,7 @@ export default function App() {
           onChangeCustomer={() => setScreen("customer")}
           onSend={(t, r) => {
             setRecent(r ?? null);
-            setRecentHighlighted(false);
+            if (r) flagNew("invoice", "recent-new");
             if (extracted) {
               // Any upload create (OCR-missing, create-new, etc.) → land on the new invoice's
               // detail page in Awaiting Payment, not the list.
@@ -1051,7 +1075,7 @@ export default function App() {
           onSaveDraft={(draft) => {
             setToast({ title: "Saved as draft" });
             setRecent(draft ? { ...draft, status: "Draft" } : null);
-            setRecentHighlighted(false);
+            if (draft) flagNew("invoice", "recent-new");
             setScreen("list");
           }}
         />
@@ -1075,14 +1099,14 @@ export default function App() {
           onSend={(t, r) => {
             setToast(t ?? { title: "Invoice marked as sent" });
             setRecent(r ?? null);
-            setRecentHighlighted(false);
+            if (r) flagNew("invoice", "recent-new");
             setScreen("list");
           }}
           onSendLater={() => setScreen("list")}
           onSaveDraft={(draft) => {
             setToast({ title: "Saved as draft" });
             setRecent(draft ? { ...draft, status: "Draft" } : null);
-            setRecentHighlighted(false);
+            if (draft) flagNew("invoice", "recent-new");
             setScreen("list");
           }}
         />
@@ -1143,6 +1167,7 @@ export default function App() {
           onSend={(t, r) => {
             setToast(t ?? { title: "Invoice created successfully" });
             setRecent(r ?? null);
+            if (r) flagNew("invoice", "recent-new");
             setScreen("list");
           }}
           onClose={() => setScreen("dashboard")}

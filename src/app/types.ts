@@ -33,6 +33,14 @@ export type Screen =
   | "lockedPeriodRefundApplied"
   | "lockedPeriodCnApplied";
 
+/** Entity kinds that can be "just created" and pinned to the top of their list with a badge
+ *  (see lib/pinNew.ts). */
+export type EntityKind = "customer" | "invoice" | "creditNote";
+
+/** The single app-wide "just created" flag (App.tsx owns the one instance) — kind + id together so
+ *  a coincidentally-equal id on a different entity kind never matches. null = nothing flagged. */
+export type NewFlag = { kind: EntityKind; id: string } | null;
+
 // ---------------------------------------------------------------------------
 // Customers
 // ---------------------------------------------------------------------------

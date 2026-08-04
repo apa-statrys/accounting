@@ -1853,18 +1853,27 @@ const INVOICEROW_CONTROL_GROUPS: ControlGroup[] = [
       { value: "off", label: "Hidden" },
     ],
   },
+  {
+    key: "titleBadge",
+    label: "Title badge",
+    options: [
+      { value: "off", label: "Hidden" },
+      { value: "new", label: 'ui/Badge "New" — use when the row is a just-created record (see Sales Invoice List / Credit Note List)' },
+    ],
+  },
 ];
 
 function InvoiceRowOverview() {
   return (
     <InteractiveDemo
       groups={INVOICEROW_CONTROL_GROUPS}
-      defaultValues={{ status: "paid", credited: "none", invoiceNo: "on" }}
+      defaultValues={{ status: "paid", credited: "none", invoiceNo: "on", titleBadge: "off" }}
       render={(v) => (
         <div className="w-[320px] rounded-[12px] bg-white px-4">
           <InvoiceRow
             title="Marlow & Finch Studio"
             invoiceNo={v.invoiceNo === "on" ? "INV-2026-000004" : undefined}
+            titleBadge={v.titleBadge === "new" ? <Badge label="New" color="custom" variant="bold" size="sm" /> : undefined}
             {...INVOICE_ROW_STATUSES[v.status]}
             amount="USD 6,430.05"
             creditedAmount={v.credited === "none" ? undefined : v.credited === "cn" ? "CN-2026-000006" : "USD 2,000.00"}
@@ -2397,6 +2406,14 @@ const TILE_CONTROL_GROUPS: ControlGroup[] = [
     ],
   },
   {
+    key: "titleBadge",
+    label: "Title badge",
+    options: [
+      { value: "off", label: "Hidden" },
+      { value: "new", label: "ui/Badge \"New\" — use when the row is a just-created record (see Customer List)" },
+    ],
+  },
+  {
     key: "state",
     label: "State",
     options: [
@@ -2419,7 +2436,7 @@ function TileTestMe() {
   return (
     <InteractiveDemo
       groups={TILE_CONTROL_GROUPS}
-      defaultValues={{ size: "md", leading: "flag", trailing: "chevron", text: "on", badge: "off", state: "default", surface: "neutral" }}
+      defaultValues={{ size: "md", leading: "flag", trailing: "chevron", text: "on", badge: "off", titleBadge: "off", state: "default", surface: "neutral" }}
       canvasBg={(v) => (v.surface === "gray" ? "var(--bg-neutral-tertiary)" : "#f4f4f2")}
       render={(v) => (
         <div className="w-[320px]">
@@ -2428,6 +2445,7 @@ function TileTestMe() {
             size={v.size as "md" | "sm"}
             text={v.text === "on" ? "Text" : undefined}
             badgeLabel={v.badge === "on" ? "Primary" : undefined}
+            titleBadge={v.titleBadge === "new" ? <Badge label="New" color="custom" variant="bold" size="sm" /> : undefined}
             icon={v.leading === "icon" ? <CircleIcon size={24} /> : undefined}
             flag={v.leading === "flag" ? <USFlag size={30} /> : undefined}
             avatar={v.leading === "avatar" ? "OR" : undefined}

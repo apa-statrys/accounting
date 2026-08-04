@@ -27,6 +27,9 @@ interface InvoiceRowProps {
   statusColor?: BadgeColor;
   /** Plain text after the status label, e.g. "12 Jun 2026" (bare date, no "on"). */
   statusCaption?: string;
+  /** Arbitrary node rendered right after the title (e.g. a real ui/Badge like
+   *  <Badge label="New" .../> on a just-created record) — title still truncates, this doesn't. */
+  titleBadge?: React.ReactNode;
   /** Preformatted, e.g. "USD 6,430.05". */
   amount: string;
   /** Preformatted credited total — shows the credited strip when set. */
@@ -60,6 +63,7 @@ export function InvoiceRow({
   status,
   statusColor = "success",
   statusCaption,
+  titleBadge,
   amount,
   creditedAmount,
   creditedLabel = "Credited amount",
@@ -87,7 +91,14 @@ export function InvoiceRow({
         {status && <InvoiceStatus label={status} color={statusColor} caption={statusCaption} />}
         <div className={styles.main}>
           <div className={styles.info}>
-            <p className={styles.title}>{title}</p>
+            {titleBadge ? (
+              <div className={styles.titleRow}>
+                <p className={styles.title}>{title}</p>
+                {titleBadge}
+              </div>
+            ) : (
+              <p className={styles.title}>{title}</p>
+            )}
             {invoiceNo && <p className={styles.invoiceNo}>{invoiceNo}</p>}
           </div>
           <div className={styles.amountCol}>
