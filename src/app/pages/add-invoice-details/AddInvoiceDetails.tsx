@@ -350,6 +350,34 @@ export function AddInvoiceDetails({
   const [discountMode, setDiscountMode] = useState<DiscountMode>("percent");
   const [discountModeSheetOpen, setDiscountModeSheetOpen] = useState(false);
 
+  // Snapshot of every field editable in a plain edit-invoice session, captured once on mount —
+  // drives the dirty check for the "Unsaved changes?" confirm (editingIssuedInvoice only; the
+  // autosave-on-exit duplicate-edit and recurring-series paths don't use this).
+  const editBaselineRef = useRef({
+    currency,
+    issueDateMs: issueDate.getTime(),
+    dueDate,
+    accountId,
+    externalCardLast4,
+    chaser,
+    discountOn,
+    discount,
+    discountMode,
+    servicesJson: JSON.stringify(services),
+  });
+  const dirty =
+    editingIssuedInvoice &&
+    (currency !== editBaselineRef.current.currency ||
+      issueDate.getTime() !== editBaselineRef.current.issueDateMs ||
+      dueDate !== editBaselineRef.current.dueDate ||
+      accountId !== editBaselineRef.current.accountId ||
+      externalCardLast4 !== editBaselineRef.current.externalCardLast4 ||
+      chaser !== editBaselineRef.current.chaser ||
+      discountOn !== editBaselineRef.current.discountOn ||
+      discount !== editBaselineRef.current.discount ||
+      discountMode !== editBaselineRef.current.discountMode ||
+      JSON.stringify(services) !== editBaselineRef.current.servicesJson);
+
   const subtotal = services.reduce(
     (sum, s) => sum + convert(s.quantity * s.unitPrice, s.currency, currency),
     0
@@ -391,6 +419,11 @@ export function AddInvoiceDetails({
   // sheet instead of silently dropping the user onto the list — "Go to invoice list" continues
   // the existing saveDraft flow, "Keep editing" just dismisses and stays on this page.
   const [savedDraftSheetOpen, setSavedDraftSheetOpen] = useState(false);
+  // Tapping back on a dirty edit-invoice session confirms before discarding — the header back
+  // chevron reuses this (it's the ambiguous action); the footer's own "Cancel" stays a direct,
+  // unconfirmed discard since it's already an explicit, unambiguous choice sitting next to Save.
+  const [discardEditOpen, setDiscardEditOpen] = useState(false);
+  const requestEditBack = () => (dirty ? setDiscardEditOpen(true) : onEditBack?.());
   // Recent (sent/created) card the list highlights when this invoice is issued.
   const recentSent = { client: clientLabel, amount: draftAmount, status: "Awaiting" as const, meta: sentMeta };
 
@@ -561,11 +594,12 @@ export function AddInvoiceDetails({
               slot. editExitToList (edit-existing-draft-found-via-duplicate-check) skips that
               confirm sheet — it's an ALREADY-existing draft being edited, not a fresh one just
               created, so "Saved as draft" + Delete Draft would misrepresent it; save and leave directly,
-              same as before the confirm sheet existed. */}
+              same as before the confirm sheet existed. editingIssuedInvoice instead confirms via
+              requestEditBack when `dirty` — an untouched edit session still returns directly. */}
           <PageHeader
             type="center"
             title={headerTitle ?? (editingSeries ? "Edit recurring series" : isRecurring ? (isEditing ? "Edit invoice" : "New Recurring Invoice") : isEditing ? "Edit invoice" : "Create Invoice")}
-            onBack={lockActions || lockExceptIssueDate ? () => {} : isEditing && !editExitToList ? onEditBack : editExitToList ? saveDraft : onSaveDraft ? () => setSavedDraftSheetOpen(true) : onClose}
+            onBack={lockActions || lockExceptIssueDate ? () => {} : editingIssuedInvoice ? requestEditBack : isEditing && !editExitToList ? onEditBack : editExitToList ? saveDraft : onSaveDraft ? () => setSavedDraftSheetOpen(true) : onClose}
             // No right-side search action anywhere on this page — editingIssuedInvoice has no
             // custom `right` content (it doesn't autosave), which would otherwise fall through to
             // PageHeader's default search button.
@@ -1001,19 +1035,23 @@ export function AddInvoiceDetails({
           />
         ) : isEditing && editingIssuedInvoice ? (
           // Plain Edit Invoice (an issued invoice, opened from its detail page) — explicit Save/
-          // Cancel, no autosave. Cancel reuses the same onEditBack the header chevron already
-          // calls: a clean return to the detail page, nothing to confirm since nothing's been
-          // silently saved.
-          <ButtonDock
-            type="double"
-            sticky
-            primaryLabel="Save"
-            secondaryLabel="Cancel"
-            primaryDisabled={services.length === 0}
-            onPrimary={onEditSave}
-            onSecondary={onEditBack}
-            keyboard={keyboardOpen}
-          />
+          // Cancel, no autosave. Hidden until the user actually changes something (`dirty`): an
+          // untouched edit session has nothing to save or cancel. Cancel reuses the same
+          // onEditBack the header chevron calls when nothing's dirty — a clean, unconfirmed
+          // return, since choosing Cancel (right next to Save) is already an explicit choice;
+          // the header chevron is the ambiguous action, so it confirms via requestEditBack instead.
+          dirty && (
+            <ButtonDock
+              type="double"
+              sticky
+              primaryLabel="Save"
+              secondaryLabel="Cancel"
+              primaryDisabled={services.length === 0}
+              onPrimary={onEditSave}
+              onSecondary={onEditBack}
+              keyboard={keyboardOpen}
+            />
+          )
         ) : isEditing ? (
           <ButtonDock
             type="single"
@@ -1155,6 +1193,30 @@ export function AddInvoiceDetails({
           ) : (
             <>Your invoice has been saved as a draft. You&rsquo;ll find it in your invoice list, ready to edit and send whenever you are.</>
           )}
+        </p>
+      </BottomSheet>
+
+      {/* Unsaved-changes confirm (editingIssuedInvoice, dirty only) — the header back chevron
+          reuses this instead of discarding directly (requestEditBack); the footer's own "Cancel"
+          stays a direct, unconfirmed discard since it's already explicit. Save persists via the
+          same onEditSave the footer's Save button calls; Cancel here discards via onEditBack. */}
+      <BottomSheet
+        open={discardEditOpen}
+        title="Unsaved changes?"
+        onClose={() => setDiscardEditOpen(false)}
+        compact
+        footer={
+          <ButtonDock
+            type="double"
+            primaryLabel="Save"
+            secondaryLabel="Cancel"
+            onPrimary={() => { setDiscardEditOpen(false); onEditSave?.(); }}
+            onSecondary={() => { setDiscardEditOpen(false); onEditBack?.(); }}
+          />
+        }
+      >
+        <p className="body-sm" style={{ ...FONT, color: MUTED }}>
+          You have unsaved changes to this invoice. Save them before you go, or cancel to discard them.
         </p>
       </BottomSheet>
 
