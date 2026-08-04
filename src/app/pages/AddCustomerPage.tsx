@@ -46,9 +46,11 @@ export interface AddCustomerPageProps {
 
 /**
  * Add / Edit Client — FULL PAGE (DES-713 add / DES-714 edit). The complete Client Field Specification with
- * the required set enforced (Company Name, Email, Address, City, Postal Code, Country). Edit mode seeds from
- * an existing record, dirty-gates "Save Changes", and warns before discarding unsaved edits (714 AC1). The
- * lightweight company+email version stays a BottomSheet for the in-invoice quick-add.
+ * the required set enforced (Company Name, Email, Address, City, Postal Code, Country). Edit mode hides its
+ * Save/Cancel dock until something actually changes (`dirty`), and the header back chevron confirms via the
+ * same "Unsaved changes?" sheet + Save/Cancel CTAs as AddInvoiceDetails' editingIssuedInvoice pattern (714
+ * AC1) — one consistent edit experience across the app. The lightweight company+email version stays a
+ * BottomSheet for the in-invoice quick-add.
  */
 export function AddCustomerPage({ mode = "add", initial, existing = [], defaultCurrency = "USD", onBack, onAdd }: AddCustomerPageProps) {
   const isEdit = mode === "edit";
@@ -284,14 +286,33 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         </div>
       </div>
 
-      <ButtonDock
-        type="single"
-        sticky
-        primaryLabel={isEdit ? "Save Changes" : "Add Customer"}
-        primaryDisabled={isEdit && !dirty}
-        onPrimary={handleSave}
-        keyboard={keyboardOpen}
-      />
+      {/* Edit: hidden until something actually changes (`dirty`) — an untouched edit session has
+          nothing to save or cancel, same as AddInvoiceDetails' editingIssuedInvoice dock. Cancel
+          is a direct, unconfirmed discard (already an explicit choice next to Save); the header
+          back chevron is the ambiguous action, so it confirms via requestBack instead. Add mode
+          keeps its own single always-shown "Add Customer" CTA — there's nothing to "cancel" on a
+          still-empty fresh add. */}
+      {isEdit ? (
+        dirty && (
+          <ButtonDock
+            type="double"
+            sticky
+            primaryLabel="Save"
+            secondaryLabel="Cancel"
+            onPrimary={handleSave}
+            onSecondary={onBack}
+            keyboard={keyboardOpen}
+          />
+        )
+      ) : (
+        <ButtonDock
+          type="single"
+          sticky
+          primaryLabel="Add Customer"
+          onPrimary={handleSave}
+          keyboard={keyboardOpen}
+        />
+      )}
 
       <CountrySheet
         open={countryOpen}
@@ -314,25 +335,27 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         onSelect={(c) => { setPhoneCountry(c); setPhoneCodeOpen(false); }}
       />
 
-      {/* Unsaved-changes discard warning (DES-714 AC1). Safe action (Keep Editing) is the
-          filled primary; the destructive Discard is the outline secondary. */}
+      {/* Unsaved-changes confirm (DES-714 AC1) — same "Unsaved changes?" sheet + Save/Cancel CTAs
+          as AddInvoiceDetails' editingIssuedInvoice back-tap confirm. Save persists via the same
+          handleSave the dock's own Save button calls (still runs validation/duplicate-check);
+          Cancel discards via onBack, same as the dock's own Cancel. */}
       <BottomSheet
         open={discardOpen}
-        title="Discard changes?"
+        title="Unsaved changes?"
         onClose={() => setDiscardOpen(false)}
         compact
         footer={
           <ButtonDock
             type="double"
-            primaryLabel="Keep Editing"
-            secondaryLabel="Discard"
-            onPrimary={() => setDiscardOpen(false)}
+            primaryLabel="Save"
+            secondaryLabel="Cancel"
+            onPrimary={() => { setDiscardOpen(false); handleSave(); }}
             onSecondary={() => { setDiscardOpen(false); onBack?.(); }}
           />
         }
       >
         <p className="body-sm" style={{ ...FONT, color: "var(--text-secondary)" }}>
-          You have unsaved changes. If you go back now, they'll be lost.
+          You have unsaved changes. Save them before you go, or cancel to discard them.
         </p>
       </BottomSheet>
 
