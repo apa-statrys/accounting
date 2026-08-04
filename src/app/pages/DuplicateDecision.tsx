@@ -10,9 +10,11 @@ import type { UploadedFileInfo } from "../components/UploadedFile";
 import { FileItemBase } from "../ui/FileItemBase";
 import { InvoiceDocumentPreview } from "./shared/InvoicePreviewPage";
 import type { ExistingInvoice } from "../types";
-import { TriangleAlert } from "lucide-react";
 
 import { FONT } from "../lib/theme";
+
+// Figma "Sales Invoice — Client" (node 1959-11709) — hand-drawn warning-triangle illustration.
+const warningTriangleIcon = new URL("./duplicate-decision-warning.svg", import.meta.url).href;
 
 interface DuplicateDecisionProps {
   /** The matching draft already in the system. */
@@ -70,10 +72,7 @@ export function DuplicateDecision({ existing, file, onBack, onReupload, onEditEx
 
         <div className="px-4 pt-6 pb-44 flex flex-col gap-5">
           <div className="flex flex-col gap-4">
-            {/* Same warning-triangle icon as UploadErrorDialog's file-too-large/unsupported-format
-                sheets (2026-08-04) — swapped in place of the previous hand-drawn Figma illustration
-                for visual consistency across every "your upload can't proceed" moment. */}
-            <TriangleAlert size={52} strokeWidth={1.5} color="var(--icon-warning-primary)" />
+            <img src={warningTriangleIcon} alt="" width={52} height={49} />
             <div className="flex flex-col gap-2.5">
               <p className="card-title-lg" style={{ color: "var(--text-primary)" }}>This invoice already exists</p>
               <p className="text-[14px] leading-[1.4]" style={{ ...FONT, color: "var(--text-secondary)" }}>
