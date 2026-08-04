@@ -9,8 +9,10 @@ import styles from "./index.module.css";
  * + optional second line, and a 30px trailing slot (none/chevron/check). The
  * trailing slot is always reserved so rows in one list stay aligned, per Figma.
  * `selected` = brand border + warm surface (pair with trailing="check");
- * onLayer="beige" drops the border for tiles sitting on the beige page bg.
- * Renders a <button> when onClick is given, with its own momentary Pressed
+ * onLayer="gray" drops the border for tiles sitting on the app's gray page bg
+ * (Bg/Neutral/tertiary — renamed from "beige" 2026-08-04 once pages stopped
+ * using the beige background). Renders a <button> when onClick is given, with
+ * its own momentary Pressed
  * state (Figma node 4222-8331 — a `state` axis alongside Selected/Disabled,
  * so it's suppressed on those, not layered on top of them). Styling in
  * index.module.css.
@@ -60,8 +62,8 @@ interface TileProps {
   /** Validation error border (e.g. a required Tile left empty on submit) — not a Figma axis,
    *  just this token swapped in for .selected's brand border. */
   error?: boolean;
-  /** "beige" = borderless, for tiles on the beige page background. */
-  onLayer?: "neutral" | "beige";
+  /** "gray" = borderless, for tiles on the app's gray (Bg/Neutral/tertiary) page background. */
+  onLayer?: "neutral" | "gray";
   onClick?: () => void;
 }
 
@@ -103,7 +105,7 @@ export function Tile({
   const classes = [
     styles.tile,
     size === "sm" ? styles.sm : "",
-    onLayer === "beige" ? styles.beige : "",
+    onLayer === "gray" ? styles.gray : "",
     selected ? styles.selected : "",
     disabled ? styles.disabled : "",
     error ? styles.error : "",

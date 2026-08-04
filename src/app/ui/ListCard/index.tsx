@@ -6,18 +6,19 @@ import styles from "./index.module.css";
  * children (pass `last` on the final row so its divider disappears). `onLayer`
  * matches the surface the card sits on, same convention as ui/Tile: "neutral"
  * (default, matches Figma) adds a hairline border for a white page background;
- * "beige" drops it — the app's pages sit on the beige background, so most real
- * usage passes `onLayer="beige"` explicitly.
+ * "gray" drops it — the app's pages sit on the gray (Bg/Neutral/tertiary)
+ * background, so most real usage passes `onLayer="gray"` explicitly (renamed
+ * from "beige" 2026-08-04 once pages stopped using the beige background).
  */
 
 interface ListCardProps {
   children: React.ReactNode;
-  onLayer?: "neutral" | "beige";
+  onLayer?: "neutral" | "gray";
   className?: string;
 }
 
 export function ListCard({ children, onLayer = "neutral", className = "" }: ListCardProps) {
-  const classes = [styles.card, onLayer === "beige" ? styles.beige : "", className].filter(Boolean).join(" ");
+  const classes = [styles.card, onLayer === "gray" ? styles.gray : "", className].filter(Boolean).join(" ");
   return <div className={classes}>{children}</div>;
 }
 

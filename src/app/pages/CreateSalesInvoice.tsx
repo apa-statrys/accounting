@@ -103,7 +103,7 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
       avatarColor={avatarTint(c.id)}
       title={c.name}
       text={c.email}
-      onLayer="beige"
+      onLayer="gray"
       selected={pendingId === c.id}
       trailing={pendingId === c.id ? "check" : "none"}
       onClick={() => setPendingId(c.id)}

@@ -549,7 +549,7 @@ function InteractiveDemo({
   render: (values: Record<string, string>) => React.ReactNode;
   /** Canvas background as a function of the current values — e.g. flip to a dark
    *  swatch when an "Inverse"/"Surface" control is on a dark-surface variant, or
-   *  to the beige page color for onLayer="beige". Defaults to the standard light gray. */
+   *  to the app's gray page color for onLayer="gray". Defaults to the standard light gray. */
   canvasBg?: (values: Record<string, string>) => string;
 }) {
   const [values, setValues] = useState(defaultValues);
@@ -1429,7 +1429,7 @@ function LoadingOverview() {
 function PhoneSheetStage({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="mobile-mode relative flex flex-col overflow-hidden rounded-[48px] bg-[#f9f5ea] shadow-2xl"
+      className="mobile-mode relative flex flex-col overflow-hidden rounded-[48px] bg-[var(--bg-neutral-tertiary)] shadow-2xl"
       style={{ width: 375, height: 812 }}
     >
       <StatusBar />
@@ -1450,7 +1450,7 @@ function PhoneSheetStage({ children }: { children: React.ReactNode }) {
     `PhoneSheetStage` is for). Keeps a page with many variants scannable. */
 function SheetStage({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mobile-mode relative w-full max-w-[375px] overflow-hidden rounded-[12px] bg-[#f9f5ea]">
+    <div className="mobile-mode relative w-full max-w-[375px] overflow-hidden rounded-[12px] bg-[var(--bg-neutral-tertiary)]">
       <div className="flex flex-col gap-2 p-4 pb-20">
         <div className="h-3 w-3/4 rounded bg-[#d8cfb6]" />
         <div className="h-12 w-full rounded bg-[#efe7d2]" />
@@ -1547,7 +1547,7 @@ function OverlayOverview() {
         Dims the page behind a sheet or pop-up — the page itself stays put, it doesn't shrink or shift:
       </p>
       <div
-        className="mobile-mode relative flex flex-col overflow-hidden rounded-[48px] bg-[#f9f5ea] shadow-2xl"
+        className="mobile-mode relative flex flex-col overflow-hidden rounded-[48px] bg-[var(--bg-neutral-tertiary)] shadow-2xl"
         style={{ width: 375, height: 812 }}
       >
         <StatusBar />
@@ -1572,7 +1572,7 @@ function OverlayOverview() {
 function PhoneDockStage({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="mobile-mode relative flex flex-col overflow-hidden rounded-[48px] bg-[#f9f5ea] shadow-2xl"
+      className="mobile-mode relative flex flex-col overflow-hidden rounded-[48px] bg-[var(--bg-neutral-tertiary)] shadow-2xl"
       style={{ width: 375, height: 812 }}
     >
       <StatusBar />
@@ -1595,7 +1595,7 @@ function PhoneDockStage({ children }: { children: React.ReactNode }) {
     `PhoneDockStage` is for). Keeps a page with many variants scannable. */
 function DockStage({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mobile-mode relative w-full max-w-[375px] overflow-hidden rounded-[12px] bg-[#f9f5ea]">
+    <div className="mobile-mode relative w-full max-w-[375px] overflow-hidden rounded-[12px] bg-[var(--bg-neutral-tertiary)]">
       <div className="flex flex-col gap-2 p-4">
         <div className="h-3 w-3/4 rounded bg-[#d8cfb6]" />
         <div className="h-3 w-1/2 rounded bg-[#e3dcc5]" />
@@ -1767,7 +1767,7 @@ function SummaryDockOverview() {
 
 /** 375px phone-bg strip so the frosted-glass buttons/pill read like in the app. */
 function HeaderStrip({ children }: { children: React.ReactNode }) {
-  return <div className="mobile-mode w-full max-w-[375px] rounded-[12px] bg-[#f9f5ea] py-2">{children}</div>;
+  return <div className="mobile-mode w-full max-w-[375px] rounded-[12px] bg-[var(--bg-neutral-tertiary)] py-2">{children}</div>;
 }
 
 const INVOICESTATUS_PRESETS: Record<string, { label: string; color: BadgeColor; caption: string }> = {
@@ -2083,10 +2083,10 @@ function ListRowTestMe() {
       <InteractiveDemo
         groups={LISTROW_CONTROL_GROUPS}
         defaultValues={{ content: "description", trailing: "value" }}
-        canvasBg={() => "#f9f5ea"}
+        canvasBg={() => "var(--bg-neutral-tertiary)"}
         render={(v) => (
           <div className="w-[320px]">
-            <ListCard onLayer="beige">
+            <ListCard onLayer="gray">
               <ListRow
                 label="Label"
                 description={v.content !== "simple" ? "This is description text" : undefined}
@@ -2125,7 +2125,7 @@ const LISTCARD_CONTROL_GROUPS: ControlGroup[] = [
     key: "surface",
     label: "Surface",
     options: [
-      { value: "beige", label: "Beige page (borderless)" },
+      { value: "gray", label: "Gray page (borderless)" },
       { value: "neutral", label: "White page (bordered)" },
     ],
   },
@@ -2135,11 +2135,11 @@ function ListCardTestMe() {
   return (
     <InteractiveDemo
       groups={LISTCARD_CONTROL_GROUPS}
-      defaultValues={{ surface: "beige" }}
-      canvasBg={(v) => (v.surface === "beige" ? "#f9f5ea" : "#f4f4f2")}
+      defaultValues={{ surface: "gray" }}
+      canvasBg={(v) => (v.surface === "gray" ? "var(--bg-neutral-tertiary)" : "#f4f4f2")}
       render={(v) => (
         <div className="w-[320px]">
-          <ListCard onLayer={v.surface as "neutral" | "beige"}>
+          <ListCard onLayer={v.surface as "neutral" | "gray"}>
             <ListRow label="Label" description="This is description text" trailing="chevron" value="Next 30 days" onClick={() => {}} />
             <ListRow label="Label" description="This is description text" trailing="chevron" value="Next 30 days" onClick={() => {}} last />
           </ListCard>
@@ -2394,7 +2394,7 @@ const TILE_CONTROL_GROUPS: ControlGroup[] = [
     label: "Surface",
     options: [
       { value: "neutral", label: "White page" },
-      { value: "beige", label: "Beige page" },
+      { value: "gray", label: "Gray page" },
     ],
   },
 ];
@@ -2404,7 +2404,7 @@ function TileTestMe() {
     <InteractiveDemo
       groups={TILE_CONTROL_GROUPS}
       defaultValues={{ size: "md", leading: "flag", trailing: "chevron", text: "on", badge: "off", state: "default", surface: "neutral" }}
-      canvasBg={(v) => (v.surface === "beige" ? "#f9f5ea" : "#f4f4f2")}
+      canvasBg={(v) => (v.surface === "gray" ? "var(--bg-neutral-tertiary)" : "#f4f4f2")}
       render={(v) => (
         <div className="w-[320px]">
           <Tile
@@ -2420,7 +2420,7 @@ function TileTestMe() {
             selected={v.trailing === "check"}
             disabled={v.state === "disabled"}
             error={v.state === "error"}
-            onLayer={v.surface as "neutral" | "beige"}
+            onLayer={v.surface as "neutral" | "gray"}
             // Interactive (onClick given) so the momentary Pressed state (Figma node
             // 4222-8331) is demoable — press and hold on a plain, non-selected tile.
             onClick={() => {}}
@@ -3017,7 +3017,7 @@ export function Showcase() {
             {!isFoundation && activeNav === "list-card" && (
               <ComponentPage
                 title="List Card"
-                description="The rounded card that groups a set of List Row items together. It adds a thin border when sitting on a white background, and removes it when sitting on a beige background, so the card's edge stays visible either way."
+                description="The rounded card that groups a set of List Row items together. It adds a thin border when sitting on a white background, and removes it when sitting on the app's gray background, so the card's edge stays visible either way."
                 whenToUse={[
                   "Grouping several List Row items into one rounded card that adapts to whatever background it's sitting on",
                 ]}

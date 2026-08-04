@@ -82,7 +82,7 @@ export function DuplicateDecision({ existing, file, onBack, onReupload, onEditEx
           </div>
 
           {/* Duplicate match summary — the key fields only (decision page, not the editor). */}
-          <ListCard onLayer="beige">
+          <ListCard onLayer="gray">
             <ListRow label="Client" value={existing.customer} />
             <ListRow label="Invoice number" value={existing.number} />
             <ListRow label="Issue date" value={existing.issueDate} />

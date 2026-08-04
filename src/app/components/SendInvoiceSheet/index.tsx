@@ -259,7 +259,7 @@ export function SendInvoiceSheet({
                     text={customerEmail}
                     avatar={initials(customerName)}
                     avatarColor={avatarTint(customerName)}
-                    onLayer="beige"
+                    onLayer="gray"
                     reserveTrailing={false}
                   />
                   <Checkbox checked={cc} onChange={setCc} label="Send me a copy" />

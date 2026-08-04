@@ -64,7 +64,7 @@ export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer,
       avatarColor={avatarTint(c.id)}
       title={c.name}
       text={c.email}
-      onLayer="beige"
+      onLayer="gray"
       reserveTrailing={false}
       onClick={() => onOpenCustomer?.(c)}
     />

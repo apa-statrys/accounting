@@ -9,7 +9,7 @@
      lockstep with the many not-yet-converted files still using the raw
      Tailwind z-* classes (see BottomSheet/index.module.css for precedent). */
   z-index: 40;
-  background: var(--bg-beige-primary);
+  background: var(--bg-neutral-tertiary);
   /* Tailwind rounded-[48px] — matches the phone-frame shell radius used by
      every full-page screen (App.tsx / pages/*.tsx); no radius token reaches
      48px (--radius-5xl caps at 32px), so kept literal. */
@@ -22,5 +22,5 @@
 .body {
   flex: 1 1 0%;
   overflow-y: auto;
-  background: var(--bg-beige-primary);
+  background: var(--bg-neutral-tertiary);
 }

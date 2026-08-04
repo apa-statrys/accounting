@@ -280,7 +280,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
 
         <div className="px-4 pt-2 pb-6 flex flex-col gap-4">
         {/* Company — Company Details + Business Address */}
-        <ListCard onLayer="beige">
+        <ListCard onLayer="gray">
           <ListRow
             label="Company Details"
             description="Registration, phone, website and logo"
@@ -291,7 +291,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         </ListCard>
 
         {/* Invoice defaults — currency + receiving account */}
-        <ListCard onLayer="beige">
+        <ListCard onLayer="gray">
           <ListRow
             label="Currency"
             description="Default currency for invoices"
@@ -312,7 +312,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         </ListCard>
 
         {/* Notifications — Automatic reminders is a simple on/off toggle (no schedule sub-page). */}
-        <ListCard onLayer="beige">
+        <ListCard onLayer="gray">
           <ListRow
             label="Automatic reminders"
             description="Email until invoice is paid"

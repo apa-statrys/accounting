@@ -615,10 +615,10 @@ export function AddInvoiceDetails({
           isEditing ? (
             /* DES-817: Client (Customer) is not editable in Draft/after Send — locked once created.
                To change it the user must start a new invoice (or edit the client record). */
-            <Tile title={name} text={email} avatar={initials(name)} avatarColor={avatarTint(name)} onLayer="beige" reserveTrailing={false} />
+            <Tile title={name} text={email} avatar={initials(name)} avatarColor={avatarTint(name)} onLayer="gray" reserveTrailing={false} />
           ) : (
             /* DS Tile on the beige page — tap (chevron) reopens the customer picker. */
-            <Tile title={name} text={email} avatar={initials(name)} avatarColor={avatarTint(name)} onLayer="beige" trailing="chevron" onClick={onChangeCustomer} />
+            <Tile title={name} text={email} avatar={initials(name)} avatarColor={avatarTint(name)} onLayer="gray" trailing="chevron" onClick={onChangeCustomer} />
           )
         ) : (
           /* Upload review (DES-716) — OCR extracts the customer name + email, so show them as
@@ -700,7 +700,7 @@ export function AddInvoiceDetails({
             description stacked (e.g. "Next 30 days" / "15 Jul 2026"), Currency gets a flag. Locked
             rows (limited edit, DES-817) stay dimmed with no chevron/tap, same semantics as before. */}
         <Section title="Invoice Details">
-          <ListCard onLayer="beige">
+          <ListCard onLayer="gray">
             {details.map((d, i) => {
               const isIssueRow = d.label === "Issue Date";
               const rowError = isIssueRow && issueError && !issuePicked;
@@ -754,7 +754,7 @@ export function AddInvoiceDetails({
           ) : (
             <div className="flex flex-col gap-3">
               {/* ListCard of rows (Figma "Create Invoice", node 1826-15914). */}
-              <ListCard onLayer="beige">
+              <ListCard onLayer="gray">
                 <AnimatePresence initial={false}>
                   {services.map((s, idx) => (
                     <motion.div

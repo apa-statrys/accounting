@@ -1,9 +1,11 @@
 /* Tile — Figma "[APP] Design System" → Tile (node 4222-8331).
    65px row (54px at size="sm" — see .sm below), radius 2xl, 12/16 padding,
-   10px gap. Neutral layer = white with the neutral border; Beige layer =
-   borderless (tile sits on the beige page bg). Selected = warm hover surface
-   + brand border. Disabled greys surface, text, icons; the flag fades via
-   opacity (Figma ships a faded flag asset). Colors from styles/theme.css. */
+   10px gap. Neutral layer = white with the neutral border; Gray layer =
+   borderless (tile sits on the app's gray Bg/Neutral/tertiary page bg —
+   renamed from "beige" 2026-08-04 once pages stopped using the beige
+   background). Selected = warm hover surface + brand border. Disabled greys
+   surface, text, icons; the flag fades via opacity (Figma ships a faded flag
+   asset). Colors from styles/theme.css. */
 
 .tile {
   box-sizing: border-box;
@@ -26,28 +28,28 @@ button.tile {
 .sm {
   height: 54px;
 }
-.beige {
+.gray {
   border-color: transparent;
 }
 .selected,
-.beige.selected {
+.gray.selected {
   background: var(--bg-neutral-primary-hover);
   border-color: var(--bg-brand-primary); /* brand #ff4a15 border on selection */
 }
 /* Momentary press feedback (Figma "Pressed" state) — same warm surface as .selected, but a
-   plain darker-neutral border on the neutral layer; beige stays borderless like its default. */
+   plain darker-neutral border on the neutral layer; gray stays borderless like its default. */
 .pressed {
   background: var(--bg-neutral-primary-hover);
   border-color: var(--border-neutral-primary-hover);
 }
-.beige.pressed {
+.gray.pressed {
   border-color: transparent;
 }
 .disabled,
-.beige.disabled {
+.gray.disabled {
   background: var(--bg-neutral-disabled);
 }
-.beige.disabled {
+.gray.disabled {
   border-color: transparent;
 }
 
@@ -55,7 +57,7 @@ button.tile {
    .selected's brand border swap; not a Figma-defined axis, just this token in place of the
    brand one. */
 .error,
-.beige.error {
+.gray.error {
   border-color: var(--border-error-bold);
 }
 

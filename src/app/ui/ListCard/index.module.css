@@ -1,6 +1,6 @@
 /* ListCard — Figma "[APP] Design System" → ListCard (node 4295-7988).
-   onLayer(neutral|beige): neutral (default) adds a hairline border for a white
-   page background; beige drops it. */
+   onLayer(neutral|gray): neutral (default) adds a hairline border for a white
+   page background; gray drops it (app pages sit on Bg/Neutral/tertiary). */
 
 .card {
   display: flex;
@@ -14,6 +14,6 @@
   padding: 0 16px;
 }
 
-.beige {
+.gray {
   border-color: transparent;
 }
