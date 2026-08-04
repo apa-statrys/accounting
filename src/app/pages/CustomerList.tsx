@@ -71,7 +71,7 @@ export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer,
   );
 
   return (
-    <div className="relative bg-[var(--bg-beige-primary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
+    <div className="relative bg-[var(--bg-neutral-tertiary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto thin-scrollbar"

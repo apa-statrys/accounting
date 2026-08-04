@@ -517,7 +517,7 @@ export function AddInvoiceDetails({
       style={{ width: 375, height: 812 }}
     >
       {/* Page — stays in place; the open sheet dims it with its own scrim (no recede). */}
-      <div className="absolute inset-0 flex flex-col bg-[var(--bg-beige-primary)] overflow-hidden rounded-[48px]">
+      <div className="absolute inset-0 flex flex-col bg-[var(--bg-neutral-tertiary)] overflow-hidden rounded-[48px]">
         <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto thin-scrollbar"

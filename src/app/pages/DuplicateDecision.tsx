@@ -61,9 +61,9 @@ export function DuplicateDecision({ existing, file, onBack, onReupload, onEditEx
   // pattern as CreditNoteDetailPage's own document preview when it has no real lines either.
   const previewTotal = Number(existing.amount.replace(/[^0-9.]/g, "")) || 0;
   return (
-    <div className="relative bg-[var(--bg-beige-primary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
+    <div className="relative bg-[var(--bg-neutral-tertiary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
       <div
-        className="flex-1 overflow-y-auto bg-[var(--bg-beige-primary)]"
+        className="flex-1 overflow-y-auto bg-[var(--bg-neutral-tertiary)]"
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>

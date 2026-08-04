@@ -683,7 +683,7 @@ export function InvoiceDetailPage({
   const toastBottomOffset = stickyDockKind === "double" ? 150 : stickyDockKind === "none" ? 16 : undefined;
 
   return (
-    <div className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812, background: "var(--bg-beige-primary)" }}>
+    <div className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812, background: "var(--bg-neutral-tertiary)" }}>
       {/* No background here (was bg-white) — PageAppHeader is transparent at rest, so it needs
           the beige of the OUTER frame to show through behind it (Figma), not opaque white.
           The white "body" further down comes from its own wrapper below instead. */}

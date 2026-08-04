@@ -29,7 +29,7 @@ export function GeneratingInvoice({ onDone, title = "Reading your invoice…", f
 
   return (
     <div
-      className="relative bg-[var(--bg-beige-primary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col items-center justify-center"
+      className="relative bg-[var(--bg-neutral-tertiary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col items-center justify-center"
       style={{ width: 375, height: 812 }}
     >
         {/* App status bar — pinned to the top edge; the spinner stays centred below it. */}

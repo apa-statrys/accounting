@@ -117,7 +117,7 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
 
   return (
     <div
-      className="relative bg-[var(--bg-beige-primary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
+      className="relative bg-[var(--bg-neutral-tertiary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
       style={{ width: 375, height: 812 }}
     >
       <div

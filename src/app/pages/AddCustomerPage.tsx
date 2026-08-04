@@ -196,7 +196,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
   return (
     <div
       className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
-      style={{ width: 375, height: 812, background: "var(--bg-beige-primary)" }}
+      style={{ width: 375, height: 812, background: "var(--bg-neutral-tertiary)" }}
     >
       <div
         className="flex-1 overflow-y-auto thin-scrollbar"
