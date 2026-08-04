@@ -49,7 +49,7 @@ export function RecordPaymentSheet({
 
   const titles: Record<PaymentStep, string> = {
     form: "Mark as paid",
-    account: "Select Receiving Account",
+    account: "Select Payment Method",
     date: "Select Payment Date",
   };
 

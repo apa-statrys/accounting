@@ -508,7 +508,7 @@ export function AddInvoiceDetails({
     { label: "Currency", value: currencyLabel, onClick: () => setCurrencySheetOpen(true), locked: false, readOnly: false },
     { label: "Issue Date", value: !issuePicked ? issuePlaceholder! : showIssueToday ? `Today (${format(issueDate, "d MMM yyyy")})` : format(issueDate, "d MMM yyyy"), onClick: () => setIssueSheetOpen(true), locked: false, readOnly: false, placeholder: !issuePicked },
     { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false, readOnly: false },
-    { label: "Receiving Account", value: externalCardLast4 ? `Visa (..${externalCardLast4})` : formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false, readOnly: false },
+    { label: "Payment Method", value: externalCardLast4 ? `Visa (..${externalCardLast4})` : formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false, readOnly: false },
   ];
 
   return (

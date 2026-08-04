@@ -823,7 +823,7 @@ export function InvoiceDetailPage({
         {/* Receiving account (DES-817) — DS Tile with the account's own country flag (Figma), same
             pattern as every other receiving-account display in the app. */}
         <div className="flex flex-col gap-2">
-          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>Receiving Account</p>
+          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>Payment Method</p>
           <Tile
             flag={<CountryFlag name={receivingAcct.country} size={30} />}
             title={receivingAcct.name}

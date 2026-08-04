@@ -347,7 +347,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         {/* Receiving account (Figma 1209) — the account the credit is set against. Not shown for a refund
             CN: the money goes OUT, and the account used is on the "Refund Method" card below. */}
         {receivingAccount && !isRefund && (
-          <Card title="Receiving Account">
+          <Card title="Payment Method">
             <div className="py-3">
               <div className="flex items-center gap-2">
                 <span className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0" style={{ background: "#E4002B" }}>
