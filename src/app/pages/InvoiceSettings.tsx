@@ -315,7 +315,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         <ListCard onLayer="gray">
           <ListRow
             label="Automatic reminders"
-            description="Email until invoice is paid"
+            description="Email sent 7 days after the due date"
             trailing="toggle"
             checked={s.chaserEnabled}
             onCheckedChange={(v) => set("chaserEnabled", v)}

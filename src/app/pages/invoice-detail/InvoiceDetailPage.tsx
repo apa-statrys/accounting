@@ -683,10 +683,13 @@ export function InvoiceDetailPage({
   const toastBottomOffset = stickyDockKind === "double" ? 150 : stickyDockKind === "none" ? 16 : undefined;
 
   return (
-    <div className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812, background: "var(--bg-neutral-tertiary)" }}>
+    <div className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812, background: "var(--bg-beige-primary)" }}>
       {/* No background here (was bg-white) — PageAppHeader is transparent at rest, so it needs
           the beige of the OUTER frame to show through behind it (Figma), not opaque white.
-          The white "body" further down comes from its own wrapper below instead. */}
+          The white "body" further down comes from its own wrapper below instead. Kept
+          beige-primary (not neutral-tertiary) so it reads seamlessly with the header-tint
+          gradient below, which fades FROM beige — a flat gray base fights that fade
+          (reverted 2026-08-04, see CLAUDE.md gradient exception). */}
       <div
         className="flex-1 overflow-y-auto thin-scrollbar"
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}

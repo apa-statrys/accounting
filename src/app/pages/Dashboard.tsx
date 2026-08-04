@@ -99,16 +99,18 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
   const nothingCollected = hero.collectedCount === 0;
 
   return (
-    <div className="relative rounded-[48px] overflow-hidden shadow-2xl" style={{ width: 375, height: 812, background: "var(--bg-neutral-tertiary)" }}>
+    <div className="relative rounded-[48px] overflow-hidden shadow-2xl" style={{ width: 375, height: 812, background: "var(--bg-beige-primary)" }}>
       {/* Hide the scrollbar but keep scrolling */}
       <style>{`.dash-scroll{-ms-overflow-style:none;scrollbar-width:none;}.dash-scroll::-webkit-scrollbar{display:none;}`}</style>
 
       {/* Scrollable content — stays in place; the open sheet dims it with its own scrim
-          (no page recede/scale — see CLAUDE.md "Sheet motion"). Page background is
-          Bg/Neutral/tertiary; white cards sit on top of it. */}
+          (no page recede/scale — see CLAUDE.md "Sheet motion"). Page background stays
+          Bg/Beige/primary (not neutral-tertiary) so it reads seamlessly with the hero-wash
+          gradient below, which fades FROM beige — a flat gray base would fight that fade
+          (reverted 2026-08-04, see CLAUDE.md gradient exception). White cards sit on top. */}
       <div
         className="dash-scroll h-full overflow-y-auto"
-        style={{ background: "var(--bg-neutral-tertiary)" }}
+        style={{ background: "var(--bg-beige-primary)" }}
         onScroll={(e) => {
           // Hysteresis: collapse past 120px, expand back under 80px — no
           // flickering while hovering around a single threshold.
