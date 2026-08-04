@@ -28,7 +28,6 @@ const SCREEN_PATHS: Record<Screen, string> = {
   customerDetail: "/customers/detail",
   addCustomer: "/customers/add",
   editCustomer: "/customers/edit",
-  recurringSeries: "/recurring-series",
   lockedPeriodDialog: "/locked-period/dialog",
   lockedPeriodUpload: "/locked-period/upload",
   lockedPeriodEditCn: "/locked-period/edit-cn",

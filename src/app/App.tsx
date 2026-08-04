@@ -17,7 +17,6 @@ import { pathForScreen, screenForPath } from "./lib/routes";
 import { InvoiceDetailPage } from "./pages/invoice-detail/InvoiceDetailPage";
 import { CreditNoteForm } from "./pages/credit-note-form/CreditNoteForm";
 import { CreateSalesInvoice } from "./pages/CreateSalesInvoice";
-import { RecurringSeriesDetail } from "./pages/RecurringSeriesDetail";
 import { AddInvoiceDetails } from "./pages/add-invoice-details/AddInvoiceDetails";
 import { LockedPeriodBanner } from "./pages/locked-period/LockedPeriodBanner";
 import { SalesInvoiceList } from "./pages/sales-invoice-list/SalesInvoiceList";
@@ -33,7 +32,7 @@ import { DEMO_EXTRACTION, DEMO_EXTRACTION_MATCHED, DEMO_EXTRACTION_NO_CUSTOMER, 
 import { CUSTOMERS } from "./data/customers";
 import { DEFAULT_SETTINGS } from "./data/settings";
 import { HERO_SCENARIOS } from "./data/heroScenarios";
-import type { Screen, Customer, DetailStatus, InvoiceEditSeed, InvoiceLine, CompanySettings, ExtractedInvoice, ExistingInvoice, ServiceLine } from "./types";
+import type { Screen, Customer, DetailStatus, InvoiceEditSeed, InvoiceLine, CompanySettings, ExtractedInvoice, ExistingInvoice } from "./types";
 
 /** Top-level navigation, grouped by product area. */
 const NAV_GROUPS: { heading: string; items: { id: Screen; label: string }[] }[] = [
@@ -56,11 +55,6 @@ const NAV_GROUPS: { heading: string; items: { id: Screen; label: string }[] }[] 
       { id: "refundCreditNote", label: "Sales Refund Credit Notes" },
     ],
   },
-];
-
-/** Demo line items used when editing the recurring series (DES-782) — one monthly retainer line. */
-const RECURRING_SERIES_ITEMS: ServiceLine[] = [
-  { id: "rs-1", name: "Monthly retainer", currency: "USD", unit: "Month", quantity: 1, unitPrice: 6450 },
 ];
 
 /** Demo line items + invoice context for previewing the standalone Credit Note form. */
@@ -279,14 +273,14 @@ export default function App() {
   // next step. `kind` disambiguates the two scenarios (their title copy is identical).
   const [uploadError, setUploadError] = useState<{ kind: "tooLarge" | "unsupportedType"; title: string; body: ReactNode } | null>(null);
   // Freshly created/saved invoice to surface + highlight at the top of the list.
-  const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string; recurring?: boolean } | null>(null);
+  const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string } | null>(null);
   // Whether `recent`'s one-time arrival highlight has already played — `recent` itself stays set
   // (the card keeps showing) long after that, so without this the highlight would replay every
   // time the list remounts (e.g. open the invoice, then Back). Reset to false only where a NEW
   // `recent` is assigned below, never where it's cleared.
   const [recentHighlighted, setRecentHighlighted] = useState(false);
   // The invoice opened into the detail page (status drives the lifecycle UI).
-  const [openInvoice, setOpenInvoice] = useState<{ number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean; cnAwaiting?: boolean; recurring?: boolean; viewCn?: boolean }>({
+  const [openInvoice, setOpenInvoice] = useState<{ number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean; cnAwaiting?: boolean; viewCn?: boolean }>({
     number: "INV-2026-000042",
     client: "Marlow & Finch Studio",
     status: "Awaiting",
@@ -328,8 +322,6 @@ export default function App() {
   // in-flow "Re-upload"/"Replace" action (DuplicateDecision, AddInvoiceDetails) reaches it via
   // the standalone scanner below instead of skipping straight past it.
   const startUpload = () => {
-    setRecurring(false);
-    setEditingSeries(false);
     setCustomer(null); // customer comes from OCR — don't carry a previously-selected one in
     setPendingExtraction(DEMO_EXTRACTION);
     setUploadedFile({ name: "invoice.pdf", size: 419430 });
@@ -340,37 +332,6 @@ export default function App() {
   // ScanDocument here, so it's mounted once at the root and toggled directly.
   const [reuploadScanOpen, setReuploadScanOpen] = useState(false);
   const openReuploadScanner = () => setReuploadScanOpen(true);
-  // Recurring-series create flow (DES-782) — reuses the customer → details flow with a schedule.
-  const [recurring, setRecurring] = useState(false);
-  // Series status for the opened recurring invoice — shared by the invoice detail card + series page.
-  const [seriesStatus, setSeriesStatus] = useState<"Active" | "Paused" | "Cancelled">("Active");
-  // Which demo log the series detail shows — set when the series is opened. "draft" = a fresh series,
-  // nothing sent yet (>3 rows → accordion); "midrun" = one paid, one awaiting, one still scheduled.
-  const [seriesScenario, setSeriesScenario] = useState<"draft" | "midrun" | "completed">("midrun");
-  const seriesInvoices = seriesScenario === "draft"
-    ? [
-        { number: "series-1", label: "Next Invoice", date: "1 Jul 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
-        { number: "series-2", label: "Invoice #2", date: "1 Aug 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
-        { number: "series-3", label: "Invoice #3", date: "1 Sep 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
-        { number: "series-4", label: "Invoice #4", date: "1 Oct 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
-        { number: "series-5", label: "Invoice #5", date: "1 Nov 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
-      ]
-    : seriesScenario === "completed"
-    ? [
-        // A finished series (end condition reached) — every scheduled date generated, nothing pending.
-        { number: "INV-2026-000021", label: "INV-2026-000021", date: "1 Mar 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
-        { number: "INV-2026-000022", label: "INV-2026-000022", date: "1 Apr 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
-        { number: "INV-2026-000023", label: "INV-2026-000023", date: "1 May 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
-      ]
-    : [
-        { number: "INV-2026-000001", label: "INV-2026-000001", date: "1 Jul 2026", status: "Paid" as DetailStatus, kind: "paid" as const },
-        { number: "INV-2026-000002", label: "INV-2026-000002", date: "1 Aug 2026", status: "Awaiting" as DetailStatus, kind: "await" as const },
-        { number: "series-3", label: "Next Invoice", date: "1 Sep 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
-        { number: "series-4", label: "Invoice #4", date: "1 Oct 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
-        { number: "series-5", label: "Invoice #5", date: "1 Nov 2026", status: "Draft" as DetailStatus, kind: "scheduled" as const },
-      ];
-  // Editing an existing series (DES-782 AC4) — reuses the recurring form with a "Save changes" CTA.
-  const [editingSeries, setEditingSeries] = useState(false);
   // Where the full-page Add Customer returns: the Customers list, or the invoice customer picker.
   const [addCustomerReturn, setAddCustomerReturn] = useState<"customers" | "customer">("customers");
   // Preset/remembered status tab for the Sales Invoice List — set by a dashboard hero stat, and kept
@@ -433,7 +394,7 @@ export default function App() {
       client: inv.client,
       status: inv.status as DetailStatus,
       origin: (inv.origin as "created" | "uploaded") ?? "created",
-      cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent, recurring: inv.recurring,
+      cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent,
     });
     setDetailFlash(null);
     setEditFromDuplicate(false);
@@ -477,7 +438,7 @@ export default function App() {
         // Clear any pending toast so the dev jump never lands with a stale "Saved as draft" flash.
         { label: "Sales Invoice List", active: screen === "list", onSelect: () => { setToast(null); setListPreset(null); setScreen("list"); } },
         // Dev jump lands on the pre-filled editor (demo customer + demo items), not the picker (user, 15/Jul).
-        { label: "Create Invoice", active: screen === "customer" || screen === "details", onSelect: () => { setRecurring(false); setEditingSeries(false); setExtracted(null); setCustomer(DEMO_CUSTOMER); setDevSeedItems(true); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setScreen("details"); } },
+        { label: "Create Invoice", active: screen === "customer" || screen === "details", onSelect: () => { setExtracted(null); setCustomer(DEMO_CUSTOMER); setDevSeedItems(true); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setScreen("details"); } },
         { label: "Send Invoice", active: screen === "send" && !sendFailScenario, onSelect: () => { setSendFailScenario(false); setScreen("send"); } },
         { label: "Send Invoice — Failed", active: screen === "send" && sendFailScenario, onSelect: () => { setSendFailScenario(true); setScreen("send"); } },
         // Upload is native scan/picker now (no in-app sheet) — dev jump reproduces what a real
@@ -648,18 +609,9 @@ export default function App() {
           }}
           onCreate={() => {
             setExtracted(null);
-            setRecurring(false);
-            setEditingSeries(false);
             setScreen("customer");
           }}
           onUpload={() => { setUploadReturn("dashboard"); startUpload(); }}
-          onRecurring={() => {
-            setExtracted(null);
-            setEditInitial(null);
-            setRecurring(true);
-            setEditingSeries(false);
-            setScreen("customer");
-          }}
         />
       )}
 
@@ -689,7 +641,7 @@ export default function App() {
               client: inv.client,
               status: inv.status as DetailStatus,
               origin: (inv.origin as "created" | "uploaded") ?? "created",
-              cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent, recurring: inv.recurring,
+              cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent,
             });
             setDetailFlash(null);
             setEditFromDuplicate(false);
@@ -866,18 +818,9 @@ export default function App() {
           }}
           onManual={() => {
             setExtracted(null);
-            setRecurring(false);
-            setEditingSeries(false);
             setScreen("customer");
           }}
           onUpload={() => { setUploadReturn("list"); startUpload(); }}
-          onRecurring={() => {
-            setExtracted(null);
-            setEditInitial(null);
-            setRecurring(true);
-            setEditingSeries(false);
-            setScreen("customer");
-          }}
         />
       )}
 
@@ -887,9 +830,6 @@ export default function App() {
           initialViewCn={!!openInvoice.viewCn}
           initialStatus={openInvoice.status}
           origin={openInvoice.origin}
-          recurring={openInvoice.recurring}
-          seriesStatus={openInvoice.status === "Paid" ? "Completed" : seriesStatus}
-          onOpenSeries={() => { setSeriesScenario(openInvoice.status === "Draft" ? "draft" : openInvoice.status === "Paid" ? "completed" : "midrun"); setScreen("recurringSeries"); }}
           invoiceNo={openInvoice.number}
           customerName={openInvoice.client}
           customerEmail={CREDIT_NOTES.find((c) => c.no === openInvoice.cnNo)?.email}
@@ -925,10 +865,6 @@ export default function App() {
             setEditInitial(seed);
             setNumberRecommended(false);
             setEditFromDuplicate(false);
-            // Invoice "Edit" = a one-off content edit of this occurrence — never the schedule (that's on
-            // the series). The combined content+schedule editor is reached via Series → Edit recurring.
-            setRecurring(false);
-            setEditingSeries(false);
             setScreen("details");
           }}
           onIssued={() => {
@@ -1038,7 +974,6 @@ export default function App() {
         <CreateSalesInvoice
           selectedId={customer?.id ?? ""}
           customers={customers}
-          recurring={recurring}
           onAddCustomer={() => { setAddCustomerReturn("customer"); setScreen("addCustomer"); }}
           onClose={() => setScreen("list")}
           onSelectCustomer={(c) => {
@@ -1056,10 +991,8 @@ export default function App() {
         <AddInvoiceDetails
           customer={customer}
           customers={customers}
-          recurring={recurring}
-          editingSeries={editingSeries}
           key={devSeedItems ? "dev-prefilled" : extracted === DEMO_EXTRACTION_NO_CUSTOMER ? "upload-manual" : extracted === BLANK_EXTRACTION ? "upload-blank" : extracted === DEMO_EXTRACTION_MATCHED ? "upload-matched" : "editor"}
-          seedServices={editingSeries ? RECURRING_SERIES_ITEMS : devSeedItems ? DEMO_EXTRACTION.services : undefined}
+          seedServices={devSeedItems ? DEMO_EXTRACTION.services : undefined}
           companyName={settings.companyName}
           companyEmail={settings.email}
           extracted={extracted}
@@ -1099,7 +1032,6 @@ export default function App() {
           onSend={(t, r) => {
             setRecent(r ?? null);
             setRecentHighlighted(false);
-            setEditingSeries(false);
             if (extracted) {
               // Any upload create (OCR-missing, create-new, etc.) → land on the new invoice's
               // detail page in Awaiting Payment, not the list.
@@ -1156,44 +1088,6 @@ export default function App() {
         />
       )}
 
-      {/* Recurring series detail (DES-782) — Pause / Resume / Cancel the series */}
-      {screen === "recurringSeries" && (
-        <RecurringSeriesDetail
-          status={seriesScenario === "completed" ? "Completed" : seriesStatus}
-          customerName={openInvoice.client}
-          amountLabel="USD 6,450.00"
-          frequency="Monthly"
-          startDate="1 Jul 2026"
-          nextDate="1 Sep 2026"
-          ends="1 Dec 2026 (5 invoices)"
-          autoSend={true}
-          onBack={() => setScreen("invoiceDetail")}
-          onEdit={() => {
-            // Edit the series (DES-782 AC4) — reuse the recurring form, seeded with the series' customer
-            // + line items. Customer/currency/start-date locking is a follow-up.
-            const cust = customers.find((c) => c.name === openInvoice.client) ?? { id: "series", name: openInvoice.client, email: "" };
-            setCustomer(cust);
-            setExtracted(null);
-            setEditInitial(null);
-            setNumberRecommended(false);
-            setEditFromDuplicate(false);
-            setRecurring(true);
-            setEditingSeries(true);
-            setScreen("details");
-          }}
-          onPause={() => { setSeriesStatus("Paused"); setScreen("invoiceDetail"); }}
-          onResume={() => { setSeriesStatus("Active"); setScreen("invoiceDetail"); }}
-          onCancel={() => { setSeriesStatus("Cancelled"); setScreen("invoiceDetail"); }}
-          invoices={seriesInvoices}
-          onOpenInvoice={(inv) => {
-            // AC5 — open a generated invoice from the log; back returns here to the series.
-            setOpenInvoice({ number: inv.number, client: openInvoice.client, status: inv.status, origin: "created", recurring: true });
-            setDetailReturn("recurringSeries");
-            setDetailFlash(null);
-            setScreen("invoiceDetail");
-          }}
-        />
-      )}
 
       {/* Locked Period — "closed accounting period" on the Create Invoice flow: the same top alert
           banner as the upload demo, the Issue Date defaults to the first open day (1 Jan 2027), and

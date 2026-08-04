@@ -33,8 +33,8 @@ function rowStatus(eff: EffectiveStatus, refundChip?: string): { label: string; 
 }
 
 /**
- * A single Sales Invoice List row, built on the DS InvoiceRow (client + number/recurring, a status
- * Badge with its date caption, the amount, and an optional credit-note strip). Drafts add swipe-left
+ * A single Sales Invoice List row, built on the DS InvoiceRow (client + number, a status Badge
+ * with its date caption, the amount, and an optional credit-note strip). Drafts add swipe-left
  * to reveal Delete; a freshly created invoice gets the arrival highlight. `lastItem` drops the divider
  * on the final row of the card.
  */
@@ -72,7 +72,6 @@ export function InvoiceCard({ inv, highlighted, lastItem, onClick, onDelete, onO
     <InvoiceRow
       title={inv.client}
       invoiceNo={meta.number || undefined}
-      recurring={inv.recurring}
       status={status.label}
       statusColor={status.color}
       statusCaption={caption || undefined}

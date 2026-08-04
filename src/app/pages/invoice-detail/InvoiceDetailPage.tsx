@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
@@ -14,7 +13,7 @@ import { CreditNoteDetailPage } from "../credit-note-list/CreditNoteDetailPage";
 import { InvoicePreviewPage, InvoiceDocumentPreview } from "../shared/InvoicePreviewPage";
 import { Toast } from "../../components/Toast";
 import { getAccount, RECEIVING_ACCOUNTS } from "../../data/receivingAccounts";
-import { SHOW_CREDIT_NOTES, SHOW_RECURRING } from "../../lib/flags";
+import { SHOW_CREDIT_NOTES } from "../../lib/flags";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { money } from "../../lib/format";
 import { DETAIL_STATUS_META } from "../../lib/status";
@@ -22,9 +21,7 @@ import { FONT, INK, MUTED, initials } from "../../lib/theme";
 import type { CreditNotePayload, DraftLine, DetailStatus, InvoiceEditSeed, InvoiceLine } from "../../types";
 import { ITEMS, SUBTOTAL, DISCOUNT, TOTAL, PAID_PARTIAL, SENT_TODAY, REFUND_DATE_ISO, EDITED_TODAY } from "./demoInvoice";
 import type { CreditNote, RefundProof } from "./creditNoteTypes";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { Repeat, MoreVertical, X } from "lucide-react";
-import { InfoCard } from "./InfoBits";
+import { MoreVertical, X } from "lucide-react";
 import { Tile } from "../../ui/Tile";
 import { ListCard } from "../../ui/ListCard";
 import { ListRow } from "../../ui/ListRow";
@@ -41,14 +38,6 @@ interface InvoiceDetailPageProps {
   initialStatus?: DetailStatus;
   /** Where a Draft came from — sets the default emphasis (DES-715 vs DES-716 AC4). */
   origin?: "created" | "uploaded";
-  /** Generated from a recurring series (DES-782) — shows a tappable Recurrence card → series detail. */
-  recurring?: boolean;
-  recurringFrequency?: string;
-  recurringNextDate?: string;
-  /** Current series status (owned by App so the series-detail page stays in sync). */
-  seriesStatus?: "Active" | "Paused" | "Completed" | "Cancelled";
-  /** Open the recurring-series detail page (Edit recurring / Pause / Cancel live there). */
-  onOpenSeries?: () => void;
   invoiceNo?: string;
   customerName?: string;
   customerEmail?: string;
@@ -95,11 +84,6 @@ interface InvoiceDetailPageProps {
 export function InvoiceDetailPage({
   initialStatus = "Awaiting",
   origin = "created",
-  recurring = false,
-  recurringFrequency = "Monthly",
-  recurringNextDate = "1 Aug 2026",
-  seriesStatus = "Active",
-  onOpenSeries,
   invoiceNo = "INV-2026-000042",
   customerName = "Marlow & Finch Studio",
   customerEmail = "apa@marlowfinch.co",
@@ -130,7 +114,6 @@ export function InvoiceDetailPage({
   // render behind it). null = closed.
   const [lockedCnAction, setLockedCnAction] = useState<null | "edit" | "apply">(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [bankExpanded, setBankExpanded] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   // Credit notes raised against this invoice (DES-719) — cumulative, capped at the total.
   // Model lives in ./creditNoteTypes.ts (CreditNote + RefundProof).
@@ -255,18 +238,15 @@ export function InvoiceDetailPage({
 
   const meta = DETAIL_STATUS_META[status];
   const issued = status !== "Draft";
-  // A recurring invoice awaiting its auto-send date reads as "Scheduled" — a display label only; the real
-  // status stays Draft so it still filters under Draft (DES-782). It has no number until issued.
-  const scheduledRecurring = recurring && status === "Draft";
   // Uploaded drafts default to "Mark as sent" (already issued externally → Awaiting payment);
   // "Mark as paid" is the secondary path for invoices already settled. Created drafts default to sending.
   const uploaded = origin === "uploaded";
   // The page header is always the generic "Invoice Details" (Figma "Invoice Detail", node
   // 1423:63521) — never a document number, not even for a draft. The actual reference (an
   // uploaded draft's UL-number, or the real number once issued) shows in the hero body instead;
-  // a created/recurring draft has no number yet (assigned on issue) so it shows nothing there.
+  // a created draft has no number yet (assigned on issue) so it shows nothing there.
   const pageHeaderTitle = "Invoice Details";
-  const heroReference = scheduledRecurring || (status === "Draft" && !uploaded)
+  const heroReference = status === "Draft" && !uploaded
     ? ""
     : status === "Draft" && uploaded
     ? (invoiceNo ? invoiceNo.replace(/^INV/, "UL") : "") // uploaded draft (DES-716/817)
@@ -345,9 +325,7 @@ export function InvoiceDetailPage({
   const bannerText: Record<DetailStatus, string> = {
     // Created drafts show "Created <date>", uploaded drafts show "Uploaded <date>" — inline
     // beside the "Draft" badge (same "status + date" row every other status uses), not a separate
-    // line. No "on" connector (matches every other date caption). Only reached for a non-recurring
-    // Draft (scheduledRecurring overrides headlineBanner with its own "Scheduled …"/"Paused …" text
-    // before this is ever read).
+    // line. No "on" connector (matches every other date caption).
     Draft: `${uploaded ? "Uploaded" : "Created"} ${issueDateLabel}`,
     // Hero shows the ORIGINAL full total as the big number; the sub-line shows what's actually due —
     // "$X due" once a credit note reduces the balance, otherwise the due date ("Due 5 Jul 2026",
@@ -397,10 +375,6 @@ export function InvoiceDetailPage({
   const activeCnCount = creditNotes.filter((c) => !c.cancelled).length;
   // Plain Paid (no refund in progress) — its actions (Refund + Preview as PDF) live in the ⋯ menu, no dock.
   const paidActionsInMenu = status === "Paid" && !isRefundContext && activeCnCount === 0;
-  // The sectioned layout (Bill To → Receiving card → Invoice Details → Items → Summary) drives EVERY
-  // status, including the refund-context detail (Pending Refund / Refunded), so they read the same as
-  // the rest. Recurring occurrences use it too — the recurring-series card renders above the Bill To card.
-  const sectionedLayout = true;
   // Headline: while a payout is due, lead with the pending amount ("Amount to refund"); once settled,
   // show the cumulative amount refunded to date.
   // Hero big number is ALWAYS the original full invoice total (user, 22/Jul) — for every status,
@@ -411,16 +385,11 @@ export function InvoiceDetailPage({
   const refundAmt = refundPending > 0.001 ? refundPending : refundedOut;
   const refundVerb = refundPending > 0.001 ? "to refund" : "refunded";
   // Refund context shows just the amount to refund (no "remaining paid" line); other statuses keep their banner.
-  // Paused in-session → show the pause date (today, for the demo).
-  const pausedLabel = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-  const headlineBanner = scheduledRecurring
-    ? seriesStatus === "Paused"
-      ? `Paused ${pausedLabel}`
-      : `Scheduled ${issueDateLabel}`
+  const headlineBanner =
     // Refund context: same inline "status + date/amount" row as every other status. Once fully
     // refunded, show the settled date (the credit note's own date) instead of the "to refund"
     // amount — same "badge word not repeated, just the bare date" pattern as Void/Paid.
-    : isRefundContext
+    isRefundContext
     ? (fullyRefunded ? (lastCreditNote?.date ?? "") : `${money(refundAmt, currency)} ${refundVerb}`)
     : bannerText[status];
   // Only the plain (no credit note) Overdue sub-line is a grammatical continuation of the badge
@@ -701,11 +670,9 @@ export function InvoiceDetailPage({
     status === "Cancelled"
       ? "none"
       : status === "Draft"
-        ? scheduledRecurring
-          ? "double"
-          : uploaded
-            ? (pendingPayment ? "single" : "double")
-            : "single"
+        ? uploaded
+          ? (pendingPayment ? "single" : "double")
+          : "single"
         : sendable
           ? (pendingPayment ? "single" : "double")
           : isRefundContext
@@ -797,7 +764,7 @@ export function InvoiceDetailPage({
         </p>
         {/* The document's own reference (an uploaded draft's UL-number, or the real invoice number
             once issued) — the page header itself always just reads "Invoice Details" (see
-            pageHeaderTitle above). A created/recurring draft has no number yet, so nothing shows. */}
+            pageHeaderTitle above). A created draft has no number yet, so nothing shows. */}
         {heroReference && (
           <p className="body-sm" style={{ ...FONT, color: INK }}>{heroReference}</p>
         )}
@@ -843,48 +810,6 @@ export function InvoiceDetailPage({
           />
         )}
 
-        {/* Recurring series (DES-782) — tap to open the series detail. Gated off for prod (SHOW_RECURRING). */}
-        {SHOW_RECURRING && recurring && (
-          <button
-            type="button"
-            onClick={onOpenSeries}
-            className="group w-full bg-white border border-dashed border-[rgba(160,160,160,0.2)] rounded-xl px-4 text-left"
-            style={{ boxShadow: "var(--shadow-card-soft)" }}
-          >
-            <div className="py-3 flex items-center justify-between gap-2 border-b border-[rgba(160,160,160,0.18)]">
-              <span className="flex items-center gap-2 min-w-0">
-                <Repeat size={16} strokeWidth={2.25} style={{ color: "var(--text-brand)" }} />
-                <span className="text-[15px] font-medium truncate" style={{ ...FONT, color: INK }}>Recurring series</span>
-              </span>
-              <span className="shrink-0 flex items-center gap-1.5">
-                <span
-                  className="inline-flex items-center px-2.5 py-1 rounded-full border text-[11px] font-bold leading-[15px]"
-                  style={{
-                    ...FONT,
-                    ...(seriesStatus === "Active"
-                      ? { background: "var(--bg-success-subtle)", borderColor: "var(--border-success-subtle)", color: "var(--text-success-primary)" }
-                      : seriesStatus === "Paused"
-                      ? { background: "var(--bg-warning-subtle)", borderColor: "var(--border-warning-subtle)", color: "var(--text-warning-primary)" }
-                      : seriesStatus === "Completed"
-                      // Completed is a distinct indigo, no semantic token family fits it — kept literal on purpose.
-                      ? { background: "#eef4ff", borderColor: "#c7d8fe", color: "#2f5fd0" }
-                      : { background: "var(--bg-neutral-tertiary)", borderColor: "var(--border-neutral-secondary)", color: "var(--text-secondary)" }),
-                  }}
-                >
-                  {seriesStatus}
-                </span>
-                <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5" style={{ fontSize: 18, color: "var(--text-secondary)" }} />
-              </span>
-            </div>
-            <ListRow label="Frequency" value={recurringFrequency} />
-            <ListRow
-              label="Next invoice"
-              value={seriesStatus === "Active" ? recurringNextDate : seriesStatus === "Paused" ? "Paused" : seriesStatus === "Completed" ? "Series completed" : "Series cancelled"}
-              last
-            />
-          </button>
-        )}
-
         {/* Customer — DS Tile (Figma "Invoice Detail", node 1423:63521), matching every other Bill To
             display in the app. */}
         <div className="flex flex-col gap-2">
@@ -910,12 +835,7 @@ export function InvoiceDetailPage({
           <ListCard>
             <ListRow label="Currency" value={currency} valueFlag={<CountryFlag name={CURRENCY_COUNTRY[currency]} size={16} />} />
             <ListRow label="Issue Date" value={issueDateLabel} />
-            {/* A recurring draft has no issue date yet, so its due date is the inherited term. */}
-            {recurring && status === "Draft" ? (
-              <ListRow label="Due Date" value="Next 30 days after issue" last />
-            ) : (
-              <ListRow label="Due Date" value="Next 30 days" valueDescription={dueDateLabel} last />
-            )}
+            <ListRow label="Due Date" value="Next 30 days" valueDescription={dueDateLabel} last />
           </ListCard>
         </div>
 
@@ -981,61 +901,13 @@ export function InvoiceDetailPage({
           </div>
         </div>
 
-        {/* Receiving payment details — only the critical fields; rest behind an accordion.
-            The sectioned layout shows the receiving account as a card up top (DES-817), so skip it here. */}
-        {status !== "Cancelled" && !sectionedLayout && (
-          <InfoCard title={status === "Paid" ? "Payment received to" : "Receiving account"}>
-            <ListRow label="Account holder" value={bank.holder} />
-            <ListRow label="Account number" value={bank.number} />
-            <AnimatePresence initial={false}>
-              {bankExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22 }}
-                  className="overflow-hidden"
-                >
-                  <ListRow label="Bank" value={bank.bankName} />
-                  <ListRow label="SWIFT / BIC" value={bank.swift} />
-                  {/* Payment reference only exists once issued (no number on a draft). */}
-                  {issued && <ListRow label="Payment reference" value={invoiceNo} />}
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <button
-              onClick={() => setBankExpanded((v) => !v)}
-              className="w-full flex items-center justify-center gap-1 py-3"
-            >
-              <span className="text-[13px] font-medium" style={{ ...FONT, color: INK }}>
-                {bankExpanded ? "Show less" : "Show more"}
-              </span>
-              <KeyboardArrowDownIcon
-                style={{ fontSize: 18, color: INK, transform: bankExpanded ? "rotate(180deg)" : "none", transition: "transform .2s" }}
-              />
-            </button>
-          </InfoCard>
-        )}
       </div>
       </div>
 
       {/* Primary action — per status. Void has no dock action (terminal, credit note lives on its
           own detail page). */}
       {status === "Cancelled" ? null : status === "Draft" ? (
-        scheduledRecurring ? (
-          // Scheduled recurring draft — invoice-level actions only (same as a normal draft): Send now +
-          // Edit (a one-off, content-only edit of this occurrence). Delete lives in the ⋯ menu. All
-          // series actions (Edit recurring / Pause / Cancel) live on the series detail.
-          <ButtonDock
-            type="double"
-            sticky
-            secondaryLabel="Edit invoice"
-            primaryLabel="Send now"
-            primaryLoading={sendPending}
-            onSecondary={openEdit}
-            onPrimary={openSend}
-          />
-        ) : uploaded ? (
+        uploaded ? (
           // Uploaded draft: it was already sent elsewhere, so the likely next step is recording
           // payment → "Mark as paid" primary, "Mark as sent" (→ Awaiting) secondary. Once a payment is
           // logged (awaiting approval) the Mark-as-paid CTA drops, leaving just "Mark as sent".
@@ -1114,7 +986,6 @@ export function InvoiceDetailPage({
         onClose={() => setActionsOpen(false)}
         status={status}
         uploaded={uploaded}
-        scheduledRecurring={scheduledRecurring}
         terminal={terminal}
         cancellable={cancellable}
         creditNotesCount={activeCnCount}

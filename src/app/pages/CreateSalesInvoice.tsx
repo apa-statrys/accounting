@@ -33,15 +33,13 @@ interface CreateSalesInvoiceProps {
   onSelectCustomer?: (customer: Customer) => void;
   /** Open the full-page Add Customer flow (App navigates; returns here with the new one selected). */
   onAddCustomer?: () => void;
-  /** Recurring-series flow (DES-782) — reflected in the header title. */
-  recurring?: boolean;
 }
 
 /**
  * Create Sales Invoice — step 1: "Add a customer".
  * Choosing a customer advances the flow.
  */
-export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onClose, onSelectCustomer, onAddCustomer, recurring = false }: CreateSalesInvoiceProps) {
+export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onClose, onSelectCustomer, onAddCustomer }: CreateSalesInvoiceProps) {
   const [query, setQuery] = useState("");
   // Selecting a tile only highlights it; "Continue" advances the flow.
   const [pendingId, setPendingId] = useState<string>(selectedId);
@@ -146,13 +144,12 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
               </motion.div>
             ) : (
               /* DS PageHeader — centered title, stays centered while scrolling (no scroll-driven
-                 section subtitle anymore, just a static one for the recurring context); the right
-                 side still reveals the Add/Search pill once the actions row has scrolled underneath. */
+                 section subtitle anymore); the right side still reveals the Add/Search pill once
+                 the actions row has scrolled underneath. */
               <motion.div key="default" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
                 <PageHeader
                   type="center"
                   title="Select Customer"
-                  text={recurring ? "New Recurring Invoice" : undefined}
                   onBack={onClose}
                   showSearch={false}
                   // Crossfade the pill against a 36px invisible spacer (matching PageHeader's own

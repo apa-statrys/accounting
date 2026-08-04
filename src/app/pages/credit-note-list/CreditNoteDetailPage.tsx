@@ -96,7 +96,6 @@ export interface CreditNoteDetailPageProps {
   lockedPeriod?: boolean;
 }
 
-/** Small dashed cream card matching the invoice detail's InfoCard. */
 // Detail card (Figma 1209 style): white with a dashed border + soft shadow and the title as the first
 // row inside (grey uppercase + full-width divider). `tone="hero"` is the cream status card.
 function Card({ title, tone = "section", children }: { title?: string; tone?: "section" | "hero"; children: React.ReactNode }) {

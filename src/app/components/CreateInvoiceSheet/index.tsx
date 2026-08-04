@@ -15,8 +15,7 @@ interface CreateInvoiceSheetProps {
 
 /**
  * "Create" bottom sheet — slides up from the FAB with a list of choices: build
- * manually or scan/upload a file. Recurring (DES-782) is NOT a separate entry here — it's a toggle
- * inside the normal Create Invoice flow. DS Bottomsheets header (grabber, no ✕); choices are
+ * manually or scan/upload a file. DS Bottomsheets header (grabber, no ✕); choices are
  * DS Tile icon rows (24px icon + title, no description). "Scan and upload" opens the native
  * document-scanner mock (ScanDocument) on top of this sheet — its own Close (X) exits the whole
  * Create flow (never falls back to this chooser); capture/import both proceed straight to OCR.

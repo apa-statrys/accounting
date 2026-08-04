@@ -24,7 +24,6 @@ export type Screen =
   | "customerDetail"
   | "addCustomer"
   | "editCustomer"
-  | "recurringSeries"
   | "lockedPeriodDialog"
   | "lockedPeriodUpload"
   | "lockedPeriodEditCn"
@@ -76,8 +75,6 @@ export interface Invoice {
   due?: string;
   /** Drafts only: where it came from (sets the detail page's default emphasis). */
   origin?: "created" | "uploaded";
-  /** Generated from a recurring series (DES-782) — shows a "Recurring" badge on the list card. */
-  recurring?: boolean;
   /** A linked credit note (Cancelled = full; Awaiting = partial via cnAmount) + sent state. */
   cnNo?: string;
   cnAmount?: number;

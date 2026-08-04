@@ -22,7 +22,6 @@ import { Calendar } from "../../components/Calendar";
 import { CreditNoteDetailPage } from "../credit-note-list/CreditNoteDetailPage";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { INVOICES } from "../../data/invoices";
-import { SHOW_RECURRING } from "../../lib/flags";
 import { FONT, avatarTint } from "../../lib/theme";
 import type { CreditNote, DetailStatus, Invoice, Status } from "../../types";
 import { InvoiceCard } from "./InvoiceCard";
@@ -111,7 +110,7 @@ interface SalesInvoiceListProps {
   successSubtext?: string;
   onSuccessDone?: () => void;
   /** A just-created/saved invoice to surface + temporarily highlight at the top of the list. */
-  recent?: { client: string; amount: string; status: Status; meta: string; recurring?: boolean } | null;
+  recent?: { client: string; amount: string; status: Status; meta: string } | null;
   /** Whether `recent`'s arrival highlight has already played once — `recent` itself stays set (the
    *  card keeps showing) well past that, so without this the highlight replays on every later
    *  remount of this list (e.g. open the invoice, then Back). */
@@ -121,11 +120,9 @@ interface SalesInvoiceListProps {
   onRecentShown?: () => void;
   onBack?: () => void;
   /** Open an invoice's detail page. */
-  onOpenInvoice?: (inv: { number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; recurring?: boolean }) => void;
+  onOpenInvoice?: (inv: { number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean }) => void;
   onManual?: () => void;
   onUpload?: () => void;
-  /** Start a recurring invoice series (DES-782). */
-  onRecurring?: () => void;
   /** Preset the status chip when opened from a dashboard tile (e.g. "Paid"). */
   initialStatus?: StatusMatch;
   /** Report the active status tab up so the parent can restore it on return (e.g. back from detail). */
@@ -136,7 +133,7 @@ interface SalesInvoiceListProps {
   refundState?: Record<string, "partial" | "full">;
 }
 
-export function SalesInvoiceList({ showSuccess, successVariant, successMessage, successSubtext, onSuccessDone, recent, recentHighlighted, onRecentShown, onBack, onOpenInvoice, onManual, onUpload, onRecurring, initialStatus, onActiveStatusChange, initialDue, refundState }: SalesInvoiceListProps) {
+export function SalesInvoiceList({ showSuccess, successVariant, successMessage, successSubtext, onSuccessDone, recent, recentHighlighted, onRecentShown, onBack, onOpenInvoice, onManual, onUpload, initialStatus, onActiveStatusChange, initialDue, refundState }: SalesInvoiceListProps) {
   const initialActive = initialStatus ? Math.max(0, FILTERS.findIndex((f) => f.match === initialStatus)) : 0;
   const [active, setActive] = useState(initialActive);
   // Keep the selected status tab scrolled into view (e.g. when opened pre-filtered from the hero).
@@ -223,11 +220,10 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
 
   // The freshly created/saved invoice (if any), prepended as a real card.
   const recentRow: Invoice | null = recent
-    ? { id: "recent-new", client: recent.client, meta: recent.meta, amount: recent.amount, status: recent.status, date: TODAY_ISO, recurring: recent.recurring }
+    ? { id: "recent-new", client: recent.client, meta: recent.meta, amount: recent.amount, status: recent.status, date: TODAY_ISO }
     : null;
-  // Recurring invoices (DES-782) are gated off for prod — drop them from the list when hidden.
-  const baseInvoices = useMemo(() => (SHOW_RECURRING ? INVOICES : INVOICES.filter((i) => !i.recurring)), []);
-  const allRows = useMemo(() => (recentRow ? [recentRow, ...baseInvoices] : baseInvoices), [recentRow?.client, recentRow?.amount, recentRow?.status, recentRow?.recurring, baseInvoices]);
+  const baseInvoices = INVOICES;
+  const allRows = useMemo(() => (recentRow ? [recentRow, ...baseInvoices] : baseInvoices), [recentRow?.client, recentRow?.amount, recentRow?.status, baseInvoices]);
   // Drafts removed via swipe-to-delete are hidden locally; deletion goes through a confirm sheet.
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -360,7 +356,7 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
               inv={inv}
               highlighted={highlightRecent && inv.id === "recent-new"}
               lastItem={i === list.length - 1}
-              onClick={() => onOpenInvoice?.({ number: inv.id.replace(/[a-z]$/, ""), client: inv.client, status: effectiveStatus(inv), origin: inv.origin ?? "created", cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent, recurring: inv.recurring })}
+              onClick={() => onOpenInvoice?.({ number: inv.id.replace(/[a-z]$/, ""), client: inv.client, status: effectiveStatus(inv), origin: inv.origin ?? "created", cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent })}
               onDelete={() => setConfirmDeleteId(inv.id)}
               onOpenCN={openCnForInvoice}
               refundOverride={refundState?.[inv.id.replace(/[a-z]$/, "")]}

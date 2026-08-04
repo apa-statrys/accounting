@@ -159,7 +159,6 @@ export function metaLine(inv: Invoice, eff: EffectiveStatus): { number: string; 
   const number = inv.meta.split(" · ")[0];
   const rest = inv.meta.slice(number.length + 3); // text after " · "
   // Draft display by entry point: MANUAL drafts have no number yet (assigned on issue, DES-715);
-  // RECURRING drafts have no number and read "Scheduled <date>" (no invoice until it's sent);
   // UPLOAD drafts keep the number the user entered, shown with a UL- prefix (DES-716/817).
   if (eff === "Draft") {
     return { number: inv.origin === "uploaded" ? number.replace(/^INV/, "UL") : "", rest, danger: false };

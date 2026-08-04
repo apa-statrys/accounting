@@ -1,8 +1,7 @@
 /* InvoiceRow — Figma "[APP] Design System" → InvoiceRow (node 4250-544 —
    restructured 2026-07-24: status is now a full-width InvoiceStatus row up
-   top; Recurring moved under the amount as a subtle/neutral Badge pill;
-   re-synced same day: outer gap corrected 8px → 4px, InvoiceStatus sits 2px
-   from the title/amount row [.topGroup], title reverted to Medium weight).
+   top; re-synced same day: outer gap corrected 8px → 4px, InvoiceStatus sits
+   2px from the title/amount row [.topGroup], title reverted to Medium weight).
    One size: 12px vertical padding, 14px title/amount (the earlier sm/md size
    variant was removed from the Figma component). Divider under every row
    except lastItem. Credited strip sits on Bg/Neutral/secondary. Colors from
@@ -14,8 +13,8 @@
    Figma centers the WHOLE topGroup (status + title/amount) within that reserved height, not the
    title text within its own box — centering inside .info instead pushes the title away from the
    InvoiceStatus row above it, opening a gap between them that isn't there on a full row. Rows
-   with a credited-amount strip (or invoiceNo + recurring) already exceed 80px, so the min-height
-   is a no-op for them — only shorter rows get padded up to match. */
+   with a credited-amount strip already exceed 80px, so the min-height is a
+   no-op for them — only shorter rows get padded up to match. */
 .row {
   box-sizing: border-box;
   display: flex;

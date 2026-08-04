@@ -1,5 +1,5 @@
 import styles from "./index.module.css";
-import { Badge, BadgeColor } from "../Badge";
+import type { BadgeColor } from "../Badge";
 import { InvoiceStatus } from "../InvoiceStatus";
 
 /**
@@ -7,25 +7,21 @@ import { InvoiceStatus } from "../InvoiceStatus";
  * InvoiceRow, node 4250-544 — restructured 2026-07-24: status moved to its own
  * full-width InvoiceStatus row at the top (2px gap to the title/amount row,
  * re-synced same day — was 8px, title was briefly Bold; both corrected to
- * match a Figma update: 4px outer gap, title back to Medium); the Recurring
- * chip moved from beside the invoice number to under the amount, switched
- * from Badge's info/text style to neutral/subtle with no icon; the credited-
+ * match a Figma update: 4px outer gap, title back to Medium); the credited-
  * amount strip has no trailing chevron per Figma, even when tappable, and
  * hugs its content — Figma "CreditedAmount", node 4250-486 — rather than
  * stretching the row's full width).
- * Title + invoice number, the amount and an optional Recurring chip on the
- * right, and an optional "Credited amount" strip. One size only (12px
- * vertical padding, 14px title/amount) — the earlier sm/md size variant was
- * removed from the Figma component. Rows draw their own bottom divider — set
- * lastItem on the final row to drop it. Styling in index.module.css.
+ * Title + invoice number, the amount, and an optional "Credited amount"
+ * strip. One size only (12px vertical padding, 14px title/amount) — the
+ * earlier sm/md size variant was removed from the Figma component. Rows draw
+ * their own bottom divider — set lastItem on the final row to drop it.
+ * Styling in index.module.css.
  */
 
 interface InvoiceRowProps {
   title: string;
   /** Hidden when omitted (Figma showInvoiceNo). */
   invoiceNo?: string;
-  /** Adds the "Recurring" chip under the amount. */
-  recurring?: boolean;
   /** Status label, e.g. "Paid" — colored via the Badge palette (InvoiceStatus). */
   status?: string;
   statusColor?: BadgeColor;
@@ -61,7 +57,6 @@ function FileTextIcon() {
 export function InvoiceRow({
   title,
   invoiceNo,
-  recurring = false,
   status,
   statusColor = "success",
   statusCaption,
@@ -97,7 +92,6 @@ export function InvoiceRow({
           </div>
           <div className={styles.amountCol}>
             <p className={styles.amount}>{amount}</p>
-            {recurring && <Badge label="Recurring" color="neutral" variant="subtle" size="sm" />}
           </div>
         </div>
       </div>

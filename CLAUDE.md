@@ -75,10 +75,10 @@ src/app/
                      # holding the main page + its private pieces (folder-per-screen
                      # reorg 2026-07-17); standalone single-file screens stay flat.
     sales-invoice-list/   # SalesInvoiceList (page) + filters.ts (pure) + InvoiceCard
-    add-invoice-details/  # AddInvoiceDetails (page) + derive.ts + recurrence.ts + Banners + ExistingInvoiceSheet
+    add-invoice-details/  # AddInvoiceDetails (page) + derive.ts + Banners + ExistingInvoiceSheet
     credit-note-form/     # CreditNoteForm (page) + lineMath.ts + ReasonSheet + ClientEditSheet
     invoice-detail/       # InvoiceDetailPage (page) + demoInvoice.ts + creditNoteTypes.ts +
-                          # InfoBits + CreditsAppliedSection + ActionsMenu + RecordPaymentSheet +
+                          # CreditsAppliedSection + ActionsMenu + RecordPaymentSheet +
                           # SendCnSheets + RefundCreditNoteFlow (DES-720, private to this page)
     upload-invoice/       # UploadInvoice (page) + ScanDocument (native-scanner stand-in, private)
     credit-note-list/     # CreditNotesList (page) + CreditNoteDetailPage + CreditNotePreviewPage
@@ -87,8 +87,7 @@ src/app/
                           # (invoice-detail + add-invoice-details). Flat single-file screens
                           # (Dashboard, AccountingHub, InvoiceSettings, NeedAttention,
                           # CustomerList, CustomerDetailPage, AddCustomerPage, CreateSalesInvoice,
-                          # GeneratingInvoice, DuplicateDecision, RecurringSeriesDetail) stay
-                          # directly under pages/.
+                          # GeneratingInvoice, DuplicateDecision) stay directly under pages/.
 ```
 
 Rules for new code:

@@ -1829,14 +1829,6 @@ const INVOICEROW_CONTROL_GROUPS: ControlGroup[] = [
     ],
   },
   {
-    key: "recurring",
-    label: "Recurring chip",
-    options: [
-      { value: "off", label: "Hidden" },
-      { value: "on", label: "Shown" },
-    ],
-  },
-  {
     key: "credited",
     label: "Credited amount",
     options: [
@@ -1860,13 +1852,12 @@ function InvoiceRowOverview() {
   return (
     <InteractiveDemo
       groups={INVOICEROW_CONTROL_GROUPS}
-      defaultValues={{ status: "paid", recurring: "off", credited: "none", invoiceNo: "on" }}
+      defaultValues={{ status: "paid", credited: "none", invoiceNo: "on" }}
       render={(v) => (
         <div className="w-[320px] rounded-[12px] bg-white px-4">
           <InvoiceRow
             title="Marlow & Finch Studio"
             invoiceNo={v.invoiceNo === "on" ? "INV-2026-000004" : undefined}
-            recurring={v.recurring === "on"}
             {...INVOICE_ROW_STATUSES[v.status]}
             amount="USD 6,430.05"
             creditedAmount={v.credited === "none" ? undefined : v.credited === "cn" ? "CN-2026-000006" : "USD 2,000.00"}
@@ -3086,9 +3077,9 @@ export function Showcase() {
             {!isFoundation && activeNav === "invoice-row" && (
               <ComponentPage
                 title="Invoice Row"
-                description="An invoice list row — a full-width InvoiceStatus row, title + number, amount with an optional Recurring chip, and an optional credited-amount strip."
+                description="An invoice list row — a full-width InvoiceStatus row, title + number, amount, and an optional credited-amount strip."
                 whenToUse={[
-                  "A row in an invoice list — status, title/number, amount, with optional recurring or credited-amount indicators",
+                  "A row in an invoice list — status, title/number, amount, with an optional credited-amount indicator",
                 ]}
                 overview={<InvoiceRowOverview />}
               />

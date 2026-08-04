@@ -42,8 +42,6 @@ interface DashboardProps {
   onCreate?: () => void;
   /** Upload a file to extract an invoice. */
   onUpload?: () => void;
-  /** Start a recurring invoice series (DES-782). */
-  onRecurring?: () => void;
   /** Open the list filtered to paid invoices (Collected hero stat). */
   onOpenPaid?: () => void;
   /** Open the list filtered to outstanding/awaiting invoices (Outstanding hero stat). */
@@ -88,7 +86,7 @@ function SectionHead({ title, subtitle, badge, onViewAll }: { title: string; sub
 }
 
 
-export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, onSettings, onNotifications, onOpenNeedAttention, onOpenInvoice, onCreate, onUpload, onRecurring, onOpenPaid, onOpenOutstanding, scenario = 0 }: DashboardProps) {
+export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, onSettings, onNotifications, onOpenNeedAttention, onOpenInvoice, onCreate, onUpload, onOpenPaid, onOpenOutstanding, scenario = 0 }: DashboardProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   // Scroll interactions: past the big header, the PageHeader collapses to its
   // "left-on-scroll" state (pinned bar) and the pill FAB shrinks to a circle;

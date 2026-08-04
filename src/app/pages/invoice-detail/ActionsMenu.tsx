@@ -11,8 +11,6 @@ interface ActionsMenuProps {
   onClose: () => void;
   status: DetailStatus;
   uploaded: boolean;
-  /** Scheduled recurring draft — surfaces "Send invoice" here (its dock leads with Pause series). */
-  scheduledRecurring?: boolean;
   terminal: boolean;
   cancellable: boolean;
   creditNotesCount: number;
@@ -30,7 +28,6 @@ export function ActionsMenu({
   onClose,
   status,
   uploaded,
-  scheduledRecurring = false,
   terminal,
   cancellable,
   creditNotesCount,
@@ -65,9 +62,8 @@ export function ActionsMenu({
           <Tile icon={<Send size={24} strokeWidth={1.5} />} title="Send invoice" onClick={onSendInvoice} />
         )}
 
-        {/* Edit — full for a draft, limited for an issued still-editable invoice. Hidden for a scheduled
-            recurring draft (it's the dock's secondary CTA there). */}
-        {(status === "Draft" || status === "Awaiting" || status === "Overdue") && !scheduledRecurring && (
+        {/* Edit — full for a draft, limited for an issued still-editable invoice. */}
+        {(status === "Draft" || status === "Awaiting" || status === "Overdue") && (
           <Tile icon={<Pencil size={24} strokeWidth={1.5} />} title="Edit Invoice" onClick={onEdit} />
         )}
 
