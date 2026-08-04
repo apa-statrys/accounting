@@ -1150,7 +1150,11 @@ export function AddInvoiceDetails({
         }
       >
         <p className="body-sm" style={{ ...FONT, color: MUTED }}>
-          Invoice {invoiceNo} has been saved as a draft. You&rsquo;ll find it in your invoice list, ready to edit and send whenever you are.
+          {isExtracted ? (
+            <>Invoice {invoiceNo} has been saved as a draft. You&rsquo;ll find it in your invoice list, ready to edit and send whenever you are.</>
+          ) : (
+            <>Your invoice has been saved as a draft. You&rsquo;ll find it in your invoice list, ready to edit and send whenever you are.</>
+          )}
         </p>
       </BottomSheet>
 

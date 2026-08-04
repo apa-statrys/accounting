@@ -38,7 +38,7 @@ function Row({
 interface SummaryCardProps {
   currency: string;
   subtotal: number;
-  /** Discount amount in the invoice currency (the Discount row always shows, 0.00 when none). */
+  /** Discount amount in the invoice currency — the row only shows when this is > 0. */
   discount: number;
   total: number;
   /** Skip the white card chrome and just render the rows — for reuse inside another surface
@@ -48,12 +48,13 @@ interface SummaryCardProps {
 }
 
 export function SummaryCard({ currency, subtotal, discount, total, bare = false }: SummaryCardProps) {
+  const hasDiscount = discount > 0;
   const rows = (
     <>
-      {/* Figma (node 1826-15916): the divider sits below Discount, not below Subtotal. */}
-      <Row label="Subtotal" value={fmt(currency, subtotal)} last />
-      {/* Always shown — 0.00 when there's no discount. */}
-      <Row label="Discount" value={discount > 0 ? `−${fmt(currency, discount)}` : fmt(currency, 0)} discount={discount > 0} />
+      {/* Figma (node 1826-15916): the divider sits below Discount, not below Subtotal — when
+          there's no discount row to carry it, Subtotal takes over that divider instead. */}
+      <Row label="Subtotal" value={fmt(currency, subtotal)} last={hasDiscount} />
+      {hasDiscount && <Row label="Discount" value={`−${fmt(currency, discount)}`} discount />}
       <Row label="Total" value={fmt(currency, total)} boldLabel boldValue last />
     </>
   );
