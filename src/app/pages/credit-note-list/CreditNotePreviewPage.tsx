@@ -266,7 +266,7 @@ export function CreditNotePreviewPage(props: CreditNotePreviewPageProps) {
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          <PageHeader type="center" title={isView ? "Credit Note" : "Credit Note Preview"} onBack={onBack} showSearch={false} />
+          <PageHeader type="center" title={isView ? "Credit Note" : "Credit Note Preview"} onBack={onBack} showSearch={false} onColor />
         </PageAppHeader>
 
         <CreditNoteDocumentPreview {...docProps} className={!isView && hideDownload ? "p-3 pb-6" : "p-3 pb-28"}>

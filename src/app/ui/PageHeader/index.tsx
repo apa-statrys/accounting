@@ -85,6 +85,10 @@ interface PageHeaderProps {
   /** type="left" only — animate into the compact "left-on-scroll" layout in
    *  place (title next to the back button). Toggle on scroll. */
   collapsed?: boolean;
+  /** The header sits over a dark/colored backdrop at rest instead of the usual
+   *  light page content (e.g. a PDF-preview page's dark viewer background) —
+   *  recolor the title/text to --text-on-color instead of --text-primary. */
+  onColor?: boolean;
 }
 
 function ChevronLeftIcon() {
@@ -171,6 +175,7 @@ export function PageHeader({
   disabled = false,
   children,
   collapsed = false,
+  onColor = false,
 }: PageHeaderProps) {
   const back = showBack && (
     <GlassButton aria-label={backLabel ?? "Back"} onClick={onBack}>
@@ -208,15 +213,15 @@ export function PageHeader({
       <header className={`${styles.header} ${styles.left} ${collapsed ? styles.collapsed : ""}`}>
         <div className={styles.buttonRow}>
           {back || <span />}
-          <p className={styles.compactTitle}>{title}</p>
+          <p className={`${styles.compactTitle} ${onColor ? styles.onColor : ""}`}>{title}</p>
           {searchButton}
         </div>
         <div className={styles.slot}>
           <div className={styles.slotInner}>
             {children ?? (
               <>
-                <p className={styles.titleLg}>{title}</p>
-                {text && <p className={styles.text}>{text}</p>}
+                <p className={`${styles.titleLg} ${onColor ? styles.onColor : ""}`}>{title}</p>
+                {text && <p className={`${styles.text} ${onColor ? styles.onColor : ""}`}>{text}</p>}
               </>
             )}
           </div>
@@ -281,7 +286,7 @@ export function PageHeader({
           <motion.p
             layout
             transition={{ duration: 0.25, ease: "easeInOut" }}
-            className={styles.titleMd}
+            className={`${styles.titleMd} ${onColor ? styles.onColor : ""}`}
           >
             {title}
           </motion.p>
@@ -291,7 +296,7 @@ export function PageHeader({
             <motion.p
               key={text}
               layout
-              className={styles.text}
+              className={`${styles.text} ${onColor ? styles.onColor : ""}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

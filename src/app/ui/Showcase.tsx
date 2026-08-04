@@ -1766,8 +1766,15 @@ function SummaryDockOverview() {
 }
 
 /** 375px phone-bg strip so the frosted-glass buttons/pill read like in the app. */
-function HeaderStrip({ children }: { children: React.ReactNode }) {
-  return <div className="mobile-mode w-full max-w-[375px] rounded-[12px] bg-[var(--bg-neutral-tertiary)] py-2">{children}</div>;
+function HeaderStrip({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
+  return (
+    <div
+      className="mobile-mode w-full max-w-[375px] rounded-[12px] py-2"
+      style={{ background: dark ? "#525659" : "var(--bg-neutral-tertiary)" }}
+    >
+      {children}
+    </div>
+  );
 }
 
 const INVOICESTATUS_PRESETS: Record<string, { label: string; color: BadgeColor; caption: string }> = {
@@ -2186,6 +2193,14 @@ const PAGEHEADER_CONTROL_GROUPS: ControlGroup[] = [
       { value: "disabled", label: "Disabled" },
     ],
   },
+  {
+    key: "onColor",
+    label: "On-color (dark backdrop)",
+    options: [
+      { value: "off", label: "Off — light page content (default)" },
+      { value: "on", label: "On — use when the header sits over a dark/colored backdrop at rest, e.g. a PDF-preview page" },
+    ],
+  },
 ];
 
 function PageHeaderTestMe() {
@@ -2194,9 +2209,9 @@ function PageHeaderTestMe() {
     <div className="flex flex-col gap-6">
       <InteractiveDemo
         groups={PAGEHEADER_CONTROL_GROUPS}
-        defaultValues={{ type: "left-on-scroll", text: "off", back: "on", searchState: "default" }}
+        defaultValues={{ type: "left-on-scroll", text: "off", back: "on", searchState: "default", onColor: "off" }}
         render={(v) => (
-          <HeaderStrip>
+          <HeaderStrip dark={v.onColor === "on"}>
             <PageHeader
               type={v.type as PageHeaderType}
               title="Title"
@@ -2206,6 +2221,7 @@ function PageHeaderTestMe() {
               searchValue={v.searchState === "filled" || v.searchState === "error" ? "Input text" : ""}
               error={v.searchState === "error"}
               disabled={v.searchState === "disabled"}
+              onColor={v.onColor === "on"}
             />
           </HeaderStrip>
         )}

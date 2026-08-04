@@ -186,6 +186,20 @@
   max-width: 100%;
 }
 
+/* onColor prop — the sticky header sits over a dark/colored backdrop at rest
+   instead of the usual light page content (e.g. the PDF-preview pages'
+   #525659 viewer background), so the title/text need --text-on-color instead
+   of --text-primary. The glass buttons don't need this: their translucent
+   white backing already gives the dark chevron/icon enough contrast on any
+   backdrop. Compound selectors (two classes) so this always wins over the
+   base color rules regardless of source order. */
+.titleLg.onColor,
+.titleMd.onColor,
+.compactTitle.onColor,
+.text.onColor {
+  color: var(--text-on-color);
+}
+
 /* Frosted search pill (type="search") — border transparent at rest, black
    (--field-border-focus) while the input has focus, matching ui/Search. */
 .searchPill {

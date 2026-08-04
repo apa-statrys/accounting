@@ -276,7 +276,7 @@ export function InvoicePreviewPage(props: InvoicePreviewPageProps) {
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          <PageHeader type="center" title="Invoice Preview" onBack={onBack} showSearch={false} />
+          <PageHeader type="center" title="Invoice Preview" onBack={onBack} showSearch={false} onColor />
         </PageAppHeader>
 
         <InvoiceDocumentPreview {...docProps} className={hideDownload ? "p-3 pb-6" : "p-3 pb-28"} />
