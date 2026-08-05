@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Avatar } from "../Avatar";
 import styles from "./index.module.css";
 
@@ -107,6 +108,12 @@ export function Tile({
   onClick,
 }: TileProps) {
   const [pressed, setPressed] = useState(false);
+  // Keep the titleRow layout mounted through the badge's exit animation (fade+scale out) instead
+  // of collapsing back to the plain title the instant `titleBadge` goes undefined.
+  const [showBadgeSlot, setShowBadgeSlot] = useState(Boolean(titleBadge));
+  useEffect(() => {
+    if (titleBadge) setShowBadgeSlot(true);
+  }, [titleBadge]);
   const classes = [
     styles.tile,
     size === "sm" ? styles.sm : "",
@@ -135,11 +142,23 @@ export function Tile({
         <span className={styles.icon}>{icon}</span>
       ) : null}
       <span className={styles.textBlock}>
-        {badgeLabel || titleBadge ? (
+        {badgeLabel || showBadgeSlot ? (
           <span className={styles.titleRow}>
             <span className={styles.title}>{title}</span>
             {badgeLabel && <span className={styles.badgePill}>{badgeLabel}</span>}
-            {titleBadge}
+            <AnimatePresence onExitComplete={() => setShowBadgeSlot(false)}>
+              {titleBadge && (
+                <motion.span
+                  key="title-badge"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                >
+                  {titleBadge}
+                </motion.span>
+              )}
+            </AnimatePresence>
           </span>
         ) : (
           <span className={styles.title}>{title}</span>

@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import styles from "./index.module.css";
 import type { BadgeColor } from "../Badge";
 import { InvoiceStatus } from "../InvoiceStatus";
@@ -74,6 +76,12 @@ export function InvoiceRow({
   const classes = [styles.row, lastItem ? styles.lastItem : "", onClick ? styles.clickable : ""]
     .filter(Boolean)
     .join(" ");
+  // Keep the titleRow layout mounted through the badge's exit animation (fade+scale out) instead
+  // of collapsing back to the plain title the instant `titleBadge` goes undefined.
+  const [showBadgeSlot, setShowBadgeSlot] = useState(Boolean(titleBadge));
+  useEffect(() => {
+    if (titleBadge) setShowBadgeSlot(true);
+  }, [titleBadge]);
   const credited = creditedAmount && (
     <>
       <span className={styles.fileIcon}>
@@ -91,10 +99,22 @@ export function InvoiceRow({
         {status && <InvoiceStatus label={status} color={statusColor} caption={statusCaption} />}
         <div className={styles.main}>
           <div className={styles.info}>
-            {titleBadge ? (
+            {showBadgeSlot ? (
               <div className={styles.titleRow}>
                 <p className={styles.title}>{title}</p>
-                {titleBadge}
+                <AnimatePresence onExitComplete={() => setShowBadgeSlot(false)}>
+                  {titleBadge && (
+                    <motion.span
+                      key="title-badge"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                    >
+                      {titleBadge}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </div>
             ) : (
               <p className={styles.title}>{title}</p>
