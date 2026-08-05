@@ -1,0 +1,31 @@
+/* EmptyState — Figma "Sales Invoice — Client", node 2070-19191 / 2071-19448. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  padding-top: 56px;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+/* Body md/Medium — no fonts.css utility covers the medium weight at this size (only
+   .body-md, which is regular, and .body-md-bold exist), so weight is hand-rolled on top
+   of the shared .body-md size/line-height (same precedent as ui/Tile's .title). */
+.title {
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+}
+
+.subtitle {
+  color: var(--text-secondary);
+}

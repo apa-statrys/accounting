@@ -6,10 +6,14 @@ import { PageHeader } from "../ui/PageHeader";
 import { Toast } from "../components/Toast";
 import { Tile } from "../ui/Tile";
 import { Badge } from "../ui/Badge";
+import { Button } from "../ui/Button";
+import { EmptyState } from "../components/EmptyState";
 import type { Customer, NewFlag } from "../types";
 
 import { avatarTint } from "../lib/theme";
 import { pinNew } from "../lib/pinNew";
+
+const noCustomersIcon = new URL("./no-customers-icon.svg", import.meta.url).href;
 
 /** Two-letter initials from a customer name (skips symbols like "&"). */
 function initials(name: string): string {
@@ -31,6 +35,9 @@ export interface CustomerListProps {
   /** The app-wide "just created" flag — pins a newly added customer to the top with a "New" badge
    *  for 5s (see lib/pinNew.ts). */
   newFlag?: NewFlag;
+  /** Dev-only (QuickNav): render the zero-data empty state (Figma "Customer List", node
+   *  2071-19448) — no real flow ever empties the demo register. */
+  forceEmpty?: boolean;
 }
 
 /**
@@ -41,7 +48,7 @@ export interface CustomerListProps {
  * "Select Customer" picker and every other search list/sheet in the app). Tap a row → the
  * detail page (no selection/Continue step here, unlike the picker).
  */
-export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer, flash, onFlashDone, newFlag }: CustomerListProps) {
+export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer, flash, onFlashDone, newFlag, forceEmpty }: CustomerListProps) {
   const [query, setQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
   // Search state — activating search replaces the whole header with a search field and
@@ -89,6 +96,11 @@ export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer,
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
+          {forceEmpty ? (
+            /* Zero-data empty state (Figma "Customer List", node 2071-19448) — plain centered
+               title, no Add/Search icons (the CTA below already covers Add). */
+            <PageHeader type="center" title="Customers" onBack={onBack} showSearch={false} />
+          ) : (
           <AnimatePresence mode="wait" initial={false}>
             {searching ? (
               <motion.div key="search" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
@@ -123,9 +135,26 @@ export function CustomerList({ customers, onBack, onOpenCustomer, onAddCustomer,
               </motion.div>
             )}
           </AnimatePresence>
+          )}
         </PageAppHeader>
 
-        {searching ? (
+        {forceEmpty ? (
+          <div className="flex-1 flex flex-col p-4">
+            <EmptyState
+              icon={<img src={noCustomersIcon} alt="" className="size-14" />}
+              title="No customers"
+              subtitle="Add your first customer to get started"
+              action={
+                <Button
+                  size="sm"
+                  iconLeft={<UserPlus size={16} strokeWidth={1.67} />}
+                  label="Add New Customer"
+                  onClick={onAddCustomer}
+                />
+              }
+            />
+          </div>
+        ) : searching ? (
           /* Search results — one flat "Results N" section; "Results" only appears once
              there's an actual query that matched something (same convention as every other
              search list/sheet in the app). */

@@ -356,6 +356,10 @@ export default function App() {
   const [heroScenario, setHeroScenario] = useState(0);
   // Dev: QuickNav "Send Invoice — Failed" — forces the Send Invoice sheet's send action to fail.
   const [sendFailScenario, setSendFailScenario] = useState(false);
+  // Dev: QuickNav zero-data empty states (Figma "All Invoices"/"Customer List", nodes
+  // 2070-19191/2071-19448) — no real flow ever empties either demo register.
+  const [forceEmptyInvoices, setForceEmptyInvoices] = useState(false);
+  const [forceEmptyCustomers, setForceEmptyCustomers] = useState(false);
   // Dev sidebar deep link: CN detail to open when jumping to the Credit Notes list (null = plain list).
   const [cnPreview, setCnPreview] = useState<string | null>(null);
   // Bumped on every sidebar detail jump so the detail page remounts (fresh state) even when
@@ -429,7 +433,8 @@ export default function App() {
     {
       title: "Customer",
       items: [
-        { label: "Customer List", active: screen === "customers", onSelect: () => { seedHistory("hub"); setScreen("customers"); } },
+        { label: "Customer List", active: screen === "customers" && !forceEmptyCustomers, onSelect: () => { setForceEmptyCustomers(false); seedHistory("hub"); setScreen("customers"); } },
+        { label: "Customer List — Empty", active: screen === "customers" && forceEmptyCustomers, onSelect: () => { setForceEmptyCustomers(true); seedHistory("hub"); setScreen("customers"); } },
         { label: "Add New Customer", active: screen === "addCustomer", onSelect: () => { setAddCustomerReturn("customers"); seedHistory("hub", "customers"); setScreen("addCustomer"); } },
         { label: "Customer Details", active: screen === "customerDetail", onSelect: () => { setSelectedCustomer(customers[0]); setCustomerFlash(null); seedHistory("hub", "customers"); setScreen("customerDetail"); } },
       ],
@@ -448,7 +453,8 @@ export default function App() {
       // flat-ish rows and was hard to scan for handoff).
       items: [
         // Clear any pending toast so the dev jump never lands with a stale "Saved as draft" flash.
-        { label: "Sales Invoice List", active: screen === "list", onSelect: () => { setToast(null); setListPreset(null); setScreen("list"); } },
+        { label: "Sales Invoice List", active: screen === "list" && !forceEmptyInvoices, onSelect: () => { setToast(null); setListPreset(null); setForceEmptyInvoices(false); setScreen("list"); } },
+        { label: "Sales Invoice List — Empty", active: screen === "list" && forceEmptyInvoices, onSelect: () => { setToast(null); setListPreset(null); setForceEmptyInvoices(true); setScreen("list"); } },
         // Dev jump lands on the pre-filled editor (demo customer + demo items), not the picker (user, 15/Jul).
         { label: "Create Invoice", active: screen === "customer" || screen === "details", onSelect: () => { setExtracted(null); setCustomer(DEMO_CUSTOMER); setDevSeedItems(true); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setScreen("details"); } },
         { label: "Send Invoice", active: screen === "send" && !sendFailScenario, onSelect: () => { setSendFailScenario(false); setScreen("send"); } },
@@ -668,6 +674,7 @@ export default function App() {
       {screen === "customers" && (
         <CustomerList
           customers={customers}
+          forceEmpty={forceEmptyCustomers}
           flash={customerFlash}
           newFlag={newFlag}
           onFlashDone={() => setCustomerFlash(null)}
@@ -821,6 +828,7 @@ export default function App() {
 
       {screen === "list" && (
         <SalesInvoiceList
+          forceEmpty={forceEmptyInvoices}
           showSuccess={!!toast}
           successVariant={toast?.variant}
           successMessage={toast?.title}

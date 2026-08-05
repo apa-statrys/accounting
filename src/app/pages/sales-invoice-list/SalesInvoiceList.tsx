@@ -19,6 +19,8 @@ import { Keyboard } from "../../components/Keyboard";
 import { FilterIcon } from "../../components/FilterIcon";
 import { TextField } from "../../ui/TextField";
 import { Calendar } from "../../components/Calendar";
+import { EmptyState } from "../../components/EmptyState";
+import { Button } from "../../ui/Button";
 import { CreditNoteDetailPage } from "../credit-note-list/CreditNoteDetailPage";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { INVOICES } from "../../data/invoices";
@@ -47,6 +49,8 @@ import {
   type SortKey,
   type StatusMatch,
 } from "./filters";
+
+const noInvoicesIcon = new URL("./no-invoices-icon.svg", import.meta.url).href;
 
 /** Two-letter initials from a customer name (skips symbols like "&"), for the Customer search's Avatar. */
 function initials(name: string): string {
@@ -128,9 +132,12 @@ interface SalesInvoiceListProps {
   initialDue?: DueFilter;
   /** Refunds completed in-session (DES-720), keyed by invoice number → "partial" | "full". */
   refundState?: Record<string, "partial" | "full">;
+  /** Dev-only (QuickNav): render the zero-data empty state (Figma "All Invoices", node 2070-19191)
+   *  in place of the tabs/sort/list — no real flow ever empties the demo register. */
+  forceEmpty?: boolean;
 }
 
-export function SalesInvoiceList({ showSuccess, successVariant, successMessage, successSubtext, onSuccessDone, recent, newFlag, onBack, onOpenInvoice, onManual, onUpload, initialStatus, onActiveStatusChange, initialDue, refundState }: SalesInvoiceListProps) {
+export function SalesInvoiceList({ showSuccess, successVariant, successMessage, successSubtext, onSuccessDone, recent, newFlag, onBack, onOpenInvoice, onManual, onUpload, initialStatus, onActiveStatusChange, initialDue, refundState, forceEmpty }: SalesInvoiceListProps) {
   const initialActive = initialStatus ? Math.max(0, FILTERS.findIndex((f) => f.match === initialStatus)) : 0;
   const [active, setActive] = useState(initialActive);
   // Keep the selected status tab scrolled into view (e.g. when opened pre-filtered from the hero).
@@ -294,50 +301,70 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
             {/* DS PageHeader (center) — back chevron only, title optically centered by the spacer. */}
             <PageHeader type="center" title="All Invoices" onBack={onBack} showSearch={false} />
 
-            {/* Status filter tabs — DS HorizontalTabs (button style), horizontally scrollable. Sits
-                directly in the header's beige→white gradient panel, no separate box/shadow. Right
-                padding is intentionally omitted (Figma node 1332-18605): the row bleeds to the frame's
-                edge so an overflowing tab clips flush against it, signalling more content to scroll to.
-                Figma (node 4240-5598, re-synced 2026-07-28) specs pl-16px / py-16px — symmetric
-                top/bottom, not the pt-4px/pb-8px an earlier sync had recorded. */}
-            <div ref={tabsWrapRef} className="tabs-wrap shrink-0 pl-4 py-4 relative z-10">
-              <HorizontalTabs
-                variant="button"
-                tabs={FILTERS.map((f, i) => `${f.label} (${counts[i]})`)}
-                activeIndex={active}
-                onChange={selectChip}
-              />
-            </div>
+            {/* Zero-data empty state (Figma "All Invoices", node 2070-19191) drops the tabs/sort row
+                entirely — there's nothing to filter or sort when the register is completely empty. */}
+            {!forceEmpty && (
+              <>
+                {/* Status filter tabs — DS HorizontalTabs (button style), horizontally scrollable. Sits
+                    directly in the header's beige→white gradient panel, no separate box/shadow. Right
+                    padding is intentionally omitted (Figma node 1332-18605): the row bleeds to the frame's
+                    edge so an overflowing tab clips flush against it, signalling more content to scroll to.
+                    Figma (node 4240-5598, re-synced 2026-07-28) specs pl-16px / py-16px — symmetric
+                    top/bottom, not the pt-4px/pb-8px an earlier sync had recorded. */}
+                <div ref={tabsWrapRef} className="tabs-wrap shrink-0 pl-4 py-4 relative z-10">
+                  <HorizontalTabs
+                    variant="button"
+                    tabs={FILTERS.map((f, i) => `${f.label} (${counts[i]})`)}
+                    activeIndex={active}
+                    onChange={selectChip}
+                  />
+                </div>
 
-            {/* Sort / Filter row — Figma "Sales Invoice · List" (node 4469-466): pt-1/pb-2/px-4
-                (4/8/16px). The Sort button always shows the effective sort label (e.g. "Issue
-                Date: Newest") — a sort is always applied (see defaultSortFor), so a generic
-                "Sort by" placeholder would be misleading. The Sort sheet below shows the same
-                effective sortKey as selected/checked, for the same reason. */}
-            <div className="shrink-0 flex items-center justify-between pt-1 pb-2 px-4 border-b border-[var(--border-neutral-primary)]">
-              <button onClick={() => setSortOpen(true)} className="flex items-center gap-1" style={FONT}>
-                <ArrowUpDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
-                <span className="body-sm text-[var(--text-primary)]">
-                  {sortValueText ? `${sortLabelText}: ` : sortLabelText}
-                </span>
-                {sortValueText && <span className="body-sm-medium text-[var(--text-primary)]">{sortValueText}</span>}
-                <ChevronDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
-              </button>
-              <button onClick={() => setFilterOpen(true)} className="relative flex items-center justify-center p-1 -m-1" aria-label="Filters">
-                <FilterIcon size={20} color="var(--text-primary)" />
-                {filterCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[var(--bg-brand-primary)] text-white text-[10px] font-bold flex items-center justify-center">
-                    {filterCount}
-                  </span>
-                )}
-              </button>
-            </div>
+                {/* Sort / Filter row — Figma "Sales Invoice · List" (node 4469-466): pt-1/pb-2/px-4
+                    (4/8/16px). The Sort button always shows the effective sort label (e.g. "Issue
+                    Date: Newest") — a sort is always applied (see defaultSortFor), so a generic
+                    "Sort by" placeholder would be misleading. The Sort sheet below shows the same
+                    effective sortKey as selected/checked, for the same reason. */}
+                <div className="shrink-0 flex items-center justify-between pt-1 pb-2 px-4 border-b border-[var(--border-neutral-primary)]">
+                  <button onClick={() => setSortOpen(true)} className="flex items-center gap-1" style={FONT}>
+                    <ArrowUpDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
+                    <span className="body-sm text-[var(--text-primary)]">
+                      {sortValueText ? `${sortLabelText}: ` : sortLabelText}
+                    </span>
+                    {sortValueText && <span className="body-sm-medium text-[var(--text-primary)]">{sortValueText}</span>}
+                    <ChevronDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
+                  </button>
+                  <button onClick={() => setFilterOpen(true)} className="relative flex items-center justify-center p-1 -m-1" aria-label="Filters">
+                    <FilterIcon size={20} color="var(--text-primary)" />
+                    {filterCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[var(--bg-brand-primary)] text-white text-[10px] font-bold flex items-center justify-center">
+                        {filterCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </PageAppHeader>
 
         {/* Invoice list — DS InvoiceRows as a flat list on the white page (divider between rows). */}
         <div className="bg-white px-4 pb-4 flex flex-col">
-        {list.length === 0 ? (
+        {forceEmpty ? (
+          <EmptyState
+            icon={<img src={noInvoicesIcon} alt="" className="size-14" />}
+            title="No invoices"
+            subtitle="Create your first invoice to get started"
+            action={
+              <Button
+                size="sm"
+                iconLeft={<Plus size={16} strokeWidth={1.67} />}
+                label="Create Invoice"
+                onClick={() => setSheetOpen(true)}
+              />
+            }
+          />
+        ) : list.length === 0 ? (
           <p className="text-center text-[13px] text-[var(--text-placeholder)] pt-16" style={FONT}>No invoices found</p>
         ) : (
           list.map((inv, i) => (
@@ -357,15 +384,18 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
       </div>
 
       {/* Create invoice FAB — pill with a leading + at rest; on scroll the `collapsed` prop morphs
-          the SAME element into the 46px circle (label folds away), same as Dashboard's FAB. */}
-      <FAB
-        collapsed={scrolled}
-        iconLeft={<Plus size={20} />}
-        label="Create Invoice"
-        aria-label="Create invoice"
-        className="absolute z-20 bottom-4 right-4"
-        onClick={() => setSheetOpen(true)}
-      />
+          the SAME element into the 46px circle (label folds away), same as Dashboard's FAB. Hidden
+          in the zero-data empty state — its own centered "Create Invoice" button already covers it. */}
+      {!forceEmpty && (
+        <FAB
+          collapsed={scrolled}
+          iconLeft={<Plus size={20} />}
+          label="Create Invoice"
+          aria-label="Create invoice"
+          className="absolute z-20 bottom-4 right-4"
+          onClick={() => setSheetOpen(true)}
+        />
+      )}
 
       {/* Create bottom sheet */}
       <CreateInvoiceSheet
