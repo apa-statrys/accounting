@@ -87,6 +87,9 @@ export interface Invoice {
   cnNo?: string;
   cnAmount?: number;
   cnSent?: boolean;
+  /** Drafts only: line-item count at save time. 0 = a manually-created draft saved with no items
+   *  (backed out of the editor before adding any) — the list/detail treat this as an empty draft. */
+  itemsCount?: number;
 }
 
 /** The full invoice lifecycle on the DETAIL page (DES-715 / DES-716 status matrix). The internal key

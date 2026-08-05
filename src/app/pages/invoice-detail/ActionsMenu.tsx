@@ -21,6 +21,9 @@ interface ActionsMenuProps {
   onDuplicate: () => void;
   onCreateCn: () => void;
   onDeleteDraft: () => void;
+  /** Suppress the "Edit Invoice" row — an empty draft's own dock CTA already leads to Edit, so the
+   *  ⋯ menu offers only Delete draft. */
+  hideEdit?: boolean;
 }
 
 export function ActionsMenu({
@@ -38,6 +41,7 @@ export function ActionsMenu({
   onDuplicate,
   onCreateCn,
   onDeleteDraft,
+  hideEdit,
 }: ActionsMenuProps) {
   return (
     <BottomSheet open={open} title="" onClose={onClose}>
@@ -63,7 +67,7 @@ export function ActionsMenu({
         )}
 
         {/* Edit — full for a draft, limited for an issued still-editable invoice. */}
-        {(status === "Draft" || status === "Awaiting" || status === "Overdue") && (
+        {(status === "Draft" || status === "Awaiting" || status === "Overdue") && !hideEdit && (
           <Tile icon={<Pencil size={24} strokeWidth={1.5} />} title="Edit Invoice" onClick={onEdit} />
         )}
 

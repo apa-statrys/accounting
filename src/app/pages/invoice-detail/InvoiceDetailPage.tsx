@@ -39,6 +39,10 @@ interface InvoiceDetailPageProps {
   /** Where a Draft came from — sets the default emphasis (DES-715 vs DES-716 AC4). */
   origin?: "created" | "uploaded";
   invoiceNo?: string;
+  /** Drafts only: line-item count at save time. A manually-created draft saved with 0 items (backed
+   *  out of the editor via "Go to invoice list" before adding anything) has nothing to show/send —
+   *  the Items/Summary cards are hidden, the amount reads 0, and the CTA offers Edit, not Send. */
+  itemsCount?: number;
   customerName?: string;
   customerEmail?: string;
   /** Sender company email (from Invoice Settings) — the Cc when "Send me a copy" is on. */
@@ -85,6 +89,7 @@ export function InvoiceDetailPage({
   initialStatus = "Awaiting",
   origin = "created",
   invoiceNo = "INV-2026-000042",
+  itemsCount,
   customerName = "Marlow & Finch Studio",
   customerEmail = "apa@marlowfinch.co",
   companyEmail = "hello@lumenstudio.co",
@@ -241,6 +246,10 @@ export function InvoiceDetailPage({
   // Uploaded drafts default to "Mark as sent" (already issued externally → Awaiting payment);
   // "Mark as paid" is the secondary path for invoices already settled. Created drafts default to sending.
   const uploaded = origin === "uploaded";
+  // A manually-created draft saved with zero line items (backed out of the editor before adding
+  // anything) — nothing to show or send, so Items/Summary hide, the amount reads 0, and the CTA
+  // offers Edit instead of Send.
+  const isEmptyDraft = status === "Draft" && !uploaded && itemsCount === 0;
   // The page header is always the generic "Invoice Details" (Figma "Invoice Detail", node
   // 1423:63521) — never a document number, not even for a draft. The actual reference (an
   // uploaded draft's UL-number, or the real number once issued) shows in the hero body instead;
@@ -380,7 +389,7 @@ export function InvoiceDetailPage({
   // Hero big number is ALWAYS the original full invoice total (user, 22/Jul) — for every status,
   // including refund context. Credit notes / refunds are detailed in the sub-line + Summary below,
   // not in the big number.
-  const headlineAmount = TOTAL;
+  const headlineAmount = isEmptyDraft ? 0 : TOTAL;
   // Refund-context sub-line: the amount still to refund (payout pending) or the amount refunded (settled).
   const refundAmt = refundPending > 0.001 ? refundPending : refundedOut;
   const refundVerb = refundPending > 0.001 ? "to refund" : "refunded";
@@ -844,6 +853,10 @@ export function InvoiceDetailPage({
           </ListCard>
         </div>
 
+        {/* An empty draft (saved with 0 items) has nothing to list or total — hide both cards rather
+            than show a 3-line demo Items list or an all-zero Summary that doesn't reflect it. */}
+        {!isEmptyDraft && (
+          <>
         {/* Line items — items only; totals live in their own Summary card below. DS ListCard/ListRow
             (Figma), same shape as every other line-item list in the app. */}
         <div className="flex flex-col gap-2">
@@ -905,6 +918,8 @@ export function InvoiceDetailPage({
             )}
           </div>
         </div>
+          </>
+        )}
 
       </div>
       </div>
@@ -931,7 +946,12 @@ export function InvoiceDetailPage({
         ) : (
           // Created draft: "Mark as paid" is only offered on UPLOADED drafts (already settled outside
           // Statrys). A created draft is issued through Statrys, so it leads with "Send invoice" only.
-          <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryDisabled={!requiredComplete} primaryLoading={sendPending} onPrimary={openSend} />
+          // An empty draft (0 items) has nothing to send — the CTA leads to Edit instead.
+          isEmptyDraft ? (
+            <ButtonDock type="single" sticky primaryLabel="Edit invoice" onPrimary={openEdit} />
+          ) : (
+            <ButtonDock type="single" sticky primaryLabel="Send invoice" primaryDisabled={!requiredComplete} primaryLoading={sendPending} onPrimary={openSend} />
+          )
         )
       ) : sendable ? (
         // Once a payment is logged (awaiting approval) the "Mark as paid" CTA drops, leaving just "Resend invoice".
@@ -1001,6 +1021,7 @@ export function InvoiceDetailPage({
         onDuplicate={duplicate}
         onCreateCn={() => { setActionsOpen(false); if (lockedPeriod) { setLockedAction("createCn"); return; } setResumeDraftIndex(null); setCreditFormOpen(true); }}
         onDeleteDraft={() => { setActionsOpen(false); setConfirmDelete(true); }}
+        hideEdit={isEmptyDraft}
       />
 
       {/* Delete confirm (Draft only). Both actions are destructive-styled (see memory:

@@ -77,7 +77,7 @@ export function InvoiceCard({ inv, isNew, lastItem, onClick, onDelete, onOpenCN,
       status={status.label}
       statusColor={status.color}
       statusCaption={caption || undefined}
-      amount={money(TOTAL)}
+      amount={inv.itemsCount === 0 ? money(0) : money(TOTAL)}
       creditedAmount={hasCn ? inv.cnNo : undefined}
       creditedLabel=""
       onCreditedClick={hasCn ? () => onOpenCN?.(inv) : undefined}

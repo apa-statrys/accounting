@@ -115,13 +115,13 @@ interface SalesInvoiceListProps {
   successSubtext?: string;
   onSuccessDone?: () => void;
   /** A just-created/saved invoice to surface at the top of the list. */
-  recent?: { client: string; amount: string; status: Status; meta: string } | null;
+  recent?: { client: string; amount: string; status: Status; meta: string; itemsCount?: number } | null;
   /** The app-wide "just created" flag (see lib/pinNew.ts) — pins the recent row to the top
    *  regardless of sort/filter and drives its "New" badge + arrival highlight for 5s. */
   newFlag?: NewFlag;
   onBack?: () => void;
   /** Open an invoice's detail page. */
-  onOpenInvoice?: (inv: { number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean }) => void;
+  onOpenInvoice?: (inv: { number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; itemsCount?: number }) => void;
   onManual?: () => void;
   onUpload?: () => void;
   /** Preset the status chip when opened from a dashboard tile (e.g. "Paid"). */
@@ -224,10 +224,10 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
 
   // The freshly created/saved invoice (if any), prepended as a real card.
   const recentRow: Invoice | null = recent
-    ? { id: "recent-new", client: recent.client, meta: recent.meta, amount: recent.amount, status: recent.status, date: TODAY_ISO }
+    ? { id: "recent-new", client: recent.client, meta: recent.meta, amount: recent.amount, status: recent.status, date: TODAY_ISO, itemsCount: recent.itemsCount }
     : null;
   const baseInvoices = INVOICES;
-  const allRows = useMemo(() => (recentRow ? [recentRow, ...baseInvoices] : baseInvoices), [recentRow?.client, recentRow?.amount, recentRow?.status, baseInvoices]);
+  const allRows = useMemo(() => (recentRow ? [recentRow, ...baseInvoices] : baseInvoices), [recentRow?.client, recentRow?.amount, recentRow?.status, recentRow?.itemsCount, baseInvoices]);
   // Drafts removed via swipe-to-delete are hidden locally; deletion goes through a confirm sheet.
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -376,7 +376,7 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
               inv={inv}
               isNew={isNewInvoice(inv)}
               lastItem={i === list.length - 1}
-              onClick={() => onOpenInvoice?.({ number: inv.id.replace(/[a-z]$/, ""), client: inv.client, status: effectiveStatus(inv), origin: inv.origin ?? "created", cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent })}
+              onClick={() => onOpenInvoice?.({ number: inv.id.replace(/[a-z]$/, ""), client: inv.client, status: effectiveStatus(inv), origin: inv.origin ?? "created", cnNo: inv.cnNo, cnAmount: inv.cnAmount, cnSent: inv.cnSent, itemsCount: inv.itemsCount })}
               onDelete={() => setConfirmDeleteId(inv.id)}
               onOpenCN={openCnForInvoice}
               refundOverride={refundState?.[inv.id.replace(/[a-z]$/, "")]}

@@ -275,7 +275,7 @@ export default function App() {
   const [uploadError, setUploadError] = useState<{ kind: "tooLarge" | "unsupportedType"; title: string; body: ReactNode } | null>(null);
   // Freshly created/saved invoice to surface at the top of the list (payload only — the pin/badge
   // lifecycle itself is driven entirely by `newFlag` below, not by this state).
-  const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string } | null>(null);
+  const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string; itemsCount?: number } | null>(null);
   // Freshly created/saved credit note (dev-flow only — Credit Notes List has no real backing array
   // to append into today, so this mirrors `recent`'s ephemeral-slot pattern for CreditNote).
   const [recentCn, setRecentCn] = useState<{ no: string; customer: string; amount: number; status: CNStatus; date: string } | null>(null);
@@ -292,7 +292,7 @@ export default function App() {
     newFlagTimerRef.current = setTimeout(() => setNewFlag(null), 5000);
   };
   // The invoice opened into the detail page (status drives the lifecycle UI).
-  const [openInvoice, setOpenInvoice] = useState<{ number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean; cnAwaiting?: boolean; viewCn?: boolean }>({
+  const [openInvoice, setOpenInvoice] = useState<{ number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; cnDraft?: boolean; cnAwaiting?: boolean; viewCn?: boolean; itemsCount?: number }>({
     number: "INV-2026-000042",
     client: "Marlow & Finch Studio",
     status: "Awaiting",
@@ -868,6 +868,7 @@ export default function App() {
           origin={openInvoice.origin}
           invoiceNo={openInvoice.number}
           customerName={openInvoice.client}
+          itemsCount={openInvoice.itemsCount}
           customerEmail={CREDIT_NOTES.find((c) => c.no === openInvoice.cnNo)?.email}
           companyEmail={settings.email}
           dueDateLabel={(() => { const inv = INVOICES.find((i) => i.id === openInvoice.number); return inv?.due ? fmtDate(inv.due) : undefined; })()}

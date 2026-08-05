@@ -56,7 +56,7 @@ interface AddInvoiceDetailsProps {
   onSendLater?: () => void;
   /** Save as draft (also fired by the close ✕) — returns to the list with a draft toast.
    *  Passes a summary so the list can show + highlight the freshly-saved draft card. */
-  onSaveDraft?: (draft?: { client: string; amount: string; meta: string }) => void;
+  onSaveDraft?: (draft?: { client: string; amount: string; meta: string; itemsCount: number }) => void;
   /** Primary action — sends (manual) or creates (upload); returns to the list with a toast.
    *  An optional toast (title + subtext) overrides the default copy (per send method).
    *  `recent` lets the list surface + highlight the just-created card. */
@@ -366,7 +366,7 @@ export function AddInvoiceDetails({
   const draftMeta = `${invoiceNo} · Created ${format(issueDate, "d MMM yyyy")}`;
   const sentMeta = `${invoiceNo} · Due ${dueShort}`;
   const saveDraft = () =>
-    onSaveDraft?.({ client: clientLabel, amount: draftAmount, meta: draftMeta });
+    onSaveDraft?.({ client: clientLabel, amount: draftAmount, meta: draftMeta, itemsCount: services.length });
   // Tapping back on a fresh create (never on an in-progress edit) confirms the auto-save with a
   // sheet instead of silently dropping the user onto the list — "Go to invoice list" continues
   // the existing saveDraft flow, "Keep editing" just dismisses and stays on this page.
