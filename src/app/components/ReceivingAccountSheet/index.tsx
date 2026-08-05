@@ -9,7 +9,7 @@ interface ReceivingAccountSheetProps {
   open: boolean;
   /** Selected account id. */
   value?: string;
-  /** Sheet title — defaults to "Select Payment Method"; refund flow passes "Refund from". */
+  /** Sheet title — defaults to "Select Receiving Account"; refund flow passes "Refund from". */
   title?: string;
   /** Hide the "Use External Bank Account" option (e.g. a refund must be paid from a Statrys account). */
   hideExternal?: boolean;
@@ -70,7 +70,7 @@ export function ReceivingAccountRows({ value, hideExternal = false, onSelect, on
 export function ReceivingAccountSheet({
   open,
   value,
-  title = "Select Payment Method",
+  title = "Select Receiving Account",
   hideExternal = false,
   onClose,
   onSelect,

@@ -57,7 +57,7 @@ export function BankInfoSheet({ open, onBack, onClose, onConfirm }: BankInfoShee
       onClose={onClose}
       centerTitle
       onBack={onBack}
-      backLabel="Back to payment methods"
+      backLabel="Back to receiving accounts"
       keyboardOpen={keyboardOpen}
       footer={<ButtonDock type="single" keyboard={keyboardOpen} primaryLabel="Confirm" onPrimary={confirm} />}
     >

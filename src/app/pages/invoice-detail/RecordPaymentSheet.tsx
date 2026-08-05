@@ -67,7 +67,7 @@ export function RecordPaymentSheet({
 
   const titles: Record<PaymentStep, string> = {
     form: "Mark as paid",
-    account: "Select Payment Method",
+    account: "Select Receiving Account",
     date: "Select Payment Date",
   };
 
