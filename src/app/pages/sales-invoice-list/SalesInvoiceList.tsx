@@ -278,18 +278,7 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
   return (
     <div
       className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
-      style={{
-        width: 375,
-        height: 812,
-        // The beige→white transition has to finish right around where the sticky header's opaque
-        // content picks up, or the opaque edge cuts across a still-fading gradient (a visible hard
-        // line). The empty state's header is just the plain title row (~97px total, no tabs/sort
-        // row under it — Figma "All Invoices" node 2070-19191 fades out by ~95px), so it needs a
-        // much shorter transition than the normal header's 100–150px.
-        background: forceEmpty
-          ? "linear-gradient(180deg, var(--bg-beige-primary) 0%, var(--bg-beige-primary) 60px, #ffffff 95px)"
-          : "linear-gradient(180deg, var(--bg-beige-primary) 0%, var(--bg-beige-primary) 100px, #ffffff 150px)",
-      }}
+      style={{ width: 375, height: 812, background: "linear-gradient(180deg, var(--bg-beige-primary) 0%, var(--bg-beige-primary) 100px, #ffffff 150px)" }}
     >
       {/* Thin horizontal scrollbar for the status tab row (the DS scroller is the wrapper's child) */}
       <style>{`
@@ -359,8 +348,11 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
           </div>
         </PageAppHeader>
 
-        {/* Invoice list — DS InvoiceRows as a flat list on the white page (divider between rows). */}
-        <div className="bg-white px-4 pb-4 flex flex-col">
+        {/* Invoice list — DS InvoiceRows as a flat list on the white page (divider between rows).
+            The empty state skips the opaque white fill: its shorter header (no tabs/sort row)
+            would otherwise cut the panel's beige→white gradient off before it finishes fading —
+            leaving it transparent here lets the gradient itself resolve to solid white by 150px. */}
+        <div className={`px-4 pb-4 flex flex-col ${forceEmpty ? "" : "bg-white"}`}>
         {forceEmpty ? (
           <EmptyState
             icon={<img src={noInvoicesIcon} alt="" className="size-14" />}
