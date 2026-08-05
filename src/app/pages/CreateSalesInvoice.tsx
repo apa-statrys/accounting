@@ -38,13 +38,17 @@ interface CreateSalesInvoiceProps {
   /** The app-wide "just created" flag — pins a newly added customer to the top of "All customers"
    *  with a "New" badge for 5s (see lib/pinNew.ts). */
   newFlag?: NewFlag;
+  /** Dev-only (QuickNav): force the no-"Frequently used" state — the page then reads identically
+   *  to the plain Customer List (just this header's own "Select Customer" title). No real flow
+   *  empties FREQUENT_IDS, so this is the only way to preview that state. */
+  forceNoFrequent?: boolean;
 }
 
 /**
  * Create Sales Invoice — step 1: "Add a customer".
  * Choosing a customer advances the flow.
  */
-export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onClose, onSelectCustomer, onAddCustomer, newFlag }: CreateSalesInvoiceProps) {
+export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onClose, onSelectCustomer, onAddCustomer, newFlag, forceNoFrequent }: CreateSalesInvoiceProps) {
   const [query, setQuery] = useState("");
   // Selecting a tile only highlights it; "Continue" advances the flow.
   const [pendingId, setPendingId] = useState<string>(selectedId);
@@ -98,8 +102,15 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
   // are always appended to the end of the register, so reversing is exactly "newest first").
   // A just-created customer pins to the top of "All customers" specifically — "Frequently used"
   // is a distinct, curated by-billing shortcut list, not the general list a new customer joins.
-  const frequent = filtered.filter((c) => FREQUENT_IDS.includes(c.id));
-  const others = pinNew([...filtered].reverse().filter((c) => !FREQUENT_IDS.includes(c.id)), newFlag, "customer", (c) => c.id);
+  const frequent = forceNoFrequent ? [] : filtered.filter((c) => FREQUENT_IDS.includes(c.id));
+  const others = forceNoFrequent
+    ? pinNew([...filtered].reverse(), newFlag, "customer", (c) => c.id)
+    : pinNew([...filtered].reverse().filter((c) => !FREQUENT_IDS.includes(c.id)), newFlag, "customer", (c) => c.id);
+  // No "Frequently used" shortcuts (curated list emptied, e.g. every top-billed customer was
+  // deleted) — the page then reads identically to the plain Customer List: static header with
+  // always-visible Add + Search icons (no scroll-driven reveal), no "All customers" heading, no
+  // inline Add button/search field, just the flat tile list.
+  const hasFrequent = frequent.length > 0;
 
   // DS Tile avatar row (Figma Select Customer): initials avatar + name/email, brand
   // border + check when selected; borderless white card on the beige page.
@@ -151,7 +162,7 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
                   onBack={exitSearch}
                 />
               </motion.div>
-            ) : (
+            ) : hasFrequent ? (
               /* DS PageHeader — centered title, stays centered while scrolling (no scroll-driven
                  section subtitle anymore); the right side still reveals the Add/Search pill once
                  the actions row has scrolled underneath. */
@@ -194,6 +205,29 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
                   }
                 />
               </motion.div>
+            ) : (
+              /* No "Frequently used" shortcuts — static header, same as Customer List: title
+                 stays centered, Add + Search sit as a plain always-visible icon pair on the right
+                 (no scroll-driven pill reveal, since there's no Add/Search row lower on the page
+                 to hand off from). */
+              <motion.div key="default-flat" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+                <PageHeader
+                  type="center"
+                  title="Select Customer"
+                  onBack={onClose}
+                  showSearch={false}
+                  rightSlot={
+                    <div className="flex items-center gap-4">
+                      <button type="button" className="flex" aria-label="Add customer" onClick={openAdd}>
+                        <UserPlus size={20} strokeWidth={1} />
+                      </button>
+                      <button type="button" className="flex" aria-label="Search customers" onClick={startSearch}>
+                        <SearchIcon size={20} strokeWidth={1} />
+                      </button>
+                    </div>
+                  }
+                />
+              </motion.div>
             )}
           </AnimatePresence>
         </PageAppHeader>
@@ -229,20 +263,18 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
                 </p>
               )}
             </div>
-          ) : (
+          ) : hasFrequent ? (
             <>
               {/* Frequently used — the most-billed customers as full tile rows (top 5 of the
                   same list, not a separate database). */}
-              {frequent.length > 0 && (
-                <div className="flex flex-col gap-4 p-4">
-                  <p className={SECTION_HEADING}>
-                    Frequently used
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {frequent.slice(0, 5).map(renderTile)}
-                  </div>
+              <div className="flex flex-col gap-4 p-4">
+                <p className={SECTION_HEADING}>
+                  Frequently used
+                </p>
+                <div className="flex flex-col gap-2">
+                  {frequent.slice(0, 5).map(renderTile)}
                 </div>
-              )}
+              </div>
 
               {/* All customers — heading row with the Add action (Figma), search below it;
                   tapping the search field hands off to the full search state above. */}
@@ -288,6 +320,22 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
                 </p>
               )}
             </>
+          ) : (
+            /* No "Frequently used" shortcuts — same flat layout as Customer List: no section
+               heading, no inline Add button/search field (both live in the header now instead). */
+            <div className="flex flex-col gap-4 p-4">
+              <div className="flex flex-col gap-2">
+                {others.map(renderTile)}
+              </div>
+              {filtered.length === 0 && (
+                <p
+                  className="text-center text-[13px] text-[var(--text-placeholder)] pt-10"
+                  style={{ fontFamily: "GT Walsheim LC, sans-serif" }}
+                >
+                  No customers found
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>

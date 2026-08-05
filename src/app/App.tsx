@@ -360,6 +360,8 @@ export default function App() {
   // 2070-19191/2071-19448) — no real flow ever empties either demo register.
   const [forceEmptyInvoices, setForceEmptyInvoices] = useState(false);
   const [forceEmptyCustomers, setForceEmptyCustomers] = useState(false);
+  // Dev: QuickNav "Select Customer — No Frequently Used" — no real flow ever empties FREQUENT_IDS.
+  const [forceNoFrequentCustomers, setForceNoFrequentCustomers] = useState(false);
   // Dev sidebar deep link: CN detail to open when jumping to the Credit Notes list (null = plain list).
   const [cnPreview, setCnPreview] = useState<string | null>(null);
   // Bumped on every sidebar detail jump so the detail page remounts (fresh state) even when
@@ -455,6 +457,9 @@ export default function App() {
         // Clear any pending toast so the dev jump never lands with a stale "Saved as draft" flash.
         { label: "Sales Invoice List", active: screen === "list" && !forceEmptyInvoices, onSelect: () => { setToast(null); setListPreset(null); setForceEmptyInvoices(false); setScreen("list"); } },
         { label: "Sales Invoice List — Empty", active: screen === "list" && forceEmptyInvoices, onSelect: () => { setToast(null); setListPreset(null); setForceEmptyInvoices(true); setScreen("list"); } },
+        // Select Customer is step 1 of Create Invoice (happens before the editor) — placed above it.
+        { label: "Select Customer", active: screen === "customer" && !forceNoFrequentCustomers, onSelect: () => { setForceNoFrequentCustomers(false); seedHistory("list"); setScreen("customer"); } },
+        { label: "Select Customer — No Frequently Used", active: screen === "customer" && forceNoFrequentCustomers, onSelect: () => { setForceNoFrequentCustomers(true); seedHistory("list"); setScreen("customer"); } },
         // Dev jump lands on the pre-filled editor (demo customer + demo items), not the picker (user, 15/Jul).
         { label: "Create Invoice", active: screen === "customer" || screen === "details", onSelect: () => { setExtracted(null); setCustomer(DEMO_CUSTOMER); setDevSeedItems(true); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setScreen("details"); } },
         { label: "Send Invoice", active: screen === "send" && !sendFailScenario, onSelect: () => { setSendFailScenario(false); setScreen("send"); } },
@@ -1006,6 +1011,7 @@ export default function App() {
           selectedId={customer?.id ?? ""}
           customers={customers}
           newFlag={newFlag}
+          forceNoFrequent={forceNoFrequentCustomers}
           onAddCustomer={() => { setAddCustomerReturn("customer"); setScreen("addCustomer"); }}
           onClose={() => setScreen("list")}
           onSelectCustomer={(c) => {
