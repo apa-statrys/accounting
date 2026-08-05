@@ -1,7 +1,7 @@
 // Mark as paid — captures the amount (full → Paid, less → Partially Paid; outcome logic lives in the
 // page's onSubmit), plus which bank account received it and an optional payment date (DES-715 comment:
 // an indicator to aid reconciliation — no GL impact).
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
 import { BottomSheet, stepSlide } from "../../components/BottomSheet";
@@ -17,6 +17,7 @@ import { money } from "../../lib/format";
 import { formatAccount } from "../../data/receivingAccounts";
 import { FONT, MUTED } from "../../lib/theme";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
+import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
 
 interface RecordPaymentSheetProps {
   open: boolean;
@@ -47,6 +48,23 @@ export function RecordPaymentSheet({
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const currencyCountry = CURRENCY_COUNTRY[currency];
 
+  // form-cta-validation: Amount received is the only mandatory field — a blank/zero submit used to
+  // silently close the sheet with nothing recorded; now it stays open and flags the field instead.
+  const [attempted, setAttempted] = useState(false);
+  useEffect(() => { if (open) setAttempted(false); }, [open]);
+  const amountNum = Number(value) || 0;
+  const amountError = attempted && amountNum <= 0;
+
+  const handleSubmit = () => {
+    if (amountNum <= 0) {
+      setAttempted(true);
+      focusFirstInvalidField("payment-amount");
+      return;
+    }
+    setAttempted(false);
+    onSubmit();
+  };
+
   const titles: Record<PaymentStep, string> = {
     form: "Mark as paid",
     account: "Select Payment Method",
@@ -73,7 +91,7 @@ export function RecordPaymentSheet({
           secondaryLabel="Cancel"
           primaryLabel="Mark as paid"
           onSecondary={onClose}
-          onPrimary={onSubmit}
+          onPrimary={handleSubmit}
         />
       ) : undefined}
     >
@@ -124,8 +142,10 @@ export function RecordPaymentSheet({
                 If the amount is less than the invoice total, the invoice will remain Partially Paid.
               </p>
               <TextField
+                dataReq="payment-amount"
                 type="left-icon"
                 label="Amount received"
+                mandatory
                 inputMode="decimal"
                 // Locked currency prefix (flag + code) — the currency is fixed per invoice, not chosen here.
                 icon={
@@ -135,7 +155,8 @@ export function RecordPaymentSheet({
                   </span>
                 }
                 value={value}
-                caption={`Invoice total: ${money(total, currency)}`}
+                error={amountError}
+                caption={amountError ? "Enter the payment amount" : `Invoice total: ${money(total, currency)}`}
                 onChange={(v) => onChange(v.replace(/[^0-9.]/g, ""))}
                 onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
                 onBlur={() => setKeyboardOpen(false)}

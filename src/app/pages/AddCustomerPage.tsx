@@ -14,6 +14,7 @@ import type { Customer } from "../types";
 
 import { FONT, avatarTint } from "../lib/theme";
 import { scrollFieldIntoView } from "../lib/scrollFieldIntoView";
+import { focusFirstInvalidField } from "../lib/focusFirstInvalidField";
 // "Details" / "Address" / "Invoice" section headers (Figma "Sales Invoice - Client" node 1333-30838).
 const SECTION_TITLE_STYLE = { ...FONT, fontWeight: 700, fontSize: 16, lineHeight: 1.3, color: "var(--text-primary)" } as const;
 
@@ -156,6 +157,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
 
   // Build the record and hand it up. Currency falls back to the account default when left unselected.
   const commitSave = () => {
+    setSubmitAttempted(false);
     onAdd?.({
       id: initial?.id ?? `cust-${Date.now()}`,
       name: company.trim(),
@@ -176,16 +178,10 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
 
   const handleSave = () => {
     if (!isValid) {
-      // Reveal all inline errors, then scroll the first invalid field into view (rAF so the
-      // error hint has rendered and the scroll target height is final).
+      // Reveal all inline errors, then focus/scroll the first invalid field into view.
       setSubmitAttempted(true);
       const firstInvalid = FIELD_ORDER.find((k) => errors[k]);
-      if (firstInvalid) {
-        requestAnimationFrame(() => {
-          const el = document.getElementById(`client-field-${firstInvalid}`);
-          el?.scrollIntoView({ behavior: "smooth", block: "center" });
-        });
-      }
+      if (firstInvalid) focusFirstInvalidField(`customer-${firstInvalid}`);
       return;
     }
     // AC4: a match opens the possible-duplicate warning instead of saving; the user resolves it there.
@@ -216,7 +212,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
           <div className="flex flex-col gap-4">
             <p style={SECTION_TITLE_STYLE}>Details</p>
             <div className="flex flex-col gap-3">
-              <TextField id="client-field-company" label="Company Name" mandatory placeholder="e.g. Atlas Logistics"
+              <TextField dataReq="customer-company" label="Company Name" mandatory placeholder="e.g. Atlas Logistics"
                 error={!!err("company")} caption={err("company") || undefined} value={company} onChange={setCompany}
                 onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
@@ -230,20 +226,20 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
               <TextField label="Company Registration Number" placeholder="Enter registration number"
                 value={regNo} onChange={setRegNo} onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
-              <TextField id="client-field-email" label="Email Address" inputType="email" placeholder="e.g. abc@gmail.com" mandatory
+              <TextField dataReq="customer-email" label="Email Address" inputType="email" placeholder="e.g. abc@gmail.com" mandatory
                 error={!!err("email")} caption={err("email") || undefined} value={email} onChange={setEmail}
                 onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
               {/* TextField's own "mobile" type (flag + dial code + chevron selector) — see
                   memory: no-handrolled-ds-duplicates. */}
-              <TextField type="mobile" id="client-field-phone" label="Phone Number" inputType="tel" placeholder="Enter contact phone number"
+              <TextField type="mobile" dataReq="customer-phone" label="Phone Number" inputType="tel" placeholder="Enter contact phone number"
                 selectorLabel={phoneCountry.dialCode}
                 selectorIcon={<CountryFlag name={phoneCountry.name} size={20} />}
                 onSelectorClick={() => setPhoneCodeOpen(true)}
                 error={!!err("phone")} caption={err("phone") || undefined} value={phone} onChange={setPhone}
                 onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
-              <TextField id="client-field-website" label="Website" placeholder="Enter company website"
+              <TextField dataReq="customer-website" label="Website" placeholder="Enter company website"
                 error={!!err("website")} caption={err("website") || undefined} value={website} onChange={setWebsite}
                 onFocus={focusKeyboard} onBlur={blurKeyboard} />
             </div>
@@ -252,19 +248,19 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
           <div className="flex flex-col gap-4">
             <p style={SECTION_TITLE_STYLE}>Address</p>
             <div className="flex flex-col gap-3">
-              <TextField type="dropdown" id="client-field-country" label="Country" mandatory placeholder="Select country"
+              <TextField type="dropdown" dataReq="customer-country" label="Country" mandatory placeholder="Select country"
                 error={!!err("country")} caption={err("country") || undefined} value={country} onClick={() => setCountryOpen(true)} />
 
-              <TextField id="client-field-address" label="Address" mandatory placeholder="Enter company address"
+              <TextField dataReq="customer-address" label="Address" mandatory placeholder="Enter company address"
                 error={!!err("address")} caption={err("address") || undefined} value={address} onChange={setAddress}
                 onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
               <div className="flex gap-4">
-                <TextField id="client-field-city" label="City" mandatory placeholder="Enter city"
+                <TextField dataReq="customer-city" label="City" mandatory placeholder="Enter city"
                   error={!!err("city")} caption={err("city") || undefined} className="flex-1" value={city} onChange={setCity}
                   onFocus={focusKeyboard} onBlur={blurKeyboard} />
                 {!noPostal && (
-                  <TextField id="client-field-zip" label="Zip / Postal" mandatory placeholder="e.g. 11102"
+                  <TextField dataReq="customer-zip" label="Zip / Postal" mandatory placeholder="e.g. 11102"
                     error={!!err("zip")} caption={err("zip") || undefined} className="flex-1" value={zip} onChange={setZip}
                     onFocus={focusKeyboard} onBlur={blurKeyboard} />
                 )}

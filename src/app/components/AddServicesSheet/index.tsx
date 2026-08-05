@@ -7,6 +7,7 @@ import { Tile } from "../../ui/Tile";
 import { CountryFlag } from "../CountryFlag";
 import { CURRENCY_COUNTRY } from "../CurrencySheet";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
+import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
 import type { ServiceLine } from "../../types";
 import styles from "./index.module.css";
 
@@ -90,9 +91,10 @@ export function AddServicesSheet({
     if (!unitPrice.trim()) next.price = "Enter the unit price";
     if (!quantity.trim()) next.qty = "Enter the quantity";
     setErrors(next);
-    const firstInvalid = next.name ? "svc-field-name" : next.description ? "svc-field-description" : next.price ? "svc-field-price" : next.qty ? "svc-field-qty" : null;
-    if (firstInvalid) {
-      document.getElementById(firstInvalid)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const order = ["name", "description", "price", "qty"] as const;
+    const firstKey = order.find((k) => next[k]);
+    if (firstKey) {
+      focusFirstInvalidField(`service-${firstKey}`);
       return;
     }
     onAdd?.({
@@ -194,7 +196,7 @@ export function AddServicesSheet({
           >
             <div className={styles.fields}>
               <TextField
-                id="svc-field-name"
+                dataReq="service-name"
                 label="Line Item"
                 mandatory
                 placeholder="e.g. Brand Identity Design"
@@ -207,7 +209,7 @@ export function AddServicesSheet({
               />
 
               <TextField
-                id="svc-field-description"
+                dataReq="service-description"
                 label="Description"
                 mandatory
                 placeholder="e.g. About Service"
@@ -224,7 +226,7 @@ export function AddServicesSheet({
                   open here. */}
               <TextField
                 type="currency"
-                id="svc-field-price"
+                dataReq="service-price"
                 label="Unit Price"
                 mandatory
                 placeholder="e.g. 10.00"
@@ -244,7 +246,7 @@ export function AddServicesSheet({
                   back to "Unit" when none is chosen yet). */}
               <TextField
                 type="unit"
-                id="svc-field-qty"
+                dataReq="service-qty"
                 label="Quantity"
                 mandatory
                 placeholder="e.g. 3"

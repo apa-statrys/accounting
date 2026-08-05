@@ -4,6 +4,7 @@ import { BottomSheet, sheetItem } from "../BottomSheet";
 import { TextField } from "../../ui/TextField";
 import { ButtonDock } from "../ButtonDock";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
+import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
 import styles from "./index.module.css";
 
 interface BankInfoSheetProps {
@@ -39,9 +40,10 @@ export function BankInfoSheet({ open, onBack, onClose, onConfirm }: BankInfoShee
     if (!cvv.trim()) next.cvv = "Enter the CVV";
     if (!holder.trim()) next.holder = "Enter the cardholder name";
     setErrors(next);
-    const firstInvalid = next.card ? "bank-field-card" : next.expiry ? "bank-field-expiry" : next.cvv ? "bank-field-cvv" : next.holder ? "bank-field-holder" : null;
-    if (firstInvalid) {
-      document.getElementById(firstInvalid)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const order = ["card", "expiry", "cvv", "holder"] as const;
+    const firstKey = order.find((k) => next[k]);
+    if (firstKey) {
+      focusFirstInvalidField(`bank-${firstKey}`);
       return;
     }
     const digits = cardNumber.replace(/\D/g, "");
@@ -62,7 +64,7 @@ export function BankInfoSheet({ open, onBack, onClose, onConfirm }: BankInfoShee
       <div className={styles.fields}>
         <motion.div variants={sheetItem}>
           <TextField
-            id="bank-field-card"
+            dataReq="bank-card"
             label="Card Number"
             mandatory
             placeholder="1234 5678 9012 3456"
@@ -78,7 +80,7 @@ export function BankInfoSheet({ open, onBack, onClose, onConfirm }: BankInfoShee
 
         <motion.div variants={sheetItem} className={styles.row}>
           <TextField
-            id="bank-field-expiry"
+            dataReq="bank-expiry"
             label="Expiration Date"
             mandatory
             placeholder="MM/YY"
@@ -92,7 +94,7 @@ export function BankInfoSheet({ open, onBack, onClose, onConfirm }: BankInfoShee
             onBlur={blurKeyboard}
           />
           <TextField
-            id="bank-field-cvv"
+            dataReq="bank-cvv"
             label="CVV"
             mandatory
             placeholder="123"
@@ -110,7 +112,7 @@ export function BankInfoSheet({ open, onBack, onClose, onConfirm }: BankInfoShee
 
         <motion.div variants={sheetItem}>
           <TextField
-            id="bank-field-holder"
+            dataReq="bank-holder"
             label="Cardholder Name"
             mandatory
             placeholder="Name as shown on card"

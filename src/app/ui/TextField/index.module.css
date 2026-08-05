@@ -28,6 +28,7 @@
 .error,
 .error:focus-within {
   border-color: var(--border-error-bold);
+  background: var(--bg-error-subtle);
 }
 .highlight {
   border-color: var(--border-warning-bold);
@@ -171,6 +172,11 @@
   font-size: var(--fs-body-md);
   font-weight: var(--fw-medium);
   margin-left: var(--space-2);
+}
+/* Red only while THIS field currently fails validation — never merely for being mandatory
+   (the label text itself always stays --text-primary; see CLAUDE.md). */
+.asteriskError {
+  color: var(--text-error-primary);
 }
 .caption {
   composes: caption from global;

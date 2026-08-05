@@ -4,6 +4,7 @@ import { ButtonDock } from "../../components/ButtonDock";
 import { TextField } from "../../ui/TextField";
 import { EMAIL_RE } from "../../lib/format";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
+import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
 
 interface ClientEditSheetProps {
   open: boolean;
@@ -27,7 +28,12 @@ export function ClientEditSheet({ open, onClose, draftName, draftEmail, setDraft
   const emailErr = !EMAIL_RE.test(draftEmail.trim()) ? "Enter a valid email address" : undefined;
 
   const handleSave = () => {
-    if (nameErr || emailErr) { setShowErrors(true); return; }
+    if (nameErr || emailErr) {
+      setShowErrors(true);
+      focusFirstInvalidField(nameErr ? "cn-client-name" : "cn-client-email");
+      return;
+    }
+    setShowErrors(false);
     onSave();
   };
 
@@ -48,6 +54,7 @@ export function ClientEditSheet({ open, onClose, draftName, draftEmail, setDraft
     >
       <div className="flex flex-col gap-3">
         <TextField
+          dataReq="cn-client-name"
           label="Customer name"
           value={draftName}
           onChange={setDraftName}
@@ -58,6 +65,7 @@ export function ClientEditSheet({ open, onClose, draftName, draftEmail, setDraft
           onBlur={() => setKeyboardOpen(false)}
         />
         <TextField
+          dataReq="cn-client-email"
           label="Email address"
           inputType="email"
           value={draftEmail}

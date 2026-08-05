@@ -186,9 +186,26 @@ in-session only — a reload resets it (expected prototype limit).
   `ButtonDock`'s `secondaryDestructive` only belongs on a secondary paired with a **destructive
   primary** (e.g. Delete Draft/Keep Draft) — not just because the secondary's own action happens to
   be irreversible (e.g. a plain "Discard" next to a neutral primary stays undecorated).
-- Field labels (including the mandatory `*`) never turn red, even on error — only the hint/caption
-  below the field does. Warning-toned components (banners, badges, callouts) tint only the icon
-  amber (`--icon-warning-primary`) — title/body/link text always stays `--text-primary`.
+- Field label *text* never turns red, even on error — only the hint/caption below the field does.
+  The mandatory `*` itself is the one exception (decided 2026-08-04): it turns `--text-error-primary`
+  while that specific field currently fails validation, never merely for being mandatory — see
+  `ui/TextField`'s `error`+`mandatory` props and the shared submit-time validation convention below
+  (`lib/focusFirstInvalidField.ts` + each mandatory field's `data-req` key). Warning-toned components
+  (banners, badges, callouts) tint only the icon amber (`--icon-warning-primary`) — title/body/link
+  text always stays `--text-primary`.
+- **Form validation: the primary CTA is never disabled for incompleteness** (decided 2026-08-04,
+  applies to real fillable-field forms — AddCustomerPage, BankInfoSheet, AddServicesSheet,
+  ClientEditSheet, CreditNoteForm, RecordPaymentSheet, AddInvoiceDetails' manual-create/upload-review
+  paths). The CTA stays fully enabled; clicking it with mandatory fields empty validates the whole
+  form at once (never stops at the first failure), highlights every offending field together (red
+  border + pale `--bg-error-subtle` fill + a caption naming what's required), and calls
+  `focusFirstInvalidField` with the first-in-visual-order key to scroll/focus it — never advances the
+  step/closes the drawer on failure. A rule with no single field to blame (a cross-field total, e.g.
+  CreditNoteForm's "credit at least one line") surfaces as an error toast instead of an inline
+  message. This does **not** apply to disabled-until-chosen single-select pickers (ReasonSheet,
+  CreateSalesInvoice's customer picker, RefundCreditNoteFlow, InvoiceSettings' two edit sheets,
+  AddInvoiceDetails' edit-invoice dock, InvoiceDetailPage's Send button) — disabling until exactly
+  one choice is made is the right pattern there, not a gap to fix.
 - Every phone-frame screen must be inside `.mobile-mode` scope (already applied on App.tsx's root
   wrapper, so all in-app screens inherit it) so typography tokens resolve to mobile sizes — the
   responsive `@media` breakpoint keys off the real browser viewport, not the 375px frame, so any

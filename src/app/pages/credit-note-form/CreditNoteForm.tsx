@@ -15,6 +15,8 @@ import { IssueDateSheet } from "../../components/IssueDateSheet";
 import { NumericKeypad } from "../../components/NumericKeypad";
 import { FONT, INK, MUTED } from "../../lib/theme";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
+import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
+import { Toast } from "../../components/Toast";
 import type { CreditNoteEditSeed, CreditNotePayload, DraftLine, InvoiceLine } from "../../types";
 import { fmtAmount, formatDMY, lineAmount } from "./lineMath";
 import { ReasonSheet } from "./ReasonSheet";
@@ -174,11 +176,11 @@ export function CreditNoteForm({
   // A reason is always required; the free-text Description below it is always OPTIONAL.
   const canCreate = credited > 0 && !exceedsCap && reason !== "";
 
-  // form-cta-validation: the CTA is always enabled; a failed click scrolls to the first invalid field
+  // form-cta-validation: the CTA is always enabled; a failed click focuses the first invalid field
   // and reveals its inline error. `attempted` flips on the first failed submit (errors clear as fixed).
   const [attempted, setAttempted] = useState(false);
-  const reasonRef = useRef<HTMLDivElement>(null);
-  const itemsRef = useRef<HTMLDivElement>(null);
+  // Amount-invalid has no single field to point at (a cross-line total) — surfaces as a toast instead.
+  const [localToast, setLocalToast] = useState<string | null>(null);
 
   // Sticky dock's summary slot (same idea as Create Invoice, Figma node 1419-52781) — shown
   // until the real inline Summary card scrolls into view, since it'd be redundant once visible.
@@ -319,11 +321,19 @@ export function CreditNoteForm({
   });
 
   const handleCreate = () => {
-    if (canCreate) { onCreate(buildPayload()); return; }
-    // Failed submit → reveal inline errors + scroll to the first invalid field (reason sits above items).
+    if (canCreate) { setAttempted(false); onCreate(buildPayload()); return; }
+    // Failed submit → reveal inline errors. Reason is a real field (focus it); the credited-amount
+    // total isn't (no single field to blame), so it surfaces as a toast instead.
     setAttempted(true);
-    const target = reasonInvalid ? reasonRef.current : itemsRef.current;
-    target?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (reasonInvalid) {
+      focusFirstInvalidField("cn-reason");
+    } else if (amountInvalid) {
+      setLocalToast(
+        refund
+          ? "Set a quantity to refund on at least one item."
+          : "Lower at least one item's amount to credit — the credit can't be zero."
+      );
+    }
   };
 
   // Back — save a Draft (DES-719) when the parent provides onSaveDraft (the create flow); else just leave.
@@ -408,15 +418,20 @@ export function CreditNoteForm({
         </button>
 
         {/* Reason — white zone (DES-719). Required, chosen from the fixed enum in the sheet. */}
-        <div ref={reasonRef} className="flex flex-col gap-[7px] pt-1">
+        <div className="flex flex-col gap-[7px] pt-1">
           <label className="body-sm" style={{ ...FONT, color: "#090a0a" }}>
-            Reason For Credit <span className="text-[length:var(--fs-body-md)] font-medium">*</span>
+            Reason For Credit <span className="text-[length:var(--fs-body-md)] font-medium" style={{ color: reasonError ? "var(--text-error-primary)" : undefined }}>*</span>
           </label>
           <button
             type="button"
+            data-req="cn-reason"
             onClick={() => setReasonSheetOpen(true)}
-            className="w-full flex items-center justify-between rounded-[8px] border px-4 h-[48px] bg-white text-left"
-            style={{ borderColor: reasonError ? "var(--border-error-bold)" : "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
+            className="w-full flex items-center justify-between rounded-[8px] border px-4 h-[48px] text-left"
+            style={{
+              borderColor: reasonError ? "var(--border-error-bold)" : "rgba(208,208,208,0.4)",
+              background: reasonError ? "var(--bg-error-subtle)" : "#fff",
+              boxShadow: "0px 4px 7px rgba(0,0,0,0.1)",
+            }}
           >
             <span className="text-[14px] truncate" style={{ ...FONT, color: reason ? "var(--text-primary)" : "#9ca3af" }}>
               {reason || "Select a reason"}
@@ -443,9 +458,11 @@ export function CreditNoteForm({
         {!refund && descriptionBlock}
 
         {/* Corrected invoice — edit each line to its CORRECT value; the credit is derived automatically. */}
-        <div ref={itemsRef} className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2 px-1">
-            <p className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>{refund ? "Items to refund" : "Items"} <span>*</span></p>
+            <p className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>
+              {refund ? "Items to refund" : "Items"} <span style={{ color: amountError ? "var(--text-error-primary)" : undefined }}>*</span>
+            </p>
             {!refund && credited > 0 && (
               <span
                 className="px-2 py-0.5 rounded-full border text-[10px] font-bold leading-[15px]"
@@ -459,22 +476,6 @@ export function CreditNoteForm({
               </span>
             )}
           </div>
-          <AnimatePresence initial={false}>
-            {amountError && (
-              <motion.p
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.25 }}
-                className="px-1 text-[12px] leading-[1.3] overflow-hidden"
-                style={{ ...FONT, color: "var(--text-error-primary)" }}
-              >
-                {refund
-                  ? "Set a quantity to refund on at least one item."
-                  : "Lower at least one item's amount to credit — the credit can't be zero."}
-              </motion.p>
-            )}
-          </AnimatePresence>
           {/* Refund only: Full (read-only lines) vs Partial (editable). DS tab control. */}
           {refund && (
             <HorizontalTabs
@@ -727,6 +728,9 @@ export function CreditNoteForm({
           onDone={closeKeypad}
         />
       )}
+
+      {/* Credited-total validation failure — no single field to blame, so it's a toast (form-cta-validation). */}
+      <Toast open={!!localToast} message={localToast ?? ""} variant="error" onDone={() => setLocalToast(null)} />
     </div>
   );
 }

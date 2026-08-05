@@ -37,6 +37,7 @@ import { formatAccount, getAccount } from "../../data/receivingAccounts";
 import { convert } from "../../lib/currency";
 import { EMAIL_RE } from "../../lib/format";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
+import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
 import type { Customer, ExistingInvoice, ExtractedInvoice, ServiceLine } from "../../types";
 import { CoverageBanner, DuplicateBanner, ExtractionFailedBanner } from "./Banners";
 import { ExistingInvoiceSheet } from "./ExistingInvoiceSheet";
@@ -402,10 +403,6 @@ export function AddInvoiceDetails({
   // Scroll target for the duplicate ("Similar invoice found") section.
   const invoiceNoRef = useRef<HTMLDivElement>(null);
 
-  // The flagged field (e.g. missing email) is highlighted in place — no auto-scroll on arrival,
-  // so the review page always opens at the top after an upload.
-  const flaggedRef = useRef<HTMLDivElement>(null);
-
   // Scroll the Services section up only when the count actually GROWS (user added a line),
   // never on arrival. Comparing against the previous count is robust to StrictMode's
   // double-invoked effects (a "skip first run" flag isn't), so the review page opens at the top.
@@ -437,19 +434,13 @@ export function AddInvoiceDetails({
   }, [services.length]);
 
   // Upload review's Create Invoice CTA stays enabled (not silently disabled) — tapping it with
-  // Customer name/email unfilled or an invalid email surfaces the error and scrolls to it, same
-  // convention as the Items error above and guardIssueDate below. Clears itself once fixed, not
-  // just on the next tap.
+  // Customer name/email unfilled/invalid or an unset Issue Date surfaces every failing field's
+  // error at once (never stops at the first) and focuses the first one in visual order. Each
+  // error clears itself once its own field is fixed, not just on the next tap.
   const [customerFieldsError, setCustomerFieldsError] = useState(false);
   useEffect(() => {
     if (name.trim() && emailValid) setCustomerFieldsError(false);
   }, [name, emailValid]);
-  const guardCustomerFields = () => {
-    if (name.trim() && emailValid) return false;
-    setCustomerFieldsError(true);
-    setTimeout(() => flaggedRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
-    return true;
-  };
 
   // DES-718 send methods (Shareable Link / Download).
   const shareLink = `https://pay.statrys.com/i/${invoiceNo}`;
@@ -475,11 +466,19 @@ export function AddInvoiceDetails({
   // re-picked. Block the CTA while it's still the "Select issue date" placeholder — flag the row
   // red and scroll it into view. Returns true when blocked.
   const issueDateMissing = !!issuePlaceholder && !issuePicked;
-  const guardIssueDate = () => {
-    if (!issueDateMissing) return false;
-    setIssueError(true);
-    setTimeout(() => issueRowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
-    return true;
+
+  // Combined validator for the upload-review Create Invoice CTA — collects every failing field at
+  // once (customer name/email + issue date), then focuses the first one in visual order.
+  const validateUploadReview = (): boolean => {
+    const customerBad = !(name.trim() && emailValid);
+    const issueBad = issueDateMissing;
+    if (!customerBad && !issueBad) return true;
+    if (customerBad) setCustomerFieldsError(true);
+    if (issueBad) setIssueError(true);
+    focusFirstInvalidField(
+      !name.trim() ? "invoice-customer-name" : !emailValid ? "invoice-customer-email" : "invoice-issue-date"
+    );
+    return false;
   };
 
   const openAddService = () => {
@@ -624,11 +623,12 @@ export function AddInvoiceDetails({
           /* Upload review (DES-716) — OCR extracts the customer name + email, so show them as
              pre-filled, editable fields (not a card). An unmatched client is saved to the customer
              list automatically on create; a missing field is flagged until supplied. */
-          <div ref={flaggedRef} className="scroll-mt-24 flex flex-col gap-3">
+          <div className="scroll-mt-24 flex flex-col gap-3">
             {/* Customer name — amber highlight + caption when OCR couldn't read it (proactive,
                 shown from the moment the review opens); tapping Create Invoice while still empty
-                escalates to a real (red) validation error instead — see guardCustomerFields. */}
+                escalates to a real (red) validation error instead — see validateUploadReview. */}
             <TextField
+              dataReq="invoice-customer-name"
               label="Customer name"
               placeholder="Customer name"
               mandatory
@@ -649,8 +649,9 @@ export function AddInvoiceDetails({
 
             {/* Email — amber highlight + caption when OCR couldn't read it (proactive); tapping
                 Create Invoice while empty or an invalid format escalates to a real (red)
-                validation error instead — see guardCustomerFields. */}
+                validation error instead — see validateUploadReview. */}
             <TextField
+              dataReq="invoice-customer-email"
               label="Email address"
               inputType="email"
               placeholder="name@email.com"
@@ -708,7 +709,7 @@ export function AddInvoiceDetails({
               // the required-field error escalates it to red once the CTA is tapped.
               const rowWarning = isIssueRow && !issuePicked && !rowError;
               return (
-                <div key={d.label} ref={isIssueRow ? issueRowRef : undefined} className="scroll-mt-24" style={d.locked ? { opacity: 0.5 } : undefined}>
+                <div key={d.label} ref={isIssueRow ? issueRowRef : undefined} data-req={isIssueRow ? "invoice-issue-date" : undefined} className="scroll-mt-24" style={d.locked ? { opacity: 0.5 } : undefined}>
                   <ListRow
                     label={d.label}
                     value={d.value}
@@ -734,7 +735,7 @@ export function AddInvoiceDetails({
           {services.length === 0 ? (
             /* Secondary CTA on the beige page (same treatment as "Add more items" once there are
                items) — red caption when Send Invoice was tapped with no items yet (see `itemsError`). */
-            <>
+            <div data-req="invoice-items">
               <Button hierarchy="secondary" size="sm" fullWidth iconLeft={<Plus size={18} />} label="Add your items" onClick={openAddService} />
               <AnimatePresence initial={false}>
                 {itemsError && (
@@ -750,7 +751,7 @@ export function AddInvoiceDetails({
                   </motion.p>
                 )}
               </AnimatePresence>
-            </>
+            </div>
           ) : (
             <div className="flex flex-col gap-3">
               {/* ListCard of rows (Figma "Create Invoice", node 1826-15914). */}
@@ -903,16 +904,16 @@ export function AddInvoiceDetails({
             sticky
             primaryLabel="Create Invoice"
             // Always enabled (same convention as the manual-create dock below) — tapping with
-            // Customer name/email unfilled or invalid surfaces the error on those fields instead
-            // of the button just sitting disabled with no explanation (guardCustomerFields).
+            // Customer name/email unfilled/invalid or an unset Issue Date surfaces every failing
+            // field's error at once and focuses the first one (validateUploadReview), instead of
+            // the button just sitting disabled with no explanation.
             // Uploaded invoices are record-only by default (DES-716): issuing moves them
             // to Awaiting Payment (sending happened elsewhere). The toast confirms the record
             // action — the Awaiting Payment status is shown by the detail-page badge.
-            // Locked-period demo: an unset Issue Date shows the required-field error (guardIssueDate
-            // scrolls + flags); once picked, lockActions keeps the CTA inert so it never lands.
+            // Locked-period demo: an unset Issue Date shows the required-field error; once picked,
+            // lockActions keeps the CTA inert so it never lands.
             onPrimary={() => {
-              if (guardCustomerFields()) return;
-              if (guardIssueDate()) return;
+              if (!validateUploadReview()) return;
               if (lockActions) return;
               onSend?.({ title: "Invoice created successfully" }, recentSent);
             }}
@@ -936,7 +937,7 @@ export function AddInvoiceDetails({
               if (lockActions) return;
               if (services.length === 0) {
                 setItemsError(true);
-                servicesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                focusFirstInvalidField("invoice-items");
                 return;
               }
               handleSendInvoiceClick();

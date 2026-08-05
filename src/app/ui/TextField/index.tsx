@@ -62,6 +62,9 @@ interface TextFieldProps {
   highlight?: boolean;
   /** Extra class on the outermost element (e.g. a flex-basis override for a side-by-side row). */
   className?: string;
+  /** Marks this field's focusable node for the shared submit-time focusFirstInvalidField helper
+   *  (lib/focusFirstInvalidField.ts) — pass a unique key per mandatory field. */
+  dataReq?: string;
 }
 
 /** The DS's own thin-stroke chevron (used for the mobile/currency/unit selector and the
@@ -128,6 +131,7 @@ export function TextField({
   iconRight,
   highlight = false,
   className,
+  dataReq,
 }: TextFieldProps) {
   const hasSelector = type === "mobile" || type === "currency" || type === "unit";
   const classes = [
@@ -171,7 +175,7 @@ export function TextField({
   const field =
     type === "dropdown" || type === "date-picker" ? (
       <div className={classes}>
-        <button type="button" className={styles.picker} onClick={onClick} disabled={disabled} aria-label={ariaLabel}>
+        <button type="button" className={styles.picker} onClick={onClick} disabled={disabled} aria-label={ariaLabel} data-req={dataReq}>
           <span className={`${styles.pickerText} ${value ? "" : styles.placeholderText}`}>{value || placeholder}</span>
           <span className={type === "dropdown" ? styles.chevronLg : styles.calendar}>
             {type === "dropdown" ? <Chevron size={24} /> : <CalendarIcon />}
@@ -196,6 +200,7 @@ export function TextField({
           disabled={disabled}
           inputMode={inputMode}
           aria-label={ariaLabel}
+          data-req={dataReq}
         />
         {type === "unit" && selector}
         {iconRight && <span className={styles.rightIcon}>{iconRight}</span>}
@@ -208,7 +213,7 @@ export function TextField({
       {label && (
         <p className={styles.label}>
           {label}
-          {mandatory && <span className={styles.asterisk}>*</span>}
+          {mandatory && <span className={`${styles.asterisk} ${error ? styles.asteriskError : ""}`}>*</span>}
         </p>
       )}
       {field}
