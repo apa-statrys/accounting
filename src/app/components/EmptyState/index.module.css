@@ -18,11 +18,15 @@
   text-align: center;
 }
 
-/* Body md/Medium — no fonts.css utility covers the medium weight at this size (only
-   .body-md, which is regular, and .body-md-bold exist), so weight is hand-rolled on top
-   of the shared .body-md size/line-height (same precedent as ui/Tile's .title). */
+/* Body md/Medium — no fonts.css utility covers the medium weight at this size (only .body-md,
+   which is regular, and .body-md-bold exist). Fully hand-rolled rather than composing `.body-md`
+   + a weight override: two same-specificity classes race on load order, and body-md's regular
+   weight was winning (same precedent as ui/Tile's .title). */
 .title {
+  font-family: var(--font-primary);
   font-weight: var(--fw-medium);
+  font-size: var(--fs-body-md);
+  line-height: 1.3;
   color: var(--text-primary);
 }
 

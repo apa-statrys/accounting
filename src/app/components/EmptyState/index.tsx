@@ -19,7 +19,7 @@ export function EmptyState({ icon, title, subtitle, action }: EmptyStateProps) {
     <div className={styles.root}>
       {icon}
       <div className={styles.text}>
-        <p className={`${styles.title} body-md`}>{title}</p>
+        <p className={styles.title}>{title}</p>
         <p className={`${styles.subtitle} body-sm`}>{subtitle}</p>
       </div>
       {action}
