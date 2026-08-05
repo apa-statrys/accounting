@@ -824,7 +824,7 @@ export function AddInvoiceDetails({
             >
               <ListRow
                 label="Automatic reminders"
-                description="Email sent 7 days after the due date"
+                description="Email sent 7 days before the due date"
                 trailing="toggle"
                 checked={chaser}
                 onCheckedChange={setChaser}
