@@ -6,8 +6,9 @@ import styles from "./index.module.css";
  * Default / Focus (real :focus-within) / Filled (has a value) / Error /
  * Disabled. Optional label/caption/mandatory props add the labeled wrapper
  * (node 4338-1075): 14px regular label above, 14px caption below — caption
- * turns red on error, the label never does (matches ui/TextField's label
- * convention exactly). Styling in index.module.css.
+ * turns red on error; the label text never does, but its mandatory `*`
+ * turns red while this field currently fails validation (matches
+ * ui/TextField's label convention exactly). Styling in index.module.css.
  */
 
 interface TextAreaProps {
@@ -84,7 +85,7 @@ export function TextArea({
       {label && (
         <p className={styles.label}>
           {label}
-          {mandatory && <span className={styles.asterisk}>*</span>}
+          {mandatory && <span className={`${styles.asterisk} ${error ? styles.asteriskError : ""}`}>*</span>}
         </p>
       )}
       {field}

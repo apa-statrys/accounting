@@ -24,6 +24,7 @@
 .error,
 .error:focus {
   border-color: var(--border-error-bold);
+  background: var(--bg-error-subtle);
 }
 .field::placeholder {
   color: var(--text-placeholder);
@@ -54,6 +55,11 @@
   font-size: var(--fs-body-md);
   font-weight: var(--fw-medium);
   margin-left: var(--space-2);
+}
+/* Red only while THIS field currently fails validation — never merely for being mandatory
+   (matches ui/TextField's asteriskError convention exactly). */
+.asteriskError {
+  color: var(--text-error-primary);
 }
 .caption {
   composes: caption from global;
