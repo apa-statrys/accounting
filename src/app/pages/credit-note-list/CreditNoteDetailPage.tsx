@@ -344,10 +344,12 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           </Card>
         )}
 
-        {/* Receiving account (Figma 1209) — the account the credit is set against. Not shown for a refund
-            CN: the money goes OUT, and the account used is on the "Refund Method" card below. */}
-        {receivingAccount && !isRefund && (
-          <Card title="Payment Method">
+        {/* The account this note is set against (Figma 1209). Wording follows the money: a credit note
+            settles INTO the "Receiving Account"; a refund pays OUT of the "Payment Account". Hidden on a
+            refund that already has proof — the account is then on the "Refund Method" card below, and
+            showing both would state it twice. */}
+        {receivingAccount && !(isRefund && refundProof) && (
+          <Card title={isRefund ? "Payment Account" : "Receiving Account"}>
             <div className="py-3">
               <div className="flex items-center gap-2">
                 <span className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0" style={{ background: "#E4002B" }}>
@@ -446,7 +448,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             awaiting/refunded status is shown on the hero chip, not here). */}
         {refundProof && (
           <Card title="Refund Method">
-            <ListRow label="Bank account" value={refundProof.method} />
+            <ListRow label="Payment Account" value={refundProof.method} />
             <ListRow label="Refund date" value={fmtDate(refundProof.date)} last={!refundProof.referenceNo && !refundProof.proofFile} />
             {refundProof.referenceNo && (
               <ListRow label="Reference" value={refundProof.referenceNo} last={!refundProof.proofFile} />

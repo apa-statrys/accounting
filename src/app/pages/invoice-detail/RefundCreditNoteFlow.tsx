@@ -81,7 +81,7 @@ export function RefundCreditNoteFlow({
 
   const title =
     step === "method" ? "Choose Refund Method"
-    : step === "account" ? "Choose Account"
+    : step === "account" ? "Choose Payment Account"
     : step === "manual" ? "Record refund"
     : "Confirm refund transfer";
 
@@ -207,7 +207,7 @@ export function RefundCreditNoteFlow({
             {/* Bank account used (DES-720) — a dropdown of the Statrys accounts + any registered external
                 accounts; defaults to the primary Statrys account. */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Bank account used <span>*</span></label>
+              <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Payment account <span>*</span></label>
               {/* Collapsed field shows the selected account; tap to open the picker sheet. */}
               <button type="button" onClick={() => setAcctOpen(true)} className="w-full flex items-center justify-between rounded-xl border px-3.5 h-12 bg-white text-left" style={{ borderColor: acctOpen ? "var(--text-primary)" : "rgba(160,160,160,0.4)" }}>
                 <span className="text-[15px] truncate" style={{ ...FONT, color: mAccount ? INK : "#9ca3af" }}>{mAccount || "Select account"}</span>

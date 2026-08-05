@@ -821,9 +821,11 @@ export function InvoiceDetailPage({
         </div>
 
         {/* Receiving account (DES-817) — DS Tile with the account's own country flag (Figma), same
-            pattern as every other receiving-account display in the app. */}
+            pattern as every other receiving-account display in the app. Wording follows the money:
+            it's the "Receiving Account" while the invoice is still collecting payment, and the
+            "Payment Account" once a refund is attached (paid invoice, money going back out). */}
         <div className="flex flex-col gap-2">
-          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>Payment Method</p>
+          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{isRefundContext ? "Payment Account" : "Receiving Account"}</p>
           <Tile
             flag={<CountryFlag name={receivingAcct.country} size={30} />}
             title={receivingAcct.name}

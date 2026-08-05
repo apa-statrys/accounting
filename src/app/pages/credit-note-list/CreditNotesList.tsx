@@ -435,9 +435,10 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               // Real credited line items from the register; fall back to a single synthesized line.
               lines={preview.lines ?? [{ name: "Credited amount", amount: preview.original }]}
               reason={preview.reason}
-              // The Credit Notes List always shows the normal credit-note detail (Credit to / Credited items).
-              // Refund-specific framing belongs to the invoice-detail flow (DES-720/721), not here.
-              kind="cancellation"
+              // The note's real kind from the register (2026-08-05): a refund note reads
+              // Refund to / Refund items / Payment Account here exactly as it does when opened from
+              // its invoice, so one note never renders two different ways depending on the route.
+              kind={preview.kind}
               status={preview.status}
               sent={preview.sent}
               // Locked-period demo: the Back arrow is inert (the CN is in a closed period — no exit).
