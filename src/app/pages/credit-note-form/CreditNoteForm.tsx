@@ -397,7 +397,7 @@ export function CreditNoteForm({
                 row is cancellation-only — a refund CN's source account is chosen in the refund flow. */}
             <ListRow label="Due Date" value={dueLabel} trailing="chevron" onClick={() => setDueOpen(true)} />
             {!refund && (
-              <ListRow label="Payment Method" value={formatAccount(accountId)} trailing="chevron" onClick={() => setAcctSheetOpen(true)} />
+              <ListRow label="Receiving Account" value={formatAccount(accountId)} trailing="chevron" onClick={() => setAcctSheetOpen(true)} />
             )}
             <ListRow label="Currency" value={currency} last />
           </ListCard>
