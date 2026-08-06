@@ -1021,7 +1021,10 @@ export function InvoiceDetailPage({
         onDuplicate={duplicate}
         onCreateCn={() => { setActionsOpen(false); if (lockedPeriod) { setLockedAction("createCn"); return; } setResumeDraftIndex(null); setCreditFormOpen(true); }}
         onDeleteDraft={() => { setActionsOpen(false); setConfirmDelete(true); }}
-        hideEdit={isEmptyDraft}
+        // A logged-but-unapproved payment (Pending Reconciliation) locks editing — same reasoning
+        // as the dock, which already drops its own "Record Payment"/"Send" pairing down to a
+        // single resend CTA once pendingPayment is set (no edit option surfaces there either).
+        hideEdit={isEmptyDraft || !!pendingPayment}
       />
 
       {/* Delete confirm (Draft only). Both actions are destructive-styled (see memory:

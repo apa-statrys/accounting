@@ -21,8 +21,9 @@ interface ActionsMenuProps {
   onDuplicate: () => void;
   onCreateCn: () => void;
   onDeleteDraft: () => void;
-  /** Suppress the "Edit Invoice" row — an empty draft's own dock CTA already leads to Edit, so the
-   *  ⋯ menu offers only Delete draft. */
+  /** Suppress the "Edit Invoice" row — either an empty draft (its own dock CTA already leads to
+   *  Edit, so the ⋯ menu offers only Delete draft) or a logged-but-unapproved payment (Pending
+   *  Reconciliation), which locks editing until the accountant approves or reverses it. */
   hideEdit?: boolean;
 }
 
