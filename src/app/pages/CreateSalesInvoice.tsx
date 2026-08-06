@@ -8,6 +8,7 @@ import { Tile } from "../ui/Tile";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { ButtonDock } from "../components/ButtonDock";
+import { Keyboard } from "../components/Keyboard";
 import { CUSTOMERS } from "../data/customers";
 import { avatarTint } from "../lib/theme";
 import { pinNew } from "../lib/pinNew";
@@ -342,19 +343,30 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
 
       {/* Search state (Figma node 1333-30416) shows the on-screen keyboard (Figma "IOS
           controls" = Keyboard, node 4141-2746) — ButtonDock renders it natively via the
-          `keyboard` prop, no separate composition needed. */}
-      <ButtonDock
-        type="single"
-        keyboard={searching}
-        sticky
-        primaryLabel="Continue"
-        primaryIconRight={<ChevronRight size={16} strokeWidth={1.67} />}
-        primaryDisabled={!pendingId}
-        onPrimary={() => {
-          const chosen = customers.find((c) => c.id === pendingId);
-          if (chosen) onSelectCustomer?.(chosen);
-        }}
-      />
+          `keyboard` prop, no separate composition needed. A "Continue" with nothing to
+          continue to (search found no one) is dead weight, not just disabled — hide the
+          dock entirely and, while still searching, leave the bare Keyboard mock in its
+          place (same pattern as Sales Invoice List's own client-search sheet). */}
+      {filtered.length === 0 ? (
+        searching && (
+          <div className="absolute bottom-0 left-0 right-0 z-20">
+            <Keyboard />
+          </div>
+        )
+      ) : (
+        <ButtonDock
+          type="single"
+          keyboard={searching}
+          sticky
+          primaryLabel="Continue"
+          primaryIconRight={<ChevronRight size={16} strokeWidth={1.67} />}
+          primaryDisabled={!pendingId}
+          onPrimary={() => {
+            const chosen = customers.find((c) => c.id === pendingId);
+            if (chosen) onSelectCustomer?.(chosen);
+          }}
+        />
+      )}
 
     </div>
   );
