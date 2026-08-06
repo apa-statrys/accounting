@@ -1286,7 +1286,7 @@ export function InvoiceDetailPage({
         onClose={() => setRecordPayOpen(false)}
         value={recordAmount}
         onChange={setRecordAmount}
-        total={TOTAL}
+        total={remaining}
         currency={currency}
         accountId={recordAccountId}
         onAccountChange={setRecordAccountId}

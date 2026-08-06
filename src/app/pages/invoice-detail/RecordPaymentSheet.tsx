@@ -24,6 +24,8 @@ interface RecordPaymentSheetProps {
   onClose: () => void;
   value: string;
   onChange: (v: string) => void;
+  /** Amount still owed (invoice total less anything already paid/credited) — the cap on this field,
+   *  not the invoice's original total (relevant once an invoice is Partially Paid). */
   total: number;
   /** Invoice currency — shown locked on the amount field (fixed per invoice, never chosen here). */
   currency?: string;
@@ -51,12 +53,17 @@ export function RecordPaymentSheet({
   // form-cta-validation: Amount received is the only mandatory field — a blank/zero submit used to
   // silently close the sheet with nothing recorded; now it stays open and flags the field instead.
   const [attempted, setAttempted] = useState(false);
-  useEffect(() => { if (open) setAttempted(false); }, [open]);
+  // Numeric keyboard still lets the user type 0 or an amount over the invoice total while
+  // editing — the error only surfaces once they leave the field (blur) or try to submit.
+  const [touched, setTouched] = useState(false);
+  useEffect(() => { if (open) { setAttempted(false); setTouched(false); } }, [open]);
   const amountNum = Number(value) || 0;
-  const amountError = attempted && amountNum <= 0;
+  const amountExceeds = amountNum > total + 0.001;
+  const amountInvalid = amountNum <= 0 || amountExceeds;
+  const amountError = (attempted || touched) && amountInvalid;
 
   const handleSubmit = () => {
-    if (amountNum <= 0) {
+    if (amountInvalid) {
       setAttempted(true);
       focusFirstInvalidField("payment-amount");
       return;
@@ -126,8 +133,8 @@ export function RecordPaymentSheet({
                   <button
                     type="button"
                     onClick={() => { onDateChange(null); setStep("form"); }}
-                    className="mt-2 w-full text-center text-[13px] font-medium py-2"
-                    style={{ ...FONT, color: MUTED }}
+                    className="link-sentence-sm mt-2 w-full text-center py-2"
+                    style={{ color: "var(--link-primary)" }}
                   >
                     Clear date
                   </button>
@@ -156,10 +163,16 @@ export function RecordPaymentSheet({
                 }
                 value={value}
                 error={amountError}
-                caption={amountError ? "Enter the payment amount" : `Invoice total: ${money(total, currency)}`}
+                caption={
+                  amountError
+                    ? amountNum <= 0
+                      ? "Enter the payment amount"
+                      : "Amount exceeds remaining amount"
+                    : `Remaining amount: ${money(total, currency)}`
+                }
                 onChange={(v) => onChange(v.replace(/[^0-9.]/g, ""))}
                 onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
-                onBlur={() => setKeyboardOpen(false)}
+                onBlur={() => { setKeyboardOpen(false); setTouched(true); }}
               />
             </div>
 
