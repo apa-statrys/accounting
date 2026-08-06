@@ -11,7 +11,7 @@ import { ReceivingAccountSheet } from "../components/ReceivingAccountSheet";
 import { CountryCodeRows } from "../components/CountryCodeSheet";
 import { CountryFlag } from "../components/CountryFlag";
 import { Keyboard } from "../components/Keyboard";
-import { getAccount } from "../data/receivingAccounts";
+import { formatAccount } from "../data/receivingAccounts";
 import { DEFAULT_SETTINGS } from "../data/settings";
 import { DEFAULT_COUNTRY_CODE } from "../data/countryCodes";
 import type { CompanySettings } from "../types";
@@ -202,7 +202,6 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   };
 
   const set = <K extends keyof CompanySettings>(k: K, v: CompanySettings[K]) => setS((p) => ({ ...p, [k]: v }));
-  const payAccount = getAccount(s.paymentMethod);
 
   // A field is OK when filled (email must also be valid); optional fields may be blank.
   // Each section's Done is disabled until all its required fields are OK.
@@ -304,8 +303,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             label="Payment Method"
             description="Default account"
             trailing="chevron"
-            value={payAccount?.name ?? "Select account"}
-            valueDescription={payAccount?.number}
+            value={formatAccount(s.paymentMethod) || "Select account"}
             onClick={() => setSheet("payment")}
             last
           />
