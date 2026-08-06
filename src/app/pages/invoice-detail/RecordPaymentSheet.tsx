@@ -1,4 +1,4 @@
-// Mark as paid — captures the amount (full → Paid, less → Partially Paid; outcome logic lives in the
+// Record Payment — captures the amount (full → Paid, less → Partially Paid; outcome logic lives in the
 // page's onSubmit), plus which bank account received it and an optional payment date (DES-715 comment:
 // an indicator to aid reconciliation — no GL impact).
 import { useEffect, useState } from "react";
@@ -38,8 +38,8 @@ interface RecordPaymentSheetProps {
   onSubmit: () => void;
 }
 
-/** "Received in" and "Payment date" are sub-levels of THIS SAME sheet (header/content swap via
- *  `step`), never a second sheet stacked on top of "Mark as paid" — see memory:
+/** "Receiving Account" and "Payment date" are sub-levels of THIS SAME sheet (header/content swap via
+ *  `step`), never a second sheet stacked on top of "Record Payment" — see memory:
  *  sub-level-drawer-same-sheet. */
 type PaymentStep = "form" | "account" | "date";
 
@@ -56,11 +56,15 @@ export function RecordPaymentSheet({
   // Numeric keyboard still lets the user type 0 or an amount over the invoice total while
   // editing — the error only surfaces once they leave the field (blur) or try to submit.
   const [touched, setTouched] = useState(false);
-  useEffect(() => { if (open) { setAttempted(false); setTouched(false); } }, [open]);
+  // The field opens pre-filled with the amount owed and shows no caption at all — only once the
+  // user actually edits it do we surface what would still be left owing (amount owed − this entry).
+  const [amountEdited, setAmountEdited] = useState(false);
+  useEffect(() => { if (open) { setAttempted(false); setTouched(false); setAmountEdited(false); } }, [open]);
   const amountNum = Number(value) || 0;
   const amountExceeds = amountNum > total + 0.001;
   const amountInvalid = amountNum <= 0 || amountExceeds;
   const amountError = (attempted || touched) && amountInvalid;
+  const remainingAfter = Math.max(0, total - amountNum);
 
   const handleSubmit = () => {
     if (amountInvalid) {
@@ -73,7 +77,7 @@ export function RecordPaymentSheet({
   };
 
   const titles: Record<PaymentStep, string> = {
-    form: "Mark as paid",
+    form: "Record Payment",
     account: "Select Receiving Account",
     date: "Select Payment Date",
   };
@@ -96,7 +100,7 @@ export function RecordPaymentSheet({
           type="double"
           keyboard={keyboardOpen}
           secondaryLabel="Cancel"
-          primaryLabel="Mark as paid"
+          primaryLabel="Record Payment"
           onSecondary={onClose}
           onPrimary={handleSubmit}
         />
@@ -168,9 +172,11 @@ export function RecordPaymentSheet({
                     ? amountNum <= 0
                       ? "Enter the payment amount"
                       : "Amount exceeds remaining amount"
-                    : `Remaining amount: ${money(total, currency)}`
+                    : amountEdited
+                      ? `Remaining amount: ${money(remainingAfter, currency)}`
+                      : undefined
                 }
-                onChange={(v) => onChange(v.replace(/[^0-9.]/g, ""))}
+                onChange={(v) => { onChange(v.replace(/[^0-9.]/g, "")); setAmountEdited(true); }}
                 onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
                 onBlur={() => { setKeyboardOpen(false); setTouched(true); }}
               />
@@ -178,10 +184,10 @@ export function RecordPaymentSheet({
 
             {/* Which account received it + optional payment date (reconciliation info, no GL impact). */}
             <ListCard>
-              <ListRow label="Received in" value={formatAccount(accountId)} trailing="chevron" onClick={() => setStep("account")} />
+              <ListRow label="Receiving Account" value={formatAccount(accountId)} trailing="chevron" onClick={() => setStep("account")} />
               <ListRow
-                label="Payment date"
-                value={date ? format(date, "d MMM yyyy") : "Optional"}
+                label="Payment Date (Optional)"
+                value={date ? format(date, "d MMM yyyy") : undefined}
                 trailing="chevron"
                 onClick={() => setStep("date")}
                 last

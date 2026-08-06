@@ -1391,7 +1391,7 @@ export default function App() {
             <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
               Instead of requiring users to go through the Send Invoice flow again, we provide{" "}
               <span className="font-semibold">Mark as Sent</span> and{" "}
-              <span className="font-semibold">Mark as Paid</span> actions directly.
+              <span className="font-semibold">Record Payment</span> actions directly.
             </p>
           </div>
         </div>

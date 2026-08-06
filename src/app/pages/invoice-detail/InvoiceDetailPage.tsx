@@ -196,7 +196,7 @@ export function InvoiceDetailPage({
   const [resendPromptOpen, setResendPromptOpen] = useState(false);
   const [recordPayOpen, setRecordPayOpen] = useState(false);
   const [recordAmount, setRecordAmount] = useState("");
-  // "Mark as paid" also captures which bank account received it + an optional payment date (DES-715
+  // "Record Payment" also captures which bank account received it + an optional payment date (DES-715
   // comment — indicator for reconciliation; no GL impact). Seeded to the primary receiving account.
   const [recordAccountId, setRecordAccountId] = useState("personal");
   const [recordDate, setRecordDate] = useState<Date | null>(null);
@@ -244,7 +244,7 @@ export function InvoiceDetailPage({
   const meta = DETAIL_STATUS_META[status];
   const issued = status !== "Draft";
   // Uploaded drafts default to "Mark as sent" (already issued externally → Awaiting payment);
-  // "Mark as paid" is the secondary path for invoices already settled. Created drafts default to sending.
+  // "Record Payment" is the secondary path for invoices already settled. Created drafts default to sending.
   const uploaded = origin === "uploaded";
   // A manually-created draft saved with zero line items (backed out of the editor before adding
   // anything) — nothing to show or send, so Items/Summary hide, the amount reads 0, and the CTA
@@ -664,7 +664,7 @@ export function InvoiceDetailPage({
   const openEdit = () => { setActionsOpen(false); if (lockedPeriod && issued) { setLockedAction("edit"); return; } onEdit?.(editSeed); };
   // Locked-period demo: "Send invoice" opens the blocking dialog instead of the send sheet.
   const openSend = () => { if (lockedPeriod) { setLockedAction("send"); return; } handleSendInvoiceClick(); };
-  // Mark as paid is allowed even in a locked period — recording a payment doesn't change the invoice's
+  // Record Payment is allowed even in a locked period — recording a payment doesn't change the invoice's
   // accounting date, so it's not blocked (unlike Send / Edit / credit note / refund).
   const openMarkPaid = () => { setRecordAmount(String(remaining)); setRecordPayOpen(true); };
 
@@ -790,7 +790,7 @@ export function InvoiceDetailPage({
       </div>
 
       <div className="px-4 pt-2 pb-44 flex flex-col gap-6 bg-white">
-        {/* Locked-period notice (DES-751) — neutral, non-blocking; Mark as paid still works. A
+        {/* Locked-period notice (DES-751) — neutral, non-blocking; Record Payment still works. A
             Draft is never actually restricted by this (it can always be edited, and credit notes
             only ever apply to an issued invoice), so the notice only shows once issued. */}
         {lockedPeriod && issued && (
@@ -929,8 +929,8 @@ export function InvoiceDetailPage({
       {status === "Cancelled" ? null : status === "Draft" ? (
         uploaded ? (
           // Uploaded draft: it was already sent elsewhere, so the likely next step is recording
-          // payment → "Mark as paid" primary, "Mark as sent" (→ Awaiting) secondary. Once a payment is
-          // logged (awaiting approval) the Mark-as-paid CTA drops, leaving just "Mark as sent".
+          // payment → "Record Payment" primary, "Mark as sent" (→ Awaiting) secondary. Once a payment
+          // is logged (awaiting approval) the Record Payment CTA drops, leaving just "Mark as sent".
           pendingPayment ? (
             <ButtonDock type="single" sticky primaryLabel="Mark as sent" onPrimary={onIssued} />
           ) : (
@@ -938,13 +938,13 @@ export function InvoiceDetailPage({
               type="double"
               sticky
               secondaryLabel="Mark as sent"
-              primaryLabel="Mark as paid"
+              primaryLabel="Record Payment"
               onSecondary={onIssued}
               onPrimary={openMarkPaid}
             />
           )
         ) : (
-          // Created draft: "Mark as paid" is only offered on UPLOADED drafts (already settled outside
+          // Created draft: "Record Payment" is only offered on UPLOADED drafts (already settled outside
           // Statrys). A created draft is issued through Statrys, so it leads with "Send invoice" only.
           // An empty draft (0 items) has nothing to send — the CTA leads to Edit instead.
           isEmptyDraft ? (
@@ -954,7 +954,7 @@ export function InvoiceDetailPage({
           )
         )
       ) : sendable ? (
-        // Once a payment is logged (awaiting approval) the "Mark as paid" CTA drops, leaving just "Resend invoice".
+        // Once a payment is logged (awaiting approval) the "Record Payment" CTA drops, leaving just "Resend invoice".
         pendingPayment ? (
           <ButtonDock type="single" sticky primaryLabel="Resend invoice" primaryLoading={sendPending} onPrimary={openSend} />
         ) : (
@@ -965,7 +965,7 @@ export function InvoiceDetailPage({
             // own detail page). Already Awaiting/Overdue/Partially Paid means it was sent once already, so
             // this is a resend, not a first send (Figma 696:4595 label updated to "Resend invoice").
             secondaryLabel="Resend invoice"
-            primaryLabel="Mark as paid"
+            primaryLabel="Record Payment"
             secondaryLoading={sendPending}
             onSecondary={openSend}
             onPrimary={openMarkPaid}
