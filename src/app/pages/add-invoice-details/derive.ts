@@ -1,6 +1,5 @@
 // Pure derivations for the invoice editor — no React, no state.
 import { format, addDays } from "date-fns";
-import { convert } from "../../lib/currency";
 import type { ExtractedInvoice, InvoiceLine, ServiceLine } from "../../types";
 
 /** Resolve a relative due-date term ("Next 30 days") against the issue date.
@@ -40,14 +39,14 @@ export function extractionCoverage(
   return { fieldsTotal, fieldsExtracted: fieldsTotal - fieldsNeedAttention, fieldsNeedAttention };
 }
 
-/** Line items converted into the invoice currency, for the PDF preview. */
-export function toPreviewItems(services: ServiceLine[], currency: string): InvoiceLine[] {
+/** Line items for the PDF preview — already in the invoice currency (items never carry their own). */
+export function toPreviewItems(services: ServiceLine[]): InvoiceLine[] {
   return services.map((s) => ({
     name: s.name,
     description: s.description,
     qty: s.quantity,
     unit: s.unit,
-    unitPrice: convert(s.unitPrice, s.currency, currency),
-    amount: convert(s.quantity * s.unitPrice, s.currency, currency),
+    unitPrice: s.unitPrice,
+    amount: s.quantity * s.unitPrice,
   }));
 }

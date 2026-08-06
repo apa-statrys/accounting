@@ -100,7 +100,6 @@ export function AddServicesSheet({
     onAdd?.({
       name: serviceName.trim(),
       description: description.trim() || undefined,
-      currency,
       unit,
       quantity: Number(quantity),
       unitPrice: Number(unitPrice),

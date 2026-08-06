@@ -118,13 +118,12 @@ export interface InvoiceLine {
   amount: number;
 }
 
-/** An editable line item on the create/edit invoice form. */
+/** An editable line item on the create/edit invoice form. Always priced in the invoice's own
+ *  currency (set on the invoice, not per line) — no independent item currency. */
 export interface ServiceLine {
   id: string;
   name: string;
   description?: string;
-  /** Item-level currency (may differ from the invoice currency). */
-  currency: string;
   unit: string;
   quantity: number;
   unitPrice: number;

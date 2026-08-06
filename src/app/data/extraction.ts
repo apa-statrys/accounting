@@ -2,11 +2,11 @@ import type { ExtractedInvoice, ExistingInvoice } from "../types";
 
 /** Invoices already in the system — used for the duplicate-number warning (DES-716). */
 export const EXISTING_INVOICES: ExistingInvoice[] = [
-  { number: "INV-2026-000041", customer: "Bright Harbor Co.", issueDate: "20 Jun 2026", dueDate: "20 Jul 2026", currency: "USD", amount: "USD 283.23", status: "Draft" },
+  { number: "INV-2026-000041", customer: "Bright Harbor Co.", issueDate: "20 Jun 2026", dueDate: "20 Jul 2026", amount: "USD 283.23", status: "Draft" },
   // Issued match (demo for the "View Invoice" duplicate path — Awaiting Payment). This one was
   // UPLOADED, so it uses the uploaded-invoice format UPL-YYYY-NNNNNN (never our INV-YYYY-NNNNNN).
-  { number: "UPL-2026-000042", customer: "Marlow & Finch Studio", issueDate: "12 Jun 2026", dueDate: "12 Jul 2026", currency: "USD", amount: "USD 6,430.05", status: "Awaiting" },
-  { number: "INV-2026-000043", customer: "Otto Reyes", issueDate: "18 Jun 2026", dueDate: "18 Jul 2026", currency: "USD", amount: "USD 100,034.00", status: "Draft" },
+  { number: "UPL-2026-000042", customer: "Marlow & Finch Studio", issueDate: "12 Jun 2026", dueDate: "12 Jul 2026", amount: "USD 6,430.05", status: "Awaiting" },
+  { number: "INV-2026-000043", customer: "Otto Reyes", issueDate: "18 Jun 2026", dueDate: "18 Jul 2026", amount: "USD 100,034.00", status: "Draft" },
 ];
 
 /**
@@ -25,8 +25,8 @@ export const DEMO_EXTRACTION: ExtractedInvoice = {
   issueDate: new Date(2025, 4, 17),
   dueDate: "26 May 2025",
   services: [
-    { id: "ext-a", name: "Product A", currency: "USD", unit: "Piece", quantity: 10, unitPrice: 19.99 },
-    { id: "ext-b", name: "Product B", currency: "USD", unit: "Piece", quantity: 5, unitPrice: 9.99 },
+    { id: "ext-a", name: "Product A", unit: "Piece", quantity: 10, unitPrice: 19.99 },
+    { id: "ext-b", name: "Product B", unit: "Piece", quantity: 5, unitPrice: 9.99 },
   ],
 };
 
@@ -44,8 +44,8 @@ export const DEMO_EXTRACTION_NO_CUSTOMER: ExtractedInvoice = {
   issueDate: new Date(2025, 4, 17),
   dueDate: "26 May 2025",
   services: [
-    { id: "ext-a", name: "Product A", currency: "USD", unit: "Piece", quantity: 10, unitPrice: 19.99 },
-    { id: "ext-b", name: "Product B", currency: "USD", unit: "Piece", quantity: 5, unitPrice: 9.99 },
+    { id: "ext-a", name: "Product A", unit: "Piece", quantity: 10, unitPrice: 19.99 },
+    { id: "ext-b", name: "Product B", unit: "Piece", quantity: 5, unitPrice: 9.99 },
   ],
 };
 
@@ -78,7 +78,7 @@ export const DEMO_EXTRACTION_MATCHED: ExtractedInvoice = {
   issueDate: new Date(2026, 5, 2),
   dueDate: "Next 30 days",
   services: [
-    { id: "ext-c", name: "Brand identity system", currency: "USD", unit: "Project", quantity: 1, unitPrice: 4200 },
-    { id: "ext-d", name: "Landing page design", currency: "USD", unit: "Page", quantity: 3, unitPrice: 580 },
+    { id: "ext-c", name: "Brand identity system", unit: "Project", quantity: 1, unitPrice: 4200 },
+    { id: "ext-d", name: "Landing page design", unit: "Page", quantity: 3, unitPrice: 580 },
   ],
 };

@@ -34,7 +34,6 @@ import { AddServicesSheet } from "../../components/AddServicesSheet";
 import { CUSTOMERS } from "../../data/customers";
 import { EXISTING_INVOICES } from "../../data/extraction";
 import { formatAccount, getAccount } from "../../data/receivingAccounts";
-import { convert } from "../../lib/currency";
 import { EMAIL_RE } from "../../lib/format";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
@@ -330,10 +329,7 @@ export function AddInvoiceDetails({
       discountMode !== editBaselineRef.current.discountMode ||
       JSON.stringify(services) !== editBaselineRef.current.servicesJson);
 
-  const subtotal = services.reduce(
-    (sum, s) => sum + convert(s.quantity * s.unitPrice, s.currency, currency),
-    0
-  );
+  const subtotal = services.reduce((sum, s) => sum + s.quantity * s.unitPrice, 0);
   const rawDiscount =
     discountMode === "percent"
       ? subtotal * ((Number(discount) || 0) / 100)
@@ -446,7 +442,7 @@ export function AddInvoiceDetails({
   const shareLink = `https://pay.statrys.com/i/${invoiceNo}`;
 
   // Line items in the invoice currency, for the PDF preview.
-  const previewItems = toPreviewItems(services, currency);
+  const previewItems = toPreviewItems(services);
   // Bank details for the PDF preview's "Payment Details" block — shared by the full preview and
   // the Send sheet's own compact PDF-segment preview.
   const previewBank = (() => {

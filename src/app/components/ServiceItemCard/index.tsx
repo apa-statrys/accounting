@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useAnimationControls } from "motion/react";
 import { ListRow } from "../../ui/ListRow";
 import { SwipeActions } from "../../ui/SwipeActions";
-import { convert } from "../../lib/currency";
 import { formatMoney } from "../../lib/format";
 import type { ServiceLine } from "../../types";
 import styles from "./index.module.css";
@@ -28,8 +27,7 @@ interface ServiceItemCardProps {
  * A service/product line, rendered as a ui/ListRow (Figma "Create Invoice", node 1826-15914:
  * label + qty×price description, the item's own note as a caption, amount + chevron trailing —
  * same row recipe as the Invoice Details rows above it). Swipe left to reveal a delete button;
- * tap to edit. Invoice-currency amount in front; item-currency FX line beneath when they differ.
- * See memory: multi-currency-exchange-rate.
+ * tap to edit. Items always show in the invoice's own currency — no per-item currency or FX line.
  */
 export function ServiceItemCard({ line, invoiceCurrency, onClick, onDelete, hint, readOnly, last }: ServiceItemCardProps) {
   const controls = useAnimationControls();
@@ -59,8 +57,6 @@ export function ServiceItemCard({ line, invoiceCurrency, onClick, onDelete, hint
   }, [hint, controls]);
 
   const itemTotal = line.quantity * line.unitPrice;
-  const invoiceTotal = convert(itemTotal, line.currency, invoiceCurrency);
-  const showFx = line.currency !== invoiceCurrency;
 
   return (
     <div className={styles.root}>
@@ -92,10 +88,9 @@ export function ServiceItemCard({ line, invoiceCurrency, onClick, onDelete, hint
         >
           <ListRow
             label={line.name}
-            description={`${line.quantity}${line.unit ? ` ${line.unit}${line.quantity !== 1 ? "s" : ""}` : ""} x ${formatMoney(line.unitPrice, line.currency)}`}
+            description={`${line.quantity}${line.unit ? ` ${line.unit}${line.quantity !== 1 ? "s" : ""}` : ""} x ${formatMoney(line.unitPrice, invoiceCurrency)}`}
             caption={line.description || undefined}
-            value={formatMoney(invoiceTotal, invoiceCurrency)}
-            valueDescription={showFx ? `= ${formatMoney(itemTotal, line.currency)}` : undefined}
+            value={formatMoney(itemTotal, invoiceCurrency)}
             trailing={readOnly ? "none" : "chevron"}
             last={last}
           />
