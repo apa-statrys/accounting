@@ -128,7 +128,7 @@ export function AddServicesSheet({
       // The Add flow's form step matches its own fixed height so stepping to/from the Unit picker
       // doesn't resize the sheet; the Unit picker itself is a short, fixed 6-row list, so let it
       // hug its own content instead of inheriting the taller form height (which left empty space
-      // below it). Edit mode's form step auto-sizes instead — its double "Save Changes"/"Delete"
+      // below it). Edit mode's form step auto-sizes instead — its double "Save"/"Delete"
       // dock is taller than the single "Add Item" dock this fixed height was sized for, and pinning
       // it anyway forced BottomSheet's footer-overlap mode, crowding the dock flush against the
       // last field with no visual gap. Edit mode floors both its steps at the form step's own
@@ -139,12 +139,12 @@ export function AddServicesSheet({
       panelRef={panelRef}
       footer={
         step === "unit" ? undefined : initial ? (
-          // Editing an item: "Save Changes" + a plain "Delete" secondary (swiping the line left
-          // still works too) — Delete isn't marked destructive since the primary here isn't either
+          // Editing an item: "Save" + a plain "Delete" secondary (swiping the line left still
+          // works too) — Delete isn't marked destructive since the primary here isn't either
           // (see memory: secondaryDestructive needs a destructive primary).
           <ButtonDock
             type="double"
-            primaryLabel="Save Changes"
+            primaryLabel="Save"
             secondaryLabel="Delete"
             onPrimary={handleAdd}
             onSecondary={onDelete}
