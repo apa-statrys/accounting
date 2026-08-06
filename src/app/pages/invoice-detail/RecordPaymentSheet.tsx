@@ -100,7 +100,7 @@ export function RecordPaymentSheet({
           type="double"
           keyboard={keyboardOpen}
           secondaryLabel="Cancel"
-          primaryLabel="Record Payment"
+          primaryLabel="Mark as paid"
           onSecondary={onClose}
           onPrimary={handleSubmit}
         />

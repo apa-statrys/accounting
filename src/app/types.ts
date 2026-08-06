@@ -257,6 +257,9 @@ export interface ReceivingAccount {
   /** The bank's home country (components/CountryFlag lookup) — not always the same as `currency`
    *  (e.g. a Eurozone account's country is a specific member state, not "European Union"). */
   country: string;
+  /** IBAN-format account number (Europe/UK) — formatAccount() masks these from the END (showing
+   *  the leading country + check digits, e.g. "FR76*") instead of the trailing digits. */
+  iban?: boolean;
   primary?: boolean;
   /** Account holder (the sender's business). */
   holder: string;

@@ -13,7 +13,7 @@ interface BankInfoSheetProps {
   onBack?: () => void;
   onClose?: () => void;
   /** Fired when all fields validate — passes the card's last 4 digits for the
-   *  "Visa (..1234)" receiving-account label. Prototype-only: nothing is stored. */
+   *  "Visa *1234" receiving-account label. Prototype-only: nothing is stored. */
   onConfirm?: (last4: string) => void;
 }
 

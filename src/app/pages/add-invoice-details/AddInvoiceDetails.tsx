@@ -288,7 +288,7 @@ export function AddInvoiceDetails({
   const [accountSheetOpen, setAccountSheetOpen] = useState(false);
   // "Use Other Bank Accounts" card-details sheet (opened from the receiving-account sheet).
   const [otherBankOpen, setOtherBankOpen] = useState(false);
-  // Confirmed external card's last 4 digits — the receiving account shows "Visa (..1234)".
+  // Confirmed external card's last 4 digits — the receiving account shows "Visa *1234".
   // A Statrys account pick clears it. Prototype-only: resets with the editor.
   const [externalCardLast4, setExternalCardLast4] = useState<string | null>(null);
 
@@ -503,7 +503,7 @@ export function AddInvoiceDetails({
     { label: "Currency", value: currencyLabel, onClick: () => setCurrencySheetOpen(true), locked: false, readOnly: false },
     { label: "Issue Date", value: !issuePicked ? issuePlaceholder! : showIssueToday ? `Today (${format(issueDate, "d MMM yyyy")})` : format(issueDate, "d MMM yyyy"), onClick: () => setIssueSheetOpen(true), locked: false, readOnly: false, placeholder: !issuePicked },
     { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false, readOnly: false },
-    { label: "Receiving Account", value: externalCardLast4 ? `Visa (..${externalCardLast4})` : formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false, readOnly: false },
+    { label: "Receiving Account", value: externalCardLast4 ? `Visa *${externalCardLast4}` : formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false, readOnly: false },
   ];
 
   return (
@@ -1055,7 +1055,7 @@ export function AddInvoiceDetails({
       />
 
       {/* Card-details sheet — back returns to the account sheet; Confirm lands on the editor
-          with the receiving account showing "Visa (..1234)". */}
+          with the receiving account showing "Visa *1234". */}
       <BankInfoSheet
         open={otherBankOpen}
         onBack={() => { setOtherBankOpen(false); setAccountSheetOpen(true); }}
