@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Download } from "lucide-react";
 import { FONT, INK, MUTED } from "../lib/theme";
 import { Toggle } from "./Toggle";
+import { NumberStepper } from "./NumberStepper";
 import { Button, type Hierarchy } from "./Button";
 import { FAB } from "./FAB";
 import { TabsBase } from "./TabsBase";
@@ -103,6 +104,7 @@ const NAV_GROUPS = [
       { id: "text-area", label: "Text Area" },
       { id: "search", label: "Search" },
       { id: "toggle", label: "Toggle" },
+      { id: "number-stepper", label: "Number Stepper" },
       { id: "tile", label: "Tile" },
       { id: "chips", label: "Chips" },
       { id: "checkbox-base", label: "Checkbox Base" },
@@ -2726,6 +2728,34 @@ function ToggleTestMe() {
   );
 }
 
+const NUMBER_STEPPER_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "disabled",
+    label: "State",
+    options: [
+      { value: "no", label: "Default" },
+      { value: "yes", label: "Disabled" },
+    ],
+  },
+];
+
+/** Holds the live counter itself — InteractiveDemo's `render` only carries the control
+ *  values, so a genuinely steppable demo needs its own bit of state, same as a real caller. */
+function NumberStepperDemo({ disabled }: { disabled: boolean }) {
+  const [qty, setQty] = useState(3);
+  return <NumberStepper value={qty} onChange={setQty} min={0} max={10} disabled={disabled} label="quantity" />;
+}
+
+function NumberStepperTestMe() {
+  return (
+    <InteractiveDemo
+      groups={NUMBER_STEPPER_CONTROL_GROUPS}
+      defaultValues={{ disabled: "no" }}
+      render={(v) => <NumberStepperDemo disabled={v.disabled === "yes"} />}
+    />
+  );
+}
+
 export function Showcase() {
   const [activeNav, setActiveNav] = useState(NAV[0].id);
   const [activeFoundationNav, setActiveFoundationNav] = useState(FOUNDATION_NAV[0].id);
@@ -3296,6 +3326,19 @@ export function Showcase() {
                   "A choice that needs an inline label describing what's being selected — use Checkbox instead",
                 ]}
                 overview={<ToggleTestMe />}
+              />
+            )}
+            {!isFoundation && activeNav === "number-stepper" && (
+              <ComponentPage
+                title="Number Stepper"
+                description="A bordered −/+ control for adjusting a small integer in place — tap to increment or decrement without opening a keyboard. Not a Figma DS component yet (no matching frame); built to TextField's own field tokens so it reads as part of the same family."
+                whenToUse={[
+                  "A small bounded count the user adjusts a few units at a time — e.g. a credited/refunded line's quantity",
+                ]}
+                whenNotToUse={[
+                  "A number typed directly or with no small fixed bound — use TextField with inputMode=\"numeric\" instead",
+                ]}
+                overview={<NumberStepperTestMe />}
               />
             )}
             <p className="mt-8 text-[12px]" style={{ ...FONT, color: MUTED }}>

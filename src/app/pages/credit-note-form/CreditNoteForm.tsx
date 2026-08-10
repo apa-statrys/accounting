@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { addDays, format } from "date-fns";
-import { Check, ChevronDown, Minus, Plus } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { HorizontalTabs } from "../../ui/HorizontalTabs";
 import { Banner } from "../../ui/Banner";
 import { ListCard } from "../../ui/ListCard";
 import { ListRow } from "../../ui/ListRow";
+import { NumberStepper } from "../../ui/NumberStepper";
 import { TextArea } from "../../ui/TextArea";
 import { TextField } from "../../ui/TextField";
 import { Tile } from "../../ui/Tile";
@@ -263,10 +264,8 @@ export function CreditNoteForm({
     setLines((prev) => prev.map((l) => (l.id === focusedLineId ? { ...l, unitPrice: l.unitPrice.slice(0, -1) } : l)));
   };
   // Step qty up to the invoiced max, or down to 0 (0 = excluded, but the line stays so it can be re-added).
-  const incQty = (id: string) =>
-    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, qty: Math.min(l.maxQty, l.qty + 1) } : l)));
-  const decQty = (id: string) =>
-    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, qty: Math.max(0, l.qty - 1) } : l)));
+  const setQty = (id: string, qty: number) =>
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, qty } : l)));
 
   const openClientSheet = () => {
     setDraftName(name);
@@ -495,15 +494,7 @@ export function CreditNoteForm({
                 <div className="flex items-end gap-3">
                   <div className="flex flex-col gap-1.5">
                     <span className="text-[12px]" style={{ ...FONT, color: MUTED }}>Quantity</span>
-                    <div className="flex items-center rounded-lg border bg-white overflow-hidden" style={{ borderColor: "rgba(160,160,160,0.4)" }}>
-                      <button type="button" onClick={() => decQty(l.id)} disabled={l.qty === 0} aria-label="Decrease quantity" className="w-9 h-10 flex items-center justify-center disabled:opacity-30">
-                        <Minus size={16} strokeWidth={1.67} color={INK} />
-                      </button>
-                      <span className="w-8 text-center text-[14px] font-medium" style={{ ...FONT, color: INK }}>{l.qty}</span>
-                      <button type="button" onClick={() => incQty(l.id)} disabled={l.qty >= l.maxQty} aria-label="Increase quantity" className="w-9 h-10 flex items-center justify-center disabled:opacity-30">
-                        <Plus size={16} strokeWidth={1.67} color={INK} />
-                      </button>
-                    </div>
+                    <NumberStepper value={l.qty} onChange={(qty) => setQty(l.id, qty)} min={0} max={l.maxQty} label="quantity" />
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                     <span className="text-[12px]" style={{ ...FONT, color: MUTED }}>Unit price</span>
