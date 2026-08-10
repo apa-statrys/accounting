@@ -165,10 +165,11 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // Edit never appears in the dock (primary or secondary) — it's always a ⋯ Tile row instead, for
   // a Draft (any completeness). An Applied note is locked (never editable — see `isApplied` above).
   const canEditFromMenu = (isOpen || isRefundDraft) && !!onEdit;
-  // ⋯ exists for a Draft (Edit + Delete — cancellation OR refund), an Applied note (Cancel +
-  // Preview), a cancellable refund (Cancel refund + Preview), or a Cancelled note (Preview as
-  // PDF — no dock).
-  const hasMenu = (isOpen && !!onCancel) || (isRefundDraft && !!onCancel) || (isApplied && !!onCancel) || (isRefundCancellable && !!onCancel) || isCancelled || canEditFromMenu;
+  // ⋯ exists for a Draft (Edit + Delete — cancellation OR refund), an Applied note (Preview +
+  // Cancel-if-wired), any non-draft refund (Preview + Cancel-if-cancellable), or a Cancelled note
+  // (Preview as PDF — no dock). Applied/refund/Cancelled always render at least their Preview row,
+  // so those three are unconditional here — only the Draft branch's rows are individually gated.
+  const hasMenu = ((isOpen || isRefundDraft) && (!!onCancel || canEditFromMenu)) || isApplied || isCancelled || (isRefund && !isRefundDraft);
   const openSend = () => setSendSheetOpen(true);
 
   const closeSend = () => { setSendSheetOpen(false); setPdfOpen(false); };
