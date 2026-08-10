@@ -288,7 +288,7 @@ export function CreateSalesInvoice({ selectedId = "", customers = CUSTOMERS, onC
                     <Button
                       hierarchy="secondary"
                       size="sm"
-                      iconLeft={<UserPlus size={16} strokeWidth={2} />}
+                      iconLeft={<UserPlus size={16} strokeWidth={1.67} />}
                       label="Add"
                       onClick={openAdd}
                     />

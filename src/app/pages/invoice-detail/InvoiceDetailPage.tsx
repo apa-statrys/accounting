@@ -716,7 +716,7 @@ export function InvoiceDetailPage({
         title={pageHeaderTitle}
         onBack={onBack}
         showSearch={hasMenuActions}
-        rightIcon={<MoreVertical size={20} strokeWidth={2} />}
+        rightIcon={<MoreVertical size={20} strokeWidth={1} />}
         rightLabel="More actions"
         onRightClick={() => setActionsOpen(true)}
       />

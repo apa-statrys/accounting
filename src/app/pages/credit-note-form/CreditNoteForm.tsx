@@ -376,7 +376,7 @@ export function CreditNoteForm({
                 <span className="flex items-center gap-1.5 pr-1 text-[12px]" style={{ ...FONT, color: MUTED }} aria-live="polite">
                   {saveState === "saving"
                     ? <Loading size="xs" aria-label="Saving" />
-                    : <Check size={15} strokeWidth={2} color="var(--icon-success-primary)" />}
+                    : <Check size={15} strokeWidth={1.67} color="var(--icon-success-primary)" />}
                   {saveState === "saving" ? "Saving" : "Saved"}
                 </span>
               ) : undefined
