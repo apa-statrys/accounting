@@ -150,7 +150,18 @@ export function SendInvoiceSheet({
       .filter(Boolean);
     const valid = parts.filter((p) => EMAIL_RE.test(p));
     const invalid = parts.filter((p) => !EMAIL_RE.test(p));
-    const newOnes = valid.filter((p) => !recipients.includes(p));
+    // De-dupe case-insensitively against the existing chips AND the primary "Send To" address
+    // (already getting the email — adding it again as a recipient is a no-op), plus within the
+    // same pasted/typed batch itself (e.g. "a@x.com, a@x.com").
+    const already = new Set([customerEmail.toLowerCase(), ...recipients.map((r) => r.toLowerCase())]);
+    const newOnes: string[] = [];
+    const duplicates: string[] = [];
+    for (const p of valid) {
+      const key = p.toLowerCase();
+      if (already.has(key)) { duplicates.push(p); continue; }
+      already.add(key);
+      newOnes.push(p);
+    }
     // Cap at MAX_RECIPIENTS — anything past the remaining slots is held back rather than silently
     // dropped, so it stays in the field (alongside any invalid text) for the client to see/retry.
     const remaining = Math.max(0, MAX_RECIPIENTS - recipients.length);
@@ -164,9 +175,12 @@ export function SendInvoiceSheet({
         ? "Enter a valid email address"
         : overflow.length
           ? `You can add up to ${MAX_RECIPIENTS} recipients`
-          : null
+          : duplicates.length
+            ? "This recipient has already been added"
+            : null
     );
-    // Keep any invalid or over-the-cap text in the field so the client can fix/reconsider it.
+    // Keep any invalid or over-the-cap text in the field so the client can fix/reconsider it —
+    // a duplicate never has anything to fix, so it's just dropped rather than looped back in.
     setDraft([...invalid, ...overflow].join(", "));
   };
 
