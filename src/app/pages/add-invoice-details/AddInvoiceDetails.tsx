@@ -380,21 +380,26 @@ export function AddInvoiceDetails({
     if (autoOpenSend) setSendSheetOpen(true);
   }, [autoOpenSend]);
 
-  // Autosave indicator — "Saving…" on any edit, then "Saved" once it settles.
+  // Autosave indicator — hidden until the client actually edits something (landing on a freshly
+  // uploaded/created invoice with nothing touched yet has nothing to report "Saved" about), then
+  // "Saving…" on that first and every subsequent edit, settling to "Saved". Compares against a
+  // remembered initial snapshot rather than a "skip first run" flag — a one-shot flag isn't robust
+  // to StrictMode's double-invoked effects (same pitfall as the servicesRef comment below), which
+  // would otherwise fire once already-false on mount and show "Saved" before anything's touched.
   const [saveState, setSaveState] = useState<"saved" | "saving">("saved");
-  const firstChange = useRef(true);
+  const [hasEdited, setHasEdited] = useState(false);
+  const autosaveDeps = [
+    editName, editEmail, editInvoiceNo, currentCustomer,
+    issueDate, dueDate, currency, accountId, services, discount, discountMode, discountOn,
+  ];
+  const initialAutosaveSnapshot = useRef(JSON.stringify(autosaveDeps));
   useEffect(() => {
-    if (firstChange.current) {
-      firstChange.current = false;
-      return;
-    }
+    if (JSON.stringify(autosaveDeps) === initialAutosaveSnapshot.current) return;
+    setHasEdited(true);
     setSaveState("saving");
     const t = setTimeout(() => setSaveState("saved"), 700);
     return () => clearTimeout(t);
-  }, [
-    editName, editEmail, editInvoiceNo, currentCustomer,
-    issueDate, dueDate, currency, accountId, services, discount, discountMode, discountOn,
-  ]);
+  }, autosaveDeps);
 
   // Scroll target for the duplicate ("Similar invoice found") section.
   const invoiceNoRef = useRef<HTMLDivElement>(null);
@@ -538,8 +543,10 @@ export function AddInvoiceDetails({
               // Figma "Create Invoice" header (node 1387-18223): the DS Loading spinner, not a
               // hand-rolled spinning border — "Saved" keeps the existing check (Figma's own mock
               // only shows the "Saving" state). Hidden for the plain Edit Invoice flow — that one
-              // doesn't autosave (see editingIssuedInvoice), so there's nothing to report here.
-              editingIssuedInvoice ? undefined : (
+              // doesn't autosave (see editingIssuedInvoice), so there's nothing to report here —
+              // and hidden until the client's first real edit (hasEdited), so a freshly landed
+              // page doesn't claim "Saved" before anything's actually been touched.
+              editingIssuedInvoice || !hasEdited ? undefined : (
                 <div className="flex items-center gap-1 whitespace-nowrap" aria-live="polite">
                   {saveState === "saving" ? (
                     <Loading size="xs" aria-label="Saving" />
