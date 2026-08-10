@@ -741,13 +741,14 @@ export function InvoiceDetailPage({
           {/* Single status sub-line for EVERY status, incl. refund context ("$X due" / "Due <date>" /
               "since <date>" / "$X to refund"), inline beside the badge (Figma "Due in 3 days"). Only
               the badge itself carries the status color — this text is always text-primary, never a
-              second colored element repeating the badge's color. Hidden only while a payment is
-              pending reconciliation, which has its own dedicated line below instead. A "·" separates
-              it from the badge — badge + sub-line are two separate fragments, not one sentence, so
-              they need the same visual break every other "status · date" line in the app uses —
-              except plain Overdue (bannerIsContinuation), which reads as one sentence with the badge
-              word so the "·" is dropped there instead of splitting it mid-sentence. */}
-          {!pendingPayment && headlineBanner && (
+              second colored element repeating the badge's color. Still shown while a payment is
+              pending reconciliation (same "badge · date" row every other status keeps) — the
+              Pending Reconciliation note is separate, added info below, not a replacement for it.
+              A "·" separates it from the badge — badge + sub-line are two separate fragments, not
+              one sentence, so they need the same visual break every other "status · date" line in
+              the app uses — except plain Overdue (bannerIsContinuation), which reads as one sentence
+              with the badge word so the "·" is dropped there instead of splitting it mid-sentence. */}
+          {headlineBanner && (
             <>
               {!bannerIsContinuation && (
                 <span className="caption-medium" style={{ ...FONT, color: INK }} aria-hidden="true">·</span>
