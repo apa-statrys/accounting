@@ -1,14 +1,14 @@
 import { useState } from "react";
+import { Pencil } from "lucide-react";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
-import { ButtonDock } from "../components/ButtonDock";
 import { Toast } from "../components/Toast";
-import { Tile } from "../ui/Tile";
+import { Avatar } from "../ui/Avatar";
 import { ListCard } from "../ui/ListCard";
 import { ListRow } from "../ui/ListRow";
 import type { Customer } from "../types";
 
-import { FONT, INK } from "../lib/theme";
+import { FONT, INK, MUTED } from "../lib/theme";
 
 function initials(name: string): string {
   const words = name.replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
@@ -48,8 +48,9 @@ export interface CustomerDetailPageProps {
 /**
  * Customer detail (Option B — beyond the ticket, Qonto/Stripe pattern): the full client record (DES-713
  * Client Field Spec, present fields only), grouped into Billing / Company Details / Address sections, with
- * a bottom "Edit Customer" button (DES-714 — opens the full-page Edit form). Same DS Tile/ListCard/ListRow
- * shape as the invoice detail page, not a bespoke dashed-card layout.
+ * an Edit icon in the header's top-right (DES-714 — opens the full-page Edit form; not a sticky dock CTA,
+ * since editing isn't this read-only page's primary action). Same gradient-hero + ListCard/ListRow shape
+ * as the invoice detail page, not a bespoke dashed-card layout.
  */
 export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDone }: CustomerDetailPageProps) {
   // The record is owned by App now (edits happen on the full-page form and flow back via props).
@@ -57,20 +58,42 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
   const [scrolled, setScrolled] = useState(false);
 
   return (
-    <div className="relative bg-white rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
+    // Beige, not white — PageAppHeader is transparent at rest, so it needs the outer frame's
+    // beige to show through behind it, blending into the hero gradient below instead of a hard
+    // white→beige seam (same fix as the invoice/credit-note detail heroes).
+    <div className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812, background: "var(--bg-beige-primary)" }}>
       <div
-        className="flex-1 overflow-y-auto thin-scrollbar bg-white"
+        className="flex-1 overflow-y-auto thin-scrollbar"
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          <PageHeader type="center" title={record.name} onBack={onBack} showSearch={false} />
+          <PageHeader
+            type="center"
+            title="Customer Details"
+            onBack={onBack}
+            showSearch={!!onEdit}
+            rightIcon={<Pencil size={20} strokeWidth={2} />}
+            rightLabel="Edit customer"
+            onRightClick={() => onEdit?.()}
+          />
         </PageAppHeader>
 
-        <div className="px-4 pt-4 pb-28 flex flex-col gap-4">
-          {/* Identity — DS Tile, same pattern as every other customer display in the app
-              (InvoiceDetailPage's Bill To, CreditNoteDetailPage's Credit To). */}
-          <Tile avatar={initials(record.name)} title={record.name} text={record.email} />
+        {/* Identity hero — full-bleed beige→white gradient, a direct sibling of the header (not
+            nested inside the padded body below) so it bleeds edge-to-edge flush against it, same
+            structure as the invoice/credit-note detail heroes. Avatar + name headline + email
+            subtitle stand in for the money headline those pages lead with. */}
+        <div
+          className="p-4 flex items-center gap-3"
+          style={{ backgroundImage: "linear-gradient(180deg, var(--bg-beige-primary) 1%, var(--bg-neutral-primary) 99%)" }}
+        >
+          <Avatar size="2xl" initials={initials(record.name)} />
+          <div className="min-w-0">
+            <p className="text-[20px] font-bold leading-tight tracking-[-0.4px] truncate" style={{ ...FONT, color: INK }}>{record.name}</p>
+            <p className="body-sm truncate" style={{ ...FONT, color: MUTED }}>{record.email}</p>
+          </div>
+        </div>
 
+        <div className="px-4 pt-4 pb-8 flex flex-col gap-4 bg-white">
           <FieldSection title="Default Currency" rows={[
             { label: "Currency", value: record.currency },
           ]} />
@@ -93,14 +116,9 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
         </div>
       </div>
 
-      <ButtonDock
-        type="single"
-        sticky
-        primaryLabel="Edit Customer"
-        onPrimary={() => onEdit?.()}
-      />
-
-      <Toast open={!!flash} message={flash ?? ""} onDone={onFlashDone} />
+      {/* No dock on this page (see the header's Edit icon above), so the toast sits close to the
+          bottom edge — same "no dock at all" bottomOffset convention InvoiceDetailPage uses. */}
+      <Toast open={!!flash} message={flash ?? ""} bottomOffset={16} onDone={onFlashDone} />
     </div>
   );
 }
