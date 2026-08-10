@@ -3,9 +3,12 @@ import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { ButtonDock } from "../components/ButtonDock";
 import { Toast } from "../components/Toast";
+import { Tile } from "../ui/Tile";
+import { ListCard } from "../ui/ListCard";
+import { ListRow } from "../ui/ListRow";
 import type { Customer } from "../types";
 
-import { FONT, INK, MUTED } from "../lib/theme";
+import { FONT, INK } from "../lib/theme";
 
 function initials(name: string): string {
   const words = name.replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
@@ -13,47 +16,21 @@ function initials(name: string): string {
   return (words[0][0] + (words[1]?.[0] ?? "")).toUpperCase();
 }
 
-/** Soft card shadow used on every detail section (Shadow/Nav/menu). */
-const CARD_SHADOW = "0px 4px 14px 0px rgba(226,220,203,0.3)";
-
-/**
- * A titled section of label/value rows — renders only the rows that have a value, and hides the whole
- * card when none are present (so a client with only name+email doesn't show empty Company/Address cards).
- * `variant="solid"` = filled beige card (Billing); `variant="dashed"` = white dashed card (Company/Address).
- */
-function Section({
-  title,
-  rows,
-  variant = "dashed",
-}: {
-  title: string;
-  rows: { label: string; value?: React.ReactNode }[];
-  variant?: "solid" | "dashed";
-}) {
+/** A labeled ListCard of label/value rows — renders only the rows that have a value, and hides
+ *  the whole section when none are present (so a client with only name+email doesn't show an
+ *  empty Company Details/Address section). Same "label + ListCard" section shape as every other
+ *  detail page (InvoiceDetailPage's Invoice Details, CreditNoteDetailPage's Credit Details, …). */
+function FieldSection({ title, rows }: { title: string; rows: { label: string; value?: string }[] }) {
   const present = rows.filter((r) => r.value != null && r.value !== "");
   if (!present.length) return null;
-  const solid = variant === "solid";
   return (
-    <div
-      className="shrink-0 rounded-[12px] overflow-hidden w-full"
-      style={{
-        background: solid ? "var(--bg-neutral-secondary)" : "var(--bg-neutral-primary)",
-        border: "1px dashed rgba(160,160,160,0.2)",
-        boxShadow: CARD_SHADOW,
-      }}
-    >
-      {/* Title as the first row inside the card (Figma 1209): grey uppercase + full-width divider. */}
-      <p className="px-4 pt-3.5 pb-3 text-[12px] font-bold uppercase tracking-wide leading-[16.5px]" style={{ ...FONT, color: "var(--text-placeholder)", borderBottom: "1px solid rgba(160,160,160,0.2)" }}>{title}</p>
-      {present.map((r, i) => (
-          <div
-            key={r.label}
-            className="flex items-center justify-between gap-4 px-4 py-[15px]"
-            style={{ borderBottom: i === present.length - 1 ? "none" : "1px solid rgba(160,160,160,0.2)" }}
-          >
-            <span className="text-[14px] leading-[1.3] shrink-0" style={{ ...FONT, color: INK }}>{r.label}</span>
-            <span className="min-w-0 text-right text-[14px] font-medium leading-[1.3] truncate" style={{ ...FONT, color: "#101828" }}>{r.value}</span>
-          </div>
+    <div className="flex flex-col gap-2">
+      <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{title}</p>
+      <ListCard>
+        {present.map((r, i) => (
+          <ListRow key={r.label} label={r.label} value={r.value} last={i === present.length - 1} />
         ))}
+      </ListCard>
     </div>
   );
 }
@@ -70,8 +47,9 @@ export interface CustomerDetailPageProps {
 
 /**
  * Customer detail (Option B — beyond the ticket, Qonto/Stripe pattern): the full client record (DES-713
- * Client Field Spec, present fields only), grouped into Billing / Company Details / Address cards, with a
- * bottom "Edit Customer" button (DES-714 — opens the full-page Edit form).
+ * Client Field Spec, present fields only), grouped into Billing / Company Details / Address sections, with
+ * a bottom "Edit Customer" button (DES-714 — opens the full-page Edit form). Same DS Tile/ListCard/ListRow
+ * shape as the invoice detail page, not a bespoke dashed-card layout.
  */
 export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDone }: CustomerDetailPageProps) {
   // The record is owned by App now (edits happen on the full-page form and flow back via props).
@@ -89,25 +67,15 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
         </PageAppHeader>
 
         <div className="px-4 pt-4 pb-28 flex flex-col gap-4">
-          {/* Identity — avatar + name + email */}
-          <div className="flex items-center gap-3">
-            <span
-              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: "var(--bg-beige-primary)", color: INK, fontFamily: FONT.fontFamily }}
-            >
-              <span className="font-medium" style={{ fontSize: 13, letterSpacing: -0.65 }}>{initials(record.name)}</span>
-            </span>
-            <span className="min-w-0">
-              <span className="block text-[16px] font-bold leading-none tracking-[-0.8px] truncate" style={{ ...FONT, color: "#101828" }}>{record.name}</span>
-              <span className="block text-[14px] font-medium mt-[3px] truncate" style={{ ...FONT, color: MUTED }}>{record.email}</span>
-            </span>
-          </div>
+          {/* Identity — DS Tile, same pattern as every other customer display in the app
+              (InvoiceDetailPage's Bill To, CreditNoteDetailPage's Credit To). */}
+          <Tile avatar={initials(record.name)} title={record.name} text={record.email} />
 
-          <Section title="Default Currency" variant="solid" rows={[
+          <FieldSection title="Default Currency" rows={[
             { label: "Currency", value: record.currency },
           ]} />
 
-          <Section title="Company Details" rows={[
+          <FieldSection title="Company Details" rows={[
             { label: "First Name", value: record.firstName },
             { label: "Last Name", value: record.lastName },
             { label: "Company Registration No.", value: record.regNo },
@@ -115,7 +83,7 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
             { label: "Website", value: record.website },
           ]} />
 
-          <Section title="Address" rows={[
+          <FieldSection title="Address" rows={[
             { label: "Country", value: record.country },
             { label: "Address", value: record.address },
             { label: "City", value: record.city },
