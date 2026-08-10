@@ -478,7 +478,7 @@ export function CreditNoteForm({
             {(itemsExpanded ? lines : lines.slice(0, COLLAPSED_ITEMS)).map((l, i) => (
               <div
                 key={l.id}
-                className="bg-white border border-[rgba(160,160,160,0.25)] rounded-xl p-4 flex flex-col gap-3"
+                className="bg-[var(--bg-neutral-primary)] border border-[var(--border-neutral-primary)] rounded-xl p-4 flex flex-col gap-3"
                 style={{ boxShadow: "var(--shadow-card-soft)" }}
               >
                 <p className="text-[14px] font-semibold leading-tight" style={{ ...FONT, color: INK }}>{i + 1}. {l.name}</p>
@@ -490,7 +490,10 @@ export function CreditNoteForm({
                 </div>
 
                 {/* Quantity + unit price — refund: how many units × price to give back; credit: the
-                    corrected values. The per-line credit/refund is derived below. */}
+                    corrected values. The per-line credit/refund is derived below. Unit price is the
+                    same DS TextField "currency" type as every other currency-prefixed amount field
+                    (AddServicesSheet's Unit Price) — inputMode="none" keeps the OS keyboard from
+                    popping up since this page drives typing through its own NumericKeypad instead. */}
                 <div className="flex items-end gap-3">
                   <div className="flex flex-col gap-1.5">
                     <span className="text-[12px]" style={{ ...FONT, color: MUTED }}>Quantity</span>
@@ -498,25 +501,23 @@ export function CreditNoteForm({
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                     <span className="text-[12px]" style={{ ...FONT, color: MUTED }}>Unit price</span>
-                    <div className="flex items-center gap-1 rounded-lg border px-3 h-10 bg-white" style={{ borderColor: "rgba(160,160,160,0.4)" }}>
-                      <span className="text-[13px] shrink-0" style={{ ...FONT, color: MUTED }}>{currency}</span>
-                      <input
-                        inputMode="none"
-                        value={focusedLineId === l.id ? l.unitPrice : l.unitPrice ? fmtAmount(Number(l.unitPrice) || 0) : ""}
-                        placeholder="0.00"
-                        onFocus={(e) => focusAmount(l.id, e.currentTarget)}
-                        onBlur={blurAmount}
-                        onChange={(e) => setUnitPrice(l.id, e.target.value)}
-                        className="flex-1 min-w-0 text-right outline-none text-[15px] bg-transparent"
-                        style={{ ...FONT, color: INK }}
-                      />
-                    </div>
+                    <TextField
+                      type="currency"
+                      inputMode="none"
+                      placeholder="0.00"
+                      value={focusedLineId === l.id ? l.unitPrice : l.unitPrice ? fmtAmount(Number(l.unitPrice) || 0) : ""}
+                      onFocus={(e) => focusAmount(l.id, e.currentTarget)}
+                      onBlur={blurAmount}
+                      onChange={(v) => setUnitPrice(l.id, v)}
+                      selectorLabel={currency}
+                      selectorIcon={CURRENCY_COUNTRY[currency] && <CountryFlag name={CURRENCY_COUNTRY[currency]} size={20} />}
+                    />
                   </div>
                 </div>
 
                 {/* Credit mode: derived per-line credit (Original − corrected). */}
                 {!refund && lineCredit(l) > 0.001 && (
-                  <div className="flex items-center justify-between border-t border-[rgba(160,160,160,0.18)] pt-2.5">
+                  <div className="flex items-center justify-between border-t border-[var(--border-neutral-primary)] pt-2.5">
                     <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Credited</span>
                     <span className="text-[14px] font-medium" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(lineCredit(l))}</span>
                   </div>
