@@ -384,15 +384,17 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
                   <span className="body-sm" style={{ ...FONT, color: MUTED }}>Invoice Total</span>
                   <span className="body-sm" style={{ ...FONT, color: INK }}>{money(invoiceTotal, currency)}</span>
                 </div>
-                <div className="flex items-start justify-between gap-3 py-2.5 border-b" style={{ borderColor: "rgba(208,208,208,0.4)" }}>
+                <div className="flex items-start justify-between gap-3 py-2.5">
                   <span className="body-sm" style={{ ...FONT, color: MUTED }}>Credit Amount</span>
                   <span className="text-right">
                     <span className="block body-sm font-medium" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(total, currency)}</span>
                     <span className="block text-[11px] mt-0.5" style={{ ...FONT, color: MUTED }}>(Not Applied Yet)</span>
                   </span>
                 </div>
-                {/* Amount due once this credit is applied (Figma 1209 shows the projected balance). */}
-                <div className="flex items-center justify-between gap-3 py-3 mt-1 -mx-4 px-4 rounded-b-[15px]" style={{ background: "var(--bg-beige-secondary)" }}>
+                {/* Amount due once this credit is applied (Figma 1209 shows the projected balance) —
+                    plain bold row with a top divider, same recipe as the invoice detail's own final
+                    "Amount due" row (no highlighted background box — that was a drift from it). */}
+                <div className="flex items-center justify-between gap-3 pt-3 pb-3 border-t" style={{ borderColor: "rgba(208,208,208,0.4)" }}>
                   <span className="body-sm-bold" style={{ ...FONT, color: INK }}>Amount Due</span>
                   <span className="body-sm-bold shrink-0" style={{ ...FONT, color: INK }}>{money(Math.max(0, invoiceTotal - total), currency)}</span>
                 </div>
@@ -415,18 +417,20 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
                   <span className="body-sm" style={{ ...FONT, color: MUTED }}>Invoice Total</span>
                   <span className="body-sm" style={{ ...FONT, color: INK }}>{money(invoiceTotal, currency)}</span>
                 </div>
-                <div className="flex items-center justify-between py-2.5 border-b" style={{ borderColor: "rgba(208,208,208,0.4)" }}>
+                <div className="flex items-center justify-between py-2.5">
                   <span className="body-sm" style={{ ...FONT, color: MUTED }}>Credit Amount</span>
                   <span className="body-sm font-medium" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(total, currency)}</span>
                 </div>
+                {/* Final row — plain bold with a top divider, same recipe as the invoice detail's own
+                    "Amount due" row (no highlighted background box — that was a drift from it). */}
                 {isApplied ? (
-                  // Applied (Partially/Fully) → "Amount Due" (the current balance), highlighted like the design.
-                  <div className="flex items-center justify-between gap-3 py-3 mt-1 -mx-4 px-4 rounded-b-[15px]" style={{ background: "var(--bg-beige-secondary)" }}>
+                  // Applied (Partially/Fully) → "Amount Due" (the current balance).
+                  <div className="flex items-center justify-between gap-3 pt-3 pb-3 border-t" style={{ borderColor: "rgba(208,208,208,0.4)" }}>
                     <span className="body-sm-bold" style={{ ...FONT, color: INK }}>Amount Due</span>
                     <span className="body-sm-bold shrink-0" style={{ ...FONT, color: INK }}>{money(Math.max(0, invoiceTotal - total), currency)}</span>
                   </div>
                 ) : (
-                  <div className="flex items-start justify-between gap-3 py-3">
+                  <div className="flex items-start justify-between gap-3 pt-3 pb-3 border-t" style={{ borderColor: "rgba(208,208,208,0.4)" }}>
                     <span className="min-w-0">
                       <span className="block body-sm-bold" style={{ ...FONT, color: INK }}>Remaining Balance</span>
                       <span className="block text-[11px] leading-[1.3] mt-0.5" style={{ ...FONT, color: MUTED }}>(after applying)</span>
