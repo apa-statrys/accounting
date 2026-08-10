@@ -14,13 +14,23 @@ import { money } from "../../lib/format";
  * "Summary" header + close button. Distinct from ButtonDock's `slot` (whose primary button is
  * always full-width, stacked BELOW the slot content, and shows/hides from external state) — here
  * the button sits inline beside the total, and the expand/collapse is a self-contained tap
- * interaction. Reuses SummaryCard's `bare` rows for the breakdown, same as ButtonDock's slot does.
+ * interaction. Reuses SummaryCard's `bare` rows for the breakdown, same as ButtonDock's slot does —
+ * a caller whose breakdown isn't a Subtotal/Discount/Total invoice shape (e.g. Credit Note's
+ * Invoice Total/Credit Amount/Amount Due) passes its own `rows`/`amount` instead.
  */
 interface SummaryDockProps {
-  currency: string;
-  subtotal: number;
-  discount: number;
-  total: number;
+  currency?: string;
+  subtotal?: number;
+  discount?: number;
+  total?: number;
+  /** Overrides the collapsed footer's amount display — for a caller whose headline figure isn't
+   *  a plain `total` (e.g. Credit Note's "Amount Due", a refund's "−Total refund" in error red).
+   *  Falls back to `money(total, currency)` when omitted. */
+  amount?: React.ReactNode;
+  /** Overrides the expanded panel's breakdown — for a caller whose rows aren't a Subtotal/
+   *  Discount/Total invoice shape (e.g. Credit Note's Invoice Total/Credit Amount/Amount Due).
+   *  Falls back to `<SummaryCard bare subtotal discount total>` when omitted. */
+  rows?: React.ReactNode;
   primaryLabel?: React.ReactNode;
   onPrimary?: () => void;
   primaryLoading?: boolean;
@@ -31,10 +41,12 @@ interface SummaryDockProps {
 }
 
 export function SummaryDock({
-  currency,
-  subtotal,
-  discount,
-  total,
+  currency = "",
+  subtotal = 0,
+  discount = 0,
+  total = 0,
+  amount,
+  rows,
   primaryLabel = "Create Invoice",
   onPrimary,
   primaryLoading,
@@ -69,7 +81,7 @@ export function SummaryDock({
               </button>
             </div>
             <div className={styles.rows}>
-              <SummaryCard bare currency={currency} subtotal={subtotal} discount={discount} total={total} />
+              {rows ?? <SummaryCard bare currency={currency} subtotal={subtotal} discount={discount} total={total} />}
             </div>
           </motion.div>
         )}
@@ -77,7 +89,7 @@ export function SummaryDock({
 
       <div className={styles.footer}>
         <div className={styles.info}>
-          <p className={`body-md-bold ${styles.amount}`}>{money(total, currency)}</p>
+          <p className={`body-md-bold ${styles.amount}`}>{amount ?? money(total, currency)}</p>
           <button
             type="button"
             className={styles.viewDetails}

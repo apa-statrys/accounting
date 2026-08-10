@@ -13,7 +13,7 @@ import { TextArea } from "../../ui/TextArea";
 import { TextField } from "../../ui/TextField";
 import { Tile } from "../../ui/Tile";
 import { Loading } from "../../ui/Loading";
-import { ButtonDock } from "../../components/ButtonDock";
+import { SummaryDock } from "../../components/SummaryDock";
 import { IssueDateSheet } from "../../components/IssueDateSheet";
 import { NumericKeypad } from "../../components/NumericKeypad";
 import { CountryFlag } from "../../components/CountryFlag";
@@ -187,22 +187,7 @@ export function CreditNoteForm({
   // Amount-invalid has no single field to point at (a cross-line total) — surfaces as a toast instead.
   const [localToast, setLocalToast] = useState<string | null>(null);
 
-  // Sticky dock's summary slot (same idea as Create Invoice, Figma node 1419-52781) — shown
-  // until the real inline Summary card scrolls into view, since it'd be redundant once visible.
   const scrollRef = useRef<HTMLDivElement>(null);
-  const summaryRef = useRef<HTMLDivElement>(null);
-  const [summaryVisible, setSummaryVisible] = useState(false);
-  useEffect(() => {
-    const root = scrollRef.current;
-    const target = summaryRef.current;
-    if (!root || !target) return;
-    // threshold 1 (not the default 0) — a sliver of the card peeking into view at the bottom
-    // edge shouldn't count as "visible", or the sticky slot disappears before the user can
-    // actually read the real card.
-    const observer = new IntersectionObserver(([entry]) => setSummaryVisible(entry.isIntersecting), { root, threshold: 1 });
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, []);
 
   // On-screen keyboard mock (Figma "IOS controls" = Keyboard) — shown while the Description
   // field is focused, same convention as every other real text entry point in the app. (Line-item
@@ -342,6 +327,38 @@ export function CreditNoteForm({
   // Back — save a Draft (DES-719) when the parent provides onSaveDraft (the create flow); else just leave.
   const handleBack = () => (onSaveDraft ? onSaveDraft(buildPayload()) : onBack());
 
+  // Summary breakdown rows — same recipe as components/SummaryCard's own Row (body-sm/body-sm-bold,
+  // border-neutral-primary divider, py-2.5), shared between the inline "Summary" card below and the
+  // sticky SummaryDock's expandable panel (its collapsed footer shows the final headline figure
+  // instead) so the two never drift apart.
+  const summaryRows = refund ? (
+    <>
+      <div className="flex items-center justify-between py-2.5 border-b border-[var(--border-neutral-primary)]">
+        <span className="body-sm" style={{ ...FONT, color: MUTED }}>Original paid amount</span>
+        <span className="body-sm" style={{ ...FONT, color: INK }}>{money(invoiceTotal)}</span>
+      </div>
+      <div className="flex items-center justify-between py-2.5">
+        <span className="body-sm-bold" style={{ ...FONT, color: INK }}>Total refund</span>
+        <span className="body-sm-bold" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(credited)}</span>
+      </div>
+    </>
+  ) : (
+    <>
+      <div className="flex items-center justify-between py-2.5 border-b border-[var(--border-neutral-primary)]">
+        <span className="body-sm" style={{ ...FONT, color: MUTED }}>{alreadyCredited > 0.001 ? "Current balance" : "Invoice Total"}</span>
+        <span className="body-sm" style={{ ...FONT, color: INK }}>{money(invoiceTotal)}</span>
+      </div>
+      <div className="flex items-center justify-between py-2.5 border-b border-[var(--border-neutral-primary)]">
+        <span className="body-sm" style={{ ...FONT, color: MUTED }}>Credit Amount</span>
+        <span className="body-sm" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(credited)}</span>
+      </div>
+      <div className="flex items-center justify-between py-2.5">
+        <span className="body-sm-bold" style={{ ...FONT, color: INK }}>Amount Due</span>
+        <span className="body-sm-bold" style={{ ...FONT, color: INK }}>{money(amountDue)}</span>
+      </div>
+    </>
+  );
+
   // Optional free-text description (any reason) — rendered below the summary in both flows.
   const descriptionBlock = (
     <TextArea
@@ -478,8 +495,7 @@ export function CreditNoteForm({
             {(itemsExpanded ? lines : lines.slice(0, COLLAPSED_ITEMS)).map((l, i) => (
               <div
                 key={l.id}
-                className="bg-[var(--bg-neutral-primary)] border border-[var(--border-neutral-primary)] rounded-xl p-4 flex flex-col gap-3"
-                style={{ boxShadow: "var(--shadow-card-soft)" }}
+                className="bg-[var(--bg-neutral-primary)] rounded-[var(--radius-3xl)] p-4 flex flex-col gap-3"
               >
                 <p className="text-[14px] font-semibold leading-tight" style={{ ...FONT, color: INK }}>{i + 1}. {l.name}</p>
 
@@ -533,36 +549,12 @@ export function CreditNoteForm({
             own Summary (components/SummaryCard tokens: white fill, radius-3xl, solid hairline
             dividers, restrained body-sm/body-sm-bold weights) — not the read-only detail page's
             bordered-gray card, since this is a form, same family as Create Invoice. */}
-        <div ref={summaryRef} className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <p className="body-sm-medium" style={{ ...FONT, color: INK }}>
             {refund ? "Refund Summary" : "Summary"}
           </p>
           <div className="bg-[var(--bg-neutral-primary)] rounded-[var(--radius-3xl)] px-4 py-1 overflow-hidden">
-            <div className="flex items-center justify-between py-2.5 border-b border-[var(--border-neutral-primary)]">
-              {/* Refund: against the amount paid. Credit: against the (possibly already-reduced) balance. */}
-              <span className="body-sm" style={{ ...FONT, color: MUTED }}>{refund ? "Original paid amount" : alreadyCredited > 0.001 ? "Current balance" : "Invoice Total"}</span>
-              <span className="body-sm" style={{ ...FONT, color: INK }}>{money(invoiceTotal)}</span>
-            </div>
-            {refund ? (
-              /* Total refund is the highlighted figure. */
-              <div className="flex items-center justify-between py-2.5">
-                <span className="body-sm-bold" style={{ ...FONT, color: INK }}>Total refund</span>
-                <span className="body-sm-bold" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(credited)}</span>
-              </div>
-            ) : (
-              <>
-                {/* Auto-calculated: Credit Amount = Original Total − Edited Total. */}
-                <div className="flex items-center justify-between py-2.5 border-b border-[var(--border-neutral-primary)]">
-                  <span className="body-sm" style={{ ...FONT, color: MUTED }}>Credit Amount</span>
-                  <span className="body-sm" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(credited)}</span>
-                </div>
-                {/* Amount Due = Edited Invoice Total. */}
-                <div className="flex items-center justify-between py-2.5">
-                  <span className="body-sm-bold" style={{ ...FONT, color: INK }}>Amount Due</span>
-                  <span className="body-sm-bold" style={{ ...FONT, color: INK }}>{money(amountDue)}</span>
-                </div>
-              </>
-            )}
+            {summaryRows}
           </div>
         </div>
 
@@ -606,33 +598,16 @@ export function CreditNoteForm({
         </div>
       </div>
 
-      <ButtonDock
-        type="single"
-        sticky
-        slot={
-          !summaryVisible ? (
-            <div className="flex flex-col">
-              <div className="flex items-start justify-between gap-4 py-2.5">
-                <span className="body-sm text-[var(--text-secondary)]">
-                  {refund ? "Original paid amount" : alreadyCredited > 0.001 ? "Current balance" : "Invoice Total"}
-                </span>
-                <span className="body-sm text-[var(--text-primary)]">{money(invoiceTotal)}</span>
-              </div>
-              {!refund && (
-                <div className="flex items-start justify-between gap-4 py-2.5 border-b border-[rgba(208,208,208,0.4)]">
-                  <span className="body-sm text-[var(--text-secondary)]">Credit Amount</span>
-                  <span className="body-sm text-[var(--text-error-primary)]">−{money(credited)}</span>
-                </div>
-              )}
-              <div className="flex items-center justify-between gap-4 py-3">
-                <span className="body-sm-bold text-[var(--text-primary)]">{refund ? "Total refund" : "Amount Due"}</span>
-                <span className={`body-sm-bold ${refund ? "text-[var(--text-error-primary)]" : "text-[var(--text-primary)]"}`}>
-                  {refund ? "−" : ""}{money(refund ? credited : amountDue)}
-                </span>
-              </div>
-            </div>
-          ) : undefined
+      {/* Sticky total + primary button, tap-to-expand for the full breakdown — same
+          components/SummaryDock pattern as Create Invoice's own sticky footer, not the older
+          scroll-triggered ButtonDock `slot` this page used before. */}
+      <SummaryDock
+        amount={
+          <span style={refund ? { color: "var(--text-error-primary)" } : undefined}>
+            {refund ? "−" : ""}{money(refund ? credited : amountDue)}
+          </span>
         }
+        rows={summaryRows}
         primaryLabel={isEdit ? (submitLabel ?? "Save changes") : "Create Credit Note"}
         onPrimary={handleCreate}
         keyboard={keyboardOpen}
