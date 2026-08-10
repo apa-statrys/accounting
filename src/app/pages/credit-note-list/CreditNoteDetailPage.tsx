@@ -244,24 +244,27 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             {total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </p>
-        {/* Awaiting refund shows no date subline — the payout date isn't known yet. */}
-        {displayStatus !== "Awaiting refund" && (
-          <p className="body-sm" style={{ ...FONT, color: MUTED }}>
-            {isCancelled
-              ? `Cancelled ${updatedDateLabel ?? issueDateLabel}`
-              : isRefund
-              ? (refundSettled
-                  ? `Refunded ${refundProof ? fmtDate(refundProof.date) : issueDateLabel}`
-                  // An applied (pre-payout) refund CN reads "Applied …", matching the cancellation
-                  // Applied detail; a not-yet-applied refund (Pending Refund) shows "Created …".
-                  : displayStatus === "Applied"
-                  ? `Applied ${updatedDateLabel ?? issueDateLabel}`
-                  : `Created ${issueDateLabel}`)
-              : isApplied
+        {/* Every status keeps a date subline, same "badge · date" convention as the invoice detail's
+            own hero — Awaiting refund used to show nothing at all here even though the submitted
+            date is already known (refundProof.date is set once the payout is submitted, and shown
+            further down in the Refund Method card regardless of `awaiting`). */}
+        <p className="body-sm" style={{ ...FONT, color: MUTED }}>
+          {displayStatus === "Awaiting refund"
+            ? `Submitted ${refundProof ? fmtDate(refundProof.date) : (updatedDateLabel ?? issueDateLabel)}`
+            : isCancelled
+            ? `Cancelled ${updatedDateLabel ?? issueDateLabel}`
+            : isRefund
+            ? (refundSettled
+                ? `Refunded ${refundProof ? fmtDate(refundProof.date) : issueDateLabel}`
+                // An applied (pre-payout) refund CN reads "Applied …", matching the cancellation
+                // Applied detail; a not-yet-applied refund (Pending Refund) shows "Created …".
+                : displayStatus === "Applied"
                 ? `Applied ${updatedDateLabel ?? issueDateLabel}`
-                : `${updatedDateLabel ? "Updated" : "Created"} ${updatedDateLabel ?? issueDateLabel}`}
-          </p>
-        )}
+                : `Created ${issueDateLabel}`)
+            : isApplied
+              ? `Applied ${updatedDateLabel ?? issueDateLabel}`
+              : `${updatedDateLabel ? "Updated" : "Created"} ${updatedDateLabel ?? issueDateLabel}`}
+        </p>
       </div>
 
       <div className="px-4 pt-2 pb-44 flex flex-col gap-4 bg-white">

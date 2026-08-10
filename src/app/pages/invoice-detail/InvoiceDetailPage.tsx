@@ -350,8 +350,9 @@ export function InvoiceDetailPage({
     Overdue: credited > 0 ? `${money(outstanding, currency)} remaining since ${dueDateLabel}` : `since ${dueDateLabel}`,
     PartiallyPaid: `${money(remaining, currency)} remaining due ${dueDateLabel}`,
     // Bare "Paid <date>" — same convention as Void's bare date (badge already says "Paid", no
-    // need to repeat it). Overpayment takes priority when it applies.
-    Paid: overpayment > 0 ? `Overpaid by ${money(overpayment, currency)}, flagged for review` : paidDateLabel,
+    // need to repeat it). Kept even when overpaid — that note is additional info shown on its own
+    // line below (see render), not a replacement for the date every other status keeps.
+    Paid: paidDateLabel,
     // Voided invoices show their date too, same as every other status (bare date, no repeated
     // "Void" word next to the badge that already says it — matches the list row).
     Cancelled: issueDateLabel,
@@ -786,6 +787,14 @@ export function InvoiceDetailPage({
         {pendingPayment && (
           <p className="text-[13px] font-medium leading-[1.3]" style={{ ...FONT, color: "var(--text-warning-primary)" }}>
             Pending Reconciliation of {money(pendingPayment.amount, currency)}
+          </p>
+        )}
+        {/* The recorded payment exceeded the invoice total — additional info alongside the paid
+            date above (see bannerText.Paid), same "date stays, extra note gets its own line"
+            treatment as Pending Reconciliation. */}
+        {status === "Paid" && overpayment > 0 && (
+          <p className="text-[13px] font-medium leading-[1.3]" style={{ ...FONT, color: "var(--text-warning-primary)" }}>
+            Overpaid by {money(overpayment, currency)}, flagged for review
           </p>
         )}
       </div>
