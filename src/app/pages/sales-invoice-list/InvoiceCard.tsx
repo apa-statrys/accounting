@@ -62,9 +62,11 @@ export function InvoiceCard({ inv, isNew, lastItem, onClick, onDelete, onOpenCN,
   if (status.label === "Void") caption = caption.replace(/^Void /, "");
   // Refunded gets its own settled date (the linked credit note's date) instead of the invoice's
   // original payment date — "Paid 22 Jun 2026" next to a "Refunded" badge would be confusing.
-  // Pending / Partially Refunded stay caption-less (no settled date to show yet).
+  // Pending / Partially Refunded show the same date, prefixed "Submitted" since there's no
+  // settlement yet to leave as a bare date (same "badge · date" convention every other status
+  // keeps — this used to go caption-less here).
   if (refundChip === "Refunded") caption = linkedCn?.date ?? "";
-  else if (refundChip) caption = "";
+  else if (refundChip) caption = linkedCn?.date ? `Submitted ${linkedCn.date}` : "";
 
   // Credit-note strip (DES-763 AC6): shows the linked CN NUMBER (no amount) and opens that credit note.
   const hasCn = SHOW_CREDIT_NOTES && Boolean(inv.cnNo);
