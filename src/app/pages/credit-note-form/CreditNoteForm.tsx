@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { addDays, format } from "date-fns";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, MoreVertical, Save } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { HorizontalTabs } from "../../ui/HorizontalTabs";
 import { Banner } from "../../ui/Banner";
+import { BottomSheet } from "../../components/BottomSheet";
 import { ListCard } from "../../ui/ListCard";
 import { ListRow } from "../../ui/ListRow";
 import { NumberStepper } from "../../ui/NumberStepper";
@@ -125,6 +126,8 @@ export function CreditNoteForm({
   const [reason, setReason] = useState(initial?.reason ?? "");
   const [reasonNote, setReasonNote] = useState(initial?.reasonNote ?? "");
   const [reasonSheetOpen, setReasonSheetOpen] = useState(false);
+  // Edit mode's ⋯ actions menu (replaces the sticky CTA — see the header/dock below).
+  const [actionsOpen, setActionsOpen] = useState(false);
   // Collapse the items list to the first few; "Show more" reveals the rest.
   const [itemsExpanded, setItemsExpanded] = useState(false);
   const COLLAPSED_ITEMS = 3;
@@ -387,7 +390,13 @@ export function CreditNoteForm({
             type="center"
             title={isEdit ? "Edit Credit Note" : refund ? "New Refund" : "New Credit Note"}
             onBack={handleBack}
-            showSearch={false}
+            // Edit mode moves the primary action into the ⋯ menu (no sticky CTA — see the dock
+            // below), so it needs the real right-side button; create/refund still show the plain
+            // autosave chip via `right`, so showSearch stays false there (invisible spacer).
+            showSearch={isEdit}
+            rightIcon={isEdit ? <MoreVertical size={20} strokeWidth={1} /> : undefined}
+            rightLabel={isEdit ? "More actions" : undefined}
+            onRightClick={isEdit ? () => setActionsOpen(true) : undefined}
             right={
               !isEdit ? (
                 // Figma "Create Invoice" header (node 1387-18223): the DS Loading spinner, not a
@@ -604,17 +613,21 @@ export function CreditNoteForm({
           scroll-triggered ButtonDock `slot` this page used before. No `keyboard` prop here — with
           this many fields on one form, sliding the dock up above the keyboard on every focus/blur
           is too much motion; instead the Keyboard mock below overlays it in place (same idea as
-          NumericKeypad already does for a focused unit price), so the dock never moves. */}
-      <SummaryDock
-        amount={
-          <span style={refund ? { color: "var(--text-error-primary)" } : undefined}>
-            {refund ? "−" : ""}{money(refund ? credited : amountDue)}
-          </span>
-        }
-        rows={summaryRows}
-        primaryLabel={isEdit ? (submitLabel ?? "Save changes") : "Create Credit Note"}
-        onPrimary={handleCreate}
-      />
+          NumericKeypad already does for a focused unit price), so the dock never moves.
+          Edit mode has no sticky CTA at all — Save moves into the header's ⋯ menu instead (the
+          inline Summary card above already shows the same totals). */}
+      {!isEdit && (
+        <SummaryDock
+          amount={
+            <span style={refund ? { color: "var(--text-error-primary)" } : undefined}>
+              {refund ? "−" : ""}{money(refund ? credited : amountDue)}
+            </span>
+          }
+          rows={summaryRows}
+          primaryLabel="Create Credit Note"
+          onPrimary={handleCreate}
+        />
+      )}
 
       {/* On-screen keyboard mock for the focused Description field — overlays the sticky dock
           above (higher z-index, same bottom anchor) instead of pushing it up. */}
@@ -623,6 +636,19 @@ export function CreditNoteForm({
           <Keyboard />
         </div>
       )}
+
+      {/* Edit mode's ⋯ actions menu — titleless (grabber + rows only), same shape as
+          invoice-detail/credit-note-list's own ⋯ menus. Just Save for now (the only edit action
+          this form exposes); grows here instead of the header if more get added later. */}
+      <BottomSheet open={actionsOpen} title="" onClose={() => setActionsOpen(false)}>
+        <div className="flex flex-col gap-2 pt-2">
+          <Tile
+            icon={<Save size={24} strokeWidth={1.5} />}
+            title={submitLabel ?? "Save changes"}
+            onClick={() => { setActionsOpen(false); handleCreate(); }}
+          />
+        </div>
+      </BottomSheet>
 
       {/* Credit issue date picker */}
       <IssueDateSheet
