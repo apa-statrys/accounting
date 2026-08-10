@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, MoreVertical, Receipt, Trash2 } from "lucide-react";
+import { FileText, MoreVertical, Pencil, Receipt, Trash2 } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
@@ -159,9 +159,13 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // back to Edit only (see the dock below). Applying a refund draft commits it and moves the invoice to
   // Pending Refund (the payout step stays separate).
   const canApply = (isOpen || isRefundDraft) && !!onApply && draftComplete;
-  // ⋯ exists for a Draft (Delete only — cancellation OR refund), an Applied note (Cancel + Preview),
-  // a cancellable refund (Cancel refund + Preview), or a Cancelled note (Preview as PDF — no dock).
-  const hasMenu = (isOpen && !!onCancel) || (isRefundDraft && !!onCancel) || (isApplied && !!onCancel) || (isRefundCancellable && !!onCancel) || isCancelled;
+  // Edit never appears in the dock (primary or secondary) — it's always a ⋯ Tile row instead,
+  // for a Draft (any completeness) or a Partially Applied note (still editable).
+  const canEditFromMenu = ((isOpen || isRefundDraft) || isPartiallyApplied) && !!onEdit;
+  // ⋯ exists for a Draft (Edit + Delete — cancellation OR refund), an Applied note (Edit-if-partial +
+  // Cancel + Preview), a cancellable refund (Cancel refund + Preview), or a Cancelled note (Preview
+  // as PDF — no dock).
+  const hasMenu = (isOpen && !!onCancel) || (isRefundDraft && !!onCancel) || (isApplied && !!onCancel) || (isRefundCancellable && !!onCancel) || isCancelled || canEditFromMenu;
   const openSend = () => setSendSheetOpen(true);
 
   const closeSend = () => { setSendSheetOpen(false); setPdfOpen(false); };
@@ -169,18 +173,19 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const openPdfPreview = () => { setActionsOpen(false); setPdfFromSend(false); setPdfOpen(true); };
 
   // Mirrors the status-driven dock ternary below (Toast needs its type before that JSX renders) —
-  // keep in sync: "double" clears with bottomOffset 150, "single" with the Toast default (96), no
-  // dock at all (Cancelled) with 16, matching this app's Toast convention.
-  const stickyDockKind: "single" | "double" | "none" = canApply
-    ? "double"
-    : (isOpen || isRefundDraft) && onEdit
-      ? "single"
+  // keep in sync: "single" with the Toast default (96), no dock at all (Draft-incomplete/Cancelled)
+  // with 16, matching this app's Toast convention. Never "double" now — Edit no longer shares the
+  // dock with Apply/Send, so every dock that exists is a single CTA.
+  const stickyDockKind: "single" | "none" = canApply
+    ? "single"
+    : isOpen || isRefundDraft
+      ? "none"
       : isApplied
-        ? (isPartiallyApplied && onEdit ? "double" : "single")
+        ? "single"
         : isCancelled
           ? "none"
           : "single";
-  const toastBottomOffset = stickyDockKind === "double" ? 150 : stickyDockKind === "none" ? 16 : undefined;
+  const toastBottomOffset = stickyDockKind === "none" ? 16 : undefined;
 
   return (
     <div className="absolute inset-0 z-40 rounded-[48px] overflow-hidden flex flex-col" style={{ width: 375, height: 812, background: "var(--bg-beige-primary)" }}>
@@ -461,41 +466,22 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       </div>
       </div>
 
-      {/* Status-driven dock (DES-763):
-          Open → Apply to invoice + Edit · Partially Applied → Send + Edit · Fully Applied → Send only ·
-          list-Open → Preview as PDF + Send · Cancelled → Preview only · refund → Send/Resend. */}
+      {/* Status-driven dock (DES-763) — Edit never sits in the dock (primary or secondary); it's
+          always a ⋯ Tile row instead (see canEditFromMenu / the ⋯ menu below):
+          Open (complete) → Apply to invoice · Open (incomplete)/refund draft → no dock, Edit lives
+          in ⋯ · Partially/Fully Applied → Send · list-Open → Preview as PDF · Cancelled → no dock ·
+          refund → Send/Resend. */}
       {canApply ? (
-        <ButtonDock
-          type="double"
-          sticky
-          primaryLabel="Apply to invoice"
-          secondaryLabel="Edit"
-          onPrimary={() => onApply?.()}
-          onSecondary={() => onEdit?.()}
-        />
-      ) : (isOpen || isRefundDraft) && onEdit ? (
-        // Draft (cancellation missing fields, or a refund draft) — lead with Edit to finish it. A refund
-        // draft is resumed through the refund form (its confirm step creates the refund), never "sent".
-        <ButtonDock type="single" sticky primaryLabel="Edit" onPrimary={() => onEdit?.()} />
+        <ButtonDock type="single" sticky primaryLabel="Apply to invoice" onPrimary={() => onApply?.()} />
+      ) : isOpen || isRefundDraft ? (
+        // Draft not yet complete enough to apply (cancellation missing fields, or a refund draft) —
+        // nothing to do until it's edited, so no dock; Edit lives in the ⋯ menu.
+        null
       ) : isApplied ? (
-        isPartiallyApplied && onEdit ? (
-          <ButtonDock
-            type="double"
-            sticky
-            primaryLabel={sentLocal ? "Resend Credit Note" : "Send Credit Note"}
-            secondaryLabel="Edit"
-            onPrimary={openSend}
-            onSecondary={() => onEdit?.()}
-          />
-        ) : (
-          // Applied (fully) — a single "Send Credit Note" CTA (kept as "Send" even after sending).
-          <ButtonDock
-            type="single"
-            sticky
-            primaryLabel="Send Credit Note"
-            onPrimary={openSend}
-          />
-        )
+        // Applied (partially or fully) — a single Send/Resend CTA, same sentLocal-aware label as
+        // the refund/catch-all branches below. A still-editable Partially Applied note gets its
+        // Edit row in the ⋯ menu instead.
+        <ButtonDock type="single" sticky primaryLabel={sentLocal ? "Resend Credit Note" : "Send Credit Note"} onPrimary={openSend} />
       ) : isCancelled ? (
         // Cancelled record → no dock; Preview as PDF lives in the ⋯ menu instead.
         null
@@ -512,22 +498,36 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         />
       )}
 
-      {/* ⋯ actions — Open: Cancel + Preview · Applied: Edit · refund: Preview. DS header, titleless
-          (grabber + actions), same Tile-row recipe as invoice-detail/ActionsMenu (not a hand-rolled
-          button+divider list — that was a drift from this shared ⋯-menu convention). */}
+      {/* ⋯ actions — Open: Edit + Delete · Applied: Edit-if-partial + Cancel + Preview · refund:
+          Preview. DS header, titleless (grabber + actions), same Tile-row recipe as
+          invoice-detail/ActionsMenu (not a hand-rolled button+divider list — that was a drift from
+          this shared ⋯-menu convention). Edit never sits in the sticky dock (primary or secondary,
+          decided per user feedback) — this is its only home, for a Draft (any completeness) or a
+          still-editable Partially Applied note. */}
       <BottomSheet open={actionsOpen} title="" onClose={() => setActionsOpen(false)}>
         <div className="flex flex-col gap-2 pt-2">
-          {/* Draft (cancellation or refund) → only Delete Credit Note (confirmed via a prompt). */}
-          {(isOpen || isRefundDraft) && onCancel && (
-            <Tile
-              icon={<Trash2 size={24} strokeWidth={1.5} color="var(--text-error-primary)" />}
-              title={<span style={{ color: "var(--text-error-primary)" }}>Delete Credit Note</span>}
-              onClick={() => { setActionsOpen(false); setConfirmDelete(true); }}
-            />
+          {/* Draft (cancellation or refund) → Edit (resume it) + Delete (confirmed via a prompt). */}
+          {(isOpen || isRefundDraft) && (
+            <>
+              {onEdit && (
+                <Tile icon={<Pencil size={24} strokeWidth={1.5} />} title="Edit Credit Note" onClick={() => { setActionsOpen(false); onEdit(); }} />
+              )}
+              {onCancel && (
+                <Tile
+                  icon={<Trash2 size={24} strokeWidth={1.5} color="var(--text-error-primary)" />}
+                  title={<span style={{ color: "var(--text-error-primary)" }}>Delete Credit Note</span>}
+                  onClick={() => { setActionsOpen(false); setConfirmDelete(true); }}
+                />
+              )}
+            </>
           )}
-          {/* Applied → Cancel credit note (full reversal) + Preview as PDF. */}
+          {/* Applied → Edit (Partially Applied, still editable, only) + Cancel credit note (full
+              reversal) + Preview as PDF. */}
           {isApplied && (
             <>
+              {isPartiallyApplied && onEdit && (
+                <Tile icon={<Pencil size={24} strokeWidth={1.5} />} title="Edit Credit Note" onClick={() => { setActionsOpen(false); onEdit(); }} />
+              )}
               {onCancel && (
                 <Tile
                   icon={<Trash2 size={24} strokeWidth={1.5} color="var(--text-error-primary)" />}
@@ -633,7 +633,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         companyEmail={companyEmail}
         invoiceNo={creditNoteNo}
         amountLabel={amountLabel}
-        dueDateLabel={issueDateLabel}
+        dueDateLabel={dueDateLabel ?? issueDateLabel}
         docType="creditNote"
         link={`https://pay.statrys.com/cn/${creditNoteNo.toLowerCase()}`}
         onClose={() => setSendSheetOpen(false)}
