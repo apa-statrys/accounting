@@ -15,5 +15,3 @@ export const PAID_PARTIAL = 4000;
 export const SENT_TODAY = "29 Jun 2026";
 // Demo date stamped on a BA-transfer refund record (the BA flow has no date input, unlike the manual path).
 export const REFUND_DATE_ISO = "2026-06-29";
-// Demo "today" stamped as the credit note's Updated date when it's edited.
-export const EDITED_TODAY = "1 Jul 2026";

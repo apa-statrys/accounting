@@ -1,36 +1,10 @@
-// Two small credit-note send sheets: the re-send prompt after editing a sent note (AC4),
-// and the "which note to send" picker used when 2+ notes are unsent.
+// "Which note to send" picker used when 2+ notes are unsent.
 import { BottomSheet } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
 import { Tile } from "../../ui/Tile";
 import { money } from "../../lib/format";
 import { FONT, MUTED } from "../../lib/theme";
 import type { CreditNote } from "./creditNoteTypes";
-
-/** Re-send prompt after editing a sent credit note (AC4). */
-export function ResendPromptSheet({ open, onClose, onNotNow, onSendUpdate }: { open: boolean; onClose: () => void; onNotNow: () => void; onSendUpdate: () => void }) {
-  return (
-    <BottomSheet
-      open={open}
-      title="Send updated credit note?"
-      onClose={onClose}
-      compact
-      footer={
-        <ButtonDock
-          type="double"
-          secondaryLabel="Not Now"
-          primaryLabel="Send Update"
-          onSecondary={onNotNow}
-          onPrimary={onSendUpdate}
-        />
-      }
-    >
-      <p className="body-sm" style={{ ...FONT, color: MUTED }}>
-        This credit note has already been sent to the customer. Would you like to send the updated version now?
-      </p>
-    </BottomSheet>
-  );
-}
 
 /** "Send credit note" picker — opened only when there are 2+ unsent notes (a single note sends
  *  directly). Choose which note's document to send; the latest is the default selection. Rows are

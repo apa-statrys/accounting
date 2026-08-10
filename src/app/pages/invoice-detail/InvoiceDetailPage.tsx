@@ -19,7 +19,7 @@ import { money } from "../../lib/format";
 import { DETAIL_STATUS_META } from "../../lib/status";
 import { FONT, INK, MUTED, initials } from "../../lib/theme";
 import type { CreditNotePayload, DraftLine, DetailStatus, InvoiceEditSeed, InvoiceLine } from "../../types";
-import { ITEMS, SUBTOTAL, DISCOUNT, TOTAL, PAID_PARTIAL, SENT_TODAY, REFUND_DATE_ISO, EDITED_TODAY } from "./demoInvoice";
+import { ITEMS, SUBTOTAL, DISCOUNT, TOTAL, PAID_PARTIAL, SENT_TODAY, REFUND_DATE_ISO } from "./demoInvoice";
 import type { CreditNote, RefundProof } from "./creditNoteTypes";
 import { MoreVertical } from "lucide-react";
 import { Tile } from "../../ui/Tile";
@@ -32,7 +32,7 @@ import { ActionsMenu } from "./ActionsMenu";
 import { LockedPeriodDialog } from "../locked-period/LockedPeriodDialog";
 import { LockedPeriodBanner } from "../locked-period/LockedPeriodBanner";
 import { RecordPaymentSheet } from "./RecordPaymentSheet";
-import { ResendPromptSheet, SendPickerSheet } from "./SendCnSheets";
+import { SendPickerSheet } from "./SendCnSheets";
 
 interface InvoiceDetailPageProps {
   initialStatus?: DetailStatus;
@@ -179,16 +179,12 @@ export function InvoiceDetailPage({
       ? creditNotes.reduce((s, c) => s + c.amount, 0)
       : 0
   );
-  // Which existing credit note is being edited (index into creditNotes), or null (DES-719 AC4).
-  const [editingCnIndex, setEditingCnIndex] = useState<number | null>(null);
   // A locked (settled/sent) credit note opened READ-ONLY to review the document (index or null).
   const [viewingCnIndex, setViewingCnIndex] = useState<number | null>(initialViewCn && initialCreditNote ? 0 : null);
   // Refund-proof attachment open in the file preview overlay (DES-720 evidence).
   const [proofPreview, setProofPreview] = useState<UploadedFileInfo | null>(null);
   // "View all credit notes" expand — collapse to the 2 most recent when there are more.
   const [cnExpanded, setCnExpanded] = useState(false);
-  // After editing a previously-sent credit note, prompt to re-send the updated version (AC4).
-  const [resendPromptOpen, setResendPromptOpen] = useState(false);
   const [recordPayOpen, setRecordPayOpen] = useState(false);
   const [recordAmount, setRecordAmount] = useState("");
   // "Record Payment" also captures which bank account received it + an optional payment date (DES-715
@@ -615,31 +611,6 @@ export function InvoiceDetailPage({
     setStatus("PendingRefund");
     setViewingCnIndex(idx); // land on the refund CN detail (now Applied) — payout is a separate step
     setLocalToast("Refund credit note created");
-  };
-
-  // Save edits to an existing credit note (AC4). An OPEN note stays unapplied (Apply is a separate step);
-  // an already-APPLIED (Partially Applied) note RE-APPLIES the corrected amount so edit-up AND edit-down both
-  // flow to the invoice balance (the edit CTA reads "Apply to Invoice"). Fully Applied notes aren't editable.
-  const saveCreditNote = (index: number, p: CreditNotePayload) => {
-    const existing = creditNotes[index];
-    const wasApplied = (existing.applied ?? 0) > 0.001;
-    const otherApplied = creditNotes.reduce((s, c, i) => s + (i === index ? 0 : (c.applied ?? 0)), 0);
-    // Re-apply = the new credit, capped at the unpaid remainder it can still absorb (never exceeds it).
-    const newApplied = wasApplied ? Math.min(p.amount, creditBase - otherApplied) : 0;
-    const updated = creditNotes.map((c, i) => (i === index ? { ...cnFromPayload(c.no, p), sent: c.sent, sentDate: c.sentDate, applied: newApplied, updatedDate: EDITED_TODAY } : c));
-    setCreditNotes(updated);
-    // Re-applying an applied note can now fully cover the remainder → Cancelled (unpaid) / Paid (partly paid).
-    if (wasApplied && otherApplied + newApplied >= creditBase - 0.001) setStatus(status === "PartiallyPaid" ? "Paid" : "Cancelled");
-    setEditingCnIndex(null);
-    // AC4: if this note was already sent, prompt to re-send the updated version; else return to the
-    // credit-note detail page (the note was opened for edit from there) and confirm.
-    if (existing.sent) {
-      setSendCnIndex(index); // the re-send targets THIS edited note, not necessarily the latest
-      setResendPromptOpen(true);
-    } else {
-      setViewingCnIndex(index);
-      setLocalToast(wasApplied ? "Credit note applied" : "Credit note updated");
-    }
   };
 
   const bank = {
@@ -1245,45 +1216,6 @@ export function InvoiceDetailPage({
 
       {/* Refund-proof attachment preview (DES-720 evidence). */}
       <FilePreviewOverlay open={proofPreview !== null} file={proofPreview} onClose={() => setProofPreview(null)} />
-
-      {/* Edit an existing credit note (DES-719 AC4) — reopened with its prior state restored.
-          The cap is the outstanding plus this note's own amount (it's being replaced). */}
-      {editingCnIndex !== null && creditNotes[editingCnIndex] && (() => {
-        const cn = creditNotes[editingCnIndex];
-        const seedLines: DraftLine[] = cn.draftLines
-          ?? cn.lines.map((l, i) => ({ id: `cn-${i}`, name: l.name, unit: "service", qty: 1, unitPrice: String(l.amount), maxQty: 1, origAmount: l.amount }));
-        // A refund CN edits in refund mode (cap = amount paid); a cancellation CN edits in credit mode.
-        const editingRefund = isRefundContext;
-        // A Partially-Applied cancellation note re-applies on save → the CTA says "Apply to Invoice".
-        const editingApplied = !editingRefund && (cn.applied ?? 0) > 0.001;
-        return (
-          <CreditNoteForm
-            mode="edit"
-            refund={editingRefund}
-            submitLabel={editingApplied ? "Apply to Invoice" : undefined}
-            creditNoteNo={cn.no}
-            invoiceNo={invoiceNo}
-            customerName={cn.name}
-            customerEmail={cn.email}
-            currency={currency}
-            items={ITEMS}
-            invoiceTotal={TOTAL}
-            alreadyCredited={credited - cn.amount}
-            outstanding={creditRoom + cn.amount}
-            initial={{ name: cn.name, email: cn.email, reason: cn.reason ?? "", reasonNote: cn.reasonNote ?? "", issueDate: cn.issueDate ?? new Date(2026, 5, 26), lines: seedLines, accountId: cn.accountId }}
-            onBack={() => { setEditingCnIndex(null); setViewingCnIndex(editingCnIndex); }}
-            onCreate={(p) => saveCreditNote(editingCnIndex, p)}
-          />
-        );
-      })()}
-
-      {/* Re-send prompt after editing a sent credit note (AC4) */}
-      <ResendPromptSheet
-        open={resendPromptOpen}
-        onClose={() => setResendPromptOpen(false)}
-        onNotNow={() => { setResendPromptOpen(false); setLocalToast("Credit note updated"); }}
-        onSendUpdate={() => { setResendPromptOpen(false); setSendContext("creditNote"); setSendSheetOpen(true); }}
-      />
 
       {/* "Send credit note" picker — opened only when there are 2+ unsent notes. */}
       <SendPickerSheet
