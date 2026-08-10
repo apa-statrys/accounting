@@ -1,16 +1,20 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { parse, format, addDays } from "date-fns";
-import { ArrowUpDown, Check, ChevronDown, Search as SearchIcon } from "lucide-react";
+import { parse, parseISO, format, addDays } from "date-fns";
+import { ArrowUpDown, ChevronDown, Search, X } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
-import { Search } from "../../ui/Search";
 import { FilterIcon } from "../../components/FilterIcon";
 import { BottomSheet } from "../../components/BottomSheet";
 import { ButtonDock } from "../../components/ButtonDock";
+import { Keyboard } from "../../components/Keyboard";
+import { Calendar } from "../../components/Calendar";
 import { PageHeader } from "../../ui/PageHeader";
 import { HorizontalTabs } from "../../ui/HorizontalTabs";
 import { InvoiceRow } from "../../ui/InvoiceRow";
 import { Tile } from "../../ui/Tile";
+import { Avatar } from "../../ui/Avatar";
+import { Checkbox } from "../../ui/Checkbox";
+import { TextField } from "../../ui/TextField";
 import { Badge, type BadgeColor } from "../../ui/Badge";
 import { CreditNoteDetailPage } from "./CreditNoteDetailPage";
 import { LockedPeriodDialog } from "../locked-period/LockedPeriodDialog";
@@ -21,7 +25,8 @@ import { RECEIVING_ACCOUNTS } from "../../data/receivingAccounts";
 import { matchesIssueRange } from "../sales-invoice-list/filters";
 import type { CNStatus, CreditNote, NewFlag } from "../../types";
 
-import { FONT } from "../../lib/theme";
+import { money } from "../../lib/format";
+import { FONT, avatarTint, initials } from "../../lib/theme";
 import { pinNew } from "../../lib/pinNew";
 
 // The register stores display dates ("22 Jun 2026"); convert to ISO so the shared invoice-list
@@ -48,8 +53,6 @@ const STATUS_BADGE: Record<CNStatus, BadgeColor> = {
   Refunded: "info",
   Cancelled: "neutral",
 };
-
-const money = (n: number) => `USD ${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 type StatusMatch = "all" | CNStatus;
 const FILTERS: { label: string; match: StatusMatch }[] = [
@@ -84,6 +87,34 @@ function sortLabelTitle(label: string): React.ReactNode {
     <>
       {lbl}: <span className="body-sm-medium">{val}</span>
     </>
+  );
+}
+
+/** Horizontal scroller of picked customers — avatar + name stacked, with a remove "x" badge
+ *  overlaid on the avatar's corner. Same as Sales Invoice List's SelectedCustomers: shown above
+ *  the customer list (Filters step) or below the search field (search step) so a selection stays
+ *  visible/removable without scrolling the list. */
+function SelectedCustomers({ clients, onRemove }: { clients: string[]; onRemove: (c: string) => void }) {
+  if (clients.length === 0) return null;
+  return (
+    <div className="flex gap-4 overflow-x-auto -mx-6 px-6 pt-2 pb-1 thin-scrollbar">
+      {clients.map((c) => (
+        <div key={c} className="flex flex-col items-center gap-1 shrink-0 w-16">
+          <div className="relative">
+            <Avatar size="lg" initials={initials(c)} color={avatarTint(c)} />
+            <button
+              type="button"
+              aria-label={`Remove ${c}`}
+              onClick={() => onRemove(c)}
+              className="absolute -top-1 -right-1 flex items-center justify-center size-4 rounded-full bg-[var(--text-primary)] ring-2 ring-white"
+            >
+              <X size={10} strokeWidth={2.5} color="var(--text-on-color)" />
+            </button>
+          </div>
+          <span className="w-full text-center text-[11px] leading-tight truncate" style={FONT}>{c}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -123,14 +154,32 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
   const [sortOpen, setSortOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
-  // Customer search within the Filters sheet (DES-818 — "search by customer name").
+  // Customer search within the Filters sheet (DES-818 — "search by customer name") — pushes the
+  // next level of this SAME sheet, same as Sales Invoice List's Filters→Customer search step.
   const [customerQuery, setCustomerQuery] = useState("");
-  const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [filterStep, setFilterStep] = useState<"search" | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const visibleCustomers = CUSTOMERS.filter((c) => c.toLowerCase().includes(customerQuery.toLowerCase()));
-  // Issue-date range filter (DES-818) — reuses the invoice list's matchesIssueRange helper.
+  // Issue-date range filter (DES-818) — reuses the invoice list's matchesIssueRange helper. The
+  // calendar drops open inline right below the fields, same as Sales Invoice List's Issue Date.
   const [issueFrom, setIssueFrom] = useState("");
   const [issueTo, setIssueTo] = useState("");
+  const [openCalendar, setOpenCalendar] = useState<"start" | "end" | null>(null);
+  const [calendarSettled, setCalendarSettled] = useState(false);
+  useEffect(() => {
+    setCalendarSettled(false);
+  }, [openCalendar]);
+  const issueDateRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!openCalendar) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (issueDateRef.current && !issueDateRef.current.contains(e.target as Node)) {
+        setOpenCalendar(null);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [openCalendar]);
   const activeFilterCount = selectedCustomers.length + (issueFrom || issueTo ? 1 : 0);
   // Local register state so Edit / Cancel / Delete / Send mutate in-session.
   const [notes, setNotes] = useState<CreditNote[]>(CREDIT_NOTES);
@@ -304,112 +353,175 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
         </div>
       </BottomSheet>
 
-      {/* Filters sheet — same interaction as the Sales Invoice List: a Reset + "Show N credit notes"
-          dock appears once any filter is active. */}
+      {/* Filters sheet — same architecture as the Sales Invoice List: an almost-full-page drawer,
+          Customer search pushes the next level of this SAME sheet (title morphs into a frosted
+          search pill), and a Reset/Apply dock appears once a filter is active. */}
       <BottomSheet
         open={filterOpen}
         title="Filter Credit Notes"
-        onClose={() => setFilterOpen(false)}
+        fullPage
+        onBack={
+          filterStep === "search"
+            ? () => { setCustomerQuery(""); setFilterStep(null); }
+            : undefined
+        }
+        onClose={() => {
+          setFilterOpen(false);
+          setFilterStep(null);
+          setCustomerQuery("");
+          setOpenCalendar(null);
+        }}
+        searchValue={filterStep === "search" ? customerQuery : undefined}
+        onSearchChange={filterStep === "search" ? setCustomerQuery : undefined}
+        searchPlaceholder="Search by Customer name"
+        autoFocusSearch
+        headerExtra={filterStep === "search" ? <SelectedCustomers clients={selectedCustomers} onRemove={toggleCustomer} /> : undefined}
         footer={
-          activeFilterCount === 0 && !customerSearchOpen ? undefined : (
+          filterStep === "search" ? (
+            selectedCustomers.length > 0 ? (
+              <ButtonDock
+                type="single"
+                keyboard
+                primaryLabel={`Select ${selectedCustomers.length}`}
+                onPrimary={() => { setFilterStep(null); setCustomerQuery(""); }}
+              />
+            ) : (
+              <Keyboard />
+            )
+          ) :
+          activeFilterCount === 0 ? undefined : (
             <ButtonDock
-              type="double"
+              type="ghost"
+              stack="horizontal"
               secondaryLabel="Reset"
-              primaryLabel={`Show ${list.length} ${list.length === 1 ? "credit note" : "credit notes"}`}
-              onSecondary={() => { setSelectedCustomers([]); setIssueFrom(""); setIssueTo(""); setCustomerQuery(""); }}
+              primaryLabel="Apply"
+              onSecondary={() => { setSelectedCustomers([]); setIssueFrom(""); setIssueTo(""); setCustomerQuery(""); setOpenCalendar(null); }}
               onPrimary={() => setFilterOpen(false)}
-              // While the customer search field is focused, the dock shows the on-screen
-              // keyboard (Figma "IOS controls" = Keyboard, same as CreateSalesInvoice).
-              keyboard={customerSearchOpen}
             />
           )
         }
       >
-        <div className="flex flex-col gap-2">
-          {/* CN issue date range (DES-818) — same native date inputs as the Sales Invoice List filter. */}
-          <p className="text-[12px] font-bold uppercase tracking-wide text-[var(--text-placeholder)]" style={FONT}>Credit Issue Date</p>
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1">
-              {!issueFrom && (
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[var(--text-placeholder)]" style={FONT}>Start date</span>
-              )}
-              <input
-                type="date"
-                value={issueFrom}
-                max={issueTo || undefined}
-                onChange={(e) => setIssueFrom(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-[rgba(160,160,160,0.4)] text-[14px] bg-white"
-                style={{ ...FONT, color: issueFrom ? "var(--text-primary)" : "transparent" }}
-              />
-            </div>
-            <div className="relative flex-1">
-              {!issueTo && (
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[var(--text-placeholder)]" style={FONT}>End date</span>
-              )}
-              <input
-                type="date"
-                value={issueTo}
-                min={issueFrom || undefined}
-                onChange={(e) => setIssueTo(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-[rgba(160,160,160,0.4)] text-[14px] bg-white"
-                style={{ ...FONT, color: issueTo ? "var(--text-primary)" : "transparent" }}
-              />
-            </div>
-          </div>
+        <AnimatePresence mode="wait" initial={false}>
+          {filterStep === "search" ? (
+            <motion.div
+              key="search"
+              initial={{ x: 24, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 24, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+            >
+              <div className="flex flex-col">
+                {customerQuery && (
+                  visibleCustomers.length === 0 ? (
+                    <p className="text-center text-[13px] text-[var(--text-placeholder)] py-3.5" style={FONT}>No customers found</p>
+                  ) : (
+                    <p className="body-sm text-[var(--text-secondary)] pt-3.5 pb-2">
+                      {visibleCustomers.length === 1 ? "Result 1" : `Results ${visibleCustomers.length}`}
+                    </p>
+                  )
+                )}
+                {visibleCustomers.map((c) => (
+                  <div key={c} className="py-4 flex items-center gap-3">
+                    <Avatar size="sm" initials={initials(c)} color={avatarTint(c)} />
+                    <div className="flex-1">
+                      <Checkbox reverse label={c} checked={selectedCustomers.includes(c)} onChange={() => toggleCustomer(c)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="filters"
+              initial={{ x: -24, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -24, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+            >
+              <div ref={issueDateRef} className="flex flex-col">
+                <p className="body-sm text-[var(--text-secondary)] pb-4">Credit Issue Date</p>
+                <div className="flex items-start gap-3">
+                  <TextField
+                    type="date-picker"
+                    placeholder="Start date"
+                    value={issueFrom ? format(parseISO(issueFrom), "d MMM yyyy") : ""}
+                    onClick={() => setOpenCalendar((prev) => (prev === "start" ? null : "start"))}
+                  />
+                  <TextField
+                    type="date-picker"
+                    placeholder="End date"
+                    value={issueTo ? format(parseISO(issueTo), "d MMM yyyy") : ""}
+                    onClick={() => setOpenCalendar((prev) => (prev === "end" ? null : "end"))}
+                  />
+                </div>
+                <AnimatePresence initial={false} mode="wait">
+                  {openCalendar && (
+                    <motion.div
+                      key={openCalendar}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      onAnimationComplete={() => {
+                        if (openCalendar) setCalendarSettled(true);
+                      }}
+                      style={{ overflow: calendarSettled ? "visible" : "hidden" }}
+                    >
+                      <div className="pt-3">
+                        <Calendar
+                          value={
+                            openCalendar === "start"
+                              ? issueFrom ? parseISO(issueFrom) : undefined
+                              : issueTo ? parseISO(issueTo) : undefined
+                          }
+                          maxDate={openCalendar === "start" && issueTo ? parseISO(issueTo) : undefined}
+                          onChange={(d) => {
+                            if (openCalendar === "start") setIssueFrom(format(d, "yyyy-MM-dd"));
+                            else setIssueTo(format(d, "yyyy-MM-dd"));
+                            setOpenCalendar(null);
+                          }}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-          <div className="flex items-center justify-between mt-4">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[var(--text-placeholder)]" style={FONT}>Customer</p>
-            {CUSTOMERS.length >= 5 && (
-              <button
-                type="button"
-                aria-label={customerSearchOpen ? "Hide customer search" : "Search customers"}
-                onClick={() => { if (customerSearchOpen) setCustomerQuery(""); setCustomerSearchOpen((v) => !v); }}
-                className="p-1 -m-1"
-              >
-                <SearchIcon size={18} strokeWidth={1.67} color={customerSearchOpen ? "var(--text-brand)" : "var(--text-primary)"} />
-              </button>
-            )}
-          </div>
-          {/* Same reveal-behind-toggle recipe as SendInvoiceSheet's "Add Recipients" field (height +
-              opacity, not an instant show/hide) instead of an unanimated cut. */}
-          <AnimatePresence initial={false}>
-            {customerSearchOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.25 }}
-                className="overflow-hidden"
-              >
-                <Search
-                  autoFocus
-                  placeholder="Search by Customer name"
-                  value={customerQuery}
-                  onChange={setCustomerQuery}
-                  showAction={false}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-          {visibleCustomers.length === 0 && (
-            <p className="text-center text-[13px] text-[var(--text-placeholder)] py-3" style={FONT}>No customers found</p>
+              {/* Customer — title + search toggle. Tapping search pushes the "search" step (this SAME
+                  sheet's header swaps to a search pill) instead of revealing a field inline. Selected
+                  picks surface as a removable chip row right below the title. */}
+              <div className="pb-2">
+                <div className="flex items-center justify-between pt-6">
+                  <p className="body-sm text-[var(--text-secondary)]">Customer</p>
+                  {CUSTOMERS.length >= 5 && (
+                    <button
+                      type="button"
+                      aria-label="Search customers"
+                      onClick={() => setFilterStep("search")}
+                      className="p-1 -m-1"
+                    >
+                      <Search size={20} strokeWidth={1} color="var(--text-primary)" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <SelectedCustomers clients={selectedCustomers} onRemove={toggleCustomer} />
+              <div className="flex flex-col">
+                {visibleCustomers.length === 0 && (
+                  <p className="text-center text-[13px] text-[var(--text-placeholder)] py-3.5" style={FONT}>No customers found</p>
+                )}
+                {visibleCustomers.map((c) => (
+                  <div key={c} className="py-4 flex items-center gap-3">
+                    <Avatar size="sm" initials={initials(c)} color={avatarTint(c)} />
+                    <div className="flex-1">
+                      <Checkbox reverse label={c} checked={selectedCustomers.includes(c)} onChange={() => toggleCustomer(c)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
           )}
-          {visibleCustomers.map((c) => {
-            const on = selectedCustomers.includes(c);
-            return (
-              <button
-                key={c}
-                onClick={() => toggleCustomer(c)}
-                className="w-full flex items-center justify-between py-3 text-left border-b border-[#f1f1f1]"
-              >
-                <span className="text-[15px]" style={{ ...FONT, color: "var(--text-primary)" }}>{c}</span>
-                <span className="size-6 rounded-md border flex items-center justify-center" style={{ borderColor: on ? "var(--text-brand)" : "rgba(160,160,160,0.5)", background: on ? "var(--bg-brand-primary)" : "transparent" }}>
-                  {on && <Check size={16} strokeWidth={1.67} color="white" />}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        </AnimatePresence>
       </BottomSheet>
 
       {/* Shared CN detail (same component + behaviour as the invoice-detail flow). Wired per DES-818
@@ -431,7 +543,6 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               currency="USD"
               total={preview.original}
               invoiceTotal={preview.invoiceTotal}
-              receivingAccount={(() => { const a = RECEIVING_ACCOUNTS.find((x) => x.primary) ?? RECEIVING_ACCOUNTS[0]; return { name: a.name, number: a.number, primary: !!a.primary }; })()}
               // Real credited line items from the register; fall back to a single synthesized line.
               lines={preview.lines ?? [{ name: "Credited amount", amount: preview.original }]}
               reason={preview.reason}
@@ -441,6 +552,7 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               kind={preview.kind}
               status={preview.status}
               sent={preview.sent}
+              receivingAccount={(() => { const a = RECEIVING_ACCOUNTS.find((x) => x.primary) ?? RECEIVING_ACCOUNTS[0]; return { name: a.name, number: a.number, primary: !!a.primary, country: a.country }; })()}
               // Locked-period demo: the Back arrow is inert (the CN is in a closed period — no exit).
               onBack={lockedPeriod ? () => {} : () => setPreview(null)}
               // Related Invoice row → open that invoice's detail (shows the chevron arrow).

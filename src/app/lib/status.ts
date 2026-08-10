@@ -30,3 +30,21 @@ export const DETAIL_STATUS_META: Record<DetailStatus, { label: string; bg: strin
   PendingRefund: { label: "Pending Refund", bg: "var(--bg-warning-subtle)", border: "var(--border-warning-subtle)", text: "var(--text-warning-primary)" },
   Refunded: { label: "Refunded", bg: "var(--bg-info-subtle)", border: "var(--border-info-subtle)", text: "var(--text-info-primary)" },
 };
+
+/** Status chips on the CREDIT NOTE detail/preview pages (DES-719/720/721) — cancellation lifecycle
+ *  (Draft/Open/Partially Applied/Fully Applied/Applied/Cancelled) plus refund lifecycle (Pending
+ *  Refund/Awaiting refund/Partially Refunded/Refunded). Same token triad as STATUS_PILL/
+ *  DETAIL_STATUS_META above, kept in the same family per status (e.g. Refunded shares the invoice
+ *  side's info tokens) — never a raw hex value. */
+export const CREDIT_NOTE_STATUS_META: Record<string, { label: string; bg: string; border: string; text: string }> = {
+  Draft: { label: "Draft", bg: "var(--bg-neutral-secondary)", border: "var(--border-neutral-primary)", text: "var(--text-secondary)" },
+  Open: { label: "Open", bg: "var(--bg-info-subtle)", border: "var(--border-info-subtle)", text: "var(--text-info-primary)" },
+  Applied: { label: "Applied", bg: "var(--bg-success-subtle)", border: "var(--border-success-subtle)", text: "var(--text-success-primary)" },
+  "Partially Applied": { label: "Partially Applied", bg: "var(--bg-warning-subtle)", border: "var(--border-warning-subtle)", text: "var(--text-warning-primary)" },
+  "Fully Applied": { label: "Fully Applied", bg: "var(--bg-success-subtle)", border: "var(--border-success-subtle)", text: "var(--text-success-primary)" },
+  "Pending Refund": { label: "Pending Refund", bg: "var(--bg-warning-subtle)", border: "var(--border-warning-subtle)", text: "var(--text-warning-primary)" },
+  "Awaiting refund": { label: "Awaiting refund", bg: "var(--bg-warning-subtle)", border: "var(--border-warning-subtle)", text: "var(--text-warning-primary)" },
+  "Partially Refunded": { label: "Partially Refunded", bg: "var(--bg-info-subtle)", border: "var(--border-info-subtle)", text: "var(--text-info-primary)" },
+  Refunded: { label: "Refunded", bg: "var(--bg-info-subtle)", border: "var(--border-info-subtle)", text: "var(--text-info-primary)" },
+  Cancelled: { label: "Cancelled", bg: "var(--bg-neutral-tertiary)", border: "var(--border-neutral-primary)", text: "var(--text-secondary)" },
+};

@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import { X } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { ChevronDown, X } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
 import { BottomSheet } from "../../components/BottomSheet";
 import { Tile } from "../../ui/Tile";
 import { ListRow } from "../../ui/ListRow";
+import { TextField } from "../../ui/TextField";
+import { Calendar } from "../../components/Calendar";
 import { CountryFlag } from "../../components/CountryFlag";
 import { RECEIVING_ACCOUNTS, getAccount } from "../../data/receivingAccounts";
 import { money } from "../../lib/format";
@@ -58,6 +60,20 @@ export function RefundCreditNoteFlow({
   // "Mark as already refunded" capture (DES-720): only Amount refunded + Bank account used are required;
   // refund date and proof (an uploaded receipt) are optional. Amount defaults to the credit note.
   const [mDate, setMDate] = useState("2026-06-22");
+  // Refund date picker — same inline-drop-open Calendar pattern as Sales Invoice List / Credit Notes
+  // List's own Issue Date filters (not a raw <input type="date">).
+  const [dateOpen, setDateOpen] = useState(false);
+  const [dateCalendarSettled, setDateCalendarSettled] = useState(false);
+  useEffect(() => { setDateCalendarSettled(false); }, [dateOpen]);
+  const dateFieldRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!dateOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (dateFieldRef.current && !dateFieldRef.current.contains(e.target as Node)) setDateOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [dateOpen]);
   // Bank account used — a dropdown; defaults to the primary Statrys account (Personal Saving).
   const DEFAULT_ACCOUNT = RECEIVING_ACCOUNTS.find((a) => a.primary) ?? RECEIVING_ACCOUNTS[0];
   const [mAccount, setMAccount] = useState(`${DEFAULT_ACCOUNT.name} (${DEFAULT_ACCOUNT.number})`);
@@ -200,9 +216,33 @@ export function RefundCreditNoteFlow({
                 )}
               </AnimatePresence>
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div ref={dateFieldRef} className="flex flex-col gap-1.5">
               <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Refund date</label>
-              <input type="date" value={mDate} onChange={(e) => setMDate(e.target.value)} className="w-full h-12 px-3.5 rounded-xl border border-[rgba(160,160,160,0.4)] text-[15px] bg-white" style={{ ...FONT, color: INK }} />
+              <TextField
+                type="date-picker"
+                value={mDate ? format(parseISO(mDate), "d MMM yyyy") : ""}
+                placeholder="Select date"
+                onClick={() => setDateOpen((v) => !v)}
+              />
+              <AnimatePresence initial={false}>
+                {dateOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    onAnimationComplete={() => { if (dateOpen) setDateCalendarSettled(true); }}
+                    style={{ overflow: dateCalendarSettled ? "visible" : "hidden" }}
+                  >
+                    <div className="pt-3">
+                      <Calendar
+                        value={mDate ? parseISO(mDate) : undefined}
+                        onChange={(d) => { setMDate(format(d, "yyyy-MM-dd")); setDateOpen(false); }}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             {/* Bank account used (DES-720) — a dropdown of the Statrys accounts + any registered external
                 accounts; defaults to the primary Statrys account. */}
@@ -210,8 +250,8 @@ export function RefundCreditNoteFlow({
               <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Payment account <span>*</span></label>
               {/* Collapsed field shows the selected account; tap to open the picker sheet. */}
               <button type="button" onClick={() => setAcctOpen(true)} className="w-full flex items-center justify-between rounded-xl border px-3.5 h-12 bg-white text-left" style={{ borderColor: acctOpen ? "var(--text-primary)" : "rgba(160,160,160,0.4)" }}>
-                <span className="text-[15px] truncate" style={{ ...FONT, color: mAccount ? INK : "#9ca3af" }}>{mAccount || "Select account"}</span>
-                <KeyboardArrowDownIcon style={{ fontSize: 22, color: "var(--text-secondary)" }} />
+                <span className="text-[15px] truncate" style={{ ...FONT, color: mAccount ? INK : "var(--text-placeholder)" }}>{mAccount || "Select account"}</span>
+                <ChevronDown size={22} strokeWidth={1.67} color="var(--text-secondary)" />
               </button>
             </div>
 

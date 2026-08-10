@@ -1211,7 +1211,7 @@ export function InvoiceDetailPage({
                   ? () => voidCreditNote(viewingCnIndex)
                   : undefined
               }
-              receivingAccount={(() => { const a = getAccount(cn.accountId ?? "") ?? receivingAcct; return { name: a.name, number: a.number, primary: !!a.primary }; })()}
+              receivingAccount={(() => { const a = getAccount(cn.accountId ?? "") ?? receivingAcct; return { name: a.name, number: a.number, primary: !!a.primary, country: a.country }; })()}
               lockedPeriod={lockedPeriod}
             />
             {/* Locked-period demo: Apply/Edit on a Draft CN dated in a closed period — inside the overlay

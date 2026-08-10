@@ -1,8 +1,10 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { ChevronRight } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
+import { money } from "../../lib/format";
+import { CREDIT_NOTE_STATUS_META } from "../../lib/status";
 
 import { FONT } from "../../lib/theme";
 
@@ -68,15 +70,6 @@ interface CreditNotePreviewPageProps extends CreditNoteDocumentPreviewProps {
   onSend?: () => void;
 }
 
-// Status chip palette (DES-721). Refunded = indigo, Pending Refund = amber, Applied/other = green.
-const STATUS_CHIP: Record<string, { bg: string; border: string; text: string }> = {
-  "Refunded": { bg: "#eef2ff", border: "#c7d2fe", text: "#4338ca" },
-  "Pending Refund": { bg: "#fff7e6", border: "#fde68a", text: "#b45309" },
-  "Applied": { bg: "#ecfdf3", border: "#abefc6", text: "#067647" },
-};
-
-const money = (n: number, currency: string) =>
-  `${currency} ${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const neg = (n: number, currency: string) => `−${money(n, currency)}`;
 
 /** Sender identity — the user's company (Lumen Studio demo, from invoice settings). */
@@ -97,7 +90,7 @@ const PAGE_MIN_H = 1123;
  *  sheet's PDF-segment preview) unchanged. This IS the real credit-note document, not a stand-in. */
 export function CreditNoteDocumentPreview(props: CreditNoteDocumentPreviewProps) {
   const { creditNoteNo, invoiceNo, customerName, customerEmail, issueDateLabel, currency, lines, total, reason, reasonNote, status, className, children } = props;
-  const chip = status ? (STATUS_CHIP[status] ?? STATUS_CHIP["Applied"]) : null;
+  const chip = status ? (CREDIT_NOTE_STATUS_META[status] ?? CREDIT_NOTE_STATUS_META["Applied"]) : null;
 
   // Render at natural A4 width, then scale-to-fit its container (see the invoice preview for the same approach).
   const areaRef = useRef<HTMLDivElement>(null);
@@ -282,7 +275,7 @@ export function CreditNotePreviewPage(props: CreditNotePreviewPageProps) {
               </span>
               <span className="flex items-center gap-0.5 shrink-0 text-[13px] font-medium text-[var(--text-brand)]" style={FONT}>
                 View
-                <ChevronRightIcon className="transition-transform group-hover:translate-x-0.5" style={{ fontSize: 18 }} />
+                <ChevronRight className="transition-transform group-hover:translate-x-0.5" size={18} strokeWidth={1.67} />
               </span>
             </button>
           )}

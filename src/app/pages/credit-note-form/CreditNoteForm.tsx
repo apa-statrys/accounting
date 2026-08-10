@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { addDays, format } from "date-fns";
-import AddIcon from "@mui/icons-material/Add";
-import RemoveIcon from "@mui/icons-material/Remove";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import { ChevronDown, Minus, Plus } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { HorizontalTabs } from "../../ui/HorizontalTabs";
 import { Banner } from "../../ui/Banner";
 import { ListCard } from "../../ui/ListCard";
 import { ListRow } from "../../ui/ListRow";
+import { TextArea } from "../../ui/TextArea";
 import { ButtonDock } from "../../components/ButtonDock";
 import { IssueDateSheet } from "../../components/IssueDateSheet";
 import { NumericKeypad } from "../../components/NumericKeypad";
@@ -283,7 +282,7 @@ export function CreditNoteForm({
       className="w-full flex items-center justify-center gap-1 py-3 border-t border-[rgba(160,160,160,0.18)]"
     >
       <span className="text-[13px] font-medium" style={{ ...FONT, color: INK }}>{itemsExpanded ? "Show less" : "Show more"}</span>
-      <KeyboardArrowDownIcon style={{ fontSize: 18, color: INK, transform: itemsExpanded ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+      <ChevronDown size={18} strokeWidth={1.67} color={INK} style={{ transform: itemsExpanded ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
     </button>
   );
 
@@ -341,21 +340,15 @@ export function CreditNoteForm({
 
   // Optional free-text description (any reason) — rendered below the summary in both flows.
   const descriptionBlock = (
-    <div className="flex flex-col gap-[7px]">
-      <label className="body-sm" style={{ ...FONT, color: "#090a0a" }}>
-        Description
-      </label>
-      <textarea
-        value={reasonNote}
-        onChange={(e) => setReasonNote(e.target.value)}
-        onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
-        onBlur={() => setKeyboardOpen(false)}
-        placeholder={`Add a note about this ${refund ? "refund" : "credit note"}`}
-        rows={3}
-        className="w-full rounded-[8px] border px-4 py-3 bg-white text-[14px] outline-none resize-none"
-        style={{ ...FONT, color: "#1b1b1b", borderColor: "rgba(208,208,208,0.4)", boxShadow: "0px 4px 7px rgba(0,0,0,0.1)" }}
-      />
-    </div>
+    <TextArea
+      label="Description"
+      value={reasonNote}
+      onChange={setReasonNote}
+      onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
+      onBlur={() => setKeyboardOpen(false)}
+      placeholder={`Add a note about this ${refund ? "refund" : "credit note"}`}
+      rows={3}
+    />
   );
 
   return (
@@ -436,7 +429,7 @@ export function CreditNoteForm({
             <span className="text-[14px] truncate" style={{ ...FONT, color: reason ? "var(--text-primary)" : "#9ca3af" }}>
               {reason || "Select a reason"}
             </span>
-            <KeyboardArrowDownIcon style={{ fontSize: 24, color: "var(--text-secondary)" }} />
+            <ChevronDown size={24} strokeWidth={1.67} color="var(--text-secondary)" />
           </button>
           <AnimatePresence initial={false}>
             {reasonError && (
@@ -524,11 +517,11 @@ export function CreditNoteForm({
                     <span className="text-[12px]" style={{ ...FONT, color: MUTED }}>Quantity</span>
                     <div className="flex items-center rounded-lg border bg-white overflow-hidden" style={{ borderColor: "rgba(160,160,160,0.4)" }}>
                       <button type="button" onClick={() => decQty(l.id)} disabled={l.qty === 0} aria-label="Decrease quantity" className="w-9 h-10 flex items-center justify-center disabled:opacity-30">
-                        <RemoveIcon style={{ fontSize: 16, color: INK }} />
+                        <Minus size={16} strokeWidth={1.67} color={INK} />
                       </button>
                       <span className="w-8 text-center text-[14px] font-medium" style={{ ...FONT, color: INK }}>{l.qty}</span>
                       <button type="button" onClick={() => incQty(l.id)} disabled={l.qty >= l.maxQty} aria-label="Increase quantity" className="w-9 h-10 flex items-center justify-center disabled:opacity-30">
-                        <AddIcon style={{ fontSize: 16, color: INK }} />
+                        <Plus size={16} strokeWidth={1.67} color={INK} />
                       </button>
                     </div>
                   </div>
