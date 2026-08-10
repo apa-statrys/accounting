@@ -8,7 +8,7 @@ import { ListCard } from "../ui/ListCard";
 import { ListRow } from "../ui/ListRow";
 import type { Customer } from "../types";
 
-import { FONT, INK, MUTED } from "../lib/theme";
+import { FONT, INK, MUTED, avatarTint } from "../lib/theme";
 
 function initials(name: string): string {
   const words = name.replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
@@ -72,7 +72,7 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
             title="Customer Details"
             onBack={onBack}
             showSearch={!!onEdit}
-            rightIcon={<Pencil size={20} strokeWidth={2} />}
+            rightIcon={<Pencil size={20} strokeWidth={1} />}
             rightLabel="Edit customer"
             onRightClick={() => onEdit?.()}
           />
@@ -86,9 +86,9 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
           className="p-4 flex items-center gap-3"
           style={{ backgroundImage: "linear-gradient(180deg, var(--bg-beige-primary) 1%, var(--bg-neutral-primary) 99%)" }}
         >
-          <Avatar size="2xl" initials={initials(record.name)} />
+          <Avatar size="2xl" initials={initials(record.name)} color={avatarTint(record.id)} />
           <div className="min-w-0">
-            <p className="text-[20px] font-bold leading-tight tracking-[-0.4px] truncate" style={{ ...FONT, color: INK }}>{record.name}</p>
+            <p className="card-title-md truncate" style={{ color: INK }}>{record.name}</p>
             <p className="body-sm truncate" style={{ ...FONT, color: MUTED }}>{record.email}</p>
           </div>
         </div>
