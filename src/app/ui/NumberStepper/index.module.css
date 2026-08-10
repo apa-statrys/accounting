@@ -1,12 +1,13 @@
-/* NumberStepper — 40px "− value +" control. Same field tokens as TextField
-   (--field-bg/--field-border, --radius-xl) so it reads as part of the same
-   input family even though there's no matching Figma frame yet. */
+/* NumberStepper — "− value +" control, same 48px row height as TextField
+   (--field-bg/--field-border, --radius-xl) so the two line up exactly when
+   placed side by side (e.g. Quantity + Unit Price) — no matching Figma frame
+   yet, but it needs to read as part of the same input family regardless. */
 
 .root {
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
-  height: 40px;
+  height: 48px;
   background: var(--field-bg);
   border: 1px solid var(--field-border);
   border-radius: var(--radius-xl);
