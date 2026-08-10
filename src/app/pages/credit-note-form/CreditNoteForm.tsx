@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { addDays, format } from "date-fns";
-import { ChevronDown, Minus, Plus } from "lucide-react";
+import { Check, ChevronDown, Minus, Plus } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { HorizontalTabs } from "../../ui/HorizontalTabs";
@@ -9,10 +9,13 @@ import { Banner } from "../../ui/Banner";
 import { ListCard } from "../../ui/ListCard";
 import { ListRow } from "../../ui/ListRow";
 import { TextArea } from "../../ui/TextArea";
+import { TextField } from "../../ui/TextField";
+import { Tile } from "../../ui/Tile";
+import { Loading } from "../../ui/Loading";
 import { ButtonDock } from "../../components/ButtonDock";
 import { IssueDateSheet } from "../../components/IssueDateSheet";
 import { NumericKeypad } from "../../components/NumericKeypad";
-import { FONT, INK, MUTED } from "../../lib/theme";
+import { FONT, INK, MUTED, initials } from "../../lib/theme";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
 import { Toast } from "../../components/Toast";
@@ -368,10 +371,12 @@ export function CreditNoteForm({
             showSearch={false}
             right={
               !isEdit ? (
-                <span className="flex items-center gap-1.5 pr-1 text-[12px]" style={{ ...FONT, color: MUTED }}>
+                // Figma "Create Invoice" header (node 1387-18223): the DS Loading spinner, not a
+                // hand-rolled spinning border — same pattern as AddInvoiceDetails' autosave indicator.
+                <span className="flex items-center gap-1.5 pr-1 text-[12px]" style={{ ...FONT, color: MUTED }} aria-live="polite">
                   {saveState === "saving"
-                    ? <span className="w-3.5 h-3.5 rounded-full border-2 border-[#e2e2e2] border-t-[var(--border-brand-primary)] animate-spin" aria-hidden />
-                    : <span style={{ color: "var(--icon-success-primary)" }}>✓</span>}
+                    ? <Loading size="xs" aria-label="Saving" />
+                    : <Check size={15} strokeWidth={2} color="var(--icon-success-primary)" />}
                   {saveState === "saving" ? "Saving" : "Saved"}
                 </span>
               ) : undefined
@@ -383,7 +388,9 @@ export function CreditNoteForm({
         {/* Beige zone (DES-719 UI) — details card + customer card + related invoice on #f9f5ea.
             No CN number while creating (decided 2026-07-15) — the real number is assigned on apply. */}
         <div className="-mx-4 px-4 pt-5 pb-5 bg-[var(--bg-beige-primary)] flex flex-col gap-4">
-          {/* Details — Credit Issue Date / Due Date (editable) + Receiving Account + Currency (locked). */}
+          {/* Details — Credit Issue Date / Due Date (editable) + Receiving Account + Currency (locked)
+              + the related invoice, all DS ListCard/ListRow — same shape as the credit note detail's
+              own Details card. */}
           <ListCard>
             <ListRow label="Credit Issue Date" value={formatDMY(issueDate)} trailing="chevron" onClick={() => setIssueDateOpen(true)} />
             {/* Due Date shows for both credit + refund (defaults to Next 30 days). The Receiving Account
@@ -392,60 +399,28 @@ export function CreditNoteForm({
             {!refund && (
               <ListRow label="Receiving Account" value={formatAccount(accountId)} trailing="chevron" onClick={() => setAcctSheetOpen(true)} />
             )}
-            <ListRow label="Currency" value={currency} last />
+            <ListRow label="Currency" value={currency} />
+            <ListRow label="Related Invoice" value={invoiceNo} last />
           </ListCard>
-
-          {/* Related invoice — the link this credit note is stored against. */}
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-medium" style={{ ...FONT, color: MUTED }}>Related Invoice:</span>
-            <span className="text-[14px] font-bold" style={{ ...FONT, color: "var(--text-primary)" }}>{invoiceNo}</span>
-          </div>
-
         </div>
 
-        {/* Customer — carried over; tap to edit for this credit note only (no chevron, matches Figma).
-            White zone, directly above Reason For Credit. */}
-        <button type="button" onClick={openClientSheet} className="w-full text-left rounded-[12px] bg-white border border-dashed border-[rgba(160,160,160,0.2)] p-[17px]">
-          <p className="text-[16px] font-medium leading-[0.95] tracking-[-0.8px]" style={{ ...FONT, color: "#101828" }}>{name}</p>
-          <p className="text-[14px] font-medium leading-[1.3] mt-1.5" style={{ ...FONT, color: MUTED }}>{email}</p>
-        </button>
+        {/* Customer — carried over; tap to edit for this credit note only. DS Tile, same pattern as
+            every other customer display in the app. White zone, directly above Reason For Credit. */}
+        <Tile avatar={initials(name)} title={name} text={email} onClick={openClientSheet} />
 
-        {/* Reason — white zone (DES-719). Required, chosen from the fixed enum in the sheet. */}
-        <div className="flex flex-col gap-[7px] pt-1">
-          <label className="body-sm" style={{ ...FONT, color: "#090a0a" }}>
-            Reason For Credit <span className="text-[length:var(--fs-body-md)] font-medium" style={{ color: reasonError ? "var(--text-error-primary)" : undefined }}>*</span>
-          </label>
-          <button
-            type="button"
-            data-req="cn-reason"
-            onClick={() => setReasonSheetOpen(true)}
-            className="w-full flex items-center justify-between rounded-[8px] border px-4 h-[48px] text-left"
-            style={{
-              borderColor: reasonError ? "var(--border-error-bold)" : "rgba(208,208,208,0.4)",
-              background: reasonError ? "var(--bg-error-subtle)" : "#fff",
-              boxShadow: "0px 4px 7px rgba(0,0,0,0.1)",
-            }}
-          >
-            <span className="text-[14px] truncate" style={{ ...FONT, color: reason ? "var(--text-primary)" : "#9ca3af" }}>
-              {reason || "Select a reason"}
-            </span>
-            <ChevronDown size={24} strokeWidth={1.67} color="var(--text-secondary)" />
-          </button>
-          <AnimatePresence initial={false}>
-            {reasonError && (
-              <motion.p
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.25 }}
-                className="text-[12px] leading-[1.3] overflow-hidden"
-                style={{ ...FONT, color: "var(--text-error-primary)" }}
-              >
-                Please select a reason for this {refund ? "refund" : "credit note"}.
-              </motion.p>
-            )}
-          </AnimatePresence>
-        </div>
+        {/* Reason — white zone (DES-719). Required, chosen from the fixed enum in the sheet. DS
+            TextField (dropdown), matching every other required-picker field in the app. */}
+        <TextField
+          type="dropdown"
+          label="Reason For Credit"
+          mandatory
+          dataReq="cn-reason"
+          value={reason}
+          placeholder="Select a reason"
+          error={reasonError}
+          caption={reasonError ? `Please select a reason for this ${refund ? "refund" : "credit note"}.` : undefined}
+          onClick={() => setReasonSheetOpen(true)}
+        />
 
         {/* Credit note: description sits above the items (refund shows it below the summary). */}
         {!refund && descriptionBlock}
@@ -480,19 +455,20 @@ export function CreditNoteForm({
           )}
 
           {refund && fpMode === "full" ? (
-            /* Full refund → read-only line list; amounts in red = being refunded. */
-            <div className="rounded-xl border bg-white overflow-hidden" style={{ borderColor: "rgba(160,160,160,0.25)", boxShadow: "var(--shadow-card-soft)" }}>
-              {(itemsExpanded ? items : items.slice(0, COLLAPSED_ITEMS)).map((it, i) => (
-                <div key={i} className="flex items-start justify-between gap-3 px-4 py-3.5 border-t first:border-t-0" style={{ borderColor: "rgba(160,160,160,0.18)" }}>
-                  <div className="min-w-0">
-                    <p className="text-[14px] font-semibold leading-tight" style={{ ...FONT, color: INK }}>{it.name}</p>
-                    <p className="text-[12px] mt-0.5" style={{ ...FONT, color: MUTED }}>{it.qty} {it.unit} · {money(it.unitPrice)}</p>
-                  </div>
-                  <span className="text-[14px] font-semibold shrink-0" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(it.amount)}</span>
-                </div>
+            /* Full refund → read-only line list, DS ListCard/ListRow — same shape as the credit note
+               detail's own Credited/Refund items card. */
+            <ListCard>
+              {(itemsExpanded ? items : items.slice(0, COLLAPSED_ITEMS)).map((it, i, arr) => (
+                <ListRow
+                  key={i}
+                  label={it.name}
+                  description={`${it.qty} ${it.unit} · ${money(it.unitPrice)}`}
+                  value={money(it.amount)}
+                  last={i === arr.length - 1}
+                />
               ))}
               {items.length > COLLAPSED_ITEMS && showMoreBtn}
-            </div>
+            </ListCard>
           ) : (
           /* Per-line cards — Partial refund (editable) or credit mode (corrected values). */
           <div className="flex flex-col gap-3">
