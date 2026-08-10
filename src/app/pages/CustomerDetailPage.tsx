@@ -6,6 +6,8 @@ import { Toast } from "../components/Toast";
 import { Avatar } from "../ui/Avatar";
 import { ListCard } from "../ui/ListCard";
 import { ListRow } from "../ui/ListRow";
+import { CountryFlag } from "../components/CountryFlag";
+import { CURRENCY_COUNTRY } from "../components/CurrencySheet";
 import type { Customer } from "../types";
 
 import { FONT, INK, MUTED, avatarTint } from "../lib/theme";
@@ -20,7 +22,7 @@ function initials(name: string): string {
  *  the whole section when none are present (so a client with only name+email doesn't show an
  *  empty Company Details/Address section). Same "label + ListCard" section shape as every other
  *  detail page (InvoiceDetailPage's Invoice Details, CreditNoteDetailPage's Credit Details, …). */
-function FieldSection({ title, rows }: { title: string; rows: { label: string; value?: string }[] }) {
+function FieldSection({ title, rows }: { title: string; rows: { label: string; value?: string; flag?: React.ReactNode }[] }) {
   const present = rows.filter((r) => r.value != null && r.value !== "");
   if (!present.length) return null;
   return (
@@ -28,7 +30,7 @@ function FieldSection({ title, rows }: { title: string; rows: { label: string; v
       <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{title}</p>
       <ListCard>
         {present.map((r, i) => (
-          <ListRow key={r.label} label={r.label} value={r.value} last={i === present.length - 1} />
+          <ListRow key={r.label} label={r.label} value={r.value} valueFlag={r.flag} last={i === present.length - 1} />
         ))}
       </ListCard>
     </div>
@@ -105,7 +107,13 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
 
         <div className="px-4 pt-4 pb-8 flex flex-col gap-4 bg-white">
           <FieldSection title="Default Currency" rows={[
-            { label: "Currency", value: record.currency },
+            {
+              label: "Currency",
+              value: record.currency,
+              // Same "Currency" row shape as InvoiceDetailPage's own Invoice Details card —
+              // the country flag for the currency, not the customer's own address country.
+              flag: record.currency ? <CountryFlag name={CURRENCY_COUNTRY[record.currency]} size={16} /> : undefined,
+            },
           ]} />
 
           <FieldSection title="Company Details" rows={[
