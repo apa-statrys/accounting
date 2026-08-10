@@ -884,9 +884,6 @@ export default function App() {
           })()}
           onRefunded={(no, result) => setRefundState((s) => ({ ...s, [no]: result }))}
           flashToast={detailFlash ?? undefined}
-          // A detour from the duplicate-check decision (not the normal "tap a row" path) needs a
-          // real back chevron — X reads as "close this flow", not "return to where I was".
-          backChevron={detailReturn === "duplicateCheck"}
           onBack={() => {
             setDetailFlash(null);
             // Back from the edit-existing-draft flow leaves it as a draft → confirm with a toast.
@@ -979,7 +976,7 @@ export default function App() {
           onViewInvoice={() => {
             // Issued match (Awaiting/Paid) → open the existing invoice's detail page (read/act there).
             // A detour from the duplicate check, not the normal list — back returns HERE, not to
-            // the list (see the invoiceDetail render's backChevron prop for the header side of this).
+            // the list (detailReturn "duplicateCheck", handled in the invoiceDetail render's onBack).
             const inv = dupExisting;
             const status: DetailStatus = inv.status === "Paid" ? "Paid" : inv.status === "Draft" ? "Draft" : "Awaiting";
             setOpenInvoice({ number: inv.number, client: inv.customer, status, origin: "uploaded" });
