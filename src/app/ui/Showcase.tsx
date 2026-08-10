@@ -2633,7 +2633,7 @@ function TextFieldTestMe() {
             error={v.state === "error"}
             disabled={v.state === "disabled"}
             highlight={v.state === "highlight"}
-            icon={v.type === "left-icon" ? <CircleIcon size={20} /> : undefined}
+            icon={v.type === "left-icon" || v.type === "dropdown" ? <CircleIcon size={20} /> : undefined}
             iconRight={v.trailing === "on" ? <CircleIcon size={20} /> : undefined}
             label={v.label === "on" ? "Input Label" : undefined}
             mandatory={v.label === "on"}

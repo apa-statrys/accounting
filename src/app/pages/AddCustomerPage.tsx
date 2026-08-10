@@ -4,7 +4,7 @@ import { PageHeader } from "../ui/PageHeader";
 import { TextField } from "../ui/TextField";
 import { ButtonDock } from "../components/ButtonDock";
 import { BottomSheet } from "../components/BottomSheet";
-import { CurrencySheet } from "../components/CurrencySheet";
+import { CurrencySheet, CURRENCY_COUNTRY } from "../components/CurrencySheet";
 import { CountrySheet } from "../components/CountrySheet";
 import { CountryCodeSheet } from "../components/CountryCodeSheet";
 import { CountryFlag } from "../components/CountryFlag";
@@ -275,7 +275,8 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
             <p style={SECTION_TITLE_STYLE}>Invoice</p>
             <div className="flex flex-col gap-3">
               <TextField type="dropdown" label="Currency" placeholder="Select default invoice currency"
-                value={currency} onClick={() => setCurrencyOpen(true)} />
+                value={currency} onClick={() => setCurrencyOpen(true)}
+                icon={currency ? <CountryFlag name={CURRENCY_COUNTRY[currency]} size={20} /> : undefined} />
             </div>
           </div>
         </div>

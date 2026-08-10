@@ -15,6 +15,8 @@ import { Loading } from "../../ui/Loading";
 import { ButtonDock } from "../../components/ButtonDock";
 import { IssueDateSheet } from "../../components/IssueDateSheet";
 import { NumericKeypad } from "../../components/NumericKeypad";
+import { CountryFlag } from "../../components/CountryFlag";
+import { CURRENCY_COUNTRY } from "../../components/CurrencySheet";
 import { FONT, INK, MUTED, initials } from "../../lib/theme";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
@@ -405,7 +407,7 @@ export function CreditNoteForm({
             {!refund && (
               <ListRow label="Receiving Account" value={formatAccount(accountId)} trailing="chevron" onClick={() => setAcctSheetOpen(true)} />
             )}
-            <ListRow label="Currency" value={currency} />
+            <ListRow label="Currency" value={currency} valueFlag={<CountryFlag name={CURRENCY_COUNTRY[currency]} size={16} />} />
             <ListRow label="Related Invoice" value={invoiceNo} last />
           </ListCard>
         </div>

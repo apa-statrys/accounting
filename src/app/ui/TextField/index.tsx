@@ -23,7 +23,8 @@ interface TextFieldProps {
   error?: boolean;
   /** Paints the focused border without real focus — Showcase-only. */
   forceFocus?: boolean;
-  /** 20px leading icon for type="left-icon" (inherits the state color). */
+  /** 20px leading icon for type="left-icon" or "dropdown" (inherits the state color) — e.g. a
+   *  country flag on a Currency/Country picker row. */
   icon?: React.ReactNode;
   /** Selector label — defaults per type: "+1" (mobile), "USD" (currency), "Unit" (unit). */
   selectorLabel?: string;
@@ -176,6 +177,7 @@ export function TextField({
     type === "dropdown" || type === "date-picker" ? (
       <div className={classes}>
         <button type="button" className={styles.picker} onClick={onClick} disabled={disabled} aria-label={ariaLabel} data-req={dataReq}>
+          {type === "dropdown" && icon && <span className={styles.leftIcon}>{icon}</span>}
           <span className={`${styles.pickerText} ${value ? "" : styles.placeholderText}`}>{value || placeholder}</span>
           <span className={type === "dropdown" ? styles.chevronLg : styles.calendar}>
             {type === "dropdown" ? <Chevron size={24} /> : <CalendarIcon />}

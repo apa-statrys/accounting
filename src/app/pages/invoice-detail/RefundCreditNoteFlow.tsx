@@ -11,6 +11,7 @@ import { ListRow } from "../../ui/ListRow";
 import { TextField } from "../../ui/TextField";
 import { Calendar } from "../../components/Calendar";
 import { CountryFlag } from "../../components/CountryFlag";
+import { CURRENCY_COUNTRY } from "../../components/CurrencySheet";
 import { RECEIVING_ACCOUNTS, getAccount } from "../../data/receivingAccounts";
 import { money } from "../../lib/format";
 
@@ -175,7 +176,7 @@ export function RefundCreditNoteFlow({
             <div className="bg-[var(--bg-neutral-secondary)] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4">
               {/* From — account name + full account number */}
               <ListRow label="From" value={fromAcct?.name ?? ""} valueDescription={fromAcct?.number} />
-              <ListRow label="Currency" value={currency} />
+              <ListRow label="Currency" value={currency} valueFlag={<CountryFlag name={CURRENCY_COUNTRY[currency]} size={16} />} />
               <ListRow label="To" value={customerName} />
               <ListRow label="Amount" value={money(amount, currency)} />
               <ListRow label="Reference" value={creditNoteNo || invoiceNo} last />

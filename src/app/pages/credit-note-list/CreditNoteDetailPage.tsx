@@ -11,6 +11,7 @@ import { Toast } from "../../components/Toast";
 import { CreditNotePreviewPage, CreditNoteDocumentPreview } from "./CreditNotePreviewPage";
 import { FilePreviewOverlay, type UploadedFileInfo } from "../../components/UploadedFile";
 import { CountryFlag } from "../../components/CountryFlag";
+import { CURRENCY_COUNTRY } from "../../components/CurrencySheet";
 import { money, fmtDate } from "../../lib/format";
 import { ListRow } from "../../ui/ListRow";
 import { ListCard } from "../../ui/ListCard";
@@ -289,7 +290,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           <ListCard>
             <ListRow label="Credit Issue Date" value={issueDateLabel} />
             <ListRow label="Due Date" value={dueDateLabel ?? "—"} />
-            <ListRow label="Currency" value={currency} />
+            <ListRow label="Currency" value={currency} valueFlag={<CountryFlag name={CURRENCY_COUNTRY[currency]} size={16} />} />
             {reasonText && <ListRow label="Reason" value={reasonText} valueDescription={reasonNote} />}
             {onViewInvoice ? (
               <ListRow label="Related Invoice" value={invoiceNo} trailing="chevron" onClick={onViewInvoice} last />
