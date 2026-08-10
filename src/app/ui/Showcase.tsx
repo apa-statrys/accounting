@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Download } from "lucide-react";
 import { FONT, INK, MUTED } from "../lib/theme";
 import { Toggle } from "./Toggle";
@@ -888,8 +889,16 @@ function BadgeOverview() {
 
 const CHIPS_CONTROL_GROUPS: ControlGroup[] = [
   {
+    key: "type",
+    label: "Type",
+    options: [
+      { value: "filter", label: "Filter" },
+      { value: "input", label: "Input" },
+    ],
+  },
+  {
     key: "active",
-    label: "State",
+    label: "State (Filter only)",
     options: [
       { value: "off", label: "Default" },
       { value: "on", label: "Active" },
@@ -899,12 +908,19 @@ const CHIPS_CONTROL_GROUPS: ControlGroup[] = [
 
 function ChipsOverview() {
   const [selected, setSelected] = useState("newest");
+  const [demoTags, setDemoTags] = useState(["ada@example.com", "sam@example.com"]);
   return (
     <div className="flex flex-col gap-6">
       <InteractiveDemo
         groups={CHIPS_CONTROL_GROUPS}
-        defaultValues={{ active: "off" }}
-        render={(v) => <Chips label="Label" active={v.active === "on"} />}
+        defaultValues={{ type: "filter", active: "off" }}
+        render={(v) =>
+          v.type === "input" ? (
+            <Chips type="input" label="name@example.com" onDismiss={() => {}} />
+          ) : (
+            <Chips label="Label" active={v.active === "on"} />
+          )
+        }
       />
       <div className="flex flex-col gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
         <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>As a filter row — one selected at a time:</p>
@@ -915,6 +931,38 @@ function ChipsOverview() {
               <Chips key={key} label={label} active={selected === key} onClick={() => setSelected(key)} />
             );
           })}
+        </div>
+      </div>
+      <div className="flex flex-col gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
+        <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
+          As removable value pills (e.g. Send Invoice's Add Recipients) — press and hold one to see
+          its Pressed surface; tap the "x" to remove it, animated in/out via AnimatePresence:
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <AnimatePresence initial={false}>
+            {demoTags.map((tag) => (
+              <motion.div
+                key={tag}
+                layout
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.15 }}
+              >
+                <Chips type="input" label={tag} onDismiss={() => setDemoTags((prev) => prev.filter((t) => t !== tag))} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          {demoTags.length === 0 && (
+            <button
+              type="button"
+              className="text-[12px] underline"
+              style={{ ...FONT, color: MUTED }}
+              onClick={() => setDemoTags(["ada@example.com", "sam@example.com"])}
+            >
+              Reset demo
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -3185,9 +3233,10 @@ export function Showcase() {
             {!isFoundation && activeNav === "chips" && (
               <ComponentPage
                 title="Chips"
-                description="A single-line filter toggle — transparent background, black label in both states; only the border switches from neutral to black when active."
+                description="Two types: a single-line filter toggle (transparent background, only the border switches from neutral to black when active), and a removable value pill (white background + a trailing dismiss 'x', with a momentary Pressed surface while held)."
                 whenToUse={[
-                  "A single-line filter toggle where only the border needs to communicate active/inactive, not a filled background",
+                  "type=\"filter\" — a single-line filter toggle where only the border needs to communicate active/inactive, not a filled background",
+                  "type=\"input\" — a removable value the user added themselves (e.g. an email recipient) that needs its own dismiss control, distinct from a Badge (which is never removable) or a Tile row (which is a full list row, not an inline pill)",
                 ]}
                 overview={<ChipsOverview />}
               />

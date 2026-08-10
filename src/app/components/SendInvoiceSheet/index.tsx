@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import CloseIcon from "@mui/icons-material/Close";
 import LinkIcon from "@mui/icons-material/Link";
 import CheckIcon from "@mui/icons-material/Check";
 import { Download as DownloadIcon } from "lucide-react";
@@ -18,6 +17,7 @@ import { TextField } from "../../ui/TextField";
 import { TextArea } from "../../ui/TextArea";
 import { Checkbox } from "../../ui/Checkbox";
 import { Toggle } from "../../ui/Toggle";
+import { Chips } from "../../ui/Chips";
 import { FONT, avatarTint, initials } from "../../lib/theme";
 import { EMAIL_RE } from "../../lib/format";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
@@ -26,6 +26,9 @@ import styles from "./index.module.css";
 function Label({ children }: { children: React.ReactNode }) {
   return <p className="body-sm-medium text-[var(--text-primary)]">{children}</p>;
 }
+
+/** Recipients are capped — an email blast to an unbounded list isn't this flow's job. */
+const MAX_RECIPIENTS = 5;
 
 interface SendInvoiceSheetProps {
   open: boolean;
@@ -147,12 +150,24 @@ export function SendInvoiceSheet({
       .filter(Boolean);
     const valid = parts.filter((p) => EMAIL_RE.test(p));
     const invalid = parts.filter((p) => !EMAIL_RE.test(p));
-    if (valid.length) {
-      setRecipients((prev) => [...prev, ...valid.filter((p) => !prev.includes(p))]);
+    const newOnes = valid.filter((p) => !recipients.includes(p));
+    // Cap at MAX_RECIPIENTS — anything past the remaining slots is held back rather than silently
+    // dropped, so it stays in the field (alongside any invalid text) for the client to see/retry.
+    const remaining = Math.max(0, MAX_RECIPIENTS - recipients.length);
+    const toAdd = newOnes.slice(0, remaining);
+    const overflow = newOnes.slice(remaining);
+    if (toAdd.length) {
+      setRecipients((prev) => [...prev, ...toAdd]);
     }
-    setRecipientError(invalid.length ? "Enter a valid email address" : null);
-    // Keep any invalid text in the field so the client can fix it.
-    setDraft(invalid.join(", "));
+    setRecipientError(
+      invalid.length
+        ? "Enter a valid email address"
+        : overflow.length
+          ? `You can add up to ${MAX_RECIPIENTS} recipients`
+          : null
+    );
+    // Keep any invalid or over-the-cap text in the field so the client can fix/reconsider it.
+    setDraft([...invalid, ...overflow].join(", "));
   };
 
   /** Validate every address, then send — with a recoverable failure state (DES-718 AC4). Shows a
@@ -313,23 +328,24 @@ export function SendInvoiceSheet({
 
                           {recipients.length > 0 && (
                             <div className="flex flex-wrap gap-2">
-                              {recipients.map((r) => (
-                                <span
-                                  key={r}
-                                  className="inline-flex items-center gap-1.5 h-[30px] pl-3 pr-2 rounded-full border border-[rgba(160,160,160,0.45)] text-[12px] uppercase text-[var(--text-primary)]"
-                                  style={FONT}
-                                >
-                                  {r}
-                                  <button
-                                    type="button"
-                                    aria-label={`Remove ${r}`}
-                                    onClick={() => setRecipients((prev) => prev.filter((x) => x !== r))}
-                                    className="shrink-0"
+                              <AnimatePresence initial={false}>
+                                {recipients.map((r) => (
+                                  <motion.div
+                                    key={r}
+                                    layout
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    transition={{ duration: 0.15 }}
                                   >
-                                    <CloseIcon style={{ fontSize: 14, color: "var(--text-secondary)" }} />
-                                  </button>
-                                </span>
-                              ))}
+                                    <Chips
+                                      type="input"
+                                      label={r}
+                                      onDismiss={() => setRecipients((prev) => prev.filter((x) => x !== r))}
+                                    />
+                                  </motion.div>
+                                ))}
+                              </AnimatePresence>
                             </div>
                           )}
                         </div>

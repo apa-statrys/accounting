@@ -1,6 +1,8 @@
 /* Chips — Figma "[APP] Design System" → Chips (node 4565-2176). Fixed 30px
-   height, transparent background, 4px radius. Label stays black in both
-   states; only the border color switches. Colors from styles/theme.css. */
+   height, 4px radius. "filter" (default): transparent background, black label
+   in both states — only the border switches. "input": white background, a
+   trailing 16px dismiss "x", and a Pressed surface while held down. Colors
+   from styles/theme.css. */
 
 .chip {
   composes: body-sm-medium from global;
@@ -20,4 +22,34 @@
 
 .active {
   border-color: var(--btn-secondary);
+}
+
+.input {
+  gap: var(--space-2);
+  background: var(--bg-neutral-primary);
+  cursor: default;
+}
+
+.input.pressed {
+  background: var(--bg-neutral-primary-hover);
+  border-color: var(--border-beige-primary-hover);
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
 }
