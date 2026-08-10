@@ -355,10 +355,10 @@ export function CreditNoteForm({
   );
 
   return (
-    <div className="absolute inset-0 z-50 bg-white rounded-[48px] overflow-hidden flex flex-col" style={{ width: 375, height: 812 }}>
+    <div className="absolute inset-0 z-50 bg-[var(--bg-neutral-tertiary)] rounded-[48px] overflow-hidden flex flex-col" style={{ width: 375, height: 812 }}>
       <div
         ref={scrollRef}
-        className={`flex-1 thin-scrollbar bg-white ${scrollLocked ? "overflow-hidden" : "overflow-y-auto"}`}
+        className={`flex-1 thin-scrollbar ${scrollLocked ? "overflow-hidden" : "overflow-y-auto"}`}
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
         onWheel={() => { if (focusedLineId) closeKeypad(); }}
         onTouchMove={() => { if (focusedLineId) closeKeypad(); }}
@@ -384,14 +384,20 @@ export function CreditNoteForm({
           />
         </PageAppHeader>
 
-        <div className={`px-4 flex flex-col gap-5 ${focusedLineId ? "pb-[340px]" : keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
-        {/* Beige zone (DES-719 UI) — details card + customer card + related invoice on #f9f5ea.
-            No CN number while creating (decided 2026-07-15) — the real number is assigned on apply. */}
-        <div className="-mx-4 px-4 pt-5 pb-5 bg-[var(--bg-beige-primary)] flex flex-col gap-4">
-          {/* Details — Credit Issue Date / Due Date (editable) + Receiving Account + Currency (locked)
-              + the related invoice, all DS ListCard/ListRow — same shape as the credit note detail's
-              own Details card. */}
-          <ListCard>
+        <div className={`px-4 pt-5 flex flex-col gap-4 ${focusedLineId ? "pb-[340px]" : keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
+        {/* Customer — carried over; tap to edit for this credit note only. Same "label + Tile" section
+            shape as Create Invoice's own "Bill To" (AddInvoiceDetails). */}
+        <div className="flex flex-col gap-2">
+          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{refund ? "Refund To" : "Credit To"}</p>
+          <Tile avatar={initials(name)} title={name} text={email} onClick={openClientSheet} />
+        </div>
+
+        {/* Details — Credit Issue Date / Due Date (editable) + Receiving Account + Currency (locked)
+            + the related invoice, all DS ListCard/ListRow on the page's gray background (onLayer="gray")
+            — same "label + ListCard" section shape as Create Invoice's own Invoice Details. */}
+        <div className="flex flex-col gap-2">
+          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>Credit Details</p>
+          <ListCard onLayer="gray">
             <ListRow label="Credit Issue Date" value={formatDMY(issueDate)} trailing="chevron" onClick={() => setIssueDateOpen(true)} />
             {/* Due Date shows for both credit + refund (defaults to Next 30 days). The Receiving Account
                 row is cancellation-only — a refund CN's source account is chosen in the refund flow. */}
@@ -404,12 +410,8 @@ export function CreditNoteForm({
           </ListCard>
         </div>
 
-        {/* Customer — carried over; tap to edit for this credit note only. DS Tile, same pattern as
-            every other customer display in the app. White zone, directly above Reason For Credit. */}
-        <Tile avatar={initials(name)} title={name} text={email} onClick={openClientSheet} />
-
-        {/* Reason — white zone (DES-719). Required, chosen from the fixed enum in the sheet. DS
-            TextField (dropdown), matching every other required-picker field in the app. */}
+        {/* Reason — required, chosen from the fixed enum in the sheet. DS TextField (dropdown),
+            matching every other required-picker field in the app. */}
         <TextField
           type="dropdown"
           label="Reason For Credit"
@@ -427,9 +429,9 @@ export function CreditNoteForm({
 
         {/* Corrected invoice — edit each line to its CORRECT value; the credit is derived automatically. */}
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-2 px-1">
-            <p className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>
-              {refund ? "Items to refund" : "Items"} <span style={{ color: amountError ? "var(--text-error-primary)" : undefined }}>*</span>
+          <div className="flex items-center justify-between gap-2">
+            <p className="body-sm-medium" style={{ ...FONT, color: INK }}>
+              {refund ? "Items to Refund" : "Items"} <span style={{ color: amountError ? "var(--text-error-primary)" : undefined }}>*</span>
             </p>
             {!refund && credited > 0 && (
               <span
@@ -455,9 +457,9 @@ export function CreditNoteForm({
           )}
 
           {refund && fpMode === "full" ? (
-            /* Full refund → read-only line list, DS ListCard/ListRow — same shape as the credit note
-               detail's own Credited/Refund items card. */
-            <ListCard>
+            /* Full refund → read-only line list, DS ListCard/ListRow on the page's gray background
+               — same shape as Create Invoice's own Items card. */
+            <ListCard onLayer="gray">
               {(itemsExpanded ? items : items.slice(0, COLLAPSED_ITEMS)).map((it, i, arr) => (
                 <ListRow
                   key={i}
@@ -533,38 +535,37 @@ export function CreditNoteForm({
           )}
         </div>
 
-        {/* Summary — auto-derived; the user never types a total. */}
+        {/* Summary — auto-derived; the user never types a total. Same card shell as Create Invoice's
+            own Summary (components/SummaryCard tokens: white fill, radius-3xl, solid hairline
+            dividers, restrained body-sm/body-sm-bold weights) — not the read-only detail page's
+            bordered-gray card, since this is a form, same family as Create Invoice. */}
         <div ref={summaryRef} className="flex flex-col gap-2">
-          <p className="px-1 text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>
+          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>
             {refund ? "Refund Summary" : "Summary"}
           </p>
-          <div className="bg-[var(--bg-neutral-secondary)] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4 py-1">
-            <div className="flex items-center justify-between py-2.5">
+          <div className="bg-[var(--bg-neutral-primary)] rounded-[var(--radius-3xl)] px-4 py-1 overflow-hidden">
+            <div className="flex items-center justify-between py-2.5 border-b border-[var(--border-neutral-primary)]">
               {/* Refund: against the amount paid. Credit: against the (possibly already-reduced) balance. */}
-              <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>{refund ? "Original paid amount" : alreadyCredited > 0.001 ? "Current balance" : "Invoice Total"}</span>
-              <span className="text-[13px]" style={{ ...FONT, color: INK }}>{money(invoiceTotal)}</span>
+              <span className="body-sm" style={{ ...FONT, color: MUTED }}>{refund ? "Original paid amount" : alreadyCredited > 0.001 ? "Current balance" : "Invoice Total"}</span>
+              <span className="body-sm" style={{ ...FONT, color: INK }}>{money(invoiceTotal)}</span>
             </div>
             {refund ? (
-              <>
-                {/* Total refund is the highlighted figure. */}
-                <div className="h-px bg-[rgba(160,160,160,0.3)] my-1" />
-                <div className="flex items-center justify-between py-3">
-                  <span className="text-[15px] font-black tracking-[-0.3px]" style={{ ...FONT, color: INK }}>Total refund</span>
-                  <span className="text-[18px] font-black tracking-[-0.5px]" style={{ ...FONT, color: "var(--text-error-primary)" }}>− {money(credited)}</span>
-                </div>
-              </>
+              /* Total refund is the highlighted figure. */
+              <div className="flex items-center justify-between py-2.5">
+                <span className="body-sm-bold" style={{ ...FONT, color: INK }}>Total refund</span>
+                <span className="body-sm-bold" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(credited)}</span>
+              </div>
             ) : (
               <>
                 {/* Auto-calculated: Credit Amount = Original Total − Edited Total. */}
-                <div className="flex items-center justify-between py-2.5">
-                  <span className="text-[13px]" style={{ ...FONT, color: MUTED }}>Credit Amount</span>
-                  <span className="text-[13px] font-medium" style={{ ...FONT, color: "var(--text-error-primary)" }}>− {money(credited)}</span>
+                <div className="flex items-center justify-between py-2.5 border-b border-[var(--border-neutral-primary)]">
+                  <span className="body-sm" style={{ ...FONT, color: MUTED }}>Credit Amount</span>
+                  <span className="body-sm" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(credited)}</span>
                 </div>
-                <div className="h-px bg-[rgba(160,160,160,0.3)] my-1" />
                 {/* Amount Due = Edited Invoice Total. */}
-                <div className="flex items-center justify-between py-3">
-                  <span className="text-[15px] font-bold" style={{ ...FONT, color: INK }}>Amount Due</span>
-                  <span className="text-[15px] font-bold" style={{ ...FONT, color: INK }}>{money(amountDue)}</span>
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="body-sm-bold" style={{ ...FONT, color: INK }}>Amount Due</span>
+                  <span className="body-sm-bold" style={{ ...FONT, color: INK }}>{money(amountDue)}</span>
                 </div>
               </>
             )}
