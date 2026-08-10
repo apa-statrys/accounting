@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, MoreHorizontal, Receipt, Trash2 } from "lucide-react";
+import { FileText, MoreVertical, Receipt, Trash2 } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
@@ -222,7 +222,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         title={status === "Draft" ? (kind === "refund" ? "Refund Credit Note" : "Credit Note") : creditNoteNo}
         onBack={onBack}
         showSearch={hasMenu}
-        rightIcon={<MoreHorizontal size={20} strokeWidth={1} />}
+        rightIcon={<MoreVertical size={20} strokeWidth={1} />}
         rightLabel="More actions"
         onRightClick={() => setActionsOpen(true)}
       />
@@ -513,52 +513,47 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       )}
 
       {/* ⋯ actions — Open: Cancel + Preview · Applied: Edit · refund: Preview. DS header, titleless
-          (grabber + actions), matching the invoice-detail ⋯ menu. */}
+          (grabber + actions), same Tile-row recipe as invoice-detail/ActionsMenu (not a hand-rolled
+          button+divider list — that was a drift from this shared ⋯-menu convention). */}
       <BottomSheet open={actionsOpen} title="" onClose={() => setActionsOpen(false)}>
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-2 pt-2">
           {/* Draft (cancellation or refund) → only Delete Credit Note (confirmed via a prompt). */}
           {(isOpen || isRefundDraft) && onCancel && (
-            <button onClick={() => { setActionsOpen(false); setConfirmDelete(true); }} className="w-full flex items-center gap-3 py-3.5 text-left">
-              <Trash2 size={20} strokeWidth={1.5} color="var(--icon-error-primary)" />
-              <span className="text-[15px]" style={{ ...FONT, color: "var(--text-error-primary)" }}>Delete Credit Note</span>
-            </button>
+            <Tile
+              icon={<Trash2 size={24} strokeWidth={1.5} color="var(--text-error-primary)" />}
+              title={<span style={{ color: "var(--text-error-primary)" }}>Delete Credit Note</span>}
+              onClick={() => { setActionsOpen(false); setConfirmDelete(true); }}
+            />
           )}
           {/* Applied → Cancel credit note (full reversal) + Preview as PDF. */}
           {isApplied && (
             <>
               {onCancel && (
-                <button onClick={() => { setActionsOpen(false); if (lockedPeriod) { setLockedCancelOpen(true); return; } setConfirmCancel(true); }} className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]">
-                  <Trash2 size={20} strokeWidth={1.5} color="var(--icon-error-primary)" />
-                  <span className="text-[15px]" style={{ ...FONT, color: "var(--text-error-primary)" }}>Cancel credit note</span>
-                </button>
+                <Tile
+                  icon={<Trash2 size={24} strokeWidth={1.5} color="var(--text-error-primary)" />}
+                  title={<span style={{ color: "var(--text-error-primary)" }}>Cancel credit note</span>}
+                  onClick={() => { setActionsOpen(false); if (lockedPeriod) { setLockedCancelOpen(true); return; } setConfirmCancel(true); }}
+                />
               )}
-              <button onClick={openPdfPreview} className="w-full flex items-center gap-3 py-3.5 text-left">
-                <FileText size={20} strokeWidth={1.5} color={INK} />
-                <span className="text-[15px]" style={{ ...FONT, color: INK }}>Preview as PDF</span>
-              </button>
+              <Tile icon={<FileText size={24} strokeWidth={1.5} />} title="Preview as PDF" onClick={openPdfPreview} />
             </>
           )}
           {/* Cancelled record → Preview as PDF only (moved here from the dock). */}
           {isCancelled && (
-            <button onClick={openPdfPreview} className="w-full flex items-center gap-3 py-3.5 text-left">
-              <FileText size={20} strokeWidth={1.5} color={INK} />
-              <span className="text-[15px]" style={{ ...FONT, color: INK }}>Preview as PDF</span>
-            </button>
+            <Tile icon={<FileText size={24} strokeWidth={1.5} />} title="Preview as PDF" onClick={openPdfPreview} />
           )}
           {isRefund && !isRefundDraft && (
             // Cancellable refund (Pending Refund / Applied, pre-payout) → Cancel refund (reverse it) +
             // Preview. Settled/awaiting → Preview only. (A refund DRAFT is handled above — Delete only.)
             <>
               {isRefundCancellable && onCancel && (
-                <button onClick={() => { setActionsOpen(false); if (lockedPeriod) { setLockedCancelOpen(true); return; } setConfirmCancel(true); }} className="w-full flex items-center gap-3 py-3.5 text-left border-b border-[#f1f1f1]">
-                  <Trash2 size={20} strokeWidth={1.5} color="var(--icon-error-primary)" />
-                  <span className="text-[15px]" style={{ ...FONT, color: "var(--text-error-primary)" }}>Cancel refund</span>
-                </button>
+                <Tile
+                  icon={<Trash2 size={24} strokeWidth={1.5} color="var(--text-error-primary)" />}
+                  title={<span style={{ color: "var(--text-error-primary)" }}>Cancel refund</span>}
+                  onClick={() => { setActionsOpen(false); if (lockedPeriod) { setLockedCancelOpen(true); return; } setConfirmCancel(true); }}
+                />
               )}
-              <button onClick={openPdfPreview} className="w-full flex items-center gap-3 py-3.5 text-left">
-                <FileText size={20} strokeWidth={1.5} color={INK} />
-                <span className="text-[15px]" style={{ ...FONT, color: INK }}>Preview as PDF</span>
-              </button>
+              <Tile icon={<FileText size={24} strokeWidth={1.5} />} title="Preview as PDF" onClick={openPdfPreview} />
             </>
           )}
         </div>
