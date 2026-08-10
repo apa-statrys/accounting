@@ -940,8 +940,8 @@ export function InvoiceDetailPage({
           />
         )
       ) : isRefundContext ? (
-        // Refund credit note (DES-720). The only INVOICE-level action is the money-out ("Refund
-        // Credit Note") while a payout is still due — sending/resending the credit note's own
+        // Refund credit note (DES-720). The only INVOICE-level action is the money-out ("Continue
+        // Refund") while a payout is still due — sending/resending the credit note's own
         // document is a CN-level action that lives on the CN's own detail page (decided
         // 2026-08-13; matches the "sent from its own detail page" note the pending-payout branch
         // below already had), not duplicated here. Once the payout is done/submitted there's
@@ -952,13 +952,15 @@ export function InvoiceDetailPage({
           null
         ) : (
           // Refund pending (Figma 696:5495): Resend Invoice (secondary — it's already been sent to
-          // reach this refund state) + Refund Credit Note (primary, money-out — the DES-720 AC3 label).
+          // reach this refund state) + the money-out primary. DES-720 AC3 labelled that button
+          // "Refund Credit Note"; renamed to "Continue Refund" because the refund is already
+          // under way at this point and the button resumes it rather than starting a new one.
           // The refund CN is sent from its own detail page.
           <ButtonDock
             type="double"
             sticky
             secondaryLabel="Resend invoice"
-            primaryLabel="Refund Credit Note"
+            primaryLabel="Continue Refund"
             secondaryLoading={sendPending}
             onSecondary={openSend}
             onPrimary={() => setRefundFlowOpen(true)}
