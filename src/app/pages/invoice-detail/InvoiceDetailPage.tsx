@@ -113,7 +113,7 @@ export function InvoiceDetailPage({
   const [status, setStatus] = useState<DetailStatus>(initialStatus);
   const [actionsOpen, setActionsOpen] = useState(false);
   // Locked-period demo: which blocked action was tapped (drives the dialog copy). null = closed.
-  const [lockedAction, setLockedAction] = useState<null | "send" | "edit" | "createCn" | "refund">(null);
+  const [lockedAction, setLockedAction] = useState<null | "send" | "edit" | "createCn">(null);
   // Locked-period demo: which blocked action was tapped on the (refund) credit-note DETAIL overlay
   // (Edit or Apply) — its own dialog so it layers above the z-50 CN overlay (the top-level dialog would
   // render behind it). null = closed.
@@ -1014,7 +1014,8 @@ export function InvoiceDetailPage({
         terminal={terminal}
         cancellable={cancellable}
         creditNotesCount={activeCnCount}
-        onRefundWithCn={() => { setActionsOpen(false); if (lockedPeriod) { setLockedAction("refund"); return; } setRefundFormOpen(true); }}
+        lockedPeriod={lockedPeriod}
+        onRefundWithCn={() => { setActionsOpen(false); setRefundFormOpen(true); }}
         onPreviewPdf={() => { setActionsOpen(false); setPdfFromSend(false); setPdfPreviewOpen(true); }}
         onSendInvoice={() => { setActionsOpen(false); setSendSheetOpen(true); }}
         onEdit={openEdit}
@@ -1054,7 +1055,9 @@ export function InvoiceDetailPage({
       </BottomSheet>
 
       {/* Locked-period demo (DES-751): Send / Edit / Add-credit-note blocked because the invoice is
-          in a closed accounting period. Copy is specific to the action the operator attempted. */}
+          in a closed accounting period. Copy is specific to the action the operator attempted.
+          Refund isn't here — ActionsMenu hides "Refund with Credit Note" outright when locked
+          (a new credit note can't be created in a locked period), so there's no tap to block. */}
       <LockedPeriodDialog
         open={lockedAction !== null}
         title={
@@ -1062,8 +1065,6 @@ export function InvoiceDetailPage({
             ? "Unable to send invoice"
             : lockedAction === "createCn"
             ? "Credit note can’t be added"
-            : lockedAction === "refund"
-            ? "Refund can’t be added"
             : "Editing isn’t available"
         }
         body={
@@ -1071,8 +1072,6 @@ export function InvoiceDetailPage({
             ? "This invoice can’t be sent because it belongs to a closed accounting period (31 Dec 2026)."
             : lockedAction === "createCn"
             ? "A credit note can’t be added because this invoice’s date (31 Dec 2026) falls in a closed accounting period. Contact your accountant for assistance."
-            : lockedAction === "refund"
-            ? "A refund credit note can’t be added because this invoice’s date (31 Dec 2026) falls in a closed accounting period. Contact your accountant for assistance."
             : "This invoice can’t be edited because its date (31 Dec 2026) falls in a closed accounting period. Contact your accountant for assistance."
         }
         onClose={() => setLockedAction(null)}

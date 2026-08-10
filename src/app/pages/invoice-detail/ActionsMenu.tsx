@@ -25,6 +25,11 @@ interface ActionsMenuProps {
    *  Edit, so the ⋯ menu offers only Delete draft) or a logged-but-unapproved payment (Pending
    *  Reconciliation), which locks editing until the accountant approves or reverses it. */
   hideEdit?: boolean;
+  /** DES-751 — the invoice's date falls in a closed accounting period. A refund needs a NEW credit
+   *  note, which can't be created in a locked period, so "Refund with Credit Note" is hidden
+   *  outright here (unlike Edit/Send/Add-credit-note, which stay visible and block via a dialog on
+   *  tap) — there's nothing to explain mid-flow since the row never offers the action at all. */
+  lockedPeriod?: boolean;
 }
 
 export function ActionsMenu({
@@ -43,13 +48,15 @@ export function ActionsMenu({
   onCreateCn,
   onDeleteDraft,
   hideEdit,
+  lockedPeriod = false,
 }: ActionsMenuProps) {
   return (
     <BottomSheet open={open} title="" onClose={onClose}>
       <div className="flex flex-col gap-2 pt-2">
         {/* Plain Paid invoice (no refund yet) → start a refund with a credit note (DES-720). Once a refund
-            is in progress, this drops out and the ⋯ shows Duplicate invoice instead. */}
-        {SHOW_CREDIT_NOTES && status === "Paid" && creditNotesCount === 0 && (
+            is in progress, this drops out and the ⋯ shows Duplicate invoice instead. Hidden entirely
+            (not shown-then-blocked) in a locked accounting period — see `lockedPeriod` doc above. */}
+        {SHOW_CREDIT_NOTES && status === "Paid" && creditNotesCount === 0 && !lockedPeriod && (
           <Tile
             icon={<Receipt size={24} strokeWidth={1.5} />}
             title="Refund with Credit Note"
