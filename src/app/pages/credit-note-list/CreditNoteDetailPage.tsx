@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, MoreVertical, Pencil, Receipt, Trash2 } from "lucide-react";
+import { FileText, MoreVertical, Pencil, Receipt, Trash2, XCircle } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
@@ -519,17 +519,18 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
               )}
             </>
           )}
-          {/* Applied → Cancel credit note (full reversal) + Preview as PDF. */}
+          {/* Applied → Preview as PDF + Cancel credit note (full reversal) — Cancel is destructive,
+              so it goes last, same as Delete in the Draft branch above. */}
           {isApplied && (
             <>
+              <Tile icon={<FileText size={24} strokeWidth={1.5} />} title="Preview as PDF" onClick={openPdfPreview} />
               {onCancel && (
                 <Tile
-                  icon={<Trash2 size={24} strokeWidth={1.5} color="var(--text-error-primary)" />}
+                  icon={<XCircle size={24} strokeWidth={1.5} color="var(--text-error-primary)" />}
                   title={<span style={{ color: "var(--text-error-primary)" }}>Cancel credit note</span>}
                   onClick={() => { setActionsOpen(false); if (lockedPeriod) { setLockedCancelOpen(true); return; } setConfirmCancel(true); }}
                 />
               )}
-              <Tile icon={<FileText size={24} strokeWidth={1.5} />} title="Preview as PDF" onClick={openPdfPreview} />
             </>
           )}
           {/* Cancelled record → Preview as PDF only (moved here from the dock). */}
@@ -537,17 +538,18 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             <Tile icon={<FileText size={24} strokeWidth={1.5} />} title="Preview as PDF" onClick={openPdfPreview} />
           )}
           {isRefund && !isRefundDraft && (
-            // Cancellable refund (Pending Refund / Applied, pre-payout) → Cancel refund (reverse it) +
-            // Preview. Settled/awaiting → Preview only. (A refund DRAFT is handled above — Delete only.)
+            // Cancellable refund (Pending Refund / Applied, pre-payout) → Preview + Cancel refund
+            // (reverse it), Cancel last (destructive, same as Delete in the Draft branch above).
+            // Settled/awaiting → Preview only. (A refund DRAFT is handled above — Delete only.)
             <>
+              <Tile icon={<FileText size={24} strokeWidth={1.5} />} title="Preview as PDF" onClick={openPdfPreview} />
               {isRefundCancellable && onCancel && (
                 <Tile
-                  icon={<Trash2 size={24} strokeWidth={1.5} color="var(--text-error-primary)" />}
+                  icon={<XCircle size={24} strokeWidth={1.5} color="var(--text-error-primary)" />}
                   title={<span style={{ color: "var(--text-error-primary)" }}>Cancel refund</span>}
                   onClick={() => { setActionsOpen(false); if (lockedPeriod) { setLockedCancelOpen(true); return; } setConfirmCancel(true); }}
                 />
               )}
-              <Tile icon={<FileText size={24} strokeWidth={1.5} />} title="Preview as PDF" onClick={openPdfPreview} />
             </>
           )}
         </div>
