@@ -113,6 +113,10 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // Status chip: application lifecycle (DES-763) for cancellation, money lifecycle for refund.
   const displayStatus = status ?? (kind === "refund" ? "Pending Refund" : "Open");
   const chip = CREDIT_NOTE_STATUS_META[displayStatus] ?? CREDIT_NOTE_STATUS_META["Open"];
+  // The document's own reference, shown in the hero body below the price — same convention as the
+  // invoice detail's own heroReference. A Draft carries no CN number yet (decided 2026-07-15), so
+  // nothing shows until it's applied.
+  const heroReference = status === "Draft" ? "" : creditNoteNo;
   const reasonText = reason || null;
   const amountLabel = `${currency} ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   // Shared by the full PDF preview and the Send sheet's own compact PDF-segment preview.
@@ -222,8 +226,10 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       <PageAppHeader scrolled={scrolled}>
       <PageHeader
         type="center"
-        // Drafts carry no CN number yet (decided 2026-07-15) — a generic title until the note is applied.
-        title={status === "Draft" ? (kind === "refund" ? "Refund Credit Note" : "Credit Note") : creditNoteNo}
+        // Always generic — never the document number, same convention as the invoice detail's own
+        // page header ("Invoice Details", never the invoice number). The real reference (once
+        // assigned) shows in the hero body below the price instead (see heroReference).
+        title={kind === "refund" ? "Refund Credit Note" : "Credit Note"}
         onBack={onBack}
         showSearch={hasMenu}
         rightIcon={<MoreVertical size={20} strokeWidth={1} />}
@@ -235,13 +241,38 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       {/* Status + amount — full-bleed beige→white gradient hero, a direct sibling of the header
           (not nested inside the padded content below) so it bleeds edge-to-edge flush against the
           header with no white seam — same structure as the invoice detail's own status+amount hero
-          (Figma "Invoice Detail", node 1423:63521): plain colored status text (no pill), currency
-          code + big black amount, muted subline below. */}
+          (Figma "Invoice Detail", node 1423:63521): status badge + date on one line (plain colored
+          text, no pill), currency code + big black amount below, the document's own reference (once
+          assigned) below that. */}
       <div
         className="p-4 flex flex-col gap-2"
         style={{ backgroundImage: "linear-gradient(180deg, var(--bg-beige-primary) 1%, var(--bg-neutral-primary) 99%)" }}
       >
-        <span className="caption-medium" style={{ ...FONT, color: chip.text }}>{displayStatus}</span>
+        {/* Status + date on one line, same "badge · date" row the invoice detail's own hero uses —
+            Awaiting refund used to show nothing at all here even though the submitted date is
+            already known (refundProof.date is set once the payout is submitted, and shown further
+            down in the Refund Method card regardless of `awaiting`). */}
+        <span className="flex items-center gap-1.5 flex-wrap">
+          <span className="caption-medium" style={{ ...FONT, color: chip.text }}>{displayStatus}</span>
+          <span className="caption-medium" style={{ ...FONT, color: INK }} aria-hidden="true">·</span>
+          <span className="caption-medium" style={{ ...FONT, color: INK }}>
+            {displayStatus === "Awaiting refund"
+              ? `Submitted ${refundProof ? fmtDate(refundProof.date) : (updatedDateLabel ?? issueDateLabel)}`
+              : isCancelled
+              ? `Cancelled ${updatedDateLabel ?? issueDateLabel}`
+              : isRefund
+              ? (refundSettled
+                  ? `Refunded ${refundProof ? fmtDate(refundProof.date) : issueDateLabel}`
+                  // An applied (pre-payout) refund CN reads "Applied …", matching the cancellation
+                  // Applied detail; a not-yet-applied refund (Pending Refund) shows "Created …".
+                  : displayStatus === "Applied"
+                  ? `Applied ${updatedDateLabel ?? issueDateLabel}`
+                  : `Created ${issueDateLabel}`)
+              : isApplied
+                ? `Applied ${updatedDateLabel ?? issueDateLabel}`
+                : `${updatedDateLabel ? "Updated" : "Created"} ${updatedDateLabel ?? issueDateLabel}`}
+          </span>
+        </span>
         <p className="leading-none" style={{ ...FONT, color: "var(--text-error-primary)" }}>
           <span className="text-[18px] font-bold tracking-[-0.9px]">−{currency}</span>
           <span className="text-[18px]"> </span>
@@ -249,27 +280,12 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             {total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </p>
-        {/* Every status keeps a date subline, same "badge · date" convention as the invoice detail's
-            own hero — Awaiting refund used to show nothing at all here even though the submitted
-            date is already known (refundProof.date is set once the payout is submitted, and shown
-            further down in the Refund Method card regardless of `awaiting`). */}
-        <p className="body-sm" style={{ ...FONT, color: MUTED }}>
-          {displayStatus === "Awaiting refund"
-            ? `Submitted ${refundProof ? fmtDate(refundProof.date) : (updatedDateLabel ?? issueDateLabel)}`
-            : isCancelled
-            ? `Cancelled ${updatedDateLabel ?? issueDateLabel}`
-            : isRefund
-            ? (refundSettled
-                ? `Refunded ${refundProof ? fmtDate(refundProof.date) : issueDateLabel}`
-                // An applied (pre-payout) refund CN reads "Applied …", matching the cancellation
-                // Applied detail; a not-yet-applied refund (Pending Refund) shows "Created …".
-                : displayStatus === "Applied"
-                ? `Applied ${updatedDateLabel ?? issueDateLabel}`
-                : `Created ${issueDateLabel}`)
-            : isApplied
-              ? `Applied ${updatedDateLabel ?? issueDateLabel}`
-              : `${updatedDateLabel ? "Updated" : "Created"} ${updatedDateLabel ?? issueDateLabel}`}
-        </p>
+        {/* The document's own reference (the real CN number once assigned) — the page header itself
+            always just reads "Credit Note"/"Refund Credit Note" (see the generic title above). A
+            Draft has no number yet, so nothing shows. */}
+        {heroReference && (
+          <p className="body-sm" style={{ ...FONT, color: INK }}>{heroReference}</p>
+        )}
       </div>
 
       <div className="px-4 pt-2 pb-44 flex flex-col gap-4 bg-white">
