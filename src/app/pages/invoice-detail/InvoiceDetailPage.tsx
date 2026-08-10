@@ -263,10 +263,12 @@ export function InvoiceDetailPage({
   // Read-only states for content. Paid still exposes a ⋯ menu (Refund with Credit Note); Cancelled/
   // Refunded have no menu actions.
   const terminal = status === "Paid" || status === "Cancelled" || status === "Refunded";
-  // ⋯ menu: Draft (edit/delete), Awaiting/Overdue (edit / add credit note), PendingRefund. Paid,
-  // Partially Paid and Void expose their actions on the dock instead, so no menu (DES-817 review).
-  const showMenu = !terminal && status !== "PartiallyPaid";
   const sendable = status === "Awaiting" || status === "Overdue" || status === "PartiallyPaid";
+  // Suppress the "Edit Invoice" row — either an empty draft (its own dock CTA already leads to
+  // Edit) or a logged-but-unapproved payment (Pending Reconciliation), which locks editing until
+  // the accountant approves or reverses it. Shared with `hasMenuActions` below so the header's ⋯
+  // button and the menu's own row visibility never disagree.
+  const hideEditRow = isEmptyDraft || !!pendingPayment;
 
   // Refund context (Paid/PendingRefund/Refunded, or a derived refund tag) vs cancellation context.
   const refundCtx = status === "Paid" || status === "PendingRefund" || status === "Refunded" || !!refundTag;
@@ -378,8 +380,17 @@ export function InvoiceDetailPage({
   // MVP: one credit note per invoice. Count only ACTIVE (non-cancelled) notes — a cancelled note is
   // retired, so a new CN can be raised again. Gates the "Refund with Credit Note" entry (⋯ + dock).
   const activeCnCount = creditNotes.filter((c) => !c.cancelled).length;
-  // Plain Paid (no refund in progress) — its actions (Refund + Preview as PDF) live in the ⋯ menu, no dock.
-  const paidActionsInMenu = status === "Paid" && !isRefundContext && activeCnCount === 0;
+  // Whether the ⋯ menu (ActionsMenu) actually has anything in it — mirrors that component's own
+  // row conditions exactly, one clause per row, so the header's ⋯ button never opens an empty
+  // sheet (e.g. an Overdue invoice with a payment pending reconciliation has no Edit row, and none
+  // of the other rows apply either — the button used to still show).
+  const hasMenuActions =
+    (SHOW_CREDIT_NOTES && status === "Paid" && activeCnCount === 0 && !lockedPeriod) || // Refund with Credit Note
+    status === "Paid" || // Preview as PDF
+    (status === "Draft" && uploaded) || // Send invoice
+    ((status === "Draft" || status === "Awaiting" || status === "Overdue") && !hideEditRow) || // Edit Invoice
+    (SHOW_CREDIT_NOTES && cancellable && activeCnCount === 0) || // Add credit note
+    status === "Draft"; // Delete draft
   // Headline: while a payout is due, lead with the pending amount ("Amount to refund"); once settled,
   // show the cumulative amount refunded to date.
   // Hero big number is ALWAYS the original full invoice total (user, 22/Jul) — for every status,
@@ -704,7 +715,7 @@ export function InvoiceDetailPage({
         type="center"
         title={pageHeaderTitle}
         onBack={onBack}
-        showSearch={showMenu || paidActionsInMenu}
+        showSearch={hasMenuActions}
         rightIcon={<MoreVertical size={20} strokeWidth={2} />}
         rightLabel="More actions"
         onRightClick={() => setActionsOpen(true)}
@@ -1028,7 +1039,7 @@ export function InvoiceDetailPage({
         // A logged-but-unapproved payment (Pending Reconciliation) locks editing — same reasoning
         // as the dock, which already drops its own "Record Payment"/"Send" pairing down to a
         // single resend CTA once pendingPayment is set (no edit option surfaces there either).
-        hideEdit={isEmptyDraft || !!pendingPayment}
+        hideEdit={hideEditRow}
       />
 
       {/* Delete confirm (Draft only). Both actions are destructive-styled (see memory:
