@@ -53,8 +53,9 @@ export interface CreditNoteDetailPageProps {
   reason?: string;
   reasonNote?: string;
   kind?: "cancellation" | "refund";
-  /** The credit note's status. Cancellation (DES-763): Open / Partially Applied / Fully Applied /
-   *  Cancelled. Refund (DES-720): Pending Refund / Partially Refunded / Refunded. */
+  /** The credit note's status. Cancellation (DES-763, single-invoice model): Open / Applied /
+   *  Cancelled — applying is all-or-nothing, so there's no Partially/Fully Applied split. Refund
+   *  (DES-720): Pending Refund / Partially Refunded / Refunded. */
   status?: string;
   /** Refund evidence (DES-720) — shown as a "Refunded" record with an optional attachment. */
   refundProof?: CreditNoteRefundProof;
@@ -67,9 +68,9 @@ export interface CreditNoteDetailPageProps {
   onViewInvoice?: () => void;
   /** Report that the note was sent so the caller can persist the sent state. */
   onSent?: () => void;
-  /** DES-763 — apply the credit note to its invoice (Open / Partially Applied only). */
+  /** DES-763 — apply the credit note to its invoice (Open only). */
   onApply?: () => void;
-  /** DES-719 — edit the credit note (Open / Partially Applied only). */
+  /** DES-719 — edit the credit note (Open only — an Applied note is locked, never editable). */
   onEdit?: () => void;
   /** DES-763 — void the credit note (Open only, never applied). */
   onCancel?: () => void;
@@ -116,20 +117,18 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const amountLabel = `${currency} ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   // Shared by the full PDF preview and the Send sheet's own compact PDF-segment preview.
   const previewLines = lines && lines.length > 0 ? lines : [{ name: "Credit note total", amount: total }];
-  // Action layout by status (cancellation credit notes):
-  //  • Open              → dock: Apply to invoice (primary) + Edit (secondary); ⋯: Cancel, Preview as PDF.
-  //  • Partially Applied → dock: Send (primary) + Edit Credit Note (secondary); ⋯: Preview as PDF.
-  //  • Fully Applied     → dock: Send (single, no Edit); ⋯: Preview as PDF.
-  //  • Cancelled         → dock: Preview as PDF only.
-  // Refund credit notes  → dock: Send/Resend; ⋯: Preview as PDF.
+  // Action layout by status (cancellation credit notes, single-invoice model — applying is
+  // all-or-nothing, so there's no Partially/Fully Applied split):
+  //  • Open      → dock: Apply to invoice; ⋯: Edit, Cancel, Preview as PDF.
+  //  • Applied   → dock: Send (single, no Edit — locked, never editable); ⋯: Cancel, Preview as PDF.
+  //  • Cancelled → dock: none; ⋯: Preview as PDF only.
+  // Refund credit notes → dock: Send/Resend; ⋯: Preview as PDF.
   const isCancellation = kind !== "refund";
   const isRefund = kind === "refund";
-  // A Draft (DES-719) behaves like the old "Open": Apply to invoice + Edit dock, cancel/delete via ⋯.
+  // A Draft (DES-719) behaves like the old "Open": Apply to invoice dock, edit/cancel/delete via ⋯.
   const isOpen = isCancellation && (displayStatus === "Open" || displayStatus === "Draft");
-  const isPartiallyApplied = isCancellation && displayStatus === "Partially Applied";
-  // Single-invoice model: "Applied" behaves like the old Fully Applied (Send-only, non-editable).
-  const isFullyApplied = isCancellation && (displayStatus === "Fully Applied" || displayStatus === "Applied");
-  const isApplied = isPartiallyApplied || isFullyApplied;
+  // Applied is locked — never editable (Edit is Open/Draft-only; see canEditFromMenu below).
+  const isApplied = isCancellation && displayStatus === "Applied";
   // DES-720 — a refund CN is Pending Refund until transferred. NOT editable after creation (AC2) — only
   // cancellable (⋯) while still pending; `onCancel` is wired by the invoice-detail entry. In this build
   // an applied-but-not-yet-paid-out refund CN carries the status "Applied" (see the invoice-detail
@@ -159,12 +158,12 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // back to Edit only (see the dock below). Applying a refund draft commits it and moves the invoice to
   // Pending Refund (the payout step stays separate).
   const canApply = (isOpen || isRefundDraft) && !!onApply && draftComplete;
-  // Edit never appears in the dock (primary or secondary) — it's always a ⋯ Tile row instead,
-  // for a Draft (any completeness) or a Partially Applied note (still editable).
-  const canEditFromMenu = ((isOpen || isRefundDraft) || isPartiallyApplied) && !!onEdit;
-  // ⋯ exists for a Draft (Edit + Delete — cancellation OR refund), an Applied note (Edit-if-partial +
-  // Cancel + Preview), a cancellable refund (Cancel refund + Preview), or a Cancelled note (Preview
-  // as PDF — no dock).
+  // Edit never appears in the dock (primary or secondary) — it's always a ⋯ Tile row instead, for
+  // a Draft (any completeness). An Applied note is locked (never editable — see `isApplied` above).
+  const canEditFromMenu = (isOpen || isRefundDraft) && !!onEdit;
+  // ⋯ exists for a Draft (Edit + Delete — cancellation OR refund), an Applied note (Cancel +
+  // Preview), a cancellable refund (Cancel refund + Preview), or a Cancelled note (Preview as
+  // PDF — no dock).
   const hasMenu = (isOpen && !!onCancel) || (isRefundDraft && !!onCancel) || (isApplied && !!onCancel) || (isRefundCancellable && !!onCancel) || isCancelled || canEditFromMenu;
   const openSend = () => setSendSheetOpen(true);
 
@@ -280,7 +279,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             showContact={false}
             title="Accounting period closed"
             body={
-              isOpen || isPartiallyApplied || isRefundDraft
+              isOpen || isRefundDraft
                 ? "You can’t edit or cancel this credit note because its date falls within a locked accounting period."
                 : "You can’t cancel this credit note because its date falls within a locked accounting period."
             }
@@ -469,8 +468,8 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       {/* Status-driven dock (DES-763) — Edit never sits in the dock (primary or secondary); it's
           always a ⋯ Tile row instead (see canEditFromMenu / the ⋯ menu below):
           Open (complete) → Apply to invoice · Open (incomplete)/refund draft → no dock, Edit lives
-          in ⋯ · Partially/Fully Applied → Send · list-Open → Preview as PDF · Cancelled → no dock ·
-          refund → Send/Resend. */}
+          in ⋯ · Applied → Send (locked, never editable) · list-Open → Preview as PDF · Cancelled →
+          no dock · refund → Send/Resend. */}
       {canApply ? (
         <ButtonDock type="single" sticky primaryLabel="Apply to invoice" onPrimary={() => onApply?.()} />
       ) : isOpen || isRefundDraft ? (
@@ -478,9 +477,8 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         // nothing to do until it's edited, so no dock; Edit lives in the ⋯ menu.
         null
       ) : isApplied ? (
-        // Applied (partially or fully) — a single Send/Resend CTA, same sentLocal-aware label as
-        // the refund/catch-all branches below. A still-editable Partially Applied note gets its
-        // Edit row in the ⋯ menu instead.
+        // Applied — a single Send/Resend CTA, same sentLocal-aware label as the refund/catch-all
+        // branches below. Locked, never editable (single-invoice model), so no Edit anywhere here.
         <ButtonDock type="single" sticky primaryLabel={sentLocal ? "Resend Credit Note" : "Send Credit Note"} onPrimary={openSend} />
       ) : isCancelled ? (
         // Cancelled record → no dock; Preview as PDF lives in the ⋯ menu instead.
@@ -498,12 +496,12 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         />
       )}
 
-      {/* ⋯ actions — Open: Edit + Delete · Applied: Edit-if-partial + Cancel + Preview · refund:
-          Preview. DS header, titleless (grabber + actions), same Tile-row recipe as
-          invoice-detail/ActionsMenu (not a hand-rolled button+divider list — that was a drift from
-          this shared ⋯-menu convention). Edit never sits in the sticky dock (primary or secondary,
-          decided per user feedback) — this is its only home, for a Draft (any completeness) or a
-          still-editable Partially Applied note. */}
+      {/* ⋯ actions — Open: Edit + Delete · Applied: Cancel + Preview · refund: Preview. DS header,
+          titleless (grabber + actions), same Tile-row recipe as invoice-detail/ActionsMenu (not a
+          hand-rolled button+divider list — that was a drift from this shared ⋯-menu convention).
+          Edit never sits in the sticky dock (primary or secondary, decided per user feedback) —
+          this is its only home, and only for a Draft (any completeness); an Applied note is locked
+          (never editable, single-invoice model — see `isApplied` above). */}
       <BottomSheet open={actionsOpen} title="" onClose={() => setActionsOpen(false)}>
         <div className="flex flex-col gap-2 pt-2">
           {/* Draft (cancellation or refund) → Edit (resume it) + Delete (confirmed via a prompt). */}
@@ -521,13 +519,9 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
               )}
             </>
           )}
-          {/* Applied → Edit (Partially Applied, still editable, only) + Cancel credit note (full
-              reversal) + Preview as PDF. */}
+          {/* Applied → Cancel credit note (full reversal) + Preview as PDF. */}
           {isApplied && (
             <>
-              {isPartiallyApplied && onEdit && (
-                <Tile icon={<Pencil size={24} strokeWidth={1.5} />} title="Edit Credit Note" onClick={() => { setActionsOpen(false); onEdit(); }} />
-              )}
               {onCancel && (
                 <Tile
                   icon={<Trash2 size={24} strokeWidth={1.5} color="var(--text-error-primary)" />}
