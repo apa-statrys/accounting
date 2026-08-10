@@ -15,6 +15,7 @@ import { Tile } from "../../ui/Tile";
 import { Loading } from "../../ui/Loading";
 import { SummaryDock } from "../../components/SummaryDock";
 import { IssueDateSheet } from "../../components/IssueDateSheet";
+import { Keyboard } from "../../components/Keyboard";
 import { NumericKeypad } from "../../components/NumericKeypad";
 import { CountryFlag } from "../../components/CountryFlag";
 import { CURRENCY_COUNTRY } from "../../components/CurrencySheet";
@@ -600,7 +601,10 @@ export function CreditNoteForm({
 
       {/* Sticky total + primary button, tap-to-expand for the full breakdown — same
           components/SummaryDock pattern as Create Invoice's own sticky footer, not the older
-          scroll-triggered ButtonDock `slot` this page used before. */}
+          scroll-triggered ButtonDock `slot` this page used before. No `keyboard` prop here — with
+          this many fields on one form, sliding the dock up above the keyboard on every focus/blur
+          is too much motion; instead the Keyboard mock below overlays it in place (same idea as
+          NumericKeypad already does for a focused unit price), so the dock never moves. */}
       <SummaryDock
         amount={
           <span style={refund ? { color: "var(--text-error-primary)" } : undefined}>
@@ -610,8 +614,15 @@ export function CreditNoteForm({
         rows={summaryRows}
         primaryLabel={isEdit ? (submitLabel ?? "Save changes") : "Create Credit Note"}
         onPrimary={handleCreate}
-        keyboard={keyboardOpen}
       />
+
+      {/* On-screen keyboard mock for the focused Description field — overlays the sticky dock
+          above (higher z-index, same bottom anchor) instead of pushing it up. */}
+      {keyboardOpen && (
+        <div className="absolute inset-x-0 bottom-0 z-[60]">
+          <Keyboard />
+        </div>
+      )}
 
       {/* Credit issue date picker */}
       <IssueDateSheet
