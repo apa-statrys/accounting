@@ -26,7 +26,7 @@ import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
 import { Toast } from "../../components/Toast";
 import type { CreditNoteEditSeed, CreditNotePayload, DraftLine, InvoiceLine } from "../../types";
-import { fmtAmount, formatDMY, lineAmount } from "./lineMath";
+import { fmtAmount, lineAmount } from "./lineMath";
 import { ReasonSheet } from "./ReasonSheet";
 import { ClientEditSheet } from "./ClientEditSheet";
 import { DueDateSheet } from "../../components/DueDateSheet";
@@ -318,7 +318,7 @@ export function CreditNoteForm({
         return { name: l.name, amount: credit };
       })
       .filter((l) => l.amount > 0.001),
-    issueDateLabel: formatDMY(issueDate),
+    issueDateLabel: format(issueDate, "d MMM yyyy"),
     issueDate,
     dueDateLabel,
     reason,
@@ -444,7 +444,7 @@ export function CreditNoteForm({
         <div className="flex flex-col gap-2">
           <p className="body-sm-medium" style={{ ...FONT, color: INK }}>Credit Details</p>
           <ListCard onLayer="gray">
-            <ListRow label="Credit Issue Date" value={formatDMY(issueDate)} trailing="chevron" onClick={() => setIssueDateOpen(true)} />
+            <ListRow label="Credit Issue Date" value={format(issueDate, "d MMM yyyy")} trailing="chevron" onClick={() => setIssueDateOpen(true)} />
             {/* Due Date shows for both credit + refund (defaults to Next 30 days). The Receiving Account
                 row is cancellation-only — a refund CN's source account is chosen in the refund flow. */}
             <ListRow label="Due Date" value={dueLabel} trailing="chevron" onClick={() => setDueOpen(true)} />

@@ -2,9 +2,6 @@
 // (lineOriginal / lineCredit) lives in CreditNoteForm.tsx — it depends on the `refund` prop.
 import type { DraftLine } from "../../types";
 
-export const formatDMY = (d: Date) =>
-  `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-
 /** Line credit total = quantity × unit price. */
 export const lineAmount = (l: DraftLine) => l.qty * (Number(l.unitPrice) || 0);
 
