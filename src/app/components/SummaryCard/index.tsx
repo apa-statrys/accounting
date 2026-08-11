@@ -19,9 +19,9 @@ function Row({
   beige?: boolean;
   boldLabel?: boolean;
   boldValue?: boolean;
-  /** Brand-colored value text — the row is an applied discount (decided 2026-08-02: discount is a
-   *  normal business action, not an error/refund, so it no longer shares the red "subtracted
-   *  amount" treatment credit notes and refunds use). */
+  /** Red value text — the row is an applied discount, same "subtracted amount" treatment credit
+   *  notes and refunds use (decided 2026-08-11, supersedes the earlier brand-colored 2026-08-02
+   *  decision). */
   discount?: boolean;
   /** Hides the row's bottom divider — pass on the final row (Figma "Create Invoice", node 1826-15914). */
   last?: boolean;
@@ -30,7 +30,7 @@ function Row({
   return (
     <div className={`${styles.row} ${isTotal ? styles.rowTotal : ''} ${beige ? styles.rowBeige : ''} ${last ? styles.noBorder : ''}`}>
       <span className={boldLabel ? styles.labelBold : styles.label}>{label}</span>
-      <span className={boldValue ? styles.valueBold : discount ? styles.valueBrand : styles.valueMedium}>{value}</span>
+      <span className={boldValue ? styles.valueBold : discount ? styles.valueError : styles.valueMedium}>{value}</span>
     </div>
   );
 }

@@ -875,9 +875,9 @@ export function InvoiceDetailPage({
             {DISCOUNT > 0 && (
               <div className="flex items-center justify-between py-2.5 border-b" style={{ borderColor: "rgba(208,208,208,0.4)" }}>
                 <span className="body-sm" style={{ ...FONT, color: MUTED }}>Discount</span>
-                {/* Brand-colored (decided 2026-08-02) — a discount isn't an error/refund, so it
-                    doesn't share the red "subtracted amount" treatment. */}
-                <span className="body-sm" style={{ ...FONT, color: "var(--text-brand)" }}>−{money(DISCOUNT, currency)}</span>
+                {/* Red — same "subtracted amount" treatment as credit notes/refunds (decided
+                    2026-08-11, supersedes the earlier brand-colored 2026-08-02 decision). */}
+                <span className="body-sm" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(DISCOUNT, currency)}</span>
               </div>
             )}
             {/* When credit is APPLIED, Total is just a reference and Amount due is the prominent figure.

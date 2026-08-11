@@ -52,12 +52,12 @@
   color: var(--text-primary);
 }
 
-/* Discount row once it's actually subtracting something — brand-colored (decided 2026-08-02),
-   not the red "subtracted amount" treatment credit notes/refunds use (e.g. Credits Applied's
-   "−USD X" line) since a discount isn't an error or a refund. */
-.valueBrand {
+/* Discount row once it's actually subtracting something — red, same "subtracted amount"
+   treatment as credit notes/refunds use (decided 2026-08-11, supersedes the earlier
+   brand-colored 2026-08-02 decision — kept as one consistent color for any negative amount). */
+.valueError {
   composes: body-sm from global;
-  color: var(--text-brand);
+  color: var(--text-error-primary);
 }
 
 .valueBold {
