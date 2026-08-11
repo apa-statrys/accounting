@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { format, parseISO } from "date-fns";
-import { ChevronDown, X } from "lucide-react";
+import { X } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
@@ -159,7 +159,8 @@ export function RefundCreditNoteFlow({
 
             {method === "ba" ? (
               <div className="flex flex-col gap-2">
-                <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Refund from</label>
+                {/* Plain body-sm label above a Tile list — matches SendInvoiceSheet's "Send To". */}
+                <p className="body-sm text-[var(--text-primary)]">Refund from</p>
                 {RECEIVING_ACCOUNTS.map((a) => (
                   <Tile
                     key={a.id}
@@ -176,41 +177,37 @@ export function RefundCreditNoteFlow({
               </div>
             ) : (
               <>
-              {/* DES-720: a refund made outside Statrys — capture date + method + amount (required) as proof. */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Amount refunded <span>*</span></label>
-                {/* Editable; capped at the outstanding refund amount. */}
-                <div className="flex items-center gap-1 rounded-xl border px-3.5 h-12 bg-white" style={{ borderColor: exceedsOutstanding ? "var(--border-error-bold)" : "rgba(160,160,160,0.4)" }}>
-                  <span className="text-[15px]" style={{ ...FONT, color: MUTED }}>{currency}</span>
-                  <input
-                    inputMode="decimal"
-                    value={mAmount}
-                    onChange={(e) => setMAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                    onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
-                    onBlur={() => setKeyboardOpen(false)}
-                    className="flex-1 min-w-0 text-right outline-none text-[16px] bg-transparent"
-                    style={{ ...FONT, color: INK }}
-                  />
-                </div>
-                <AnimatePresence initial={false}>
-                  {exceedsOutstanding && (
-                    <motion.p
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="text-[12px] leading-[1.4] overflow-hidden"
-                      style={{ ...FONT, color: "var(--text-error-primary)" }}
-                    >
-                      Refund exceed to the refund amount {currency} {amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </motion.p>
-                  )}
-                </AnimatePresence>
-              </div>
+              {/* DES-720: a refund made outside Statrys — capture date + method + amount (required) as
+                  proof. DS ui/TextField (label/mandatory/caption/error props) throughout, matching
+                  RecordPaymentSheet's own "Amount received" field — not hand-rolled bordered divs
+                  with a separate uppercase eyebrow label (that style is reserved for PDF-preview
+                  document mockups elsewhere, e.g. CreditNotePreviewPage, never a real form field). */}
+              <TextField
+                type="left-icon"
+                label="Amount refunded"
+                mandatory
+                inputMode="decimal"
+                icon={
+                  <span className="flex items-center gap-1.5 text-[15px] font-medium text-[var(--text-primary)] -ml-0.5 mr-1 whitespace-nowrap">
+                    <CountryFlag name={CURRENCY_COUNTRY[currency]} size={18} />
+                    {currency}
+                  </span>
+                }
+                value={mAmount}
+                error={exceedsOutstanding}
+                caption={
+                  exceedsOutstanding
+                    ? `Amount exceeds the refund amount of ${currency} ${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : undefined
+                }
+                onChange={(v) => setMAmount(v.replace(/[^0-9.]/g, ""))}
+                onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
+                onBlur={() => setKeyboardOpen(false)}
+              />
               <div ref={dateFieldRef} className="flex flex-col gap-1.5">
-                <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Refund date</label>
                 <TextField
                   type="date-picker"
+                  label="Refund date"
                   value={mDate ? format(parseISO(mDate), "d MMM yyyy") : ""}
                   placeholder="Select date"
                   onClick={() => setDateOpen((v) => !v)}
@@ -236,19 +233,23 @@ export function RefundCreditNoteFlow({
                 </AnimatePresence>
               </div>
               {/* Bank account used (DES-720) — a dropdown of the Statrys accounts + any registered external
-                  accounts; defaults to the primary Statrys account. */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Payment account <span>*</span></label>
-                {/* Collapsed field shows the selected account; tap to open the picker sheet. */}
-                <button type="button" onClick={() => setAcctOpen(true)} className="w-full flex items-center justify-between rounded-xl border px-3.5 h-12 bg-white text-left" style={{ borderColor: acctOpen ? "var(--text-primary)" : "rgba(160,160,160,0.4)" }}>
-                  <span className="text-[15px] truncate" style={{ ...FONT, color: mAccount ? INK : "var(--text-placeholder)" }}>{mAccount || "Select account"}</span>
-                  <ChevronDown size={22} strokeWidth={1.67} color="var(--text-secondary)" />
-                </button>
-              </div>
+                  accounts; defaults to the primary Statrys account. Same TextField type="dropdown" as
+                  AddCustomerPage's Country field, not a hand-rolled bordered button. */}
+              <TextField
+                type="dropdown"
+                label="Payment account"
+                mandatory
+                value={mAccount}
+                placeholder="Select account"
+                onClick={() => setAcctOpen(true)}
+              />
 
-              {/* Proof of refund — an optional uploaded receipt / screenshot. */}
+              {/* Proof of refund — an optional uploaded receipt / screenshot. No DS component covers
+                  an empty upload dropzone yet (ui/FileItemBase only renders an already-picked file),
+                  so this stays hand-rolled — but the label now matches every other field's body-sm
+                  style instead of the mismatched uppercase eyebrow. */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Proof of refund</label>
+                <p className="body-sm text-[var(--text-primary)]">Proof of refund</p>
                 {mProof ? (
                   <div className="flex items-center justify-between rounded-xl border border-[rgba(160,160,160,0.4)] px-3.5 h-12 bg-white">
                     <span className="text-[14px] truncate" style={{ ...FONT, color: INK }}>{mProof}</span>
