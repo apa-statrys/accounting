@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { parse, parseISO, format, addDays } from "date-fns";
 import { ArrowUpDown, ChevronDown, Search, X } from "lucide-react";
@@ -182,6 +182,22 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [openCalendar]);
   const activeFilterCount = selectedCustomers.length + (issueFrom || issueTo ? 1 : 0);
+
+  // Filters is a full pushed page now, not a bottom sheet — same measured-footer-height trick
+  // BottomSheet uses internally (see Sales Invoice List's own copy of this), since the footer's
+  // content varies by step/selection and the scroll area needs to reserve exactly that much
+  // bottom padding to clear the fixed-position footer.
+  const [filterScrolled, setFilterScrolled] = useState(false);
+  const filterScrollRef = useRef<HTMLDivElement>(null);
+  const filterFooterRef = useRef<HTMLDivElement>(null);
+  const [filterFooterHeight, setFilterFooterHeight] = useState(0);
+  useLayoutEffect(() => {
+    if (!filterOpen) return;
+    setFilterFooterHeight(filterFooterRef.current?.offsetHeight ?? 0);
+  }, [filterOpen, filterStep, selectedCustomers.length, activeFilterCount]);
+  useEffect(() => {
+    if (filterOpen) filterScrollRef.current?.scrollTo({ top: 0 });
+  }, [filterOpen, filterStep]);
   // Local register state so Edit / Cancel / Delete / Send mutate in-session.
   const [notes, setNotes] = useState<CreditNote[]>(CREDIT_NOTES);
   const [previewNo, setPreviewNo] = useState<string | null>(initialPreviewNo ?? null);
@@ -367,176 +383,209 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
         </div>
       </BottomSheet>
 
-      {/* Filters sheet — same architecture as the Sales Invoice List: an almost-full-page drawer,
-          Customer search pushes the next level of this SAME sheet (title morphs into a frosted
-          search pill), and a Reset/Apply dock appears once a filter is active. */}
-      <BottomSheet
-        open={filterOpen}
-        title="Filter Credit Notes"
-        fullPage
-        onBack={
-          filterStep === "search"
-            ? () => { setCustomerQuery(""); setFilterStep(null); }
-            : undefined
-        }
-        onClose={() => {
-          setFilterOpen(false);
-          setFilterStep(null);
-          setCustomerQuery("");
-          setOpenCalendar(null);
-        }}
-        searchValue={filterStep === "search" ? customerQuery : undefined}
-        onSearchChange={filterStep === "search" ? setCustomerQuery : undefined}
-        searchPlaceholder="Search by Customer name"
-        autoFocusSearch
-        headerExtra={filterStep === "search" ? <SelectedCustomers clients={selectedCustomers} onRemove={toggleCustomer} /> : undefined}
-        footer={
-          filterStep === "search" ? (
-            selectedCustomers.length > 0 ? (
-              <ButtonDock
-                type="single"
-                keyboard
-                primaryLabel={`Select ${selectedCustomers.length}`}
-                onPrimary={() => { setFilterStep(null); setCustomerQuery(""); }}
-              />
-            ) : (
-              <Keyboard />
-            )
-          ) :
-          activeFilterCount === 0 ? undefined : (
-            <ButtonDock
-              type="ghost"
-              stack="horizontal"
-              secondaryLabel="Reset"
-              primaryLabel="Apply"
-              onSecondary={() => { setSelectedCustomers([]); setIssueFrom(""); setIssueTo(""); setCustomerQuery(""); setOpenCalendar(null); }}
-              onPrimary={() => setFilterOpen(false)}
-            />
-          )
-        }
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          {filterStep === "search" ? (
-            <motion.div
-              key="search"
-              initial={{ x: 24, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 24, opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-            >
-              <div className="flex flex-col">
-                {customerQuery && (
-                  visibleCustomers.length === 0 ? (
-                    <p className="text-center text-[13px] text-[var(--text-placeholder)] py-3.5" style={FONT}>No customers found</p>
-                  ) : (
-                    <p className="body-sm text-[var(--text-secondary)] pt-3.5 pb-2">
-                      {visibleCustomers.length === 1 ? "Result 1" : `Results ${visibleCustomers.length}`}
-                    </p>
-                  )
-                )}
-                {visibleCustomers.map((c) => (
-                  <div key={c} className="py-4 flex items-center gap-3">
-                    <Avatar size="sm" initials={initials(c)} color={avatarTint(c)} />
-                    <div className="flex-1">
-                      <Checkbox reverse label={c} checked={selectedCustomers.includes(c)} onChange={() => toggleCustomer(c)} />
+      {/* Filters — a full pushed page (decided 2026-08-11: was a fullPage bottom sheet), same
+          architecture as the Sales Invoice List's own: Customer search swaps content within this
+          SAME page (title morphs into a frosted search pill), and a Reset/Apply dock appears once
+          a filter is active. */}
+      <AnimatePresence>
+      {filterOpen && (
+        <motion.div
+          key="filters-page"
+          className="absolute inset-0 z-50 bg-white rounded-[48px] overflow-hidden flex flex-col"
+          initial={{ x: "100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "100%" }}
+          transition={PAGE_PUSH_TRANSITION}
+        >
+          <div
+            ref={filterScrollRef}
+            className="flex-1 overflow-y-auto thin-scrollbar"
+            style={{ paddingBottom: filterFooterHeight }}
+            onScroll={(e) => setFilterScrolled(e.currentTarget.scrollTop > 4)}
+          >
+            <PageAppHeader scrolled={filterScrolled}>
+              {filterStep === "search" ? (
+                <>
+                  <PageHeader
+                    type="search"
+                    onBack={() => { setCustomerQuery(""); setFilterStep(null); }}
+                    searchValue={customerQuery}
+                    onSearchChange={setCustomerQuery}
+                    searchPlaceholder="Search by Customer name"
+                    autoFocusSearch
+                    showAction={false}
+                  />
+                  <SelectedCustomers clients={selectedCustomers} onRemove={toggleCustomer} />
+                </>
+              ) : (
+                <PageHeader
+                  type="center"
+                  title="Filter Credit Notes"
+                  onBack={() => {
+                    setFilterOpen(false);
+                    setFilterStep(null);
+                    setCustomerQuery("");
+                    setOpenCalendar(null);
+                  }}
+                  showSearch={false}
+                />
+              )}
+            </PageAppHeader>
+
+            <div className="px-4 pt-4">
+              <AnimatePresence mode="wait" initial={false}>
+                {filterStep === "search" ? (
+                  <motion.div
+                    key="search"
+                    initial={{ x: 24, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: 24, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                  >
+                    <div className="flex flex-col">
+                      {customerQuery && (
+                        visibleCustomers.length === 0 ? (
+                          <p className="text-center text-[13px] text-[var(--text-placeholder)] py-3.5" style={FONT}>No customers found</p>
+                        ) : (
+                          <p className="body-sm text-[var(--text-secondary)] pt-3.5 pb-2">
+                            {visibleCustomers.length === 1 ? "Result 1" : `Results ${visibleCustomers.length}`}
+                          </p>
+                        )
+                      )}
+                      {visibleCustomers.map((c) => (
+                        <div key={c} className="py-4 flex items-center gap-3">
+                          <Avatar size="sm" initials={initials(c)} color={avatarTint(c)} />
+                          <div className="flex-1">
+                            <Checkbox reverse label={c} checked={selectedCustomers.includes(c)} onChange={() => toggleCustomer(c)} />
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="filters"
-              initial={{ x: -24, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -24, opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-            >
-              <div ref={issueDateRef} className="flex flex-col">
-                <p className="body-sm text-[var(--text-secondary)] pb-4">Credit Issue Date</p>
-                <div className="flex items-start gap-3">
-                  <TextField
-                    type="date-picker"
-                    placeholder="Start date"
-                    value={issueFrom ? format(parseISO(issueFrom), "d MMM yyyy") : ""}
-                    onClick={() => setOpenCalendar((prev) => (prev === "start" ? null : "start"))}
-                  />
-                  <TextField
-                    type="date-picker"
-                    placeholder="End date"
-                    value={issueTo ? format(parseISO(issueTo), "d MMM yyyy") : ""}
-                    onClick={() => setOpenCalendar((prev) => (prev === "end" ? null : "end"))}
-                  />
-                </div>
-                <AnimatePresence initial={false} mode="wait">
-                  {openCalendar && (
-                    <motion.div
-                      key={openCalendar}
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2, ease: "easeInOut" }}
-                      onAnimationComplete={() => {
-                        if (openCalendar) setCalendarSettled(true);
-                      }}
-                      style={{ overflow: calendarSettled ? "visible" : "hidden" }}
-                    >
-                      <div className="pt-3">
-                        <Calendar
-                          value={
-                            openCalendar === "start"
-                              ? issueFrom ? parseISO(issueFrom) : undefined
-                              : issueTo ? parseISO(issueTo) : undefined
-                          }
-                          maxDate={openCalendar === "start" && issueTo ? parseISO(issueTo) : undefined}
-                          onChange={(d) => {
-                            if (openCalendar === "start") setIssueFrom(format(d, "yyyy-MM-dd"));
-                            else setIssueTo(format(d, "yyyy-MM-dd"));
-                            setOpenCalendar(null);
-                          }}
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="filters"
+                    initial={{ x: -24, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: -24, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                  >
+                    <div ref={issueDateRef} className="flex flex-col">
+                      <p className="body-sm text-[var(--text-secondary)] pb-4">Credit Issue Date</p>
+                      <div className="flex items-start gap-3">
+                        <TextField
+                          type="date-picker"
+                          placeholder="Start date"
+                          value={issueFrom ? format(parseISO(issueFrom), "d MMM yyyy") : ""}
+                          onClick={() => setOpenCalendar((prev) => (prev === "start" ? null : "start"))}
+                        />
+                        <TextField
+                          type="date-picker"
+                          placeholder="End date"
+                          value={issueTo ? format(parseISO(issueTo), "d MMM yyyy") : ""}
+                          onClick={() => setOpenCalendar((prev) => (prev === "end" ? null : "end"))}
                         />
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Customer — title + search toggle. Tapping search pushes the "search" step (this SAME
-                  sheet's header swaps to a search pill) instead of revealing a field inline. Selected
-                  picks surface as a removable chip row right below the title. */}
-              <div className="pb-2">
-                <div className="flex items-center justify-between pt-6">
-                  <p className="body-sm text-[var(--text-secondary)]">Customer</p>
-                  {CUSTOMERS.length >= 5 && (
-                    <button
-                      type="button"
-                      aria-label="Search customers"
-                      onClick={() => setFilterStep("search")}
-                      className="p-1 -m-1"
-                    >
-                      <Search size={20} strokeWidth={1} color="var(--text-primary)" />
-                    </button>
-                  )}
-                </div>
-              </div>
-              <SelectedCustomers clients={selectedCustomers} onRemove={toggleCustomer} />
-              <div className="flex flex-col">
-                {visibleCustomers.length === 0 && (
-                  <p className="text-center text-[13px] text-[var(--text-placeholder)] py-3.5" style={FONT}>No customers found</p>
-                )}
-                {visibleCustomers.map((c) => (
-                  <div key={c} className="py-4 flex items-center gap-3">
-                    <Avatar size="sm" initials={initials(c)} color={avatarTint(c)} />
-                    <div className="flex-1">
-                      <Checkbox reverse label={c} checked={selectedCustomers.includes(c)} onChange={() => toggleCustomer(c)} />
+                      <AnimatePresence initial={false} mode="wait">
+                        {openCalendar && (
+                          <motion.div
+                            key={openCalendar}
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2, ease: "easeInOut" }}
+                            onAnimationComplete={() => {
+                              if (openCalendar) setCalendarSettled(true);
+                            }}
+                            style={{ overflow: calendarSettled ? "visible" : "hidden" }}
+                          >
+                            <div className="pt-3">
+                              <Calendar
+                                value={
+                                  openCalendar === "start"
+                                    ? issueFrom ? parseISO(issueFrom) : undefined
+                                    : issueTo ? parseISO(issueTo) : undefined
+                                }
+                                maxDate={openCalendar === "start" && issueTo ? parseISO(issueTo) : undefined}
+                                onChange={(d) => {
+                                  if (openCalendar === "start") setIssueFrom(format(d, "yyyy-MM-dd"));
+                                  else setIssueTo(format(d, "yyyy-MM-dd"));
+                                  setOpenCalendar(null);
+                                }}
+                              />
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
+
+                    {/* Customer — title + search toggle. Tapping search pushes the "search" step
+                        (this SAME page's header swaps to a search pill) instead of revealing a
+                        field inline. Selected picks surface as a removable chip row right below
+                        the title. */}
+                    <div className="pb-2">
+                      <div className="flex items-center justify-between pt-6">
+                        <p className="body-sm text-[var(--text-secondary)]">Customer</p>
+                        {CUSTOMERS.length >= 5 && (
+                          <button
+                            type="button"
+                            aria-label="Search customers"
+                            onClick={() => setFilterStep("search")}
+                            className="p-1 -m-1"
+                          >
+                            <Search size={20} strokeWidth={1} color="var(--text-primary)" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <SelectedCustomers clients={selectedCustomers} onRemove={toggleCustomer} />
+                    <div className="flex flex-col">
+                      {visibleCustomers.length === 0 && (
+                        <p className="text-center text-[13px] text-[var(--text-placeholder)] py-3.5" style={FONT}>No customers found</p>
+                      )}
+                      {visibleCustomers.map((c) => (
+                        <div key={c} className="py-4 flex items-center gap-3">
+                          <Avatar size="sm" initials={initials(c)} color={avatarTint(c)} />
+                          <div className="flex-1">
+                            <Checkbox reverse label={c} checked={selectedCustomers.includes(c)} onChange={() => toggleCustomer(c)} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {(filterStep === "search" || activeFilterCount > 0) && (
+            <div ref={filterFooterRef} className="absolute inset-x-0 bottom-0 z-20">
+              {filterStep === "search" ? (
+                selectedCustomers.length > 0 ? (
+                  <ButtonDock
+                    type="single"
+                    keyboard
+                    primaryLabel={`Select ${selectedCustomers.length}`}
+                    onPrimary={() => { setFilterStep(null); setCustomerQuery(""); }}
+                  />
+                ) : (
+                  <Keyboard />
+                )
+              ) : (
+                <ButtonDock
+                  type="ghost"
+                  stack="horizontal"
+                  secondaryLabel="Reset"
+                  primaryLabel="Apply"
+                  onSecondary={() => { setSelectedCustomers([]); setIssueFrom(""); setIssueTo(""); setCustomerQuery(""); setOpenCalendar(null); }}
+                  onPrimary={() => setFilterOpen(false)}
+                />
+              )}
+            </div>
           )}
-        </AnimatePresence>
-      </BottomSheet>
+        </motion.div>
+      )}
+      </AnimatePresence>
 
       {/* Shared CN detail (same component + behaviour as the invoice-detail flow). Wired per DES-818
           status: Draft → Edit (resume the form) + Delete (⋯) · Applied → Send + Cancel (⋯) · Cancelled →

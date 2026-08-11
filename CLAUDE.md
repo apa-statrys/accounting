@@ -212,9 +212,20 @@ in-session only — a reload resets it (expected prototype limit).
   new phone frame mounted outside App.tsx (e.g. showcase) must add the class itself.
 
 **Sheets & interaction**
-- A deeper "level" inside a sheet (a date picker opened from Filters, a sub-menu, a nested detail)
+- A deeper "level" inside a sheet (a sub-menu, a nested detail, AddServicesSheet's unit picker)
   swaps content in the SAME `BottomSheet` instance (a `step` state + slide transition + `onBack`) —
   never a second sheet stacked on top of the first.
+- **Filters is a full pushed page, not a bottom sheet** (decided 2026-08-11 — SalesInvoiceList and
+  CreditNotesList's "Filter Invoices"/"Filter Credit Notes" were both a `fullPage` `BottomSheet`
+  before this; converted together per the cross-page consistency rule). Same push/slide chrome as
+  any other detail/edit page (`absolute inset-0 z-50` + `PAGE_PUSH_TRANSITION`, `PageHeader`
+  center/search types for the base step vs. the Customer-search step) — the underlying list stays
+  mounted behind it. The Customer-search step still swaps content within this SAME page (no second
+  page stacked on top), and the Issue Date calendar still drops open inline below its fields rather
+  than pushing a level — both unchanged from the sheet version, just re-shelled. The footer
+  (Reset/Apply dock, or the search step's bare-Keyboard/ButtonDock+keyboard) is measured via a ref
+  (`filterFooterHeight`) the same way `BottomSheet` measures its own footer internally, since the
+  page shell doesn't get that measurement for free the way the sheet did.
 - An "almost full page" drawer leaves exactly `calc(100% - 43px)` from the top of the screen — not
   a fixed pixel height or a plain percent (percents don't reliably land on 43px if the frame size
   changes).
