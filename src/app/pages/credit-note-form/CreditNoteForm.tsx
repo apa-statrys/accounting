@@ -537,7 +537,7 @@ export function CreditNoteForm({
                     same DS TextField "currency" type as every other currency-prefixed amount field
                     (AddServicesSheet's Unit Price) — inputMode="none" keeps the OS keyboard from
                     popping up since this page drives typing through its own NumericKeypad instead. */}
-                <div className="flex items-end gap-3">
+                <div className="flex items-start gap-3">
                   <div className="flex flex-col gap-1.5">
                     <span className="text-[12px]" style={{ ...FONT, color: MUTED }}>Quantity</span>
                     <NumberStepper value={l.qty} onChange={(qty) => setQty(l.id, qty)} min={0} max={l.maxQty} label="quantity" />
@@ -551,7 +551,7 @@ export function CreditNoteForm({
                       dataReq={`cn-line-${l.id}`}
                       value={focusedLineId === l.id ? l.unitPrice : l.unitPrice ? fmtAmount(Number(l.unitPrice) || 0) : ""}
                       error={lineUnitError(l)}
-                      caption={lineUnitError(l) ? `Can't exceed the original unit price of ${money(unitCap(l))}` : undefined}
+                      caption={lineUnitError(l) ? "Unit price exceeds the original amount" : undefined}
                       onFocus={(e) => focusAmount(l.id, e.currentTarget)}
                       onBlur={() => blurAmount(l.id)}
                       onChange={(v) => setUnitPrice(l.id, v)}
