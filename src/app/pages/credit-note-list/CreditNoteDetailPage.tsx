@@ -443,7 +443,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
               <>
                 <div className="flex items-center justify-between py-2.5 border-b" style={{ borderColor: "rgba(208,208,208,0.4)" }}>
                   <span className="body-sm" style={{ ...FONT, color: MUTED }}>Subtotal credited</span>
-                  <span className="body-sm" style={{ ...FONT, color: INK }}>−{money(total, currency)}</span>
+                  <span className="body-sm" style={{ ...FONT, color: "var(--text-error-primary)" }}>−{money(total, currency)}</span>
                 </div>
                 <div className="flex items-center justify-between py-3">
                   <span className="body-sm-bold" style={{ ...FONT, color: INK }}>Total credited</span>
