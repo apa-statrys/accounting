@@ -7,6 +7,7 @@ import { PageHeader } from "../../ui/PageHeader";
 import { HorizontalTabs } from "../../ui/HorizontalTabs";
 import { Banner } from "../../ui/Banner";
 import { BottomSheet } from "../../components/BottomSheet";
+import { ButtonDock } from "../../components/ButtonDock";
 import { ListCard } from "../../ui/ListCard";
 import { ListRow } from "../../ui/ListRow";
 import { Badge } from "../../ui/Badge";
@@ -346,8 +347,33 @@ export function CreditNoteForm({
     }
   };
 
-  // Back — save a Draft (DES-719) when the parent provides onSaveDraft (the create flow); else just leave.
-  const handleBack = () => (onSaveDraft ? onSaveDraft(buildPayload()) : onBack());
+  // Back-tap confirm — same two patterns AddInvoiceDetails uses for Create/Edit Invoice:
+  //  • A parent-provided onSaveDraft (fresh create, or resuming an existing draft from the invoice
+  //    detail) always confirms with "Saved as draft" — unconditional, no dirty check, matching
+  //    AddInvoiceDetails' own create/resume-draft back behavior.
+  //  • No onSaveDraft (editing an existing register note directly, e.g. CreditNotesList) only
+  //    confirms when something actually changed ("Unsaved changes?", Save/Cancel) — matching
+  //    AddInvoiceDetails' editingIssuedInvoice dirty-gated confirm.
+  const [savedDraftOpen, setSavedDraftOpen] = useState(false);
+  const [unsavedOpen, setUnsavedOpen] = useState(false);
+  const editBaselineRef = useRef({
+    name, email, issueDateMs: issueDate.getTime(), dueTerm, accountId, reason, reasonNote, linesJson: JSON.stringify(lines),
+  });
+  const dirty =
+    !onSaveDraft &&
+    (name !== editBaselineRef.current.name ||
+      email !== editBaselineRef.current.email ||
+      issueDate.getTime() !== editBaselineRef.current.issueDateMs ||
+      dueTerm !== editBaselineRef.current.dueTerm ||
+      accountId !== editBaselineRef.current.accountId ||
+      reason !== editBaselineRef.current.reason ||
+      reasonNote !== editBaselineRef.current.reasonNote ||
+      JSON.stringify(lines) !== editBaselineRef.current.linesJson);
+  const handleBack = () => {
+    if (onSaveDraft) setSavedDraftOpen(true);
+    else if (dirty) setUnsavedOpen(true);
+    else onBack();
+  };
 
   // Summary breakdown rows — same recipe as components/SummaryCard's own Row (body-sm/body-sm-bold,
   // border-neutral-primary divider, py-2.5), shared between the inline "Summary" card below and the
@@ -406,7 +432,13 @@ export function CreditNoteForm({
         <PageAppHeader scrolled={scrolled}>
           <PageHeader
             type="center"
-            title={isEdit ? "Edit Credit Note" : refund ? "New Refund" : "New Credit Note"}
+            // "Edit ..." whenever real prior data is being resumed (a saved draft OR an existing
+            // register note) — same isEditing = !!initial rule AddInvoiceDetails uses for its own
+            // "Edit invoice" vs "Create Invoice" title, decoupled from `mode` (mode only controls
+            // the sticky-CTA-vs-⋯-menu split below). Before this fix, resuming a Draft from the
+            // invoice detail always read "New Credit Note"/"New Refund" — confusing, since it's
+            // actually continuing an existing draft, not starting a fresh one.
+            title={initial ? (refund ? "Edit Refund" : "Edit Credit Note") : refund ? "New Refund" : "New Credit Note"}
             onBack={handleBack}
             // Edit mode moves the primary action into the ⋯ menu (no sticky CTA — see the dock
             // below), so it needs the real right-side button; create/refund still show the plain
@@ -716,6 +748,54 @@ export function CreditNoteForm({
           onDone={closeKeypad}
         />
       )}
+
+      {/* Back-tap confirm (onSaveDraft flow only) — nothing is "lost", it's already saved as a draft:
+          "Back to Invoice" continues that save + navigates away; "Delete Draft" discards instead
+          (no draft persisted); "Keep editing" just dismisses. Same shape as AddInvoiceDetails' own
+          "Saved as draft" sheet. */}
+      <BottomSheet
+        open={savedDraftOpen}
+        title="Saved as draft"
+        onClose={() => setSavedDraftOpen(false)}
+        compact
+        footer={
+          <ButtonDock
+            type="triple"
+            primaryLabel="Back to Invoice"
+            secondaryLabel="Delete Draft"
+            tertiaryLabel="Keep editing"
+            onPrimary={() => { setSavedDraftOpen(false); setTimeout(() => onSaveDraft?.(buildPayload()), 400); }}
+            onSecondary={() => { setSavedDraftOpen(false); setTimeout(() => onBack(), 400); }}
+            onTertiary={() => setSavedDraftOpen(false)}
+          />
+        }
+      >
+        <p className="body-sm" style={{ ...FONT, color: MUTED }}>
+          This {refund ? "refund" : "credit note"} has been saved as a draft. You&rsquo;ll find it in the
+          credit notes list, ready to edit and {refund ? "refund" : "apply"} whenever you are.
+        </p>
+      </BottomSheet>
+
+      {/* Back-tap confirm (no onSaveDraft — editing an existing register note, dirty only): Save
+          persists via the same action the ⋯ menu's "Save changes" Tile calls; Cancel discards.
+          Same shape as AddInvoiceDetails' own "Unsaved changes?" confirm. */}
+      <BottomSheet
+        open={unsavedOpen}
+        title="Unsaved changes?"
+        onClose={() => setUnsavedOpen(false)}
+        compact
+        footer={
+          <ButtonDock
+            type="double"
+            primaryLabel="Save"
+            secondaryLabel="Cancel"
+            onPrimary={() => { setUnsavedOpen(false); handleCreate(); }}
+            onSecondary={() => { setUnsavedOpen(false); onBack(); }}
+          />
+        }
+      >
+        <p className="body-sm" style={{ ...FONT, color: MUTED }}>You have unsaved changes. Do you want to save them before leaving?</p>
+      </BottomSheet>
 
       {/* Credited-total validation failure — no single field to blame, so it's a toast (form-cta-validation). */}
       <Toast open={!!localToast} message={localToast ?? ""} variant="error" onDone={() => setLocalToast(null)} />
