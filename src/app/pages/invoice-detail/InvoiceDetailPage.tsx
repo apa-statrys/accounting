@@ -476,32 +476,39 @@ export function InvoiceDetailPage({
   };
 
   // Back out of the create form (DES-719) → save what's entered as a DRAFT (applied = 0, draft = true).
-  // Resuming a draft updates it in place; a fresh form appends a new draft. Returns to the plain
-  // invoice detail (not the new draft's own CN detail — the form's "Back to Invoice" confirm
-  // button means exactly that, landing on the CN detail instead read as a wrong destination).
+  // Resuming an EXISTING draft updates it in place and lands back on that draft's own CN detail, so
+  // the client can see the change they just made; a brand-new draft (nothing to "see the change" on
+  // yet) lands on the plain invoice detail instead — matches the form's "Back to Invoice" label on
+  // that path, which only exists for the fresh-create case (resuming goes through the dirty-gated
+  // "Unsaved changes?" confirm instead, see CreditNoteForm's handleBack).
   const saveDraft = (p: CreditNotePayload) => {
+    const idx = resumeDraftIndex != null ? resumeDraftIndex : creditNotes.length;
     setCreditNotes((prev) =>
       resumeDraftIndex != null
         ? prev.map((c, i) => (i === resumeDraftIndex ? { ...cnFromPayload(c.no, p), applied: 0, draft: true, sent: c.sent } : c))
         : [...prev, { ...cnFromPayload(nextCreditNoteNo, p), applied: 0, draft: true }]
     );
     setCreditFormOpen(false);
-    setResumeDraftIndex(null);
     setLocalToast("Saved as draft");
+    if (resumeDraftIndex != null) setViewingCnIndex(idx);
+    setResumeDraftIndex(null);
   };
 
   // Back out of the refund create form (DES-720) → save what's entered as a DRAFT refund CN. Mirrors
-  // saveDraft but returns to the refund form on resume. A draft refund CN lives while the invoice is
-  // still Paid (isRefundContext only turns on once it's applied → Pending Refund).
+  // saveDraft, including landing back on the draft's own CN detail once it's an existing draft being
+  // edited. A draft refund CN lives while the invoice is still Paid (isRefundContext only turns on
+  // once it's applied → Pending Refund).
   const saveRefundDraft = (p: CreditNotePayload) => {
+    const idx = resumeDraftIndex != null ? resumeDraftIndex : creditNotes.length;
     setCreditNotes((prev) =>
       resumeDraftIndex != null
         ? prev.map((c, i) => (i === resumeDraftIndex ? { ...cnFromPayload(c.no, p), applied: 0, draft: true, sent: c.sent } : c))
         : [...prev, { ...cnFromPayload(nextCreditNoteNo, p), applied: 0, draft: true }]
     );
     setRefundFormOpen(false);
-    setResumeDraftIndex(null);
     setLocalToast("Saved as draft");
+    if (resumeDraftIndex != null) setViewingCnIndex(idx);
+    setResumeDraftIndex(null);
   };
 
   // Reopen a Draft credit note to resume it. A draft on a Paid / refund-context invoice is a refund
@@ -1200,7 +1207,14 @@ export function InvoiceDetailPage({
           >
             <CreditNoteDetailPage
               status={cnStatus}
-              kind={isRefundContext ? "refund" : "cancellation"}
+              // isRefundContext alone misses a Draft refund CN on a still-Paid invoice — the invoice
+              // doesn't move to Pending Refund until the draft is actually applied, so isRefundContext
+              // stays false the whole time it's a draft, and the detail's header read the generic
+              // "Credit Note" instead of "Refund Credit Note". status === "Paid" closes that gap: a
+              // cancellation CN never exists on a Paid invoice (DES-719 is unpaid-only), so any CN
+              // whatsoever on a Paid invoice is a refund note by definition (same heuristic resumeDraft
+              // already uses to decide which form to reopen).
+              kind={status === "Paid" || isRefundContext ? "refund" : "cancellation"}
               creditNoteNo={cn.no}
               invoiceNo={invoiceNo}
               customerName={cn.name}
