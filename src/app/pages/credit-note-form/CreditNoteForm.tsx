@@ -9,6 +9,7 @@ import { Banner } from "../../ui/Banner";
 import { BottomSheet } from "../../components/BottomSheet";
 import { ListCard } from "../../ui/ListCard";
 import { ListRow } from "../../ui/ListRow";
+import { Badge } from "../../ui/Badge";
 import { NumberStepper } from "../../ui/NumberStepper";
 import { TextArea } from "../../ui/TextArea";
 import { TextField } from "../../ui/TextField";
@@ -479,16 +480,7 @@ export function CreditNoteForm({
               {refund ? "Items to Refund" : "Items"} <span style={{ color: amountError ? "var(--text-error-primary)" : undefined }}>*</span>
             </p>
             {!refund && credited > 0 && (
-              <span
-                className="px-2 py-0.5 rounded-full border text-[10px] font-bold leading-[15px]"
-                style={
-                  isFull
-                    ? { ...FONT, background: "var(--bg-error-subtle)", borderColor: "var(--border-error-subtle)", color: "var(--text-error-primary)" }
-                    : { ...FONT, background: "var(--bg-warning-subtle)", borderColor: "var(--border-warning-subtle)", color: "var(--text-warning-primary)" }
-                }
-              >
-                {isFull ? "Full Credit" : "Partial Credit"}
-              </span>
+              <Badge label={isFull ? "Full Credit" : "Partial Credit"} color={isFull ? "error" : "warning"} variant="text" size="sm" />
             )}
           </div>
           {/* Refund only: Full (read-only lines) vs Partial (editable). DS tab control. */}
