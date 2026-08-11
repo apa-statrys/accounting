@@ -1,5 +1,23 @@
 /* AddServicesSheet — Add/Edit Item form (Service Name / Description / Unit Price / Quantity),
-   plus the "Select Unit" step pushed in place of it (same sheet, see index.tsx). */
+   plus the "Select Unit" step pushed in place of it (same page, see index.tsx). A full pushed
+   page (2026-08-11: was a BottomSheet) — 4 fields, over this app's 3-field sheet-vs-page
+   threshold. Root/body shell mirrors SendInvoiceSheet's/BankInfoSheet's own. */
+
+.root {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: var(--bg-neutral-tertiary);
+  border-radius: 48px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.body {
+  flex: 1 1 0%;
+  overflow-y: auto;
+}
 
 .fields {
   display: flex;

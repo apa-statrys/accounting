@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Camera } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PageAppHeader } from "../components/PageAppHeader";
@@ -8,7 +8,7 @@ import { TextField } from "../ui/TextField";
 import { Tile } from "../ui/Tile";
 import { CurrencySheet, CURRENCY_COUNTRY } from "../components/CurrencySheet";
 import { ReceivingAccountSheet } from "../components/ReceivingAccountSheet";
-import { CountryCodeRows } from "../components/CountryCodeSheet";
+import { CountryCodeSheet } from "../components/CountryCodeSheet";
 import { CountryFlag } from "../components/CountryFlag";
 import { Keyboard } from "../components/Keyboard";
 import { formatAccount } from "../data/receivingAccounts";
@@ -19,7 +19,7 @@ import { PageHeader } from "../ui/PageHeader";
 import { ListCard } from "../ui/ListCard";
 import { ListRow } from "../ui/ListRow";
 
-import { FONT } from "../lib/theme";
+import { FONT, PAGE_PUSH_TRANSITION } from "../lib/theme";
 import { scrollFieldIntoView } from "../lib/scrollFieldIntoView";
 import { focusFirstInvalidField } from "../lib/focusFirstInvalidField";
 import { EMAIL_RE } from "../lib/format";
@@ -147,54 +147,17 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   const [pickerSearchOpen, setPickerSearchOpen] = useState(false);
   const closePickerSearch = () => { setPickerSearchOpen(false); setPickerQuery(""); };
   const [phoneCountry, setPhoneCountry] = useState(DEFAULT_COUNTRY_CODE);
-  // Country-code picker is a sub-level of the Company Details sheet (same sheet, swapped header/
-  // content — see memory: sub-level-drawer-same-sheet), not a second sheet stacked on top.
+  // Country-code picker — a standalone CountryCodeSheet stacked on top of the Company Details
+  // page (same pattern AddCustomerPage uses), not a sub-level swap — pages don't have a "panel"
+  // to swap steps within the way a BottomSheet did.
   const [phoneCodeOpen, setPhoneCodeOpen] = useState(false);
-  const [phoneCodeQuery, setPhoneCodeQuery] = useState("");
-  const [phoneCodeSearchOpen, setPhoneCodeSearchOpen] = useState(false);
-  const closePhoneCodeSearch = () => { setPhoneCodeSearchOpen(false); setPhoneCodeQuery(""); };
   const [scrolled, setScrolled] = useState(false);
+  // Company Details / Business Address are separate full pages now (each with their own scroll
+  // container), so each needs its own header-frost scroll flag — sharing the main page's `scrolled`
+  // would let a scroll inside one of them corrupt the main list header's frost state.
+  const [companyScrolled, setCompanyScrolled] = useState(false);
+  const [addressScrolled, setAddressScrolled] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
-
-  // Each sheet's own first-level (base form) step, measured so its sub-level (picker/list) step
-  // never shrinks the panel shorter than the base step's height — it can still grow taller than
-  // this when a step needs more room (e.g. a long country list). See BottomSheet's `minHeightPx`.
-  // Measures the whole PANEL (header + content + footer, via BottomSheet's `panelRef`), not just
-  // the base step's own content div — that div's height alone excludes the header/footer, which
-  // undershoots the real floor. The panel node itself persists across step swaps (only the step
-  // content inside it swaps), so one ResizeObserver set up for the sheet's whole open session stays
-  // valid throughout — no stale "disconnected element" zero-size entries to guard against. The
-  // callback just ignores updates while the sub-level is showing (checked via a ref so it always
-  // reads the LATEST value, not the one captured when the observer was created).
-  const companyPanelRef = useRef<HTMLDivElement | null>(null);
-  const [companyBaseHeight, setCompanyBaseHeight] = useState<number | undefined>(undefined);
-  const phoneCodeOpenRef = useRef(phoneCodeOpen);
-  phoneCodeOpenRef.current = phoneCodeOpen;
-  useLayoutEffect(() => {
-    const el = companyPanelRef.current;
-    if (!el) return;
-    if (!phoneCodeOpenRef.current) setCompanyBaseHeight(el.getBoundingClientRect().height);
-    const ro = new ResizeObserver(([entry]) => {
-      if (!phoneCodeOpenRef.current) setCompanyBaseHeight(entry.contentRect.height);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [sheet === "company"]);
-
-  const addressPanelRef = useRef<HTMLDivElement | null>(null);
-  const [addressBaseHeight, setAddressBaseHeight] = useState<number | undefined>(undefined);
-  const pickerOpenRef = useRef(!!picker);
-  pickerOpenRef.current = !!picker;
-  useLayoutEffect(() => {
-    const el = addressPanelRef.current;
-    if (!el) return;
-    if (!pickerOpenRef.current) setAddressBaseHeight(el.getBoundingClientRect().height);
-    const ro = new ResizeObserver(([entry]) => {
-      if (!pickerOpenRef.current) setAddressBaseHeight(entry.contentRect.height);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [sheet === "address"]);
 
   const openSheet = (k: SheetKey) => { setBaseline(s); setLogoError(null); setCompanyAttempted(false); setAddressAttempted(false); setSheet(k); };
   const openPicker = (p: { field: "country" | "city" | "state"; title: string; options: string[] }) => { closePickerSearch(); setPicker(p); };
@@ -272,7 +235,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
       mandatory={FIELD_META[k].required}
       selectorLabel={k === "phone" ? phoneCountry.dialCode : undefined}
       selectorIcon={k === "phone" ? <CountryFlag name={phoneCountry.name} size={20} /> : undefined}
-      onSelectorClick={k === "phone" ? () => { closePhoneCodeSearch(); setPhoneCodeOpen(true); } : undefined}
+      onSelectorClick={k === "phone" ? () => setPhoneCodeOpen(true) : undefined}
       value={s[k]}
       onChange={(v) => set(k, v)}
       onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
@@ -357,239 +320,209 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         </div>
       </div>
 
-      {/* Company Details — one sheet for all company identity fields: logo, name, email, then
-          registration / phone / website. The phone country-code picker is a sub-level of THIS
-          SAME sheet (header/content swap via `phoneCodeOpen`), never a second sheet stacked on
-          top — see memory: sub-level-drawer-same-sheet. Its own search is the same title-icon
-          swap as the standalone CountrySheet/CountryCodeSheet (`phoneCodeSearchOpen`), not an
-          inline search field in the body. No fixed heightClass at all (either step) — it sizes
-          to content and only grows into the panel's own 88% cap, scrolling past that, rather
-          than pinning to a shorter fixed height while there's still room to grow.
-          `minHeightPx={companyBaseHeight}` (the panel's own measured height while on the "details"
-          step — see `companyPanelRef` above) floors the sheet there so the shorter Country Code
-          list doesn't shrink the panel back down — it can still grow past that if the list itself
-          needs more room. */}
-      <BottomSheet
-        open={sheet === "company"}
-        title={phoneCodeOpen ? "Select Country Code" : "Company Details"}
-        centerTitle={phoneCodeOpen}
-        onBack={
-          phoneCodeSearchOpen ? closePhoneCodeSearch
-          : phoneCodeOpen ? () => setPhoneCodeOpen(false)
-          : undefined
-        }
-        backLabel="Back to details"
-        onClose={() => { setSheet(null); setPhoneCodeOpen(false); closePhoneCodeSearch(); }}
-        keyboardOpen={keyboardOpen}
-        action={phoneCodeOpen && !phoneCodeSearchOpen ? <SearchGlyph /> : undefined}
-        onAction={phoneCodeOpen && !phoneCodeSearchOpen ? () => setPhoneCodeSearchOpen(true) : undefined}
-        actionLabel="Search country"
-        searchValue={phoneCodeSearchOpen ? phoneCodeQuery : undefined}
-        onSearchChange={phoneCodeSearchOpen ? setPhoneCodeQuery : undefined}
-        searchPlaceholder="Search Country"
-        autoFocusSearch
-        minHeightPx={companyBaseHeight}
-        panelRef={companyPanelRef}
-        footer={
-          phoneCodeSearchOpen ? <Keyboard /> :
-          phoneCodeOpen || !dirty ? undefined : (
-            <ButtonDock type="single" primaryLabel="Save" onPrimary={handleSaveCompany} keyboard={keyboardOpen} />
-          )
-        }
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          {phoneCodeOpen ? (
-            <motion.div key="phoneCode" variants={stepSlide(1)} initial="closed" animate="open" exit="closed">
-              {/* Nested step: entering/exiting search re-animates the row list too (same recipe as
-                  CountrySheet/CountryCodeSheet — stepSlide's STRING labels, since CountryCodeRows
-                  has its own nested `sheetItem`-variant rows that need variant propagation). */}
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div key={phoneCodeSearchOpen ? "search" : "list"} variants={stepSlide(phoneCodeSearchOpen ? 1 : -1)} initial="closed" animate="open" exit="closed">
-                  <CountryCodeRows
-                    value={phoneCountry.name}
-                    query={phoneCodeQuery}
-                    onSelect={(c) => { setPhoneCountry(c); closePhoneCodeSearch(); setPhoneCodeOpen(false); }}
-                  />
-                </motion.div>
-              </AnimatePresence>
-            </motion.div>
-          ) : (
-            <motion.div key="details" variants={stepSlide(-1)} initial="closed" animate="open" exit="closed">
-              <div className="flex flex-col gap-4">
-                {/* Logo — beige monogram preview + "Change Logo" (mock picker; sandbox has no real image). */}
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-4">
-                    <span className="shrink-0"><DemoLogo size={64} /></span>
-                    <button type="button" onClick={pickLogo} className="flex items-center gap-1 text-[var(--text-primary)]">
-                      <Camera size={16} strokeWidth={1.75} />
-                      <span className="text-[16px] font-medium" style={FONT}>Change logo</span>
-                    </button>
-                  </div>
-                  <AnimatePresence initial={false}>
-                    {logoError && (
-                      <motion.p
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className="text-[12px] text-[#d92d20] overflow-hidden"
-                        style={FONT}
-                      >
-                        {logoError}
-                      </motion.p>
-                    )}
-                  </AnimatePresence>
+      {/* Company Details — a full pushed page (decided 2026-08-11: over this app's 3-field
+          sheet-vs-page threshold — logo + 5 text fields) for all company identity fields: logo,
+          name, email, then registration / phone / website. The phone country-code picker is a
+          standalone CountryCodeSheet stacked on top (same pattern AddCustomerPage uses) — pages
+          don't have a "panel" to swap sub-level steps within the way a BottomSheet did. */}
+      <AnimatePresence>
+      {sheet === "company" && (
+        <motion.div
+          className="absolute inset-0 z-50 bg-[var(--bg-neutral-tertiary)] rounded-[48px] overflow-hidden flex flex-col"
+          initial={{ x: "100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "100%" }}
+          transition={PAGE_PUSH_TRANSITION}
+        >
+          <div
+            className="flex-1 overflow-y-auto thin-scrollbar"
+            onScroll={(e) => setCompanyScrolled(e.currentTarget.scrollTop > 4)}
+          >
+            <PageAppHeader scrolled={companyScrolled}>
+              <PageHeader type="center" title="Company Details" onBack={() => setSheet(null)} showSearch={false} />
+            </PageAppHeader>
+
+            <div className={`px-4 pt-5 flex flex-col gap-4 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
+              {/* Logo — beige monogram preview + "Change Logo" (mock picker; sandbox has no real image). */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-4">
+                  <span className="shrink-0"><DemoLogo size={64} /></span>
+                  <button type="button" onClick={pickLogo} className="flex items-center gap-1 text-[var(--text-primary)]">
+                    <Camera size={16} strokeWidth={1.75} />
+                    <span className="text-[16px] font-medium" style={FONT}>Change logo</span>
+                  </button>
                 </div>
-
-                {field("companyName", companyAttempted)}
-                {field("email", companyAttempted)}
-                {DETAIL_FIELDS.map((k) => <div key={k}>{field(k, companyAttempted)}</div>)}
+                <AnimatePresence initial={false}>
+                  {logoError && (
+                    <motion.p
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="text-[12px] text-[#d92d20] overflow-hidden"
+                      style={FONT}
+                    >
+                      {logoError}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </BottomSheet>
 
-      {/* Business Address — one sheet for the whole section. The country/city/state dropdown
-          picker is a sub-level of THIS SAME sheet (header/content swap via `picker`), never a
-          second sheet stacked on top — see memory: sub-level-drawer-same-sheet. Search (only
-          offered once a list has more than 8 rows) is the same title-icon swap as the standalone
-          CountrySheet/CountryCodeSheet, not an inline search field in the body. No fixed
-          heightClass at all (either step) — sizes to content, only capped at the panel's own 88%.
-          `minHeightPx={addressBaseHeight}` (the panel's own measured height while on the "address"
-          step — see `addressPanelRef` above) floors it there so a shorter city/state list doesn't
-          shrink the panel — still grows past that if needed. */}
-      <BottomSheet
-        open={sheet === "address"}
-        title={picker?.title ?? "Business Address"}
-        centerTitle={!!picker}
-        onBack={
-          pickerSearchOpen ? closePickerSearch
-          : picker ? () => setPicker(null)
-          : undefined
-        }
-        backLabel="Back to address"
-        onClose={() => { setSheet(null); setPicker(null); closePickerSearch(); }}
-        keyboardOpen={keyboardOpen}
-        action={picker && picker.options.length > 8 && !pickerSearchOpen ? <SearchGlyph /> : undefined}
-        onAction={picker && picker.options.length > 8 && !pickerSearchOpen ? () => setPickerSearchOpen(true) : undefined}
-        actionLabel={`Search ${picker?.title.toLowerCase() ?? ""}`}
-        searchValue={pickerSearchOpen ? pickerQuery : undefined}
-        onSearchChange={pickerSearchOpen ? setPickerQuery : undefined}
-        searchPlaceholder={`Search ${picker?.title.toLowerCase() ?? ""}`}
-        autoFocusSearch
-        minHeightPx={addressBaseHeight}
-        panelRef={addressPanelRef}
-        footer={
-          pickerSearchOpen ? <Keyboard /> :
-          picker || !dirty ? undefined : (
-            <ButtonDock type="single" primaryLabel="Save" onPrimary={handleSaveAddress} keyboard={keyboardOpen} />
-          )
-        }
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          {picker ? (
-            <motion.div key="picker" variants={stepSlide(1)} initial="closed" animate="open" exit="closed">
-              {/* Nested step: entering/exiting search re-animates the row list too (same recipe as
-                  CountrySheet/CountryCodeSheet). No nested `sheetItem` rows here, but stepSlide's
-                  STRING labels are used anyway for consistency with the rest of this pattern. */}
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div key={pickerSearchOpen ? "search" : "list"} variants={stepSlide(pickerSearchOpen ? 1 : -1)} initial="closed" animate="open" exit="closed">
-                  <div className="flex flex-col gap-2">
-                    {picker.options
-                      .filter((o) => o.toLowerCase().includes(pickerQuery.toLowerCase()))
-                      .map((o) => (
-                        <Tile
-                          key={o}
-                          size="sm"
-                          title={o}
-                          flag={picker.field === "country" ? <CountryFlag name={o} size={30} /> : undefined}
-                          selected={s[picker.field] === o}
-                          trailing={s[picker.field] === o ? "check" : "none"}
-                          onClick={() => selectOption(o)}
-                        />
-                      ))}
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            </motion.div>
-          ) : (
-            <motion.div key="address" variants={stepSlide(-1)} initial="closed" animate="open" exit="closed">
-              <div className="flex flex-col gap-4">
-                {/* Country first — drives the city/state options below. Dropdown TextField to match
-                    the Create/Edit Customer fields (plain text + chevron, no flag icon — matches Figma). */}
+              {field("companyName", companyAttempted)}
+              {field("email", companyAttempted)}
+              {DETAIL_FIELDS.map((k) => <div key={k}>{field(k, companyAttempted)}</div>)}
+            </div>
+          </div>
+
+          {dirty && (
+            <ButtonDock type="single" sticky primaryLabel="Save" onPrimary={handleSaveCompany} keyboard={keyboardOpen} />
+          )}
+
+          <CountryCodeSheet
+            open={phoneCodeOpen}
+            value={phoneCountry.name}
+            onClose={() => setPhoneCodeOpen(false)}
+            onSelect={(c) => { setPhoneCountry(c); setPhoneCodeOpen(false); }}
+          />
+        </motion.div>
+      )}
+      </AnimatePresence>
+
+      {/* Business Address — a full pushed page (decided 2026-08-11: over this app's 3-field
+          sheet-vs-page threshold — up to 5 fields) for the whole section. The country/city/state
+          dropdown picker is a standalone BottomSheet stacked on top (same shape as
+          CountrySheet/CountryCodeSheet: search only offered once a list has more than 8 rows) —
+          pages don't have a "panel" to swap sub-level steps within the way a BottomSheet did. */}
+      <AnimatePresence>
+      {sheet === "address" && (
+        <motion.div
+          className="absolute inset-0 z-50 bg-[var(--bg-neutral-tertiary)] rounded-[48px] overflow-hidden flex flex-col"
+          initial={{ x: "100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "100%" }}
+          transition={PAGE_PUSH_TRANSITION}
+        >
+          <div
+            className="flex-1 overflow-y-auto thin-scrollbar"
+            onScroll={(e) => setAddressScrolled(e.currentTarget.scrollTop > 4)}
+          >
+            <PageAppHeader scrolled={addressScrolled}>
+              <PageHeader type="center" title="Business Address" onBack={() => setSheet(null)} showSearch={false} />
+            </PageAppHeader>
+
+            <div className={`px-4 pt-5 flex flex-col gap-4 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
+              {/* Country first — drives the city/state options below. Dropdown TextField to match
+                  the Create/Edit Customer fields (plain text + chevron, no flag icon — matches Figma). */}
+              <TextField
+                type="dropdown"
+                label={FIELD_META.country.label}
+                placeholder="Select country"
+                mandatory={FIELD_META.country.required}
+                value={s.country}
+                onClick={() => openPicker({ field: "country", title: "Country", options: COUNTRIES })}
+              />
+
+              {/* City — dropdown when the country has preset cities, otherwise free text */}
+              {(COUNTRY_DATA[s.country]?.cities.length ?? 0) > 0 ? (
                 <TextField
                   type="dropdown"
-                  label={FIELD_META.country.label}
-                  placeholder="Select country"
-                  mandatory={FIELD_META.country.required}
-                  value={s.country}
-                  onClick={() => openPicker({ field: "country", title: "Country", options: COUNTRIES })}
+                  label={FIELD_META.city.label}
+                  placeholder="Select city"
+                  mandatory={FIELD_META.city.required}
+                  value={s.city}
+                  onClick={() => openPicker({ field: "city", title: "City", options: COUNTRY_DATA[s.country].cities })}
                 />
+              ) : (
+                field("city", addressAttempted)
+              )}
 
-                {/* City — dropdown when the country has preset cities, otherwise free text */}
-                {(COUNTRY_DATA[s.country]?.cities.length ?? 0) > 0 ? (
-                  <TextField
-                    type="dropdown"
-                    label={FIELD_META.city.label}
-                    placeholder="Select city"
-                    mandatory={FIELD_META.city.required}
-                    value={s.city}
-                    onClick={() => openPicker({ field: "city", title: "City", options: COUNTRY_DATA[s.country].cities })}
-                  />
-                ) : (
-                  field("city", addressAttempted)
+              {/* State — only shown when the country has states/provinces. */}
+              <AnimatePresence>
+                {(COUNTRY_DATA[s.country]?.states.length ?? 0) > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="overflow-hidden"
+                  >
+                    <TextField
+                      type="dropdown"
+                      label={FIELD_META.state.label}
+                      placeholder="Select state / province"
+                      value={s.state}
+                      onClick={() => openPicker({ field: "state", title: "State / province", options: COUNTRY_DATA[s.country].states })}
+                    />
+                  </motion.div>
                 )}
+              </AnimatePresence>
 
-                {/* State — only shown when the country has states/provinces. No `initial={false}`
-                    here (unlike a plain toggle-reveal elsewhere): this whole "address" step
-                    remounts fresh every time a country/city/state picker selection returns to it
-                    (the outer step-swap AnimatePresence unmounts+remounts it), so suppressing the
-                    mount-time animation would make this field's reveal invisible on every real
-                    country switch — the one case the fix is actually for. */}
-                <AnimatePresence>
-                  {(COUNTRY_DATA[s.country]?.states.length ?? 0) > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="overflow-hidden"
-                    >
-                      <TextField
-                        type="dropdown"
-                        label={FIELD_META.state.label}
-                        placeholder="Select state / province"
-                        value={s.state}
-                        onClick={() => openPicker({ field: "state", title: "State / province", options: COUNTRY_DATA[s.country].states })}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+              {/* Zip — hidden for countries without postal codes (e.g. Hong Kong). */}
+              <AnimatePresence>
+                {zipShown && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="overflow-hidden"
+                  >
+                    {field("zip", addressAttempted)}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                {/* Zip — hidden for countries without postal codes (e.g. Hong Kong). No
-                    `initial={false}` — same reasoning as the State field above. */}
-                <AnimatePresence>
-                  {zipShown && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="overflow-hidden"
-                    >
-                      {field("zip", addressAttempted)}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+              {/* Address last */}
+              {field("address", addressAttempted)}
+            </div>
+          </div>
 
-                {/* Address last */}
-                {field("address", addressAttempted)}
-              </div>
-            </motion.div>
+          {dirty && (
+            <ButtonDock type="single" sticky primaryLabel="Save" onPrimary={handleSaveAddress} keyboard={keyboardOpen} />
           )}
-        </AnimatePresence>
-      </BottomSheet>
+
+          {/* Country/City/State picker — own BottomSheet stacked on top of this page (nested here
+              so it z-stacks above it), same search-toggle convention as CountryCodeSheet. */}
+          <BottomSheet
+            open={!!picker}
+            title={picker?.title ?? ""}
+            onBack={pickerSearchOpen ? closePickerSearch : undefined}
+            onClose={() => { setPicker(null); closePickerSearch(); }}
+            tall
+            action={picker && picker.options.length > 8 && !pickerSearchOpen ? <SearchGlyph /> : undefined}
+            onAction={picker && picker.options.length > 8 && !pickerSearchOpen ? () => setPickerSearchOpen(true) : undefined}
+            actionLabel={`Search ${picker?.title.toLowerCase() ?? ""}`}
+            searchValue={pickerSearchOpen ? pickerQuery : undefined}
+            onSearchChange={pickerSearchOpen ? setPickerQuery : undefined}
+            searchPlaceholder={`Search ${picker?.title.toLowerCase() ?? ""}`}
+            autoFocusSearch
+            footer={pickerSearchOpen ? <Keyboard /> : undefined}
+          >
+            {/* Same content-level step transition as CountryCodeSheet — entering/exiting search
+                re-animates the row list too, not just the header's title/pill crossfade. */}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div key={pickerSearchOpen ? "search" : "list"} variants={stepSlide(pickerSearchOpen ? 1 : -1)} initial="closed" animate="open" exit="closed">
+                <div className="flex flex-col gap-2">
+                  {(picker?.options ?? [])
+                    .filter((o) => o.toLowerCase().includes(pickerQuery.toLowerCase()))
+                    .map((o) => (
+                      <Tile
+                        key={o}
+                        size="sm"
+                        title={o}
+                        flag={picker?.field === "country" ? <CountryFlag name={o} size={30} /> : undefined}
+                        selected={picker && s[picker.field] === o}
+                        trailing={picker && s[picker.field] === o ? "check" : "none"}
+                        onClick={() => selectOption(o)}
+                      />
+                    ))}
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </BottomSheet>
+        </motion.div>
+      )}
+      </AnimatePresence>
 
       {/* Currency picker (existing component) */}
       <CurrencySheet
