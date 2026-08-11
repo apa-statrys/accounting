@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { addDays, format } from "date-fns";
-import { Check, ChevronDown, MoreVertical, Save } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { HorizontalTabs } from "../../ui/HorizontalTabs";
@@ -128,8 +128,6 @@ export function CreditNoteForm({
   const [reason, setReason] = useState(initial?.reason ?? "");
   const [reasonNote, setReasonNote] = useState(initial?.reasonNote ?? "");
   const [reasonSheetOpen, setReasonSheetOpen] = useState(false);
-  // Edit mode's ⋯ actions menu (replaces the sticky CTA — see the header/dock below).
-  const [actionsOpen, setActionsOpen] = useState(false);
   // Collapse the items list to the first few; "Show more" reveals the rest.
   const [itemsExpanded, setItemsExpanded] = useState(false);
   const COLLAPSED_ITEMS = 3;
@@ -347,6 +345,12 @@ export function CreditNoteForm({
     }
   };
 
+  // Edit-mode Save: resuming a draft still has onSaveDraft wired (so it can persist in place as a
+  // draft, still incomplete-friendly, no validation) — Save there must reuse that, not onCreate,
+  // or it would silently finalize/apply the draft instead of just saving the edit. Editing an
+  // existing register note (no onSaveDraft) goes through the real validated onCreate instead.
+  const handleSave = () => (onSaveDraft ? onSaveDraft(buildPayload()) : handleCreate());
+
   // Back-tap confirm — same two patterns AddInvoiceDetails uses for Create/Edit Invoice:
   //  • A parent-provided onSaveDraft (fresh create, or resuming an existing draft from the invoice
   //    detail) always confirms with "Saved as draft" — unconditional, no dirty check, matching
@@ -360,17 +364,21 @@ export function CreditNoteForm({
     name, email, issueDateMs: issueDate.getTime(), dueTerm, accountId, reason, reasonNote, linesJson: JSON.stringify(lines),
   });
   const dirty =
-    !onSaveDraft &&
-    (name !== editBaselineRef.current.name ||
-      email !== editBaselineRef.current.email ||
-      issueDate.getTime() !== editBaselineRef.current.issueDateMs ||
-      dueTerm !== editBaselineRef.current.dueTerm ||
-      accountId !== editBaselineRef.current.accountId ||
-      reason !== editBaselineRef.current.reason ||
-      reasonNote !== editBaselineRef.current.reasonNote ||
-      JSON.stringify(lines) !== editBaselineRef.current.linesJson);
+    name !== editBaselineRef.current.name ||
+    email !== editBaselineRef.current.email ||
+    issueDate.getTime() !== editBaselineRef.current.issueDateMs ||
+    dueTerm !== editBaselineRef.current.dueTerm ||
+    accountId !== editBaselineRef.current.accountId ||
+    reason !== editBaselineRef.current.reason ||
+    reasonNote !== editBaselineRef.current.reasonNote ||
+    JSON.stringify(lines) !== editBaselineRef.current.linesJson;
+  // isEdit (not onSaveDraft) is the right discriminator — a fresh create ALSO gets onSaveDraft
+  // wired (InvoiceDetailPage passes it either way), so onSaveDraft alone can't tell "brand new"
+  // apart from "resuming an existing draft", but mode does (see the mode={draft ? "edit" : ...}
+  // callers). Fresh create → unconditional "Saved as draft"; any edit session (resumed draft OR
+  // an existing register note) → dirty-gated "Unsaved changes?", matching AddInvoiceDetails.
   const handleBack = () => {
-    if (onSaveDraft) setSavedDraftOpen(true);
+    if (!isEdit) setSavedDraftOpen(true);
     else if (dirty) setUnsavedOpen(true);
     else onBack();
   };
@@ -440,13 +448,12 @@ export function CreditNoteForm({
             // actually continuing an existing draft, not starting a fresh one.
             title={initial ? (refund ? "Edit Refund" : "Edit Credit Note") : refund ? "New Refund" : "New Credit Note"}
             onBack={handleBack}
-            // Edit mode moves the primary action into the ⋯ menu (no sticky CTA — see the dock
-            // below), so it needs the real right-side button; create/refund still show the plain
-            // autosave chip via `right`, so showSearch stays false there (invisible spacer).
-            showSearch={isEdit}
-            rightIcon={isEdit ? <MoreVertical size={20} strokeWidth={1} /> : undefined}
-            rightLabel={isEdit ? "More actions" : undefined}
-            onRightClick={isEdit ? () => setActionsOpen(true) : undefined}
+            // No ⋯ menu in edit mode anymore — Save/Cancel live directly in a sticky dock instead
+            // (below), same as AddInvoiceDetails' editingIssuedInvoice pattern, hidden until the
+            // user actually changes something. showSearch stays false either way: an invisible
+            // spacer for edit mode (nothing to show up here now), or to make room for create/
+            // refund's own autosave chip via `right`.
+            showSearch={false}
             right={
               !isEdit ? (
                 // Figma "Create Invoice" header (node 1387-18223): the DS Loading spinner, not a
@@ -658,9 +665,10 @@ export function CreditNoteForm({
           this many fields on one form, sliding the dock up above the keyboard on every focus/blur
           is too much motion; instead the Keyboard mock below overlays it in place (same idea as
           NumericKeypad already does for a focused unit price), so the dock never moves.
-          Edit mode has no sticky CTA at all — Save moves into the header's ⋯ menu instead (the
-          inline Summary card above already shows the same totals). */}
-      {!isEdit && (
+          Edit mode has no total dock — the inline Summary card above already shows the same
+          totals — just a Save/Cancel dock, hidden until the user actually changes something
+          (`dirty`), same as AddInvoiceDetails' editingIssuedInvoice pattern (no ⋯ menu anymore). */}
+      {!isEdit ? (
         <SummaryDock
           amount={
             <span style={refund ? { color: "var(--text-error-primary)" } : undefined}>
@@ -671,6 +679,18 @@ export function CreditNoteForm({
           primaryLabel="Create Credit Note"
           onPrimary={handleCreate}
         />
+      ) : (
+        dirty && (
+          <ButtonDock
+            type="double"
+            sticky
+            primaryLabel={submitLabel ?? "Save"}
+            secondaryLabel="Cancel"
+            onPrimary={handleSave}
+            onSecondary={onBack}
+            keyboard={keyboardOpen}
+          />
+        )
       )}
 
       {/* On-screen keyboard mock for the focused Description field — overlays the sticky dock
@@ -680,19 +700,6 @@ export function CreditNoteForm({
           <Keyboard />
         </div>
       )}
-
-      {/* Edit mode's ⋯ actions menu — titleless (grabber + rows only), same shape as
-          invoice-detail/credit-note-list's own ⋯ menus. Just Save for now (the only edit action
-          this form exposes); grows here instead of the header if more get added later. */}
-      <BottomSheet open={actionsOpen} title="" onClose={() => setActionsOpen(false)}>
-        <div className="flex flex-col gap-2 pt-2">
-          <Tile
-            icon={<Save size={24} strokeWidth={1.5} />}
-            title={submitLabel ?? "Save changes"}
-            onClick={() => { setActionsOpen(false); handleCreate(); }}
-          />
-        </div>
-      </BottomSheet>
 
       {/* Credit issue date picker */}
       <IssueDateSheet
@@ -789,7 +796,7 @@ export function CreditNoteForm({
             type="double"
             primaryLabel="Save"
             secondaryLabel="Cancel"
-            onPrimary={() => { setUnsavedOpen(false); handleCreate(); }}
+            onPrimary={() => { setUnsavedOpen(false); handleSave(); }}
             onSecondary={() => { setUnsavedOpen(false); onBack(); }}
           />
         }

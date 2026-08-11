@@ -612,7 +612,11 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
       {editingNo && (() => {
         const cn = notes.find((n) => n.no === editingNo);
         if (!cn) return null;
-        const seedLine: DraftLine = { id: "cn-0", name: "Credited amount", unit: "service", qty: 1, unitPrice: String(cn.original), maxQty: 1, origAmount: cn.original };
+        // The form derives credit = original − corrected, so the seed must carry the FULL invoice
+        // line as origAmount and the REMAINING (post-credit) amount as unitPrice — origAmount and
+        // unitPrice both being cn.original (the already-credited amount) always derived a credit of
+        // exactly 0, which made Save fail with "the credit can't be zero" no matter what was typed.
+        const seedLine: DraftLine = { id: "cn-0", name: "Credited amount", unit: "service", qty: 1, unitPrice: String(cn.invoiceTotal - cn.original), maxQty: 1, origAmount: cn.invoiceTotal };
         return (
           <motion.div
             key="cn-edit"
@@ -629,7 +633,7 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               customerName={cn.customer}
               customerEmail={cn.email}
               currency="USD"
-              items={[{ name: "Credited amount", qty: 1, unit: "service", unitPrice: cn.original, amount: cn.original }]}
+              items={[{ name: "Credited amount", qty: 1, unit: "service", unitPrice: cn.invoiceTotal, amount: cn.invoiceTotal }]}
               invoiceTotal={cn.invoiceTotal}
               alreadyCredited={0}
               outstanding={cn.invoiceTotal}
