@@ -24,7 +24,7 @@ import { Button } from "../../ui/Button";
 import { CreditNoteDetailPage } from "../credit-note-list/CreditNoteDetailPage";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { INVOICES } from "../../data/invoices";
-import { FONT, avatarTint } from "../../lib/theme";
+import { FONT, PAGE_PUSH_TRANSITION, avatarTint } from "../../lib/theme";
 import { pinNew } from "../../lib/pinNew";
 import type { CreditNote, DetailStatus, Invoice, NewFlag, Status } from "../../types";
 import { InvoiceCard } from "./InvoiceCard";
@@ -417,9 +417,17 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
       {/* CN badge → the linked credit note's detail (DES-818 AC4). Always the normal credit-note detail
           (Credit to / Credited items), consistent with the Credit Notes List — refund-specific framing
           lives in the invoice-detail flow (DES-720/721), reachable via Related Invoice. */}
+      <AnimatePresence>
       {cnPreview && (() => {
         return (
-          <div className="absolute inset-0 z-50">
+          <motion.div
+            key="cn-preview"
+            className="absolute inset-0 z-50"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={PAGE_PUSH_TRANSITION}
+          >
             <CreditNoteDetailPage
               creditNoteNo={cnPreview.no}
               invoiceNo={cnPreview.invoiceNo}
@@ -447,9 +455,10 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
                 setCnPreview(null);
               }}
             />
-          </div>
+          </motion.div>
         );
       })()}
+      </AnimatePresence>
 
       {/* Sort bottom sheet — Figma "Sales Invoice · List" Sort by (node 1345-40965): DS Tile rows,
           selected = brand border + check. */}

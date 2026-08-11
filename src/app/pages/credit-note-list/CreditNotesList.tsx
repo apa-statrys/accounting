@@ -26,7 +26,7 @@ import { matchesIssueRange } from "../sales-invoice-list/filters";
 import type { CNStatus, CreditNote, NewFlag } from "../../types";
 
 import { money } from "../../lib/format";
-import { FONT, avatarTint, initials } from "../../lib/theme";
+import { FONT, PAGE_PUSH_TRANSITION, avatarTint, initials } from "../../lib/theme";
 import { pinNew } from "../../lib/pinNew";
 
 // The register stores display dates ("22 Jun 2026"); convert to ISO so the shared invoice-list
@@ -527,11 +527,19 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
       {/* Shared CN detail (same component + behaviour as the invoice-detail flow). Wired per DES-818
           status: Draft → Edit (resume the form) + Delete (⋯) · Applied → Send + Cancel (⋯) · Cancelled →
           Preview only. Sending persists to the register. */}
+      <AnimatePresence>
       {preview && (() => {
         const isDraft = preview.status === "Draft";
         const isApplied = preview.status === "Applied";
         return (
-          <div className="absolute inset-0 z-50">
+          <motion.div
+            key="cn-preview"
+            className="absolute inset-0 z-50"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={PAGE_PUSH_TRANSITION}
+          >
             <CreditNoteDetailPage
               creditNoteNo={preview.no}
               invoiceNo={preview.invoiceNo}
@@ -582,34 +590,46 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               }
               onClose={() => setLockedNotice(null)}
             />
-          </div>
+          </motion.div>
         );
       })()}
+      </AnimatePresence>
 
       {/* Edit a register credit note (DES-719 AC4) — the register carries no line items, so the form opens
           with a single synthesized "Credited amount" line seeded from the note's current amount. */}
+      <AnimatePresence>
       {editingNo && (() => {
         const cn = notes.find((n) => n.no === editingNo);
         if (!cn) return null;
         const seedLine: DraftLine = { id: "cn-0", name: "Credited amount", unit: "service", qty: 1, unitPrice: String(cn.original), maxQty: 1, origAmount: cn.original };
         return (
-          <CreditNoteForm
-            mode="edit"
-            creditNoteNo={cn.no}
-            invoiceNo={cn.invoiceNo}
-            customerName={cn.customer}
-            customerEmail={cn.email}
-            currency="USD"
-            items={[{ name: "Credited amount", qty: 1, unit: "service", unitPrice: cn.original, amount: cn.original }]}
-            invoiceTotal={cn.invoiceTotal}
-            alreadyCredited={0}
-            outstanding={cn.invoiceTotal}
-            initial={{ name: cn.customer, email: cn.email, reason: cn.reason, reasonNote: "", issueDate: new Date(2026, 5, 26), lines: [seedLine] }}
-            onBack={() => setEditingNo(null)}
-            onCreate={(p) => { saveFromList(cn.no, p); setEditingNo(null); }}
-          />
+          <motion.div
+            key="cn-edit"
+            className="absolute inset-0 z-50"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={PAGE_PUSH_TRANSITION}
+          >
+            <CreditNoteForm
+              mode="edit"
+              creditNoteNo={cn.no}
+              invoiceNo={cn.invoiceNo}
+              customerName={cn.customer}
+              customerEmail={cn.email}
+              currency="USD"
+              items={[{ name: "Credited amount", qty: 1, unit: "service", unitPrice: cn.original, amount: cn.original }]}
+              invoiceTotal={cn.invoiceTotal}
+              alreadyCredited={0}
+              outstanding={cn.invoiceTotal}
+              initial={{ name: cn.customer, email: cn.email, reason: cn.reason, reasonNote: "", issueDate: new Date(2026, 5, 26), lines: [seedLine] }}
+              onBack={() => setEditingNo(null)}
+              onCreate={(p) => { saveFromList(cn.no, p); setEditingNo(null); }}
+            />
+          </motion.div>
         );
       })()}
+      </AnimatePresence>
     </div>
   );
 }

@@ -17,7 +17,7 @@ import { SHOW_CREDIT_NOTES } from "../../lib/flags";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { money } from "../../lib/format";
 import { DETAIL_STATUS_META } from "../../lib/status";
-import { FONT, INK, MUTED, initials } from "../../lib/theme";
+import { FONT, INK, MUTED, PAGE_PUSH_TRANSITION, initials } from "../../lib/theme";
 import type { CreditNotePayload, DraftLine, DetailStatus, InvoiceEditSeed, InvoiceLine } from "../../types";
 import { ITEMS, SUBTOTAL, DISCOUNT, TOTAL, PAID_PARTIAL, SENT_TODAY, REFUND_DATE_ISO } from "./demoInvoice";
 import type { CreditNote, RefundProof } from "./creditNoteTypes";
@@ -1064,6 +1064,7 @@ export function InvoiceDetailPage({
 
       {/* Create Credit Note (DES-719) — opens on the invoice's CURRENT corrected state, so a second
           note shows lines already credited by earlier notes (Brand = 3,000 after CN-001). */}
+      <AnimatePresence>
       {creditFormOpen && (() => {
         // Resuming a Draft (DES-719) seeds the form from the saved note; a fresh form seeds from the invoice.
         const draft = resumeDraftIndex != null ? creditNotes[resumeDraftIndex] : null;
@@ -1071,26 +1072,37 @@ export function InvoiceDetailPage({
           ? { name: draft.name, email: draft.email, reason: draft.reason ?? "", reasonNote: draft.reasonNote ?? "", issueDate: draft.issueDate ?? new Date(2026, 5, 26), lines: draft.draftLines ?? [], accountId: draft.accountId }
           : undefined;
         return (
-          <CreditNoteForm
-            creditNoteNo={draft ? draft.no : nextCreditNoteNo}
-            invoiceNo={invoiceNo}
-            customerName={customerName}
-            customerEmail={customerEmail}
-            currency={currency}
-            items={correctedItems}
-            invoiceTotal={remaining}
-            alreadyCredited={credited}
-            outstanding={creditRoom}
-            initial={seed}
-            onSaveDraft={saveDraft}
-            onBack={() => { setCreditFormOpen(false); setResumeDraftIndex(null); }}
-            onCreate={createCreditNote}
-          />
+          <motion.div
+            key="cn-create-form"
+            className="absolute inset-0 z-50"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={PAGE_PUSH_TRANSITION}
+          >
+            <CreditNoteForm
+              creditNoteNo={draft ? draft.no : nextCreditNoteNo}
+              invoiceNo={invoiceNo}
+              customerName={customerName}
+              customerEmail={customerEmail}
+              currency={currency}
+              items={correctedItems}
+              invoiceTotal={remaining}
+              alreadyCredited={credited}
+              outstanding={creditRoom}
+              initial={seed}
+              onSaveDraft={saveDraft}
+              onBack={() => { setCreditFormOpen(false); setResumeDraftIndex(null); }}
+              onCreate={createCreditNote}
+            />
+          </motion.div>
         );
       })()}
+      </AnimatePresence>
 
       {/* Refund with Credit Note (DES-720) — from a Paid invoice; refund-mode labels, cap = amount paid.
           Creating it moves the invoice to Pending Refund. */}
+      <AnimatePresence>
       {refundFormOpen && (() => {
         // Resuming a Draft refund CN seeds the form from the saved note; a fresh form seeds from the invoice.
         const draft = resumeDraftIndex != null ? creditNotes[resumeDraftIndex] : null;
@@ -1098,42 +1110,64 @@ export function InvoiceDetailPage({
           ? { name: draft.name, email: draft.email, reason: draft.reason ?? "", reasonNote: draft.reasonNote ?? "", issueDate: draft.issueDate ?? new Date(2026, 5, 26), lines: draft.draftLines ?? [], accountId: draft.accountId }
           : undefined;
         return (
-          <CreditNoteForm
-            refund
-            creditNoteNo={draft ? draft.no : nextCreditNoteNo}
-            invoiceNo={invoiceNo}
-            customerName={customerName}
-            customerEmail={customerEmail}
-            currency={currency}
-            items={correctedItems}
-            invoiceTotal={outstanding}
-            alreadyCredited={credited}
-            outstanding={outstanding}
-            initial={seed}
-            onSaveDraft={saveRefundDraft}
-            onBack={() => { setRefundFormOpen(false); setResumeDraftIndex(null); }}
-            onCreate={applyRefundCreditNote}
-          />
+          <motion.div
+            key="cn-refund-form"
+            className="absolute inset-0 z-50"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={PAGE_PUSH_TRANSITION}
+          >
+            <CreditNoteForm
+              refund
+              creditNoteNo={draft ? draft.no : nextCreditNoteNo}
+              invoiceNo={invoiceNo}
+              customerName={customerName}
+              customerEmail={customerEmail}
+              currency={currency}
+              items={correctedItems}
+              invoiceTotal={outstanding}
+              alreadyCredited={credited}
+              outstanding={outstanding}
+              initial={seed}
+              onSaveDraft={saveRefundDraft}
+              onBack={() => { setRefundFormOpen(false); setResumeDraftIndex(null); }}
+              onCreate={applyRefundCreditNote}
+            />
+          </motion.div>
         );
       })()}
+      </AnimatePresence>
 
       {/* Refund flow (DES-720 AC3–AC5) — full-page: choose method → (BA) pick source account → confirm
           the pre-filled transfer draft. BA execution is out of scope; confirm simulates reconciliation. */}
+      <AnimatePresence>
       {refundFlowOpen && (
-        <RefundCreditNoteFlow
-          customerName={customerName}
-          amount={refundPending}
-          currency={currency}
-          creditNoteNo={lastCreditNote?.no ?? ""}
-          invoiceNo={invoiceNo}
-          onClose={() => setRefundFlowOpen(false)}
-          onConfirmBA={completeBaRefund}
-          onMarkRefunded={markAlreadyRefunded}
-        />
+        <motion.div
+          key="cn-refund-flow"
+          className="absolute inset-0 z-50"
+          initial={{ x: "100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "100%" }}
+          transition={PAGE_PUSH_TRANSITION}
+        >
+          <RefundCreditNoteFlow
+            customerName={customerName}
+            amount={refundPending}
+            currency={currency}
+            creditNoteNo={lastCreditNote?.no ?? ""}
+            invoiceNo={invoiceNo}
+            onClose={() => setRefundFlowOpen(false)}
+            onConfirmBA={completeBaRefund}
+            onMarkRefunded={markAlreadyRefunded}
+          />
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* View Credit Note (DES-721) — read-only preview opened from the invoice's related credit notes.
           Shows status + type chips, a Related-invoice action (back to this invoice), and Send. */}
+      <AnimatePresence>
       {viewingCnIndex !== null && creditNotes[viewingCnIndex] && (() => {
         const cn = creditNotes[viewingCnIndex];
         // The note's own status. Refund CN → Pending Refund until its payout settles, then Refunded once
@@ -1149,7 +1183,14 @@ export function InvoiceDetailPage({
              : through > refundedOut + 0.001 ? "Applied" : "Refunded")
           : "Applied";
         return (
-          <div className="absolute inset-0 z-50">
+          <motion.div
+            key="cn-view-detail"
+            className="absolute inset-0 z-50"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={PAGE_PUSH_TRANSITION}
+          >
             <CreditNoteDetailPage
               status={cnStatus}
               kind={isRefundContext ? "refund" : "cancellation"}
@@ -1210,9 +1251,10 @@ export function InvoiceDetailPage({
               }
               onClose={() => setLockedCnAction(null)}
             />
-          </div>
+          </motion.div>
         );
       })()}
+      </AnimatePresence>
 
       {/* Refund-proof attachment preview (DES-720 evidence). */}
       <FilePreviewOverlay open={proofPreview !== null} file={proofPreview} onClose={() => setProofPreview(null)} />
