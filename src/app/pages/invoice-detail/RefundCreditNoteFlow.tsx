@@ -8,6 +8,7 @@ import { ButtonDock } from "../../components/ButtonDock";
 import { BottomSheet } from "../../components/BottomSheet";
 import { Tile } from "../../ui/Tile";
 import { ListRow } from "../../ui/ListRow";
+import { ListCard } from "../../ui/ListCard";
 import { TextField } from "../../ui/TextField";
 import { Calendar } from "../../components/Calendar";
 import { CountryFlag } from "../../components/CountryFlag";
@@ -173,14 +174,16 @@ export function RefundCreditNoteFlow({
 
         {step === "confirm" && (
           <>
-            <div className="bg-[var(--bg-neutral-secondary)] border border-dashed border-[rgba(160,160,160,0.3)] rounded-xl px-4">
+            {/* DS ListCard/ListRow (Figma), same shape as the CN detail's own Credit Details card —
+                not the old hand-rolled dashed-border/neutral-secondary card. */}
+            <ListCard onLayer="gray">
               {/* From — account name + full account number */}
               <ListRow label="From" value={fromAcct?.name ?? ""} valueDescription={fromAcct?.number} />
               <ListRow label="Currency" value={currency} valueFlag={<CountryFlag name={CURRENCY_COUNTRY[currency]} size={16} />} />
               <ListRow label="To" value={customerName} />
               <ListRow label="Amount" value={money(amount, currency)} />
               <ListRow label="Reference" value={creditNoteNo || invoiceNo} last />
-            </div>
+            </ListCard>
           </>
         )}
 
