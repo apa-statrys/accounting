@@ -9,6 +9,7 @@ import { BottomSheet } from "../../components/BottomSheet";
 import { Tile } from "../../ui/Tile";
 import { ListRow } from "../../ui/ListRow";
 import { ListCard } from "../../ui/ListCard";
+import { SegmentedControls } from "../../ui/SegmentedControls";
 import { TextField } from "../../ui/TextField";
 import { Calendar } from "../../components/Calendar";
 import { CountryFlag } from "../../components/CountryFlag";
@@ -20,8 +21,11 @@ import { FONT, INK, MUTED } from "../../lib/theme";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 
 
-/** DES-720 refund flow steps: choose method → (BA) pick the source account → review & confirm the draft. */
-type Step = "method" | "account" | "confirm" | "manual";
+/** DES-720 refund flow steps: choose the method (a SegmentedControls, matching SendInvoiceSheet's
+ *  Email/Share pattern) — the matching form (BA account picker, or the manual capture fields)
+ *  swaps in below on the same step, no separate "pick a tile → Continue" screen — then, for a BA
+ *  transfer only, a review-and-confirm step. */
+type Step = "choose" | "confirm";
 type Method = "ba" | "manual";
 
 export interface RefundCreditNoteFlowProps {
@@ -55,7 +59,7 @@ export function RefundCreditNoteFlow({
   onConfirmBA,
   onMarkRefunded,
 }: RefundCreditNoteFlowProps) {
-  const [step, setStep] = useState<Step>("method");
+  const [step, setStep] = useState<Step>("choose");
   const [method, setMethod] = useState<Method>("ba");
   const [fromAccount, setFromAccount] = useState("personal");
   const fromAcct = getAccount(fromAccount);
@@ -97,28 +101,20 @@ export function RefundCreditNoteFlow({
     scrollRef.current?.scrollTo({ top: 0 });
   }, [step]);
 
-  const title =
-    step === "method" ? "Choose Refund Method"
-    : step === "account" ? "Choose Payment Account"
-    : step === "manual" ? "Record refund"
-    : "Confirm refund transfer";
+  const title = step === "confirm" ? "Confirm refund transfer" : "Refund Credit Note";
 
   const onContinue = () => {
-    if (step === "method") {
-      setStep(method === "ba" ? "account" : "manual");
-    } else if (step === "account") {
-      setStep("confirm");
-    } else if (step === "manual") {
-      onMarkRefunded({ date: mDate, method: mAccount, amount: enteredAmount, proofFile: mProof ?? undefined });
+    if (step === "choose") {
+      if (method === "ba") setStep("confirm");
+      else onMarkRefunded({ date: mDate, method: mAccount, amount: enteredAmount, proofFile: mProof ?? undefined });
     } else {
       onConfirmBA(fromAccount);
     }
   };
 
-  // First step ✕ exits the flow; later steps step back one.
+  // First step ✕ exits the flow; the confirm step steps back to it.
   const onLeading = () => {
-    if (step === "account" || step === "manual") setStep("method");
-    else if (step === "confirm") setStep("account");
+    if (step === "confirm") setStep("choose");
     else onClose();
   };
 
@@ -134,8 +130,8 @@ export function RefundCreditNoteFlow({
         type="center"
         title={title}
         onBack={onLeading}
-        backIcon={step === "method" ? <X size={20} strokeWidth={1} /> : undefined}
-        backLabel={step === "method" ? "Close" : "Back"}
+        backIcon={step === "choose" ? <X size={20} strokeWidth={1} /> : undefined}
+        backLabel={step === "choose" ? "Close" : "Back"}
         showSearch={false}
       />
       </PageAppHeader>
@@ -143,135 +139,141 @@ export function RefundCreditNoteFlow({
       {/* Extra bottom padding while the reference-number field is focused clears the taller
           dock+keyboard overlay. */}
       <div className={`px-4 pt-5 flex flex-col gap-4 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
-        {step === "method" && (
+        {step === "choose" && (
           <>
-            <div className="flex flex-col gap-2">
-              <Tile title="Bank transfer" text="Refund via your Statrys Business Account" selected={method === "ba"} trailing={method === "ba" ? "check" : "none"} onClick={() => setMethod("ba")} />
-              <Tile title="Mark as Refunded" text="You refunded already" selected={method === "manual"} trailing={method === "manual" ? "check" : "none"} onClick={() => setMethod("manual")} />
-            </div>
-          </>
-        )}
+            {/* Method — SegmentedControls (matches SendInvoiceSheet's Email/Share pattern) instead
+                of two Tile radio cards + a separate "Continue" step: the matching form swaps in
+                below immediately. A one-line caption keeps the distinction the old Tile subtext
+                carried — this isn't a cosmetic toggle, one option moves real money, the other just
+                logs a record. */}
+            <SegmentedControls
+              segments={["Bank Transfer", "Mark as Refunded"]}
+              activeIndex={method === "ba" ? 0 : 1}
+              onChange={(i) => setMethod(i === 0 ? "ba" : "manual")}
+            />
+            <p className="text-[12px] leading-[1.4] -mt-2" style={{ ...FONT, color: MUTED }}>
+              {method === "ba"
+                ? "Refund the client via your Statrys Business Account."
+                : "You already refunded this outside Statrys — record it here for your books."}
+            </p>
 
-        {step === "account" && (
-          <>
-            <div className="flex flex-col gap-2">
-              {RECEIVING_ACCOUNTS.map((a) => (
-                <Tile
-                  key={a.id}
-                  size="sm"
-                  title={a.name}
-                  text={a.number}
-                  flag={<CountryFlag name={a.country} size={30} />}
-                  badgeLabel={a.primary ? "Primary" : undefined}
-                  selected={fromAccount === a.id}
-                  trailing={fromAccount === a.id ? "check" : "none"}
-                  onClick={() => setFromAccount(a.id)}
+            {method === "ba" ? (
+              <div className="flex flex-col gap-2">
+                <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Refund from</label>
+                {RECEIVING_ACCOUNTS.map((a) => (
+                  <Tile
+                    key={a.id}
+                    size="sm"
+                    title={a.name}
+                    text={a.number}
+                    flag={<CountryFlag name={a.country} size={30} />}
+                    badgeLabel={a.primary ? "Primary" : undefined}
+                    selected={fromAccount === a.id}
+                    trailing={fromAccount === a.id ? "check" : "none"}
+                    onClick={() => setFromAccount(a.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <>
+              {/* DES-720: a refund made outside Statrys — capture date + method + amount (required) as proof. */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Amount refunded <span>*</span></label>
+                {/* Editable; capped at the outstanding refund amount. */}
+                <div className="flex items-center gap-1 rounded-xl border px-3.5 h-12 bg-white" style={{ borderColor: exceedsOutstanding ? "var(--border-error-bold)" : "rgba(160,160,160,0.4)" }}>
+                  <span className="text-[15px]" style={{ ...FONT, color: MUTED }}>{currency}</span>
+                  <input
+                    inputMode="decimal"
+                    value={mAmount}
+                    onChange={(e) => setMAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+                    onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
+                    onBlur={() => setKeyboardOpen(false)}
+                    className="flex-1 min-w-0 text-right outline-none text-[16px] bg-transparent"
+                    style={{ ...FONT, color: INK }}
+                  />
+                </div>
+                <AnimatePresence initial={false}>
+                  {exceedsOutstanding && (
+                    <motion.p
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="text-[12px] leading-[1.4] overflow-hidden"
+                      style={{ ...FONT, color: "var(--text-error-primary)" }}
+                    >
+                      Refund exceed to the refund amount {currency} {amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
+              <div ref={dateFieldRef} className="flex flex-col gap-1.5">
+                <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Refund date</label>
+                <TextField
+                  type="date-picker"
+                  value={mDate ? format(parseISO(mDate), "d MMM yyyy") : ""}
+                  placeholder="Select date"
+                  onClick={() => setDateOpen((v) => !v)}
                 />
-              ))}
-            </div>
+                <AnimatePresence initial={false}>
+                  {dateOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      onAnimationComplete={() => { if (dateOpen) setDateCalendarSettled(true); }}
+                      style={{ overflow: dateCalendarSettled ? "visible" : "hidden" }}
+                    >
+                      <div className="pt-3">
+                        <Calendar
+                          value={mDate ? parseISO(mDate) : undefined}
+                          onChange={(d) => { setMDate(format(d, "yyyy-MM-dd")); setDateOpen(false); }}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+              {/* Bank account used (DES-720) — a dropdown of the Statrys accounts + any registered external
+                  accounts; defaults to the primary Statrys account. */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Payment account <span>*</span></label>
+                {/* Collapsed field shows the selected account; tap to open the picker sheet. */}
+                <button type="button" onClick={() => setAcctOpen(true)} className="w-full flex items-center justify-between rounded-xl border px-3.5 h-12 bg-white text-left" style={{ borderColor: acctOpen ? "var(--text-primary)" : "rgba(160,160,160,0.4)" }}>
+                  <span className="text-[15px] truncate" style={{ ...FONT, color: mAccount ? INK : "var(--text-placeholder)" }}>{mAccount || "Select account"}</span>
+                  <ChevronDown size={22} strokeWidth={1.67} color="var(--text-secondary)" />
+                </button>
+              </div>
+
+              {/* Proof of refund — an optional uploaded receipt / screenshot. */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Proof of refund</label>
+                {mProof ? (
+                  <div className="flex items-center justify-between rounded-xl border border-[rgba(160,160,160,0.4)] px-3.5 h-12 bg-white">
+                    <span className="text-[14px] truncate" style={{ ...FONT, color: INK }}>{mProof}</span>
+                    <button onClick={() => setMProof(null)} className="text-[13px] font-medium shrink-0 ml-3" style={{ ...FONT, color: "var(--text-error-primary)" }}>Remove</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setMProof("refund-receipt.pdf")} className="w-full rounded-xl border border-dashed border-[rgba(160,160,160,0.5)] py-3 text-[14px] font-medium" style={{ ...FONT, color: INK }}>+ Upload receipt / screenshot</button>
+                )}
+              </div>
+              </>
+            )}
           </>
         )}
 
         {step === "confirm" && (
-          <>
-            {/* DS ListCard/ListRow (Figma), same shape as the CN detail's own Credit Details card —
-                not the old hand-rolled dashed-border/neutral-secondary card. */}
-            <ListCard onLayer="gray">
-              {/* From — account name + full account number */}
-              <ListRow label="From" value={fromAcct?.name ?? ""} valueDescription={fromAcct?.number} />
-              <ListRow label="Currency" value={currency} valueFlag={<CountryFlag name={CURRENCY_COUNTRY[currency]} size={16} />} />
-              <ListRow label="To" value={customerName} />
-              <ListRow label="Amount" value={money(amount, currency)} />
-              <ListRow label="Reference" value={creditNoteNo || invoiceNo} last />
-            </ListCard>
-          </>
-        )}
-
-        {step === "manual" && (
-          <>
-            {/* DES-720: a refund made outside Statrys — capture date + method + amount (required) as proof. */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Amount refunded <span>*</span></label>
-              {/* Editable; capped at the outstanding refund amount. */}
-              <div className="flex items-center gap-1 rounded-xl border px-3.5 h-12 bg-white" style={{ borderColor: exceedsOutstanding ? "var(--border-error-bold)" : "rgba(160,160,160,0.4)" }}>
-                <span className="text-[15px]" style={{ ...FONT, color: MUTED }}>{currency}</span>
-                <input
-                  inputMode="decimal"
-                  value={mAmount}
-                  onChange={(e) => setMAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                  onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
-                  onBlur={() => setKeyboardOpen(false)}
-                  className="flex-1 min-w-0 text-right outline-none text-[16px] bg-transparent"
-                  style={{ ...FONT, color: INK }}
-                />
-              </div>
-              <AnimatePresence initial={false}>
-                {exceedsOutstanding && (
-                  <motion.p
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="text-[12px] leading-[1.4] overflow-hidden"
-                    style={{ ...FONT, color: "var(--text-error-primary)" }}
-                  >
-                    Refund exceed to the refund amount {currency} {amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </div>
-            <div ref={dateFieldRef} className="flex flex-col gap-1.5">
-              <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Refund date</label>
-              <TextField
-                type="date-picker"
-                value={mDate ? format(parseISO(mDate), "d MMM yyyy") : ""}
-                placeholder="Select date"
-                onClick={() => setDateOpen((v) => !v)}
-              />
-              <AnimatePresence initial={false}>
-                {dateOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2, ease: "easeInOut" }}
-                    onAnimationComplete={() => { if (dateOpen) setDateCalendarSettled(true); }}
-                    style={{ overflow: dateCalendarSettled ? "visible" : "hidden" }}
-                  >
-                    <div className="pt-3">
-                      <Calendar
-                        value={mDate ? parseISO(mDate) : undefined}
-                        onChange={(d) => { setMDate(format(d, "yyyy-MM-dd")); setDateOpen(false); }}
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-            {/* Bank account used (DES-720) — a dropdown of the Statrys accounts + any registered external
-                accounts; defaults to the primary Statrys account. */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Payment account <span>*</span></label>
-              {/* Collapsed field shows the selected account; tap to open the picker sheet. */}
-              <button type="button" onClick={() => setAcctOpen(true)} className="w-full flex items-center justify-between rounded-xl border px-3.5 h-12 bg-white text-left" style={{ borderColor: acctOpen ? "var(--text-primary)" : "rgba(160,160,160,0.4)" }}>
-                <span className="text-[15px] truncate" style={{ ...FONT, color: mAccount ? INK : "var(--text-placeholder)" }}>{mAccount || "Select account"}</span>
-                <ChevronDown size={22} strokeWidth={1.67} color="var(--text-secondary)" />
-              </button>
-            </div>
-
-            {/* Proof of refund — an optional uploaded receipt / screenshot. */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[12px] font-bold uppercase tracking-wide" style={{ ...FONT, color: "var(--text-placeholder)" }}>Proof of refund</label>
-              {mProof ? (
-                <div className="flex items-center justify-between rounded-xl border border-[rgba(160,160,160,0.4)] px-3.5 h-12 bg-white">
-                  <span className="text-[14px] truncate" style={{ ...FONT, color: INK }}>{mProof}</span>
-                  <button onClick={() => setMProof(null)} className="text-[13px] font-medium shrink-0 ml-3" style={{ ...FONT, color: "var(--text-error-primary)" }}>Remove</button>
-                </div>
-              ) : (
-                <button onClick={() => setMProof("refund-receipt.pdf")} className="w-full rounded-xl border border-dashed border-[rgba(160,160,160,0.5)] py-3 text-[14px] font-medium" style={{ ...FONT, color: INK }}>+ Upload receipt / screenshot</button>
-              )}
-            </div>
-          </>
+          /* DS ListCard/ListRow (Figma), same shape as the CN detail's own Credit Details card —
+             not the old hand-rolled dashed-border/neutral-secondary card. */
+          <ListCard onLayer="gray">
+            {/* From — account name + full account number */}
+            <ListRow label="From" value={fromAcct?.name ?? ""} valueDescription={fromAcct?.number} />
+            <ListRow label="Currency" value={currency} valueFlag={<CountryFlag name={CURRENCY_COUNTRY[currency]} size={16} />} />
+            <ListRow label="To" value={customerName} />
+            <ListRow label="Amount" value={money(amount, currency)} />
+            <ListRow label="Reference" value={creditNoteNo || invoiceNo} last />
+          </ListCard>
         )}
       </div>
       </div>
@@ -279,8 +281,8 @@ export function RefundCreditNoteFlow({
       <ButtonDock
         type="single"
         sticky
-        primaryLabel={step === "confirm" ? "Confirm transfer" : step === "manual" ? "Record refund" : "Continue"}
-        primaryDisabled={step === "manual" && !manualValid}
+        primaryLabel={step === "confirm" ? "Confirm transfer" : method === "manual" ? "Record refund" : "Continue"}
+        primaryDisabled={step === "choose" && method === "manual" && !manualValid}
         onPrimary={onContinue}
         keyboard={keyboardOpen}
       />
