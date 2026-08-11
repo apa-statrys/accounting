@@ -162,9 +162,14 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // back to Edit only (see the dock below). Applying a refund draft commits it and moves the invoice to
   // Pending Refund (the payout step stays separate).
   const canApply = (isOpen || isRefundDraft) && !!onApply && draftComplete;
-  // Edit never appears in the dock (primary or secondary) — it's always a ⋯ Tile row instead, for
-  // a Draft (any completeness). An Applied note is locked (never editable — see `isApplied` above).
-  const canEditFromMenu = (isOpen || isRefundDraft) && !!onEdit;
+  // An incomplete draft's primary dock CTA is Edit itself (same "empty draft leads with Edit"
+  // pattern as InvoiceDetailPage's own isEmptyDraft case) — not hidden behind the ⋯ menu. Once
+  // complete, the dock becomes Apply to invoice, and Edit moves into the ⋯ menu instead (see
+  // canEditFromMenu below) so it isn't offered in two places at once.
+  const canEditPrimary = (isOpen || isRefundDraft) && !canApply && !!onEdit;
+  // Edit lives in the ⋯ menu only once the draft is complete enough to Apply — otherwise it's
+  // already the primary dock CTA above. An Applied note is locked (never editable — see `isApplied`).
+  const canEditFromMenu = (isOpen || isRefundDraft) && !!onEdit && canApply;
   // ⋯ exists for a Draft (Edit + Delete — cancellation OR refund), an Applied note (Preview +
   // Cancel-if-wired), any non-draft refund (Preview + Cancel-if-cancellable), or a Cancelled note
   // (Preview as PDF — no dock). Applied/refund/Cancelled always render at least their Preview row,
@@ -177,13 +182,14 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   const openPdfPreview = () => { setActionsOpen(false); setPdfFromSend(false); setPdfOpen(true); };
 
   // Mirrors the status-driven dock ternary below (Toast needs its type before that JSX renders) —
-  // keep in sync: "single" with the Toast default (96), no dock at all (Draft-incomplete/Cancelled)
-  // with 16, matching this app's Toast convention. Never "double" now — Edit no longer shares the
-  // dock with Apply/Send, so every dock that exists is a single CTA.
+  // keep in sync: "single" with the Toast default (96), no dock at all (Cancelled, or a Draft
+  // preview with neither Apply nor Edit wired) with 16, matching this app's Toast convention.
+  // Never "double" now — Edit no longer shares the dock with Apply/Send, so every dock that
+  // exists is a single CTA.
   const stickyDockKind: "single" | "none" = canApply
     ? "single"
     : isOpen || isRefundDraft
-      ? "none"
+      ? (canEditPrimary ? "single" : "none")
       : isApplied
         ? "single"
         : isCancelled
@@ -486,17 +492,17 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       </div>
       </div>
 
-      {/* Status-driven dock (DES-763) — Edit never sits in the dock (primary or secondary); it's
-          always a ⋯ Tile row instead (see canEditFromMenu / the ⋯ menu below):
-          Open (complete) → Apply to invoice · Open (incomplete)/refund draft → no dock, Edit lives
-          in ⋯ · Applied → Send (locked, never editable) · list-Open → Preview as PDF · Cancelled →
-          no dock · refund → Send/Resend. */}
+      {/* Status-driven dock (DES-763):
+          Open (complete) → Apply to invoice · Open (incomplete)/refund draft → Edit (same
+          "empty draft leads with Edit" pattern as InvoiceDetailPage), or no dock at all in the
+          rare preview-only context where neither Apply nor Edit is wired · Applied → Send (locked,
+          never editable) · list-Open → Preview as PDF · Cancelled → no dock · refund → Send/Resend. */}
       {canApply ? (
         <ButtonDock type="single" sticky primaryLabel="Apply to invoice" onPrimary={() => onApply?.()} />
       ) : isOpen || isRefundDraft ? (
-        // Draft not yet complete enough to apply (cancellation missing fields, or a refund draft) —
-        // nothing to do until it's edited, so no dock; Edit lives in the ⋯ menu.
-        null
+        canEditPrimary ? (
+          <ButtonDock type="single" sticky primaryLabel="Edit" onPrimary={() => onEdit?.()} />
+        ) : null
       ) : isApplied ? (
         // Applied — a single Send/Resend CTA, same sentLocal-aware label as the refund/catch-all
         // branches below. Locked, never editable (single-invoice model), so no Edit anywhere here.
@@ -517,19 +523,20 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         />
       )}
 
-      {/* ⋯ actions — Open: Edit + Delete · Applied: Cancel + Preview · refund: Preview. DS header,
-          titleless (grabber + actions), same Tile-row recipe as invoice-detail/ActionsMenu (not a
-          hand-rolled button+divider list — that was a drift from this shared ⋯-menu convention).
-          Edit never sits in the sticky dock (primary or secondary, decided per user feedback) —
-          this is its only home, and only for a Draft (any completeness); an Applied note is locked
+      {/* ⋯ actions — Open: Edit (complete drafts only — an incomplete draft's Edit is already the
+          primary dock CTA above, so it's suppressed here to avoid offering it twice) + Delete ·
+          Applied: Cancel + Preview · refund: Preview. DS header, titleless (grabber + actions),
+          same Tile-row recipe as invoice-detail/ActionsMenu (not a hand-rolled button+divider
+          list — that was a drift from this shared ⋯-menu convention). An Applied note is locked
           (never editable, single-invoice model — see `isApplied` above). */}
       <BottomSheet open={actionsOpen} title="" onClose={() => setActionsOpen(false)}>
         <div className="flex flex-col gap-2 pt-2">
-          {/* Draft (cancellation or refund) → Edit (resume it) + Delete (confirmed via a prompt). */}
+          {/* Draft (cancellation or refund) → Edit (resume it, complete drafts only) + Delete
+              (confirmed via a prompt). */}
           {(isOpen || isRefundDraft) && (
             <>
-              {onEdit && (
-                <Tile icon={<Pencil size={24} strokeWidth={1.5} />} title="Edit Credit Note" onClick={() => { setActionsOpen(false); onEdit(); }} />
+              {canEditFromMenu && (
+                <Tile icon={<Pencil size={24} strokeWidth={1.5} />} title="Edit Credit Note" onClick={() => { setActionsOpen(false); onEdit?.(); }} />
               )}
               {onCancel && (
                 <Tile
