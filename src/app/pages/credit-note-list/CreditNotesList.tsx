@@ -186,6 +186,9 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
   const [notes, setNotes] = useState<CreditNote[]>(CREDIT_NOTES);
   const [previewNo, setPreviewNo] = useState<string | null>(initialPreviewNo ?? null);
   const [editingNo, setEditingNo] = useState<string | null>(null);
+  // Set when Edit was triggered by the CN detail's empty "Reason" row — the form should open
+  // straight into the reason picker instead of landing on a blank form.
+  const [editingAutoOpenReason, setEditingAutoOpenReason] = useState(false);
   // Locked-period demo: which blocked action was tapped on a Draft CN (Edit or Apply) — drives the
   // blocking dialog's copy. null = closed.
   const [lockedNotice, setLockedNotice] = useState<null | "edit" | "apply">(null);
@@ -576,13 +579,15 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               onBack={lockedPeriod ? () => {} : () => setPreview(null)}
               // Related Invoice row → open that invoice's detail (shows the chevron arrow).
               onViewInvoice={onOpenInvoice ? () => onOpenInvoice(preview.invoiceNo) : undefined}
-              // Draft → Apply to invoice (Draft → Applied), same as the invoice-detail flow. A complete
-              // Draft leads with "Apply to invoice"; an incomplete one falls back to "Edit" (see canApply).
-              // In the locked-period demo, Apply surfaces the closed-period dialog instead of applying.
+              // Draft → Apply to invoice (Draft → Applied), same as the invoice-detail flow. Apply
+              // is always the primary CTA now (form-cta-validation) — a failed tap on an incomplete
+              // draft surfaces an error toast instead of swapping to Edit. In the locked-period demo,
+              // Apply surfaces the closed-period dialog instead of applying.
               onApply={isDraft ? () => (lockedPeriod ? setLockedNotice("apply") : applyFromList(preview.no)) : undefined}
-              // Draft → Edit reopens the form. Applied/Cancelled are locked (no edit). In the
+              // Draft → Edit reopens the form (optionally straight into the reason picker, from the
+              // detail's empty "Reason" row). Applied/Cancelled are locked (no edit). In the
               // locked-period demo, Edit surfaces the closed-period dialog instead of the form.
-              onEdit={isDraft ? () => (lockedPeriod ? setLockedNotice("edit") : setEditingNo(preview.no)) : undefined}
+              onEdit={isDraft ? (autoOpenReason) => { if (lockedPeriod) { setLockedNotice("edit"); return; } setEditingAutoOpenReason(!!autoOpenReason); setEditingNo(preview.no); } : undefined}
               // Draft → Delete (row removed); Applied → Cancel (full reversal → Cancelled). Cancelled → none.
               onCancel={isDraft ? () => deleteFromList(preview.no) : isApplied ? () => cancelFromList(preview.no) : undefined}
               onSent={() => setNotes((prev) => prev.map((c) => (c.no === preview.no ? { ...c, sent: true } : c)))}
@@ -638,8 +643,9 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               alreadyCredited={0}
               outstanding={cn.invoiceTotal}
               initial={{ name: cn.customer, email: cn.email, reason: cn.reason, reasonNote: "", issueDate: new Date(2026, 5, 26), lines: [seedLine] }}
-              onBack={() => setEditingNo(null)}
-              onCreate={(p) => { saveFromList(cn.no, p); setEditingNo(null); }}
+              autoOpenReason={editingAutoOpenReason}
+              onBack={() => { setEditingNo(null); setEditingAutoOpenReason(false); }}
+              onCreate={(p) => { saveFromList(cn.no, p); setEditingNo(null); setEditingAutoOpenReason(false); }}
             />
           </motion.div>
         );

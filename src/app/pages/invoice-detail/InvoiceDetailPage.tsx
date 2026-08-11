@@ -163,6 +163,9 @@ export function InvoiceDetailPage({
   const [creditFormOpen, setCreditFormOpen] = useState(false);
   // When the create form was reopened to resume a Draft, this is that note's index (else null = new).
   const [resumeDraftIndex, setResumeDraftIndex] = useState<number | null>(null);
+  // Set when resuming was triggered by the CN detail's empty "Reason" row — the form should open
+  // straight into the reason picker instead of landing on a blank form.
+  const [resumeAutoOpenReason, setResumeAutoOpenReason] = useState(false);
   // Refund-with-credit-note form open (DES-720, from a Paid invoice).
   const [refundFormOpen, setRefundFormOpen] = useState(false);
   // Refund flow page (DES-720 AC3–AC5): method → (BA) pick source account → confirm transfer.
@@ -503,8 +506,9 @@ export function InvoiceDetailPage({
 
   // Reopen a Draft credit note to resume it. A draft on a Paid / refund-context invoice is a refund
   // draft (DES-720) → reopen the refund form; otherwise the cancellation form (DES-719).
-  const resumeDraft = (index: number) => {
+  const resumeDraft = (index: number, autoOpenReason = false) => {
     setResumeDraftIndex(index);
+    setResumeAutoOpenReason(autoOpenReason);
     if (status === "Paid" || isRefundContext) setRefundFormOpen(true);
     else setCreditFormOpen(true);
   };
@@ -997,12 +1001,12 @@ export function InvoiceDetailPage({
         cancellable={cancellable}
         creditNotesCount={activeCnCount}
         lockedPeriod={lockedPeriod}
-        onRefundWithCn={() => { setActionsOpen(false); setRefundFormOpen(true); }}
+        onRefundWithCn={() => { setActionsOpen(false); setResumeAutoOpenReason(false); setRefundFormOpen(true); }}
         onPreviewPdf={() => { setActionsOpen(false); setPdfFromSend(false); setPdfPreviewOpen(true); }}
         onSendInvoice={() => { setActionsOpen(false); setSendSheetOpen(true); }}
         onEdit={openEdit}
         onDuplicate={duplicate}
-        onCreateCn={() => { setActionsOpen(false); if (lockedPeriod) { setLockedAction("createCn"); return; } setResumeDraftIndex(null); setCreditFormOpen(true); }}
+        onCreateCn={() => { setActionsOpen(false); if (lockedPeriod) { setLockedAction("createCn"); return; } setResumeDraftIndex(null); setResumeAutoOpenReason(false); setCreditFormOpen(true); }}
         onDeleteDraft={() => { setActionsOpen(false); setConfirmDelete(true); }}
         // A logged-but-unapproved payment (Pending Reconciliation) locks editing — same reasoning
         // as the dock, which already drops its own "Record Payment"/"Send" pairing down to a
@@ -1091,8 +1095,9 @@ export function InvoiceDetailPage({
               alreadyCredited={credited}
               outstanding={creditRoom}
               initial={seed}
+              autoOpenReason={resumeAutoOpenReason}
               onSaveDraft={saveDraft}
-              onBack={() => { setCreditFormOpen(false); setResumeDraftIndex(null); }}
+              onBack={() => { setCreditFormOpen(false); setResumeDraftIndex(null); setResumeAutoOpenReason(false); }}
               onCreate={createCreditNote}
             />
           </motion.div>
@@ -1131,8 +1136,9 @@ export function InvoiceDetailPage({
               alreadyCredited={credited}
               outstanding={outstanding}
               initial={seed}
+              autoOpenReason={resumeAutoOpenReason}
               onSaveDraft={saveRefundDraft}
-              onBack={() => { setRefundFormOpen(false); setResumeDraftIndex(null); }}
+              onBack={() => { setRefundFormOpen(false); setResumeDraftIndex(null); setResumeAutoOpenReason(false); }}
               onCreate={applyRefundCreditNote}
             />
           </motion.div>
@@ -1223,7 +1229,7 @@ export function InvoiceDetailPage({
               onApply={cn.draft ? () => { if (lockedPeriod) { setLockedCnAction("apply"); return; } applyDraft(viewingCnIndex); } : undefined}
               onEdit={
                 cn.draft
-                  ? () => { if (lockedPeriod) { setLockedCnAction("edit"); return; } const i = viewingCnIndex; setViewingCnIndex(null); resumeDraft(i); }
+                  ? (autoOpenReason) => { if (lockedPeriod) { setLockedCnAction("edit"); return; } const i = viewingCnIndex; setViewingCnIndex(null); resumeDraft(i, autoOpenReason); }
                   : undefined
               }
               onCancel={

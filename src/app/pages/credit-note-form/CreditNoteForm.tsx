@@ -55,6 +55,10 @@ interface CreditNoteFormProps {
   mode?: "create" | "edit";
   /** Edit seed — when present, the form restores this credit note's prior state. */
   initial?: CreditNoteEditSeed;
+  /** Open the reason picker sheet as soon as this form mounts (the CN detail's empty "Reason" row
+   *  jumps straight here + opens the picker, instead of landing on a blank form the client still
+   *  has to hunt through to find the missing field). */
+  autoOpenReason?: boolean;
   /** Refund context (DES-720, from a Paid invoice): refund-mode labels (cap = amount paid, "Refund amount"). */
   refund?: boolean;
   /** Overrides the primary CTA label in edit mode — e.g. "Apply to Invoice" when re-applying an applied note. */
@@ -83,6 +87,7 @@ export function CreditNoteForm({
   outstanding,
   mode = "create",
   initial,
+  autoOpenReason = false,
   refund = false,
   submitLabel,
   onBack,
@@ -127,7 +132,7 @@ export function CreditNoteForm({
   // `reasonNote` for the payload / edit-seed). Restored on edit.
   const [reason, setReason] = useState(initial?.reason ?? "");
   const [reasonNote, setReasonNote] = useState(initial?.reasonNote ?? "");
-  const [reasonSheetOpen, setReasonSheetOpen] = useState(false);
+  const [reasonSheetOpen, setReasonSheetOpen] = useState(autoOpenReason);
   // Collapse the items list to the first few; "Show more" reveals the rest.
   const [itemsExpanded, setItemsExpanded] = useState(false);
   const COLLAPSED_ITEMS = 3;
