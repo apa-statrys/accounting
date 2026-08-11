@@ -122,10 +122,10 @@ export function RefundCreditNoteFlow({
   };
 
   return (
-    <div className="absolute inset-0 z-50 bg-white rounded-[48px] overflow-hidden flex flex-col" style={{ width: 375, height: 812 }}>
+    <div className="absolute inset-0 z-50 bg-[var(--bg-neutral-tertiary)] rounded-[48px] overflow-hidden flex flex-col" style={{ width: 375, height: 812 }}>
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto thin-scrollbar bg-white"
+        className="flex-1 overflow-y-auto thin-scrollbar"
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
       <PageAppHeader scrolled={scrolled}>
