@@ -335,7 +335,9 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
               invoiceNo={cn.status === "Draft" ? undefined : cn.no}
               status={cn.status}
               statusColor={STATUS_BADGE[cn.status]}
-              statusCaption={`Created ${cn.date}`}
+              // Just the date — the status badge alongside already names the state, so a leading
+              // "Created"/"Applied" word would repeat it (matches the CN detail hero's own row).
+              statusCaption={cn.date}
               amount={money(cn.original)}
               lastItem={i === list.length - 1}
               onClick={() => setPreview(cn)}
