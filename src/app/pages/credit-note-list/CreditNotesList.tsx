@@ -19,6 +19,7 @@ import { Badge, type BadgeColor } from "../../ui/Badge";
 import { CreditNoteDetailPage } from "./CreditNoteDetailPage";
 import { LockedPeriodDialog } from "../locked-period/LockedPeriodDialog";
 import { CreditNoteForm } from "../credit-note-form/CreditNoteForm";
+import { Toast } from "../../components/Toast";
 import type { CreditNotePayload, DraftLine } from "../../types";
 import { CREDIT_NOTES } from "../../data/creditNotes";
 import { RECEIVING_ACCOUNTS } from "../../data/receivingAccounts";
@@ -188,6 +189,8 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
   // Locked-period demo: which blocked action was tapped on a Draft CN (Edit or Apply) — drives the
   // blocking dialog's copy. null = closed.
   const [lockedNotice, setLockedNotice] = useState<null | "edit" | "apply">(null);
+  // Success toast after applying a Draft to its invoice (mirrors InvoiceDetailPage's applyDraft).
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const preview = notes.find((n) => n.no === previewNo) ?? null;
   const setPreview = (cn: CreditNote | null) => setPreviewNo(cn?.no ?? null);
 
@@ -199,8 +202,14 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
   // DES-818 actions: delete a Draft (row removed, number retired) · cancel an Applied note (full reversal → Cancelled).
   const deleteFromList = (no: string) => { setNotes((prev) => prev.filter((c) => c.no !== no)); setPreview(null); };
   const cancelFromList = (no: string) => setNotes((prev) => prev.map((c) => (c.no === no ? { ...c, status: "Cancelled", applied: 0 } : c)));
-  // Apply a complete Draft to its invoice (Draft → Applied) — mirrors the invoice-detail applyDraft.
-  const applyFromList = (no: string) => setNotes((prev) => prev.map((c) => (c.no === no ? { ...c, status: "Applied", applied: c.original } : c)));
+  // Apply a complete Draft to its invoice (Draft → Applied) — mirrors the invoice-detail applyDraft:
+  // close back to the list (so the updated "Applied" status is visible in the row) and fire the same
+  // success toast as that flow, instead of leaving the user on the preview with no confirmation.
+  const applyFromList = (no: string) => {
+    setNotes((prev) => prev.map((c) => (c.no === no ? { ...c, status: "Applied", applied: c.original } : c)));
+    setPreview(null);
+    setToastMessage("Credit note applied");
+  };
 
   // The freshly created/saved credit note (if any), prepended as a real row — same ephemeral-slot
   // pattern as Sales Invoice List's recentRow. Only affects counts/the rendered list, never the
@@ -630,6 +639,8 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
         );
       })()}
       </AnimatePresence>
+
+      <Toast open={!!toastMessage} message={toastMessage ?? ""} bottomOffset={16} onDone={() => setToastMessage(null)} />
     </div>
   );
 }
