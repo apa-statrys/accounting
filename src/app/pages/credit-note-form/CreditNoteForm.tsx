@@ -143,6 +143,9 @@ export function CreditNoteForm({
     items.map((it, i) => ({ id: `cn-${i}`, name: it.name, unit: it.unit, qty: it.qty, unitPrice: String(it.unitPrice), maxQty: it.qty, origAmount: it.amount }));
   // Which refund input is focused (raw while editing; comma/2dp formatted when blurred).
   const [focusedLineId, setFocusedLineId] = useState<string | null>(null);
+  // Per-line unit-price fields whose error can surface (blurred at least once, or a failed submit
+  // — see `lineUnitError` below), same reveal-on-touch convention as RecordPaymentSheet's amount field.
+  const [touchedUnitIds, setTouchedUnitIds] = useState<Set<string>>(new Set());
   // While the keypad is up, the content scroll is locked; a scroll gesture closes the keypad.
   const [scrollLocked, setScrollLocked] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -182,8 +185,20 @@ export function CreditNoteForm({
   const amountDue = Math.max(0, originalTotal - credited);
   const exceedsCap = credited > outstanding + 0.001;
   const isFull = Math.abs(credited - outstanding) < 0.001;
+
+  // Per-line cap: the amount credited/refunded can never exceed what was invoiced, so the unit price
+  // can never exceed the ORIGINAL unit price (original ÷ invoiced qty) — combined with the qty stepper
+  // already capped at maxQty, that guarantees each line total (qty × unit price) stays ≤ the line's
+  // original amount. Typing over the cap is no longer silently clamped (form-cta-validation, same
+  // reveal-on-touch/submit convention as RecordPaymentSheet's amount field): the field just shows an
+  // inline error, and the failed line blocks Create until it's fixed — see `lineUnitError`/`anyLineExceeds`.
+  const unitCap = (l: DraftLine) => lineOriginal(l) / (l.maxQty || 1);
+  const capStr = (cap: number) => (Number.isInteger(cap) ? String(cap) : cap.toFixed(2));
+  const lineUnitExceeds = (l: DraftLine) => (Number(l.unitPrice) || 0) > unitCap(l) + 0.001;
+  const anyLineExceeds = lines.some(lineUnitExceeds);
+
   // A reason is always required; the free-text Description below it is always OPTIONAL.
-  const canCreate = credited > 0 && !exceedsCap && reason !== "";
+  const canCreate = credited > 0 && !exceedsCap && reason !== "" && !anyLineExceeds;
 
   // form-cta-validation: the CTA is always enabled; a failed click focuses the first invalid field
   // and reveals its inline error. `attempted` flips on the first failed submit (errors clear as fixed).
@@ -202,13 +217,7 @@ export function CreditNoteForm({
   const amountInvalid = credited <= 0.001; // nothing credited yet (exceedsCap has its own banner)
   const reasonError = attempted && reasonInvalid;
   const amountError = attempted && amountInvalid;
-
-  // Per-line cap: the amount credited/refunded can never exceed what was invoiced, so the unit price
-  // is capped at the ORIGINAL unit price (original ÷ invoiced qty). With the qty stepper already capped
-  // at maxQty, this guarantees each line total (qty × unit price) stays ≤ the line's original amount.
-  const unitCap = (l: DraftLine) => lineOriginal(l) / (l.maxQty || 1);
-  const capStr = (cap: number) => (Number.isInteger(cap) ? String(cap) : cap.toFixed(2));
-  const clampUnit = (l: DraftLine, v: string) => ((Number(v) || 0) > unitCap(l) + 0.001 ? capStr(unitCap(l)) : v);
+  const lineUnitError = (l: DraftLine) => (attempted || touchedUnitIds.has(l.id)) && lineUnitExceeds(l);
 
   const origUnitStr = (l: DraftLine) => capStr(lineOriginal(l) / (l.maxQty || 1));
   // Full: max credit for the mode — refund gives back the full per-unit price; credit corrects to 0.
@@ -223,9 +232,9 @@ export function CreditNoteForm({
   };
 
   const setUnitPrice = (id: string, raw: string) =>
-    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, unitPrice: clampUnit(l, raw.replace(/[^0-9.]/g, "")) } : l)));
-  // Custom keypad → mutate the focused line's per-unit price (max one dot, max 2 decimals). A press that
-  // would push the value over the original unit price clamps it back to that maximum (hard cap).
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, unitPrice: raw.replace(/[^0-9.]/g, "") } : l)));
+  // Custom keypad → mutate the focused line's per-unit price (max one dot, max 2 decimals). Typing
+  // over the original unit price is allowed — it just surfaces as an inline error (see `lineUnitError`).
   const keypadPress = (key: string) => {
     if (!focusedLineId) return;
     setLines((prev) => prev.map((l) => {
@@ -238,7 +247,7 @@ export function CreditNoteForm({
         if (v.includes(".") && v.split(".")[1].length >= 2) return l; // cap at 2 decimals
         v = v + key;
       }
-      return { ...l, unitPrice: clampUnit(l, v) };
+      return { ...l, unitPrice: v };
     }));
   };
   // Focus an amount field → open the keypad, scroll it into view, then lock scrolling once settled.
@@ -247,7 +256,13 @@ export function CreditNoteForm({
     setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
     setTimeout(() => setScrollLocked(true), 320);
   };
-  const blurAmount = () => { setFocusedLineId(null); setScrollLocked(false); };
+  // Leaving the field reveals its error (if any) from here on — same reveal-on-blur convention as
+  // RecordPaymentSheet's amount field.
+  const blurAmount = (id: string) => {
+    setFocusedLineId(null);
+    setScrollLocked(false);
+    setTouchedUnitIds((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
+  };
   const keypadBackspace = () => {
     if (!focusedLineId) return;
     setLines((prev) => prev.map((l) => (l.id === focusedLineId ? { ...l, unitPrice: l.unitPrice.slice(0, -1) } : l)));
@@ -314,11 +329,13 @@ export function CreditNoteForm({
 
   const handleCreate = () => {
     if (canCreate) { setAttempted(false); onCreate(buildPayload()); return; }
-    // Failed submit → reveal inline errors. Reason is a real field (focus it); the credited-amount
-    // total isn't (no single field to blame), so it surfaces as a toast instead.
+    // Failed submit → reveal inline errors. Reason/per-line unit price are real fields (focus them);
+    // the credited-amount total isn't (no single field to blame), so it surfaces as a toast instead.
     setAttempted(true);
     if (reasonInvalid) {
       focusFirstInvalidField("cn-reason");
+    } else if (anyLineExceeds) {
+      focusFirstInvalidField(lines.filter(lineUnitExceeds).map((l) => `cn-line-${l.id}`));
     } else if (amountInvalid) {
       setLocalToast(
         refund
@@ -531,9 +548,12 @@ export function CreditNoteForm({
                       type="currency"
                       inputMode="none"
                       placeholder="0.00"
+                      dataReq={`cn-line-${l.id}`}
                       value={focusedLineId === l.id ? l.unitPrice : l.unitPrice ? fmtAmount(Number(l.unitPrice) || 0) : ""}
+                      error={lineUnitError(l)}
+                      caption={lineUnitError(l) ? `Can't exceed the original unit price of ${money(unitCap(l))}` : undefined}
                       onFocus={(e) => focusAmount(l.id, e.currentTarget)}
-                      onBlur={blurAmount}
+                      onBlur={() => blurAmount(l.id)}
                       onChange={(v) => setUnitPrice(l.id, v)}
                       selectorLabel={currency}
                       selectorIcon={CURRENCY_COUNTRY[currency] && <CountryFlag name={CURRENCY_COUNTRY[currency]} size={20} />}
