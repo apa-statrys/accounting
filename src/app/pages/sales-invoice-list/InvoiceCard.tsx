@@ -55,13 +55,14 @@ export function InvoiceCard({ inv, isNew, lastItem, onClick, onDelete, onOpenCN,
 
   const status = rowStatus(eff, refundChip);
   // Drop a duplicate leading status word from the caption ("Paid 22 Jun 2026" → "22 Jun 2026",
-  // "Void 8 Jun 2026" → "8 Jun 2026", "Created 20 Jun 2026" / "Uploaded 18 Jun 2026" → the bare
-  // date) — the badge already carries the word, so the caption is just the bare date, same
-  // pattern as every other status.
+  // "Void 8 Jun 2026" → "8 Jun 2026", "Created 20 Jun 2026" → the bare date) — the badge already
+  // carries the word, so the caption is just the bare date, same pattern as every other status.
+  // "Uploaded 18 Jun 2026" keeps its word though — unlike the others it's not just restating the
+  // "Draft" badge, it's the only signal on the row that this draft came from an upload.
   let caption = meta.rest;
   if (status.label === "Paid") caption = caption.replace(/^Paid /, "");
   if (status.label === "Void") caption = caption.replace(/^Void /, "");
-  if (status.label === "Draft") caption = caption.replace(/^(Created|Uploaded) /, "");
+  if (status.label === "Draft") caption = caption.replace(/^Created /, "");
   // Refunded gets its own settled date (the linked credit note's date) instead of the invoice's
   // original payment date — "Paid 22 Jun 2026" next to a "Refunded" badge would be confusing.
   // Pending / Partially Refunded show that same date bare, same as every other status.
