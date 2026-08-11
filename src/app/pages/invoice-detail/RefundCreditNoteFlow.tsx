@@ -19,7 +19,7 @@ import { CURRENCY_COUNTRY } from "../../components/CurrencySheet";
 import { RECEIVING_ACCOUNTS, getAccount } from "../../data/receivingAccounts";
 import { money } from "../../lib/format";
 
-import { FONT, MUTED } from "../../lib/theme";
+import { FONT, MUTED, PAGE_PUSH_TRANSITION } from "../../lib/theme";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 
 
@@ -93,56 +93,46 @@ export function RefundCreditNoteFlow({
   const exceedsOutstanding = enteredAmount > amount + 0.001;
   const manualValid = enteredAmount > 0 && !exceedsOutstanding && !!mAccount;
   const [scrolled, setScrolled] = useState(false);
+  // Confirm is a separate full-screen overlay (see below) with its own scroll container, so it
+  // always mounts fresh at scroll-top — only the base "choose" screen needs its own frost state.
+  const [confirmScrolled, setConfirmScrolled] = useState(false);
   // On-screen keyboard (Figma "IOS controls" = Keyboard, same idea as CreateSalesInvoice) — no
   // free-text field remains on the manual step, so nothing currently focuses it true.
   const [keyboardOpen, setKeyboardOpen] = useState(false);
-  // All steps share one scroll container (below) — advancing/going back a step must land on
-  // top of the new step's content, not wherever the previous step happened to be scrolled to.
-  const scrollRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: 0 });
-  }, [step]);
 
-  const title = step === "confirm" ? "Confirm refund transfer" : "Refund Credit Note";
-
-  const onContinue = () => {
-    if (step === "choose") {
-      if (method === "ba") setStep("confirm");
-      else onMarkRefunded({ date: mDate, method: mAccount, amount: enteredAmount, proofFile: mProof ?? undefined });
-    } else {
-      onConfirmBA(fromAccount);
-    }
-  };
-
-  // First step ✕ exits the flow; the confirm step steps back to it.
-  const onLeading = () => {
-    if (step === "confirm") setStep("choose");
-    else onClose();
+  const onChooseContinue = () => {
+    if (method === "ba") setStep("confirm");
+    else onMarkRefunded({ date: mDate, method: mAccount, amount: enteredAmount, proofFile: mProof ?? undefined });
   };
 
   return (
-    <div className="absolute inset-0 z-50 bg-[var(--bg-neutral-tertiary)] rounded-[48px] overflow-hidden flex flex-col" style={{ width: 375, height: 812 }}>
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto thin-scrollbar"
-        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
-      >
-      <PageAppHeader scrolled={scrolled}>
-      <PageHeader
-        type="center"
-        title={title}
-        onBack={onLeading}
-        backIcon={step === "choose" ? <X size={20} strokeWidth={1} /> : undefined}
-        backLabel={step === "choose" ? "Close" : "Back"}
-        showSearch={false}
-      />
-      </PageAppHeader>
+    <div className="absolute inset-0 z-50 rounded-[48px] overflow-hidden" style={{ width: 375, height: 812 }}>
+      {/* "choose" — the base screen, always mounted underneath. "confirm" (below) is a genuine
+          second full-screen layer that pushes on top of it with the exact same slide the app uses
+          for every other page-to-page navigation (PAGE_PUSH_TRANSITION) — not an in-place content
+          swap with no motion at all, which is what this used to be. Both layers need their own
+          explicit (non-auto) z-index: each PageAppHeader carries its own z-index:30 internally, and
+          without a stacking context on these wrappers that z-30 leaks past them and gets compared
+          globally — interleaving both layers' headers instead of confirm's cleanly covering choose's. */}
+      <div className="absolute inset-0 z-0 bg-[var(--bg-neutral-tertiary)] flex flex-col">
+        <div
+          className="flex-1 overflow-y-auto thin-scrollbar"
+          onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+        >
+          <PageAppHeader scrolled={scrolled}>
+            <PageHeader
+              type="center"
+              title="Refund Credit Note"
+              onBack={onClose}
+              backIcon={<X size={20} strokeWidth={1} />}
+              backLabel="Close"
+              showSearch={false}
+            />
+          </PageAppHeader>
 
-      {/* Extra bottom padding while the reference-number field is focused clears the taller
-          dock+keyboard overlay. */}
-      <div className={`px-4 pt-5 flex flex-col gap-4 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
-        {step === "choose" && (
-          <>
+          {/* Extra bottom padding while the reference-number field is focused clears the taller
+              dock+keyboard overlay. */}
+          <div className={`px-4 pt-5 flex flex-col gap-4 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
             {/* Method — SegmentedControls (matches SendInvoiceSheet's Email/Share pattern) instead
                 of two Tile radio cards + a separate "Continue" step: the matching form swaps in
                 below immediately. A one-line caption keeps the distinction the old Tile subtext
@@ -256,37 +246,64 @@ export function RefundCreditNoteFlow({
                 {mProof ? (
                   <FileItemBase name={mProof} size="128 KB" fileType="pdf" state="completed" action="delete" onDelete={() => setMProof(null)} />
                 ) : (
-                  <Button hierarchy="secondary" size="sm" fullWidth iconLeft={<Plus size={18} />} label="Upload receipt / screenshot" onClick={() => setMProof("refund-receipt.pdf")} />
+                  <Button hierarchy="secondary" fullWidth iconLeft={<Plus size={18} />} label="Upload receipt / screenshot" onClick={() => setMProof("refund-receipt.pdf")} />
                 )}
               </div>
               </>
             )}
-          </>
-        )}
+          </div>
+        </div>
 
+        <ButtonDock
+          type="single"
+          sticky
+          primaryLabel={method === "manual" ? "Record refund" : "Continue"}
+          primaryDisabled={method === "manual" && !manualValid}
+          onPrimary={onChooseContinue}
+          keyboard={keyboardOpen}
+        />
+      </div>
+
+      {/* "confirm" — pushes on top of "choose" with the same slide/timing as every other
+          page-to-page navigation in the app (e.g. this whole flow pushing on top of the invoice
+          detail, or a credit note pushing on top of its list). Its own scroll container mounts
+          fresh each time it opens, so it always starts scrolled to top with no extra effect. */}
+      <AnimatePresence>
         {step === "confirm" && (
-          /* DS ListCard/ListRow (Figma), same shape as the CN detail's own Credit Details card —
-             not the old hand-rolled dashed-border/neutral-secondary card. */
-          <ListCard onLayer="gray">
-            {/* From — account name + full account number */}
-            <ListRow label="From" value={fromAcct?.name ?? ""} valueDescription={fromAcct?.number} />
-            <ListRow label="Currency" value={currency} valueFlag={<CountryFlag name={CURRENCY_COUNTRY[currency]} size={16} />} />
-            <ListRow label="To" value={customerName} />
-            <ListRow label="Amount" value={money(amount, currency)} />
-            <ListRow label="Reference" value={creditNoteNo || invoiceNo} last />
-          </ListCard>
-        )}
-      </div>
-      </div>
+          <motion.div
+            key="confirm"
+            className="absolute inset-0 z-10 bg-[var(--bg-neutral-tertiary)] flex flex-col"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={PAGE_PUSH_TRANSITION}
+          >
+            <div
+              className="flex-1 overflow-y-auto thin-scrollbar"
+              onScroll={(e) => setConfirmScrolled(e.currentTarget.scrollTop > 4)}
+            >
+              <PageAppHeader scrolled={confirmScrolled}>
+                <PageHeader type="center" title="Confirm refund transfer" onBack={() => setStep("choose")} showSearch={false} />
+              </PageAppHeader>
 
-      <ButtonDock
-        type="single"
-        sticky
-        primaryLabel={step === "confirm" ? "Confirm transfer" : method === "manual" ? "Record refund" : "Continue"}
-        primaryDisabled={step === "choose" && method === "manual" && !manualValid}
-        onPrimary={onContinue}
-        keyboard={keyboardOpen}
-      />
+              <div className="px-4 pt-5 flex flex-col gap-4 pb-28">
+                {/* DS ListCard/ListRow (Figma), same shape as the CN detail's own Credit Details card —
+                    not the old hand-rolled dashed-border/neutral-secondary card. */}
+                <ListCard onLayer="gray">
+                  {/* From — account name + full account number */}
+                  <ListRow label="From" value={fromAcct?.name ?? ""} valueDescription={fromAcct?.number} />
+                  <ListRow label="Currency" value={currency} valueFlag={<CountryFlag name={CURRENCY_COUNTRY[currency]} size={16} />} />
+                  <ListRow label="To" value={customerName} />
+                  <ListRow label="Amount" value={money(amount, currency)} />
+                  <ListRow label="Reference" value={creditNoteNo || invoiceNo} last />
+                </ListCard>
+              </div>
+            </div>
+
+            <ButtonDock type="single" sticky primaryLabel="Confirm transfer" onPrimary={() => onConfirmBA(fromAccount)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Bank account used picker (DES-720) — Statrys accounts only (external "Other accounts" hidden). */}
       <BottomSheet open={acctOpen} title="Select Account" onClose={() => setAcctOpen(false)}>
