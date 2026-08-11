@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
@@ -58,11 +58,6 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
   // The record is owned by App now (edits happen on the full-page form and flow back via props).
   const record = customer;
   const [scrolled, setScrolled] = useState(false);
-  // Blank header title by default — the hero right below it already carries the customer's name.
-  // Once the hero has scrolled out from under the sticky header, the title takes over showing it
-  // (same "reveal on scroll" idea as PageAppHeader's own frost, just gated on a taller distance).
-  const heroRef = useRef<HTMLDivElement>(null);
-  const [pastHero, setPastHero] = useState(false);
 
   return (
     // Beige, not white — PageAppHeader is transparent at rest, so it needs the outer frame's
@@ -71,16 +66,12 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
     <div className="relative rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812, background: "var(--bg-beige-primary)" }}>
       <div
         className="flex-1 overflow-y-auto thin-scrollbar"
-        onScroll={(e) => {
-          const top = e.currentTarget.scrollTop;
-          setScrolled(top > 4);
-          setPastHero(top > (heroRef.current?.offsetHeight ?? 0));
-        }}
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
           <PageHeader
             type="center"
-            title={pastHero ? record.name : ""}
+            title="Customer Details"
             onBack={onBack}
             showSearch={!!onEdit}
             rightIcon={<Pencil size={20} strokeWidth={1} />}
@@ -94,7 +85,6 @@ export function CustomerDetailPage({ customer, onBack, onEdit, flash, onFlashDon
             structure as the invoice/credit-note detail heroes. Avatar + name headline + email
             subtitle stand in for the money headline those pages lead with. */}
         <div
-          ref={heroRef}
           className="p-4 flex items-center gap-3"
           style={{ backgroundImage: "linear-gradient(180deg, var(--bg-beige-primary) 1%, var(--bg-neutral-primary) 99%)" }}
         >
