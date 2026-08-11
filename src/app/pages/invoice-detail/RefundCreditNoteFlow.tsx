@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { format, parseISO } from "date-fns";
-import { X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
@@ -11,13 +11,15 @@ import { ListRow } from "../../ui/ListRow";
 import { ListCard } from "../../ui/ListCard";
 import { SegmentedControls } from "../../ui/SegmentedControls";
 import { TextField } from "../../ui/TextField";
+import { Button } from "../../ui/Button";
+import { FileItemBase } from "../../ui/FileItemBase";
 import { Calendar } from "../../components/Calendar";
 import { CountryFlag } from "../../components/CountryFlag";
 import { CURRENCY_COUNTRY } from "../../components/CurrencySheet";
 import { RECEIVING_ACCOUNTS, getAccount } from "../../data/receivingAccounts";
 import { money } from "../../lib/format";
 
-import { FONT, INK, MUTED } from "../../lib/theme";
+import { FONT, MUTED } from "../../lib/theme";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 
 
@@ -244,19 +246,17 @@ export function RefundCreditNoteFlow({
                 onClick={() => setAcctOpen(true)}
               />
 
-              {/* Proof of refund — an optional uploaded receipt / screenshot. No DS component covers
-                  an empty upload dropzone yet (ui/FileItemBase only renders an already-picked file),
-                  so this stays hand-rolled — but the label now matches every other field's body-sm
-                  style instead of the mismatched uppercase eyebrow. */}
+              {/* Proof of refund — an optional uploaded receipt / screenshot. Same trigger button as
+                  "Add your items"/"Add more items" (AddInvoiceDetails) and the same DS
+                  ui/FileItemBase row used everywhere else a file is attached (SendInvoiceSheet's
+                  Download row, CreditsAppliedSection's refund proof) instead of a hand-rolled
+                  dashed button + filename/Remove row. */}
               <div className="flex flex-col gap-1.5">
                 <p className="body-sm text-[var(--text-primary)]">Proof of refund</p>
                 {mProof ? (
-                  <div className="flex items-center justify-between rounded-xl border border-[rgba(160,160,160,0.4)] px-3.5 h-12 bg-white">
-                    <span className="text-[14px] truncate" style={{ ...FONT, color: INK }}>{mProof}</span>
-                    <button onClick={() => setMProof(null)} className="text-[13px] font-medium shrink-0 ml-3" style={{ ...FONT, color: "var(--text-error-primary)" }}>Remove</button>
-                  </div>
+                  <FileItemBase name={mProof} size="128 KB" fileType="pdf" state="completed" action="delete" onDelete={() => setMProof(null)} />
                 ) : (
-                  <button onClick={() => setMProof("refund-receipt.pdf")} className="w-full rounded-xl border border-dashed border-[rgba(160,160,160,0.5)] py-3 text-[14px] font-medium" style={{ ...FONT, color: INK }}>+ Upload receipt / screenshot</button>
+                  <Button hierarchy="secondary" size="sm" fullWidth iconLeft={<Plus size={18} />} label="Upload receipt / screenshot" onClick={() => setMProof("refund-receipt.pdf")} />
                 )}
               </div>
               </>
