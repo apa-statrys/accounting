@@ -15,8 +15,7 @@ import { CURRENCY_COUNTRY } from "../../components/CurrencySheet";
 import { CountryFlag } from "../../components/CountryFlag";
 import { money } from "../../lib/format";
 import { formatAccount } from "../../data/receivingAccounts";
-import { FONT, INK, MUTED } from "../../lib/theme";
-import { Check } from "lucide-react";
+import { FONT, MUTED } from "../../lib/theme";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
 
@@ -41,10 +40,8 @@ interface RecordPaymentSheetProps {
 
 /** "Receiving Account" and "Payment date" are sub-levels of THIS SAME sheet (header/content swap via
  *  `step`), never a second sheet stacked on top of "Record Payment" — see memory:
- *  sub-level-drawer-same-sheet. "done" is the post-Confirm explanation step: recording a payment
- *  doesn't visibly change anything on the invoice (the accountant verifies it first), so this step
- *  says who has it now, at the moment the user is looking for confirmation. Terminal — no back. */
-type PaymentStep = "form" | "account" | "date" | "done";
+ *  sub-level-drawer-same-sheet. */
+type PaymentStep = "form" | "account" | "date";
 
 export function RecordPaymentSheet({
   open, onClose, value, onChange, total, currency = "USD", accountId, onAccountChange, date, onDateChange, onSubmit,
@@ -62,15 +59,15 @@ export function RecordPaymentSheet({
   // The field opens pre-filled with the amount owed and shows no caption at all — only once the
   // user actually edits it do we surface what would still be left owing (amount owed − this entry).
   const [amountEdited, setAmountEdited] = useState(false);
-  // Brief loading beat on Confirm — the same dots spinner as SendInvoiceSheet's send (Figma node
-  // 4591-5847). The green "Paid" success label that used to follow it is gone: the invoice is NOT
-  // paid at this point (the accountant verifies first), so the beat hands off to the "done"
-  // explanation step rather than asserting an outcome that hasn't happened.
+  // Same brief loading → green success beat as SendInvoiceSheet's "Invoice Sent" (Figma node
+  // 4591-5847): a dots spinner on the button, then it turns green with a "Recorded" label for a
+  // beat — "Recorded" rather than "Paid" since the invoice's own status doesn't change yet (the
+  // accountant verifies the record first) — before handing off to the parent's onSubmit, which
+  // closes the sheet and shows the explanation as a toast instead of a second in-sheet step.
   const [sending, setSending] = useState(false);
-  // Reset on OPEN rather than on close, so the sheet starts clean no matter how it was dismissed
-  // (Okay button, overlay tap, swipe) — the "done" step has three separate exits.
+  const [sent, setSent] = useState(false);
   useEffect(() => {
-    if (open) { setAttempted(false); setTouched(false); setAmountEdited(false); setSending(false); setStep("form"); }
+    if (open) { setAttempted(false); setTouched(false); setAmountEdited(false); setSending(false); setSent(false); setStep("form"); }
   }, [open]);
   const amountNum = Number(value) || 0;
   const amountExceeds = amountNum > total + 0.001;
@@ -86,20 +83,17 @@ export function RecordPaymentSheet({
     }
     setAttempted(false);
     setSending(true);
-    setTimeout(() => { setSending(false); setStep("done"); }, 900);
+    setTimeout(() => {
+      setSending(false);
+      setSent(true);
+      setTimeout(() => onSubmit(), 900);
+    }, 900);
   };
-
-  // Every exit from "done" commits — Okay button, overlay tap or swipe — so the payment can't be
-  // lost by dismissing the explanation. onSubmit itself records it and closes the sheet.
-  const leaveDone = () => onSubmit();
 
   const titles: Record<PaymentStep, string> = {
     form: "Record Payment",
     account: "Select Receiving Account",
     date: "Select Payment Date",
-    // Titleless — the confirmation's own heading sits in the content, and BottomSheet collapses
-    // the header row to a small gap when there's no title/back/action.
-    done: "",
   };
 
   return (
@@ -107,32 +101,27 @@ export function RecordPaymentSheet({
       open={open}
       title={titles[step]}
       centerTitle={step === "account" || step === "date"}
-      // No back from "done" — the payment is already committed by the time it shows.
       onBack={step === "account" || step === "date" ? () => setStep("form") : undefined}
       backLabel="Back to payment"
-      onClose={step === "done" ? leaveDone : onClose}
+      onClose={onClose}
       // Fixed height so the panel doesn't resize when its content swaps between steps (short
       // form vs. the taller account list/calendar) — only the content itself should slide;
       // see memory: sub-level-drawer-same-sheet (matches InvoiceSettings' own multi-step sheet).
-      // "done" is exempt: it's terminal (nothing to step back to, so nothing to match heights
-      // with) and short, so it auto-sizes snugly instead of leaving a hole above the Okay button.
-      heightClass={step === "done" ? undefined : "h-[70%]"}
-      compact={step === "done"}
+      heightClass="h-[70%]"
       keyboardOpen={keyboardOpen}
       footer={step === "form" ? (
         <ButtonDock
           type="double"
           keyboard={keyboardOpen}
           secondaryLabel="Cancel"
-          secondaryDisabled={sending}
+          secondaryDisabled={sending || sent}
           // The sheet title already names the action, so the CTA is just the commit verb.
-          primaryLabel="Confirm"
+          primaryLabel={sent ? "Recorded" : "Confirm"}
           primaryLoading={sending}
+          primarySuccess={sent}
           onSecondary={onClose}
           onPrimary={handleSubmit}
         />
-      ) : step === "done" ? (
-        <ButtonDock type="single" primaryLabel="Okay" onPrimary={leaveDone} />
       ) : undefined}
     >
       {/* Step transitions: plain object-literal initial/animate/exit on a single wrapper — same
@@ -143,36 +132,7 @@ export function RecordPaymentSheet({
           animate="open") — an object-literal animate here breaks propagation and leaves those
           rows stuck at opacity:0 forever (confirmed via computed style, not just slow). */}
       <AnimatePresence mode="wait" initial={false}>
-        {step === "done" ? (
-          // Post-Confirm explanation. Deliberately says nothing about how long verification takes
-          // (no agreed turnaround to promise) and nothing about the invoice status (which doesn't
-          // change yet). NB the copy promises a notification — that depends on an approval event
-          // reaching the app, which doesn't exist yet; PO-approved wording.
-          <motion.div
-            key="done"
-            initial={{ x: 24, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 24, opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
-            // No extra top padding: BottomSheet already puts a 24px grabber row + a 32px
-            // titleless gap above this. Side padding comes from .content's own --space-8.
-            className="flex flex-col items-center text-center gap-4"
-          >
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: INK }}
-            >
-              <Check size={24} strokeWidth={1.67} color="#fff" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <p className="card-title-md" style={{ ...FONT, color: INK }}>Payment recorded successfully</p>
-              <p className="body-sm" style={{ ...FONT, color: MUTED }}>
-                We&rsquo;ve received your payment record for {money(amountNum, currency)}.
-                We&rsquo;ll notify you once the payment has been verified.
-              </p>
-            </div>
-          </motion.div>
-        ) : step === "account" ? (
+        {step === "account" ? (
           <motion.div key="account" variants={stepSlide(1)} initial="closed" animate="open" exit="closed">
             <ReceivingAccountRows
               value={accountId}
