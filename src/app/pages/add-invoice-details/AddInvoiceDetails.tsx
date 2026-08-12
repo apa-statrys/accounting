@@ -453,7 +453,7 @@ export function AddInvoiceDetails({
     };
   })();
   const previewIssueDateLabel = format(issueDate, "d MMM yyyy");
-  const previewStatus = { label: "Pending", bg: "var(--bg-warning-subtle)", border: "var(--border-warning-subtle)", text: "var(--text-warning-primary)" };
+  const previewStatus = { label: "Pending", color: "warning" as const };
 
   // Locked-period upload (DES-751): the OCR Issue Date sat in a closed period, so it must be
   // re-picked. Block the CTA while it's still the "Select issue date" placeholder — flag the row

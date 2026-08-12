@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { ButtonDock } from "../../components/ButtonDock";
+import { Badge, type BadgeColor } from "../../ui/Badge";
 import type { InvoiceLine } from "../../types";
 
 import { FONT } from "../../lib/theme";
@@ -45,8 +46,9 @@ export interface InvoiceDocumentPreviewProps {
   /** Sender (the client's own business) — the company name shown top-right. */
   fromName?: string;
   companyName?: string;
-  /** Optional status chip (Issue/Due/Status meta block). */
-  status?: { label: string; bg: string; border: string; text: string };
+  /** Optional status chip (Issue/Due/Status meta block) — same ui/Badge every other status label
+   *  in the app renders through, not a hand-rolled pill (DETAIL_STATUS_META carries `color`). */
+  status?: { label: string; color: BadgeColor };
   /** Wrapper padding — callers size this to their own container (full page vs. an embedded
    *  preview inside a smaller sheet). Defaults to the full-page page's own gutters. */
   className?: string;
@@ -175,12 +177,9 @@ export function InvoiceDocumentPreview(props: InvoiceDocumentPreviewProps) {
                 {status && (
                   <div>
                     <Lbl>Status</Lbl>
-                    <span
-                      className="inline-flex items-center mt-1 px-3 py-1 rounded-full border text-[12px] font-bold uppercase tracking-wide"
-                      style={{ ...FONT, background: status.bg, borderColor: status.border, color: status.text }}
-                    >
-                      {status.label}
-                    </span>
+                    <div className="mt-1">
+                      <Badge label={status.label} color={status.color} variant="text" />
+                    </div>
                   </div>
                 )}
               </div>

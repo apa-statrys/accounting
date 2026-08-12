@@ -1309,7 +1309,7 @@ export function InvoiceDetailPage({
             discount={DISCOUNT}
             total={TOTAL}
             bank={bank}
-            status={{ label: meta.label, bg: meta.bg, border: meta.border, text: meta.text }}
+            status={{ label: meta.label, color: meta.color }}
             className="p-0"
           />
         }
@@ -1330,7 +1330,7 @@ export function InvoiceDetailPage({
             discount={DISCOUNT}
             total={TOTAL}
             bank={bank}
-            status={{ label: meta.label, bg: meta.bg, border: meta.border, text: meta.text }}
+            status={{ label: meta.label, color: meta.color }}
             hideDownload={pdfFromSend}
             onBack={() => setPdfPreviewOpen(false)}
             onDownloaded={() => {
