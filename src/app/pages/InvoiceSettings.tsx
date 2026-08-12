@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { ZoomIn, ZoomOut } from "lucide-react";
+import { Image as ImageIcon, ZoomIn, ZoomOut } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { ButtonDock } from "../components/ButtonDock";
@@ -19,11 +19,10 @@ import type { CompanySettings } from "../types";
 import { PageHeader } from "../ui/PageHeader";
 import { ListCard } from "../ui/ListCard";
 import { ListRow } from "../ui/ListRow";
-import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
 import { Overlay } from "../ui/Overlay";
 
-import { FONT, PAGE_PUSH_TRANSITION, avatarTint, initials } from "../lib/theme";
+import { FONT, PAGE_PUSH_TRANSITION } from "../lib/theme";
 import { scrollFieldIntoView } from "../lib/scrollFieldIntoView";
 import { focusFirstInvalidField } from "../lib/focusFirstInvalidField";
 import { EMAIL_RE } from "../lib/format";
@@ -448,9 +447,11 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
 
             <div className={`px-4 pt-5 flex flex-col gap-4 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
               {/* Logo — centered tile + secondary CTA below (not the old side-by-side thumbnail +
-                  text-link). No logo yet defaults to an initials placeholder (PMT-41258: "Display
-                  Initials if no logo"); once a real file's picked, its actual image shows here
-                  (object URL — DemoLogo is only a fallback for the no-url edge case). */}
+                  text-link). No logo yet defaults to a generic image-icon placeholder — same
+                  140px tile as the has-logo state (no separate/smaller nested box for the
+                  placeholder), just an icon centered directly in it instead of a photo. Once a
+                  real file's picked, its actual image shows here (object URL — DemoLogo is only a
+                  fallback for the no-url edge case). */}
               <div className="flex flex-col items-center gap-3 pb-1">
                 <div className="relative size-[140px] rounded-[28px] overflow-hidden bg-[var(--bg-neutral-secondary)] flex items-center justify-center">
                   {view.logo ? (
@@ -460,7 +461,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
                       <DemoLogo size={140} />
                     )
                   ) : (
-                    <Avatar size="3xl" initials={initials(view.companyName || "Your Company")} color={avatarTint(view.companyName || "company")} />
+                    <ImageIcon size={40} strokeWidth={1.5} color="var(--icon-placeholder)" />
                   )}
                 </div>
                 <Button hierarchy="secondary" size="sm" label={view.logo ? "Change logo" : "Upload logo"} onClick={pickLogo} />
