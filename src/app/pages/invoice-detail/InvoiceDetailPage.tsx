@@ -8,7 +8,6 @@ import { SendInvoiceSheet } from "../../components/SendInvoiceSheet";
 import { CreditNoteForm } from "../credit-note-form/CreditNoteForm";
 import { RefundCreditNoteFlow } from "./RefundCreditNoteFlow";
 import { FilePreviewOverlay, type UploadedFileInfo } from "../../components/UploadedFile";
-import { CreditNotePreviewPage, CreditNoteDocumentPreview } from "../credit-note-list/CreditNotePreviewPage";
 import { CreditNoteDetailPage } from "../credit-note-list/CreditNoteDetailPage";
 import { InvoicePreviewPage, InvoiceDocumentPreview } from "../shared/InvoicePreviewPage";
 import { Toast } from "../../components/Toast";
@@ -32,7 +31,6 @@ import { ActionsMenu } from "./ActionsMenu";
 import { LockedPeriodDialog } from "../locked-period/LockedPeriodDialog";
 import { LockedPeriodBanner } from "../locked-period/LockedPeriodBanner";
 import { RecordPaymentSheet } from "./RecordPaymentSheet";
-import { SendPickerSheet } from "./SendCnSheets";
 
 interface InvoiceDetailPageProps {
   initialStatus?: DetailStatus;
@@ -227,13 +225,6 @@ export function InvoiceDetailPage({
   // dock. "Preview as PDF" / ActionsMenu's "Preview PDF" reach the same page with nothing downloaded
   // yet, so they keep showing it.
   const [pdfFromSend, setPdfFromSend] = useState(false);
-  // Whether the send sub-flow is sending the invoice or the just-created credit note.
-  const [sendContext, setSendContext] = useState<"invoice" | "creditNote">("invoice");
-  // Which credit note the send flow targets (index into creditNotes). With several notes on one invoice
-  // each is its own document, so the send flow is parameterised by index rather than always the latest.
-  const [sendCnIndex, setSendCnIndex] = useState(0);
-  // "Send credit note" picker sheet — shown only when there are MULTIPLE unsent notes to choose between.
-  const [sendPickerOpen, setSendPickerOpen] = useState(false);
 
   const meta = DETAIL_STATUS_META[status];
   const issued = status !== "Draft";
@@ -303,11 +294,6 @@ export function InvoiceDetailPage({
     return { name: it.name, qty: it.qty, unit: it.unit, unitPrice: amount / it.qty, amount };
   });
   const lastCreditNote = creditNotes[creditNotes.length - 1];
-  // Sent-state lives per credit note. Any unsent note means there's still something to "Send" (vs
-  // "Resend" only once every note has gone out). The send flow targets `sendCnIndex` (default latest).
-  const unsentCnCount = creditNotes.filter((c) => !c.sent).length;
-  const anyUnsent = unsentCnCount > 0;
-  const selectedSendCn = creditNotes[sendCnIndex] ?? lastCreditNote;
   // CN-YYYY-NNNNNN — own sequence, independent of the invoice number. Continue PAST the shared register's
   // highest number so a live-created note never collides with a seeded one (e.g. CN-2026-000001).
   const CN_SEQ_MAX = CREDIT_NOTES.reduce((max, c) => {
@@ -318,11 +304,6 @@ export function InvoiceDetailPage({
   // Cancel / add more credit — allowed on any unpaid-or-partly-paid invoice (#3 adds PartiallyPaid) while
   // there's uncommitted room (COMMITTED, not just applied — a full Open note already blocks adding). #2 fix.
   const cancellable = (status === "Awaiting" || status === "Overdue" || status === "PartiallyPaid") && creditRoom > 0.001;
-  // Send values switch to the SELECTED credit note while sending it.
-  const sendNo = sendContext === "creditNote" && selectedSendCn ? selectedSendCn.no : invoiceNo;
-  const sendTotal = sendContext === "creditNote" && selectedSendCn ? selectedSendCn.amount : TOTAL;
-  const sendName = sendContext === "creditNote" && selectedSendCn ? selectedSendCn.name : customerName;
-  const sendEmail = sendContext === "creditNote" && selectedSendCn ? selectedSendCn.email : customerEmail;
 
   // The one-line status explainer under the amount — sits right beside the colored status badge
   // (Figma "status + date" format), so it never repeats the badge's own word (no "Overdue" text
@@ -415,42 +396,21 @@ export function InvoiceDetailPage({
   // as a standalone fragment next to the "·". render() skips the "·" only here so it reads as one
   // sentence: "Overdue since <date>".
   const bannerIsContinuation = status === "Overdue" && credited <= 0.001;
-  // Refund dock (DES-720): while a payout is due (refundPending > 0) the primary action is "Refund Credit
-  // Note"; once everything committed has been paid out the remaining action is sending the credit-note
-  // document (AC6) → "Send/Resend Credit Note". A new note raised later re-opens a pending payout.
+  // Refund dock (DES-720): while a payout is due (refundPending > 0) the primary action is "Refund
+  // Credit Note"; once everything committed has been paid out there's nothing left to do on the
+  // INVOICE itself, so the dock falls back to Preview as PDF — sending/resending the credit note's
+  // own document lives on the CN's own detail page (decided 2026-08-13; matches how every other
+  // credit-note send already works — see CreditsAppliedSection's onViewCn), not duplicated here.
   const refundDone = refundPending <= 0.001;
-
-  // Entry point for "Send Credit Note" from any dock (refund + unpaid/cancellation). With MULTIPLE unsent
-  // notes, open the picker (default selection = latest); otherwise go straight to the send flow — the one
-  // unsent note if there is one, else the latest note (a resend).
-  const openSendCreditNote = () => {
-    setSendContext("creditNote");
-    if (unsentCnCount >= 2) {
-      setSendCnIndex(creditNotes.length - 1);
-      setSendPickerOpen(true);
-    } else {
-      const firstUnsent = creditNotes.findIndex((c) => !c.sent);
-      setSendCnIndex(firstUnsent >= 0 ? firstUnsent : creditNotes.length - 1);
-      setSendSheetOpen(true);
-    }
-  };
 
   const closeSendFlows = () => {
     setSendSheetOpen(false);
     setPdfPreviewOpen(false);
   };
 
-  // Send completion — credit-note sends stay on the page with a toast; invoice sends bubble up.
   const completeSend = () => {
     closeSendFlows();
-    if (sendContext === "creditNote") {
-      setLocalToast("Credit note sent");
-      setSendContext("invoice");
-      // Mark the SELECTED credit note (the one the send flow targeted) as sent, stamped today.
-      setCreditNotes((prev) => prev.map((c, i) => (i === sendCnIndex ? { ...c, sent: true, sentDate: SENT_TODAY } : c)));
-    } else {
-      onSent?.();
-    }
+    onSent?.();
   };
 
   // Build a CreditNote from the form payload (shared by create + edit). `sent` defaults to false;
@@ -976,18 +936,14 @@ export function InvoiceDetailPage({
           />
         )
       ) : isRefundContext ? (
-        // Refund credit note (DES-720). Sending the credit-note document and moving the money are
-        // INDEPENDENT actions off a created refund CN (AC6): the client may send the note any time —
-        // before or after the actual refund. So while the refund is still pending we show BOTH —
-        // primary "Refund Credit Note" (the money-out) + secondary "Send/Resend Credit Note" (the
-        // document). Once the refund is done the money-out action is gone, leaving only send/resend.
+        // Refund credit note (DES-720). The only INVOICE-level action is the money-out ("Refund
+        // Credit Note") while a payout is still due — sending/resending the credit note's own
+        // document is a CN-level action that lives on the CN's own detail page (decided
+        // 2026-08-13; matches the "sent from its own detail page" note the pending-payout branch
+        // below already had), not duplicated here. Once the payout is done/submitted there's
+        // nothing left to do on the invoice itself, so the dock falls back to Preview as PDF.
         (refundDone || refundSubmitted) ? (
-          <ButtonDock
-            type="single"
-            sticky
-            primaryLabel={anyUnsent ? "Send Credit Note" : "Resend Credit Note"}
-            onPrimary={openSendCreditNote}
-          />
+          <ButtonDock type="single" sticky primaryLabel="Preview as PDF" onPrimary={() => { setPdfFromSend(false); setPdfPreviewOpen(true); }} />
         ) : (
           // Refund pending (Figma 696:5495): Resend Invoice (secondary — it's already been sent to
           // reach this refund state) + Refund Credit Note (primary, money-out — the DES-720 AC3 label).
@@ -1291,17 +1247,6 @@ export function InvoiceDetailPage({
       {/* Refund-proof attachment preview (DES-720 evidence). */}
       <FilePreviewOverlay open={proofPreview !== null} file={proofPreview} onClose={() => setProofPreview(null)} />
 
-      {/* "Send credit note" picker — opened only when there are 2+ unsent notes. */}
-      <SendPickerSheet
-        open={sendPickerOpen}
-        onClose={() => setSendPickerOpen(false)}
-        creditNotes={creditNotes}
-        currency={currency}
-        selectedIndex={sendCnIndex}
-        onSelect={setSendCnIndex}
-        onSend={() => { setSendPickerOpen(false); setSendSheetOpen(true); }}
-      />
-
       {/* Record payment — full marks Paid, less marks Partially Paid */}
       <RecordPaymentSheet
         open={recordPayOpen}
@@ -1329,104 +1274,69 @@ export function InvoiceDetailPage({
       {/* Optional send (reused sub-flows) */}
       <SendInvoiceSheet
         open={sendSheetOpen}
-        customerName={sendName}
-        customerEmail={sendEmail}
+        customerName={customerName}
+        customerEmail={customerEmail}
         companyEmail={companyEmail}
-        invoiceNo={sendNo}
-        amountLabel={`${currency} ${sendTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+        invoiceNo={invoiceNo}
+        amountLabel={`${currency} ${TOTAL.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
         dueDateLabel={dueDateLabel}
-        docType={sendContext === "creditNote" ? "creditNote" : "invoice"}
-        link={`https://pay.statrys.com/i/${sendNo.toLowerCase()}`}
-        onClose={() => { setSendSheetOpen(false); setSendContext("invoice"); }}
+        link={`https://pay.statrys.com/i/${invoiceNo.toLowerCase()}`}
+        onClose={() => setSendSheetOpen(false)}
         onSend={completeSend}
         onSent={completeSend}
         onDownload={() => {
           setPdfFromSend(true);
           setPdfPreviewOpen(true);
-          setLocalToast(sendContext === "creditNote" ? "Credit note downloaded" : "Invoice downloaded");
+          setLocalToast("Invoice downloaded");
         }}
-        onQuickDownload={() => setLocalToast(sendContext === "creditNote" ? "Credit note downloaded" : "Invoice downloaded")}
+        onQuickDownload={() => setLocalToast("Invoice downloaded")}
         docPreview={
-          sendContext === "creditNote" && selectedSendCn ? (
-            <CreditNoteDocumentPreview
-              creditNoteNo={selectedSendCn.no}
-              invoiceNo={invoiceNo}
-              customerName={selectedSendCn.name}
-              customerEmail={selectedSendCn.email}
-              issueDateLabel={selectedSendCn.date}
-              currency={currency}
-              lines={selectedSendCn.lines}
-              total={selectedSendCn.amount}
-              reason={selectedSendCn.reason}
-              reasonNote={selectedSendCn.reasonNote}
-              className="p-0"
-            />
-          ) : (
-            <InvoiceDocumentPreview
-              invoiceNo={sendNo}
-              customerName={sendName}
-              customerEmail={sendEmail}
-              issueDateLabel={issueDateLabel}
-              dueDateLabel={dueDateLabel}
-              currency={currency}
-              items={ITEMS}
-              subtotal={SUBTOTAL}
-              discount={DISCOUNT}
-              total={sendTotal}
-              bank={bank}
-              status={{ label: meta.label, bg: meta.bg, border: meta.border, text: meta.text }}
-              className="p-0"
-            />
-          )
+          <InvoiceDocumentPreview
+            invoiceNo={invoiceNo}
+            customerName={customerName}
+            customerEmail={customerEmail}
+            issueDateLabel={issueDateLabel}
+            dueDateLabel={dueDateLabel}
+            currency={currency}
+            items={ITEMS}
+            subtotal={SUBTOTAL}
+            discount={DISCOUNT}
+            total={TOTAL}
+            bank={bank}
+            status={{ label: meta.label, bg: meta.bg, border: meta.border, text: meta.text }}
+            className="p-0"
+          />
         }
       />
 
-      {/* PDF preview — shown instantly over the (still-mounted) Send Invoice page; no transition.
-          A credit-note send renders the dedicated credit-note document; otherwise the invoice. */}
+      {/* PDF preview — shown instantly over the (still-mounted) Send Invoice page; no transition. */}
       {pdfPreviewOpen && (
         <div className="absolute inset-0 z-50">
-          {sendContext === "creditNote" && selectedSendCn ? (
-            <CreditNotePreviewPage
-              creditNoteNo={selectedSendCn.no}
-              invoiceNo={invoiceNo}
-              customerName={selectedSendCn.name}
-              customerEmail={selectedSendCn.email}
-              issueDateLabel={selectedSendCn.date}
-              currency={currency}
-              lines={selectedSendCn.lines}
-              total={selectedSendCn.amount}
-              reason={selectedSendCn.reason}
-              reasonNote={selectedSendCn.reasonNote}
-              hideDownload={pdfFromSend}
-              onBack={() => setPdfPreviewOpen(false)}
-            />
-          ) : (
-            <InvoicePreviewPage
-              invoiceNo={sendNo}
-              customerName={sendName}
-              customerEmail={sendEmail}
-              issueDateLabel={issueDateLabel}
-              dueDateLabel={dueDateLabel}
-              currency={currency}
-              items={ITEMS}
-              subtotal={SUBTOTAL}
-              discount={DISCOUNT}
-              total={sendTotal}
-              bank={bank}
-              status={{ label: meta.label, bg: meta.bg, border: meta.border, text: meta.text }}
-              hideDownload={pdfFromSend}
-              onBack={() => setPdfPreviewOpen(false)}
-              onDownloaded={() => {
-                // Only reachable when NOT from the Send sheet's own Download row (hideDownload hides
-                // the button there — that download is already "just to show", no side effect). From a
-                // sendable invoice, download counts as a send channel; for terminal/read-only invoices
-                // it's just a re-download.
-                setPdfPreviewOpen(false);
-                if (sendable) completeSend();
-                else setLocalToast("Invoice downloaded");
-              }}
-            />
-          )}
+          <InvoicePreviewPage
+            invoiceNo={invoiceNo}
+            customerName={customerName}
+            customerEmail={customerEmail}
+            issueDateLabel={issueDateLabel}
+            dueDateLabel={dueDateLabel}
+            currency={currency}
+            items={ITEMS}
+            subtotal={SUBTOTAL}
+            discount={DISCOUNT}
+            total={TOTAL}
+            bank={bank}
+            status={{ label: meta.label, bg: meta.bg, border: meta.border, text: meta.text }}
+            hideDownload={pdfFromSend}
+            onBack={() => setPdfPreviewOpen(false)}
+            onDownloaded={() => {
+              // Only reachable when NOT from the Send sheet's own Download row (hideDownload hides
+              // the button there — that download is already "just to show", no side effect). From a
+              // sendable invoice, download counts as a send channel; for terminal/read-only invoices
+              // it's just a re-download.
+              setPdfPreviewOpen(false);
+              if (sendable) completeSend();
+              else setLocalToast("Invoice downloaded");
+            }}
+          />
         </div>
       )}
 

@@ -79,7 +79,7 @@ src/app/
     credit-note-form/     # CreditNoteForm (page) + lineMath.ts + ReasonSheet + ClientEditSheet
     invoice-detail/       # InvoiceDetailPage (page) + demoInvoice.ts + creditNoteTypes.ts +
                           # CreditsAppliedSection + ActionsMenu + RecordPaymentSheet +
-                          # SendCnSheets + RefundCreditNoteFlow (DES-720, private to this page)
+                          # RefundCreditNoteFlow (DES-720, private to this page)
     upload-invoice/       # UploadInvoice (page) + ScanDocument (native-scanner stand-in, private)
     credit-note-list/     # CreditNotesList (page) + CreditNoteDetailPage + CreditNotePreviewPage
                           # (the CN detail/preview are also opened from invoice-detail & the list)
@@ -147,6 +147,12 @@ in-session only — a reload resets it (expected prototype limit).
 - Credit-note lifecycle, refund lifecycle, corrected-invoice model, per-note send state, status
   chips: the source of truth is the code itself (`invoice-detail/`, `credit-note-form/`,
   `credit-note-list/`) plus the live Jira tickets (DES-719/720/721) — read those before changing it.
+- **A credit note's own document is only ever sent/resent from the CN's own detail page** (decided
+  2026-08-13) — the invoice detail page never duplicates that action. This already held for the
+  refund-pending dock ("the refund CN is sent from its own detail page"); the refund-done/submitted
+  dock used to break it with its own "Send/Resend Credit Note" primary CTA — removed, falling back
+  to "Preview as PDF" (the invoice's own catch-all, same as any other terminal/no-more-actions
+  status) since sending the invoice or logging the refund are the only INVOICE-level actions.
 - Client delete/archive is out of scope (referential integrity; record shared with payments side).
 - Sheet motion: sheets dim the page with the shared `ui/Overlay` component (`--overlay`,
   `rgba(27, 27, 27, 0.6)` — Figma dev-mode spec; no page recede/scale). `ButtonDock` labels
