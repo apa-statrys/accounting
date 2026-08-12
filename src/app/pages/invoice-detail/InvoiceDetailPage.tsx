@@ -250,9 +250,6 @@ export function InvoiceDetailPage({
   // the UL number + "Uploaded"; created shows nothing there since it has no number yet).
   // The account shown on the created-draft receiving card (default = the primary Statrys account).
   const receivingAcct = RECEIVING_ACCOUNTS.find((a) => a.primary) ?? RECEIVING_ACCOUNTS[0];
-  // Read-only states for content. Paid still exposes a ⋯ menu (Refund with Credit Note); Cancelled/
-  // Refunded have no menu actions.
-  const terminal = status === "Paid" || status === "Cancelled" || status === "Refunded";
   const sendable = status === "Awaiting" || status === "Overdue" || status === "PartiallyPaid";
   // Suppress the "Edit Invoice" row — either an empty draft (its own dock CTA already leads to
   // Edit) or a logged-but-unapproved payment (Pending Reconciliation), which locks editing until
@@ -349,6 +346,10 @@ export function InvoiceDetailPage({
   // refund still awaiting its payout (a fresh CN, or a NEW note raised after an earlier refund settled).
   const refundPending = Math.max(0, credited - refundedOut);
   const fullyRefunded = refundedOut >= TOTAL - 0.001 && refundedOut > 0.001;
+  // Once everything committed has been paid out (or a payout's already been submitted, awaiting
+  // confirmation) there's nothing left to do on the invoice itself — moved up from its own
+  // refund-dock section below so `showPreviewPdf`/`hasMenuActions` can use it too.
+  const refundDone = refundPending <= 0.001;
 
   // Refund context (DES-720): the headline leads with the refund amount, not the amount due (paid
   // invoices owe nothing). Context = status "Pending Refund"/"Refunded" or a derived refund tag.
@@ -359,6 +360,11 @@ export function InvoiceDetailPage({
     : refundTag === "Partially Refunded" ? "Refunded"
     : refundTag;
   const isRefundContext = status === "PendingRefund" || status === "Refunded" || !!effectiveRefundTag;
+  // Preview as PDF is menu-only, never a sticky dock CTA (decided 2026-08-13, for consistency
+  // across every status that reaches it — was previously duplicated as both a dock button AND a
+  // menu row once a Paid invoice had a cancellation CN applied). Covers Paid (with or without a
+  // CN) and a refund that's done or already submitted (nothing left to do on the invoice itself).
+  const showPreviewPdf = status === "Paid" || (isRefundContext && (refundDone || refundSubmitted));
   // MVP: one credit note per invoice. Count only ACTIVE (non-cancelled) notes — a cancelled note is
   // retired, so a new CN can be raised again. Gates the "Refund with Credit Note" entry (⋯ + dock).
   const activeCnCount = creditNotes.filter((c) => !c.cancelled).length;
@@ -368,7 +374,7 @@ export function InvoiceDetailPage({
   // of the other rows apply either — the button used to still show).
   const hasMenuActions =
     (SHOW_CREDIT_NOTES && status === "Paid" && activeCnCount === 0 && !lockedPeriod) || // Refund with Credit Note
-    status === "Paid" || // Preview as PDF
+    showPreviewPdf || // Preview as PDF
     (status === "Draft" && uploaded) || // Send invoice
     ((status === "Draft" || status === "Awaiting" || status === "Overdue") && !hideEditRow) || // Edit Invoice
     (SHOW_CREDIT_NOTES && cancellable && activeCnCount === 0) || // Add credit note
@@ -398,10 +404,9 @@ export function InvoiceDetailPage({
   const bannerIsContinuation = status === "Overdue" && credited <= 0.001;
   // Refund dock (DES-720): while a payout is due (refundPending > 0) the primary action is "Refund
   // Credit Note"; once everything committed has been paid out there's nothing left to do on the
-  // INVOICE itself, so the dock falls back to Preview as PDF — sending/resending the credit note's
+  // INVOICE itself (see showPreviewPdf/hasMenuActions above) — sending/resending the credit note's
   // own document lives on the CN's own detail page (decided 2026-08-13; matches how every other
   // credit-note send already works — see CreditsAppliedSection's onViewCn), not duplicated here.
-  const refundDone = refundPending <= 0.001;
 
   const closeSendFlows = () => {
     setSendSheetOpen(false);
@@ -623,7 +628,8 @@ export function InvoiceDetailPage({
 
   // Mirrors the sticky primary-dock ternary below (Toast needs its type before that JSX renders) —
   // keep in sync: "double" clears with bottomOffset 150, "single" with the Toast default (96), no
-  // dock at all (Cancelled / Paid with no CN) with 16, matching this app's Toast convention.
+  // dock at all (Cancelled / Paid / refund-done-or-submitted, all menu-only now) with 16, matching
+  // this app's Toast convention.
   const stickyDockKind: "single" | "double" | "none" =
     status === "Cancelled"
       ? "none"
@@ -634,10 +640,8 @@ export function InvoiceDetailPage({
         : sendable
           ? (pendingPayment ? "single" : "double")
           : isRefundContext
-            ? ((refundDone || refundSubmitted) ? "single" : "double")
-            : (status === "Paid" && activeCnCount === 0)
-              ? "none"
-              : "single";
+            ? ((refundDone || refundSubmitted) ? "none" : "double")
+            : "none";
   const toastBottomOffset = stickyDockKind === "double" ? 150 : stickyDockKind === "none" ? 16 : undefined;
 
   return (
@@ -943,7 +947,9 @@ export function InvoiceDetailPage({
         // below already had), not duplicated here. Once the payout is done/submitted there's
         // nothing left to do on the invoice itself, so the dock falls back to Preview as PDF.
         (refundDone || refundSubmitted) ? (
-          <ButtonDock type="single" sticky primaryLabel="Preview as PDF" onPrimary={() => { setPdfFromSend(false); setPdfPreviewOpen(true); }} />
+          // Preview as PDF lives in the ⋯ menu here too (see showPreviewPdf), not a sticky dock —
+          // same "no dock, menu-only" treatment as a Paid invoice with nothing left to do.
+          null
         ) : (
           // Refund pending (Figma 696:5495): Resend Invoice (secondary — it's already been sent to
           // reach this refund state) + Refund Credit Note (primary, money-out — the DES-720 AC3 label).
@@ -958,11 +964,11 @@ export function InvoiceDetailPage({
             onPrimary={() => setRefundFlowOpen(true)}
           />
         )
-      ) : status === "Paid" && activeCnCount === 0 ? (
-        // Paid (DES-817): Refund + Preview as PDF live in the ⋯ menu (no dock).
-        null
       ) : (
-        <ButtonDock type="single" sticky primaryLabel="Preview as PDF" onPrimary={() => { setPdfFromSend(false); setPdfPreviewOpen(true); }} />
+        // Paid (DES-817), with or without an applied cancellation credit note: Refund + Preview as
+        // PDF live in the ⋯ menu (no dock either way — decided 2026-08-13, was previously a sticky
+        // "Preview as PDF" CTA once a CN existed, duplicating the same row already in the menu).
+        null
       )}
 
       {/* Secondary actions sheet */}
@@ -971,7 +977,7 @@ export function InvoiceDetailPage({
         onClose={() => setActionsOpen(false)}
         status={status}
         uploaded={uploaded}
-        terminal={terminal}
+        showPreviewPdf={showPreviewPdf}
         cancellable={cancellable}
         creditNotesCount={activeCnCount}
         lockedPeriod={lockedPeriod}

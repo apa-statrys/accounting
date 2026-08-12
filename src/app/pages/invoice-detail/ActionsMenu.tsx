@@ -11,7 +11,9 @@ interface ActionsMenuProps {
   onClose: () => void;
   status: DetailStatus;
   uploaded: boolean;
-  terminal: boolean;
+  /** Preview as PDF row — Paid (with or without a CN) or a refund that's done/already submitted
+   *  (nothing left to do on the invoice itself). Always menu-only, never a sticky dock CTA. */
+  showPreviewPdf: boolean;
   cancellable: boolean;
   creditNotesCount: number;
   onRefundWithCn: () => void;
@@ -37,7 +39,7 @@ export function ActionsMenu({
   onClose,
   status,
   uploaded,
-  terminal,
+  showPreviewPdf,
   cancellable,
   creditNotesCount,
   onRefundWithCn,
@@ -64,8 +66,8 @@ export function ActionsMenu({
           />
         )}
 
-        {/* Paid invoice: Preview as PDF also lives here (no dock on a paid invoice). */}
-        {status === "Paid" && (
+        {/* Preview as PDF — menu-only, never a sticky dock CTA (see showPreviewPdf's own doc comment). */}
+        {showPreviewPdf && (
           <Tile icon={<FileText size={24} strokeWidth={1.5} />} title="Preview as PDF" onClick={onPreviewPdf} />
         )}
 

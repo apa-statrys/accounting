@@ -150,9 +150,14 @@ in-session only — a reload resets it (expected prototype limit).
 - **A credit note's own document is only ever sent/resent from the CN's own detail page** (decided
   2026-08-13) — the invoice detail page never duplicates that action. This already held for the
   refund-pending dock ("the refund CN is sent from its own detail page"); the refund-done/submitted
-  dock used to break it with its own "Send/Resend Credit Note" primary CTA — removed, falling back
-  to "Preview as PDF" (the invoice's own catch-all, same as any other terminal/no-more-actions
-  status) since sending the invoice or logging the refund are the only INVOICE-level actions.
+  dock used to break it with its own "Send/Resend Credit Note" primary CTA — removed, since sending
+  the invoice or logging the refund are the only INVOICE-level actions.
+- **Preview as PDF is always menu-only, never a sticky dock CTA** (decided 2026-08-13, same session
+  as the rule above — a Paid invoice with an applied cancellation CN had briefly duplicated it as
+  both, and the refund-done/submitted case above needed *some* replacement for the CTA it lost).
+  `showPreviewPdf` in InvoiceDetailPage.tsx is the single source of truth (Paid, with or without a
+  CN; or a refund that's done/already submitted) — feeds both `hasMenuActions` and ActionsMenu's
+  own `showPreviewPdf` prop, so the ⋯ button and its Preview-PDF row never disagree.
 - Client delete/archive is out of scope (referential integrity; record shared with payments side).
 - Sheet motion: sheets dim the page with the shared `ui/Overlay` component (`--overlay`,
   `rgba(27, 27, 27, 0.6)` — Figma dev-mode spec; no page recede/scale). `ButtonDock` labels
