@@ -372,6 +372,10 @@ export default function App() {
   // instead of layering onto whatever sort/filter state a previous manual poke left behind.
   const [listDevHideStatuses, setListDevHideStatuses] = useState<Status[] | undefined>(undefined);
   const [listDevNonce, setListDevNonce] = useState(0);
+  // Dev (PageControls, "Create Invoice" screen): "Error (no items)" seeds the editor with none and
+  // shows the Items validation error on mount (same state a real Create Invoice tap with 0 items
+  // sets) instead of requiring the tap.
+  const [detailsDevError, setDetailsDevError] = useState(false);
   // Bumped on every sidebar detail jump so the detail page remounts (fresh state) even when
   // the invoice number/status don't change. In-page actions never bump it.
   const [detailNavNonce, setDetailNavNonce] = useState(0);
@@ -657,6 +661,36 @@ export default function App() {
             label: "No Frequently Used",
             active: forceNoFrequentCustomers,
             onSelect: () => setForceNoFrequentCustomers(true),
+          },
+        ],
+      },
+    ];
+  } else if (screen === "details" && extracted === null && editInitial === null) {
+    // Manual "Create Invoice" only (not the upload-review or edit-existing variants of this same
+    // screen, which have their own dedicated QuickNav entries already).
+    pageControls = [
+      {
+        label: "Items",
+        options: [
+          {
+            label: "Default",
+            active: !detailsDevError,
+            onSelect: () => {
+              setCustomer(DEMO_CUSTOMER);
+              setDevSeedItems(true);
+              setDetailsDevError(false);
+            },
+          },
+          {
+            label: "Error (no items)",
+            active: detailsDevError,
+            onSelect: () => {
+              // Seeds the same validation state a real "Create Invoice" tap with 0 items sets —
+              // see AddInvoiceDetails' initialItemsError.
+              setCustomer(DEMO_CUSTOMER);
+              setDevSeedItems(false);
+              setDetailsDevError(true);
+            },
           },
         ],
       },
@@ -1101,12 +1135,18 @@ export default function App() {
         />
       )}
 
-      {screen === "details" && (
+      {screen === "details" && (() => {
+        // Only meaningful for the manual create flow (PageControls' own gate above) — guarded
+        // again here so a stale flag from a previous visit can never leak into the upload-review
+        // or edit-existing variants of this same screen.
+        const devError = detailsDevError && extracted === null && editInitial === null;
+        return (
         <AddInvoiceDetails
           customer={customer}
           customers={customers}
-          key={devSeedItems ? "dev-prefilled" : extracted === DEMO_EXTRACTION_NO_CUSTOMER ? "upload-manual" : extracted === BLANK_EXTRACTION ? "upload-blank" : extracted === DEMO_EXTRACTION_MATCHED ? "upload-matched" : "editor"}
+          key={devError ? "dev-error" : devSeedItems ? "dev-prefilled" : extracted === DEMO_EXTRACTION_NO_CUSTOMER ? "upload-manual" : extracted === BLANK_EXTRACTION ? "upload-blank" : extracted === DEMO_EXTRACTION_MATCHED ? "upload-matched" : "editor"}
           seedServices={devSeedItems ? DEMO_EXTRACTION.services : undefined}
+          initialItemsError={devError}
           companyName={settings.companyName}
           companyEmail={settings.email}
           extracted={extracted}
@@ -1169,7 +1209,8 @@ export default function App() {
             setScreen("list");
           }}
         />
-      )}
+        );
+      })()}
 
       {/* Dev preview — jump straight to the Send (Delivery method) sheet */}
       {screen === "send" && (

@@ -69,6 +69,10 @@ interface AddInvoiceDetailsProps {
   forceSendError?: boolean;
   /** Dev preview — seed the invoice with demo line items. */
   seedServices?: ServiceLine[];
+  /** Dev preview (PageControls "Error (no items)"): show the Items validation error on mount —
+   *  same state a real "Create Invoice" tap with 0 items sets, just seeded upfront instead of
+   *  requiring the tap. */
+  initialItemsError?: boolean;
   /** Prefill the manual form when editing an existing invoice (from the detail page). */
   initial?: {
     customer?: Customer | null;
@@ -167,6 +171,7 @@ export function AddInvoiceDetails({
   autoOpenSend,
   forceSendError,
   seedServices,
+  initialItemsError,
   initial,
   onEditBack,
   onEditSave,
@@ -421,7 +426,7 @@ export function AddInvoiceDetails({
 
   // Items validation error (Send Invoice tapped with none added yet) — clears itself the moment
   // an item exists, not just on the next tap.
-  const [itemsError, setItemsError] = useState(false);
+  const [itemsError, setItemsError] = useState(!!initialItemsError);
   useEffect(() => {
     if (services.length > 0) setItemsError(false);
   }, [services.length]);
