@@ -15,56 +15,56 @@
     position: fixed;
     top: var(--space-24);
     left: calc(50% + 230px);
-    width: 240px;
+    width: 176px;
     max-height: calc(100vh - 2 * var(--space-24));
     overflow-y: auto;
     z-index: 60;
     background: var(--bg-neutral-inverse-primary);
     color: var(--text-neutral-inverse-primary);
-    border-radius: var(--radius-3xl);
+    border-radius: var(--radius-2xl);
     box-shadow: 0 8px 30px rgba(16, 24, 40, 0.25);
-    padding: var(--space-12);
+    padding: var(--space-6);
   }
 }
 
 .title {
-  font-size: var(--text-sm);
+  font-size: 11px;
   font-weight: 700;
   color: var(--text-neutral-inverse-primary);
 }
 
 .subtitle {
-  font-size: var(--text-xs);
+  font-size: 10px;
   color: var(--text-neutral-inverse-secondary);
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-3);
 }
 
 .group + .group {
-  margin-top: var(--space-12);
-  padding-top: var(--space-12);
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .groupLabel {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
   color: var(--text-neutral-inverse-secondary);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-2);
 }
 
 .options {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-1);
 }
 
 .option {
   text-align: left;
-  padding: var(--space-8) var(--space-10);
-  border-radius: var(--radius-xl);
-  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-xs);
   font-weight: 500;
   color: var(--text-neutral-inverse-primary);
   background: transparent;
