@@ -294,7 +294,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
               : (updatedDateLabel ?? issueDateLabel)}
           </span>
         </span>
-        <p className="leading-none" style={{ ...FONT, color: "var(--text-error-primary)" }}>
+        <p className="leading-none" style={{ ...FONT, color: INK }}>
           <span className="text-[18px] font-bold tracking-[-0.9px]">−{currency}</span>
           <span className="text-[18px]"> </span>
           <span className="text-[40px] leading-[0.9] tracking-[-2px]" style={{ fontWeight: "var(--fw-black)" }}>
