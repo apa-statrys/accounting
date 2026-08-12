@@ -478,8 +478,9 @@ export default function App() {
         { label: "Select Customer", active: screen === "customer", onSelect: () => { setForceNoFrequentCustomers(false); seedHistory("list"); setScreen("customer"); } },
         // Dev jump lands on the pre-filled editor (demo customer + demo items), not the picker (user, 15/Jul).
         { label: "Create Invoice", active: screen === "customer" || screen === "details", onSelect: () => { setExtracted(null); setCustomer(DEMO_CUSTOMER); setDevSeedItems(true); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setScreen("details"); } },
-        { label: "Send Invoice", active: screen === "send" && !sendFailScenario, onSelect: () => { setSendFailScenario(false); setScreen("send"); } },
-        { label: "Send Invoice — Failed", active: screen === "send" && sendFailScenario, onSelect: () => { setSendFailScenario(true); setScreen("send"); } },
+        // Default / Failed now live on the Send sheet's own PageControls panel (right gutter)
+        // instead of a separate sidebar entry each — this jump always lands on the plain default.
+        { label: "Send Invoice", active: screen === "send", onSelect: () => { setSendFailScenario(false); setScreen("send"); } },
         // Upload is native scan/picker now (no in-app sheet) — dev jump reproduces what a real
         // pick hands back: straight to the "reading your invoice" loading step.
         { label: "Upload Invoice", active: screen === "extracting", onSelect: () => { setUploadReturn("list"); startUpload(); } },
@@ -691,6 +692,24 @@ export default function App() {
               setDevSeedItems(false);
               setDetailsDevError(true);
             },
+          },
+        ],
+      },
+    ];
+  } else if (screen === "send") {
+    pageControls = [
+      {
+        label: "Send",
+        options: [
+          {
+            label: "Default",
+            active: !sendFailScenario,
+            onSelect: () => setSendFailScenario(false),
+          },
+          {
+            label: "Failed",
+            active: sendFailScenario,
+            onSelect: () => setSendFailScenario(true),
           },
         ],
       },
