@@ -210,13 +210,20 @@ in-session only — a reload resets it (expected prototype limit).
   AddInvoiceDetails' edit-invoice dock, which used to hard-disable Save at 0 items; the header
   back chevron's "Unsaved changes?" confirm sheet already never validated, so the dock's own Save
   button was just an inconsistent extra gate on the exact same action) — a draft can always be left
-  and resumed incomplete. **Send/Create (issuing something real) still requires completeness**,
-  and stays a disabled-until-complete CTA (InvoiceDetailPage's Send button, gated on
-  `requiredComplete`) rather than a validate-on-click one, since there's no single field to focus
-  for "no items" the way there is for a blank required text field. A page whose Save is now always
-  allowed shows what's still missing inline instead of hiding the incomplete section — e.g.
-  InvoiceDetailPage's Items card, when empty, shows "No items added yet" / "Add at least one item
-  to continue" rather than disappearing.
+  and resumed incomplete. Applies the same way to CreditNoteForm's edit-mode Save (editing an
+  existing register note used to fall through to the validated `handleCreate`/`canCreate` — now
+  always calls `onCreate` directly, matching the resumed-draft `onSaveDraft` path it already had).
+  **Send/Create/Apply (issuing something real) still requires completeness**, and stays a
+  disabled-until-complete or validate-on-click CTA (InvoiceDetailPage's Send button gated on
+  `requiredComplete`; CreditNoteDetailPage's Apply-to-invoice button always enabled but toasts
+  `applyBlockedReason` on a failed tap) rather than silently succeeding, since there's often no
+  single field to focus for "no items" the way there is for a blank required text field. A page
+  whose Save is now always allowed shows what's still missing inline instead of hiding the
+  incomplete section — InvoiceDetailPage's Items card, when empty, shows "No items added yet" /
+  "Add at least one item to continue"; CreditNoteDetailPage's Credited/Refund items card does the
+  same ("No items credited yet" / "Credit at least one item to continue"), gated on `total`
+  rather than `lines.length` since the register's own save path doesn't keep `lines` in sync
+  (flagged separately) the way it does `total`.
 - Every phone-frame screen must be inside `.mobile-mode` scope (already applied on App.tsx's root
   wrapper, so all in-app screens inherit it) so typography tokens resolve to mobile sizes — the
   responsive `@media` breakpoint keys off the real browser viewport, not the 375px frame, so any

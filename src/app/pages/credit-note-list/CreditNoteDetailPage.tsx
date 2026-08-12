@@ -351,8 +351,15 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         </div>
 
         {/* Credited / refunded items — DS ListCard/ListRow, same shape as the invoice detail's Items
-            card (label + description sub-line + value). */}
-        {lines && lines.length > 0 && (
+            card (label + description sub-line + value). For a Draft still missing any credited
+            amount, the section stays visible with a "No items credited/selected yet" placeholder
+            (same convention as the Reason row above) instead of hiding — tapping Edit is how to
+            add one, same as a failed Apply tap already explains via applyBlockedReason. Gated on
+            `total` (same signal draftComplete/applyBlockedReason already trust), not just
+            `lines.length` — the register's saveFromList doesn't persist an edited `lines` array
+            back (prototype limitation, flagged separately), so `lines` can go stale after an edit
+            reduces the credit to 0 while `total` itself stays correctly in sync. */}
+        {lines && lines.length > 0 && total > 0.001 ? (
           <div className="flex flex-col gap-2">
             <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{isRefund ? `${refundSettled ? "Refunded" : "Refund"} items (${lines.length})` : `Credited items (${lines.length})`}</p>
             <ListCard>
@@ -374,6 +381,16 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
               })}
             </ListCard>
           </div>
+        ) : (
+          (isOpen || isRefundDraft) && (
+            <div className="flex flex-col gap-2">
+              <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{isRefund ? "Refund items" : "Credited items"}</p>
+              <div className="rounded-2xl border px-4 py-6 flex flex-col items-center gap-1 text-center" style={{ background: "var(--bg-neutral-secondary)", borderColor: "rgba(208,208,208,0.4)" }}>
+                <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{isRefund ? "No items selected yet" : "No items credited yet"}</p>
+                <p className="body-sm" style={{ ...FONT, color: MUTED }}>{isRefund ? "Select at least one item to refund" : "Credit at least one item to continue"}</p>
+              </div>
+            </div>
+          )
         )}
 
         {/* The account this note is set against (Figma 1209) — DS Tile with the account's own country

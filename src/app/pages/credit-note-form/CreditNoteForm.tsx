@@ -350,11 +350,14 @@ export function CreditNoteForm({
     }
   };
 
-  // Edit-mode Save: resuming a draft still has onSaveDraft wired (so it can persist in place as a
-  // draft, still incomplete-friendly, no validation) — Save there must reuse that, not onCreate,
-  // or it would silently finalize/apply the draft instead of just saving the edit. Editing an
-  // existing register note (no onSaveDraft) goes through the real validated onCreate instead.
-  const handleSave = () => (onSaveDraft ? onSaveDraft(buildPayload()) : handleCreate());
+  // Edit-mode Save always persists, incomplete or not (decided 2026-08-12, same rule as
+  // AddInvoiceDetails' edit-invoice dock) — a Draft is never blocked from being saved mid-edit,
+  // whether it's a resumed in-progress draft (onSaveDraft wired) or an existing register note (no
+  // onSaveDraft — calls onCreate directly instead of the validated handleCreate, so it can't
+  // silently finalize/apply the draft, just save the edit). Only the fresh "Create Credit Note"
+  // action (handleCreate, isEdit=false) still requires completeness — CreditNoteDetailPage shows
+  // what's still missing (Reason / Credited items) instead of refusing to save.
+  const handleSave = () => (onSaveDraft ? onSaveDraft(buildPayload()) : onCreate(buildPayload()));
 
   // Back-tap confirm — same two patterns AddInvoiceDetails uses for Create/Edit Invoice:
   //  • A parent-provided onSaveDraft (fresh create, or resuming an existing draft from the invoice
@@ -789,8 +792,9 @@ export function CreditNoteForm({
       </BottomSheet>
 
       {/* Back-tap confirm (no onSaveDraft — editing an existing register note, dirty only): Save
-          persists via the same action the ⋯ menu's "Save changes" Tile calls; Cancel discards.
-          Same shape as AddInvoiceDetails' own "Unsaved changes?" confirm. */}
+          reuses the same handleSave the sticky dock's own Save button calls (never blocked by
+          incompleteness); Cancel discards. Same shape as AddInvoiceDetails' own "Unsaved
+          changes?" confirm. */}
       <BottomSheet
         open={unsavedOpen}
         title="Unsaved changes?"
