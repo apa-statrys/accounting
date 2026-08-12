@@ -75,6 +75,11 @@ export function AddServicesSheet({
   );
   const [discardOpen, setDiscardOpen] = useState(false);
   const requestBack = () => (dirty ? setDiscardOpen(true) : onClose?.());
+  // Deleting the line is irreversible — same "are you sure" confirm as every other delete in the
+  // app (Sales Invoice List's "Delete Draft Invoice?", InvoiceDetailPage's "Delete this draft?",
+  // CreditNoteDetailPage's "Delete credit note?") — the header icon opens this instead of calling
+  // onDelete straight away.
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   // Every line uses the invoice currency — it's shown (read-only) here, not chosen per line.
   const currency = invoiceCurrency;
@@ -137,7 +142,7 @@ export function AddServicesSheet({
                 showSearch={!!initial}
                 rightIcon={initial ? <Trash2 size={20} strokeWidth={1} color="var(--icon-error-primary)" /> : undefined}
                 rightLabel="Delete item"
-                onRightClick={onDelete}
+                onRightClick={() => setConfirmDeleteOpen(true)}
               />
             </PageAppHeader>
 
@@ -262,6 +267,33 @@ export function AddServicesSheet({
           >
             <p className="body-sm" style={{ ...FONT, color: "var(--text-secondary)" }}>
               You have unsaved changes. Save them before you go, or cancel to discard them.
+            </p>
+          </BottomSheet>
+
+          {/* Delete confirm — same shape as every other delete-confirm in the app (Sales Invoice
+              List's Delete Draft Invoice, InvoiceDetailPage's Delete this draft, CreditNoteDetailPage's
+              Delete credit note): both actions destructive-styled (see memory:
+              destructive-color-by-reversibility) — Delete Item leads as the filled primary, in red;
+              Keep Item is the destructive secondary, rendering as a plain neutral outline. */}
+          <BottomSheet
+            open={confirmDeleteOpen}
+            title="Delete this item?"
+            onClose={() => setConfirmDeleteOpen(false)}
+            compact
+            footer={
+              <ButtonDock
+                type="double"
+                primaryLabel="Delete Item"
+                primaryDestructive
+                secondaryLabel="Keep Item"
+                secondaryDestructive
+                onPrimary={() => { setConfirmDeleteOpen(false); onDelete?.(); }}
+                onSecondary={() => setConfirmDeleteOpen(false)}
+              />
+            }
+          >
+            <p className="body-sm" style={{ ...FONT, color: "var(--text-secondary)" }}>
+              Are you sure you want to delete this item? This action cannot be undone.
             </p>
           </BottomSheet>
 
