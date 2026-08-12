@@ -111,9 +111,6 @@ interface BottomSheetProps {
   panelRef?: React.Ref<HTMLDivElement>;
 }
 
-/** Shared fixed height for the Add-Services sheet and its nested pickers, so they match exactly. */
-export const SERVICE_SHEET_HEIGHT = "h-[68%]";
-
 /**
  * Modal bottom sheet shell — shared open/close motion for all pickers.
  * The parent screen handles the "book-page" recede of the page behind.

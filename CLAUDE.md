@@ -212,9 +212,29 @@ in-session only — a reload resets it (expected prototype limit).
   new phone frame mounted outside App.tsx (e.g. showcase) must add the class itself.
 
 **Sheets & interaction**
-- A deeper "level" inside a sheet (a sub-menu, a nested detail, AddServicesSheet's unit picker)
-  swaps content in the SAME `BottomSheet` instance (a `step` state + slide transition + `onBack`) —
-  never a second sheet stacked on top of the first.
+- A deeper "level" inside a sheet (a sub-menu, a nested detail, RecordPaymentSheet's
+  account/date sub-steps) swaps content in the SAME `BottomSheet` instance (a `step` state +
+  slide transition + `onBack`) — never a second sheet stacked on top of the first.
+- **A form with more than 3 data-entry fields is a full pushed page, not a `BottomSheet` drawer**
+  (decided 2026-08-11). "Field" means a TextField/TextArea/dropdown-TextField the user actually
+  fills in — not a single-select list picker (CountrySheet, CurrencySheet, DueDateSheet,
+  ReceivingAccountSheet, CustomerSheet, …), a toggle-only settings row, or an action/confirm
+  dialog, all of which stay sheets regardless of row count. A sub-level *picker* opened from
+  within a form doesn't count toward the outer form's own field count — it's what that form's
+  trailing selector opens, not a field itself. Once the outer form is a page (not a sheet), that
+  picker can no longer be an in-place step-swap of a sheet panel (pages have no panel to swap
+  within, and a page-level step-swap reads like real navigation, not a picker — tried once on
+  AddServicesSheet's Unit list, corrected 2026-08-11) — it's always a standalone `BottomSheet`
+  (or an existing single-select sheet) stacked on top instead, nested inside the page's own JSX so
+  it z-stacks above it: AddServicesSheet's own small Unit `BottomSheet`; InvoiceSettings' Company
+  Details page opens the existing `CountryCodeSheet` for its phone country code (same as
+  AddCustomerPage already did); its Business Address page opens its own small standalone
+  country/city/state `BottomSheet` the same way. 3 or fewer fields (ClientEditSheet, ReasonSheet,
+  RecordPaymentSheet's amount+account+date) can stay a sheet. Converted so far: Filters (below),
+  AddServicesSheet, InvoiceSettings' Company Details + Business Address pages. BankInfoSheet
+  (4 fields) was NOT converted — its "Use Other Bank Accounts" trigger is hardcoded hidden
+  (`hideExternal`) at every `ReceivingAccountSheet` call site, so it's unreachable dead code;
+  flagged separately for removal rather than converting an unreachable sheet to a page.
 - **Filters is a full pushed page, not a bottom sheet** (decided 2026-08-11 — SalesInvoiceList and
   CreditNotesList's "Filter Invoices"/"Filter Credit Notes" were both a `fullPage` `BottomSheet`
   before this; converted together per the cross-page consistency rule). Same push/slide chrome as
