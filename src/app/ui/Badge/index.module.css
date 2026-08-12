@@ -82,7 +82,8 @@
   background: transparent;
   padding-left: 0;
   padding-right: 0;
-  font-weight: var(--fw-medium); /* Text style uses the Medium type ramp, not Bold (re-checked) */
+  font-weight: var(--fw-regular);
+  text-transform: uppercase;
   color: var(--badge-primary);
 }
 
