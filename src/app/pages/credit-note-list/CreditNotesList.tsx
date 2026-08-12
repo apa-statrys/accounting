@@ -216,7 +216,7 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
   // Save edits to a Draft register CN (DES-719 AC4 — only Drafts are editable). Updates the amount/reason;
   // the note stays a Draft (confirming/applying happens in the invoice-detail flow, not the list).
   const saveFromList = (no: string, p: CreditNotePayload) =>
-    setNotes((prev) => prev.map((c) => (c.no === no ? { ...c, original: p.amount, reason: p.reason, applied: 0 } : c)));
+    setNotes((prev) => prev.map((c) => (c.no === no ? { ...c, original: p.amount, reason: p.reason, lines: p.lines, applied: 0 } : c)));
 
   // DES-818 actions: delete a Draft (row removed, number retired) · cancel an Applied note (full reversal → Cancelled).
   const deleteFromList = (no: string) => { setNotes((prev) => prev.filter((c) => c.no !== no)); setPreview(null); };
