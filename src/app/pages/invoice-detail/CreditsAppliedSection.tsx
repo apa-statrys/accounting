@@ -97,9 +97,12 @@ export function CreditsAppliedSection({
               <div role="button" tabIndex={0} onClick={onRowTap} className="group flex items-center gap-2.5 px-4 py-3 min-h-[65px] text-left cursor-pointer">
                 <span className="flex-1 min-w-0 flex flex-col gap-0.5">
                   {/* Cancellation CN → application status as its own line above the number, plain
-                      colored text (no pill/border — Figma "Sales Invoice — Client", node 1927-12439). */}
+                      colored text (no pill/border — Figma "Sales Invoice — Client", node 1927-12439).
+                      Same uppercase/regular text-variant typography as every other status label in
+                      the app (ui/Badge's variant="text", ui/InvoiceStatus's label, the invoice/CN
+                      detail hero) — re-synced together. */}
                   {appliedLabel && (
-                    <span className="caption-medium" style={{ ...FONT, color: CHIP_TEXT[appliedLabel] ?? "var(--text-secondary)" }}>
+                    <span className="caption uppercase" style={{ ...FONT, color: CHIP_TEXT[appliedLabel] ?? "var(--text-secondary)" }}>
                       {appliedLabel}
                     </span>
                   )}
