@@ -3,6 +3,7 @@ import { Camera } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { ButtonDock } from "../components/ButtonDock";
+import { Toast } from "../components/Toast";
 import { BottomSheet, stepSlide } from "../components/BottomSheet";
 import { TextField } from "../ui/TextField";
 import { Tile } from "../ui/Tile";
@@ -178,6 +179,11 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   // page (same pattern AddCustomerPage uses), not a sub-level swap — pages don't have a "panel"
   // to swap steps within the way a BottomSheet did.
   const [phoneCodeOpen, setPhoneCodeOpen] = useState(false);
+  // Success toast (PMT-41258 AC2-AC4: every save path here — Company Details/Business Address'
+  // own Save, and Currency/Payment Method/Automatic reminders' auto-save-on-pick — shows one).
+  // Single shared flag since only one can ever be showing at a time.
+  const [savedToastOpen, setSavedToastOpen] = useState(false);
+  const flashSaved = () => setSavedToastOpen(true);
   const [scrolled, setScrolled] = useState(false);
   // Company Details / Business Address are separate full pages now (each with their own scroll
   // container), so each needs its own header-frost scroll flag — sharing the main page's `scrolled`
@@ -247,14 +253,14 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   // Save commits the draft into `s` — this is the only place Company Details / Business Address
   // edits actually persist; Cancel/back-without-saving just closes, leaving `s` untouched.
   const handleSaveCompany = () => {
-    if (companyValid && detailsValid) { setS(draft ?? s); setSheet(null); return; }
+    if (companyValid && detailsValid) { setS(draft ?? s); setSheet(null); flashSaved(); return; }
     setCompanyAttempted(true);
     const order: FieldKey[] = ["companyName", "email", ...DETAIL_FIELDS];
     const firstInvalid = order.find((k) => !fieldOk(k));
     if (firstInvalid) focusFirstInvalidField(`settings-${firstInvalid}`);
   };
   const handleSaveAddress = () => {
-    if (addressValid) { setS(draft ?? s); setSheet(null); return; }
+    if (addressValid) { setS(draft ?? s); setSheet(null); flashSaved(); return; }
     setAddressAttempted(true);
     focusFirstInvalidField("settings-address");
   };
@@ -409,7 +415,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             description="Email sent 7 days before the due date"
             trailing="toggle"
             checked={s.chaserEnabled}
-            onCheckedChange={(v) => set("chaserEnabled", v)}
+            onCheckedChange={(v) => { set("chaserEnabled", v); flashSaved(); }}
             last
           />
         </ListCard>
@@ -743,7 +749,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         open={sheet === "currency"}
         value={s.currency}
         onClose={() => setSheet(null)}
-        onSelect={(code) => { set("currency", code); setSheet(null); }}
+        onSelect={(code) => { set("currency", code); setSheet(null); flashSaved(); }}
       />
 
       {/* Payment Method — reuses the invoice's Receiving Account picker (Personal Saving = PRIMARY default) */}
@@ -752,9 +758,11 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
         value={s.paymentMethod}
         hideExternal
         onClose={() => setSheet(null)}
-        onSelect={(id) => { set("paymentMethod", id); setSheet(null); }}
+        onSelect={(id) => { set("paymentMethod", id); setSheet(null); flashSaved(); }}
       />
 
+      {/* Success toast (PMT-41258 AC2-AC4) — every save path above flashes this same one. */}
+      <Toast open={savedToastOpen} message="Changes saved" onDone={() => setSavedToastOpen(false)} />
     </div>
   );
 }
