@@ -276,7 +276,10 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
             (refundProof.date is set once the payout is submitted, and shown further down in the
             Refund Method card regardless of `awaiting`). */}
         <span className="flex items-center gap-1.5 flex-wrap">
-          <span className="caption-medium" style={{ ...FONT, color: chip.text }}>{displayStatus}</span>
+          {/* Same uppercase/regular text-variant typography as every other status label in the app
+              (ui/Badge's variant="text", ui/InvoiceStatus's label, InvoiceDetailPage's own hero) —
+              re-synced together. */}
+          <span className="caption uppercase" style={{ ...FONT, color: chip.text }}>{displayStatus}</span>
           <span className="caption-medium" style={{ ...FONT, color: INK }} aria-hidden="true">·</span>
           <span className="caption-medium" style={{ ...FONT, color: INK }}>
             {displayStatus === "Awaiting refund"

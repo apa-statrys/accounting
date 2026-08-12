@@ -676,14 +676,16 @@ export function InvoiceDetailPage({
       >
         <span className="flex items-center gap-1.5 flex-wrap">
           {/* The "Paid" status badge is suppressed in refund context — the refund tag takes over as
-              the primary badge instead. Figma shows this as plain colored text, not a pill. */}
+              the primary badge instead. Figma shows this as plain colored text, not a pill — but
+              same uppercase/regular text-variant typography as every other status label in the app
+              now (ui/Badge's variant="text", ui/InvoiceStatus's label) — re-synced together. */}
           {!effectiveRefundTag && (
-            <span className="caption-medium" style={{ ...FONT, color: meta.text }}>{meta.label}</span>
+            <span className="caption uppercase" style={{ ...FONT, color: meta.text }}>{meta.label}</span>
           )}
           {/* Derived refund tag — invoice stays Paid; the refund lives on the credit note (763 model). */}
           {effectiveRefundTag && (
             <span
-              className="caption-medium"
+              className="caption uppercase"
               style={{ ...FONT, color: effectiveRefundTag === "Refunded" ? "#4338ca" : "var(--text-warning-primary)" }}
             >
               {effectiveRefundTag === "Refund pending" ? "Pending Refund" : effectiveRefundTag}
