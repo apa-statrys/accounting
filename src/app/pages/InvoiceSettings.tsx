@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
-import { Camera } from "lucide-react";
+import { Camera, ZoomIn, ZoomOut } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PageAppHeader } from "../components/PageAppHeader";
+import { StatusBar } from "../components/StatusBar";
 import { ButtonDock } from "../components/ButtonDock";
 import { Toast } from "../components/Toast";
 import { BottomSheet, stepSlide } from "../components/BottomSheet";
@@ -514,40 +515,38 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             onSelect={(c) => { setPhoneCountry(c); setPhoneCodeOpen(false); }}
           />
 
-          {/* Edit Logo — preview + reposition/zoom before it's actually committed (a freshly
-              picked image may need cropping/aligning before it reads well tiled on an invoice).
-              Stacked on top of Company Details (nested here so it z-stacks above it, same
-              reasoning as CountryCodeSheet above). Save commits `pendingLogo` into the draft; the
-              header back arrow just discards it — nothing's been saved either way, so this
-              doesn't need its own "Unsaved changes?" confirm the way Company Details itself does. */}
+          {/* Edit Logo — modeled on the native iOS "Move and Scale" photo-edit screen (status bar
+              → full-bleed pannable photo with a rule-of-thirds grid → plain Cancel/Choose bar),
+              not this app's own DS chrome — a deliberate one-off exception (same reasoning as the
+              DuplicateDecision hand-drawn icon) since the whole point is to read as the OS's own
+              picker, not another app screen. Stacked on top of Company Details (nested here so it
+              z-stacks above it, same reasoning as CountryCodeSheet above). Choose commits
+              `pendingLogo` into the draft; Cancel/the status-bar-only header (no back chevron —
+              nothing to navigate, just discard) both just discard it — nothing's been saved
+              either way, so this doesn't need its own "Unsaved changes?" confirm the way Company
+              Details itself does. */}
           <AnimatePresence>
           {logoEditOpen && (
             <motion.div
-              className="absolute inset-0 z-50 bg-[var(--bg-neutral-tertiary)] rounded-[48px] overflow-hidden flex flex-col"
+              className="absolute inset-0 z-50 bg-black rounded-[48px] overflow-hidden flex flex-col"
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={PAGE_PUSH_TRANSITION}
             >
-              <PageAppHeader scrolled={false}>
-                <PageHeader type="center" title="Edit Logo" onBack={cancelLogoEdit} showSearch={false} />
-              </PageAppHeader>
+              <StatusBar darkMode />
 
-              <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4">
-                <p className="body-sm text-center" style={{ ...FONT, color: "var(--text-secondary)" }}>
-                  Drag to reposition, or zoom to crop.
-                </p>
-
-                {/* Crop frame — the real picked image renders oversized inside it (forced to a
-                    320×320 square via object-cover, regardless of its actual aspect ratio) and
-                    clips on overflow; dragging pans it, the slider below zooms it further in.
-                    Numeric drag bounds (not a ref-based container) since the point is exactly the
-                    opposite of framer's usual "keep it inside the box" — here the image is meant
-                    to be BIGGER than the frame, so there's room to pan. */}
-                <div className="relative size-[200px] rounded-[24px] overflow-hidden bg-[var(--bg-neutral-secondary)]">
+              {/* Crop viewport — a full-width square (letterboxed in black above/below, same as
+                  the native reference) rather than a small floating box. The picked image renders
+                  oversized inside it and clips on overflow; dragging pans it, the slider zooms it
+                  further in. Numeric drag bounds (not a ref-based container) since the point is
+                  exactly the opposite of framer's usual "keep it inside the box" — here the image
+                  is meant to be BIGGER than the frame, so there's room to pan. */}
+              <div className="flex-1 flex flex-col items-center justify-center bg-black">
+                <div className="relative w-full aspect-square overflow-hidden">
                   {(() => {
-                    const shown = 320 * logoZoom;
-                    const maxOffset = Math.max(0, (shown - 200) / 2);
+                    const shown = 500 * logoZoom;
+                    const maxOffset = Math.max(0, (shown - 375) / 2);
                     return (
                       <motion.div
                         drag
@@ -560,8 +559,8 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
                           <img
                             src={pendingLogo.url}
                             alt="Logo preview"
-                            width={320}
-                            height={320}
+                            width={500}
+                            height={500}
                             className="object-cover pointer-events-none"
                             style={{ transform: `scale(${logoZoom})` }}
                           />
@@ -569,11 +568,21 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
                       </motion.div>
                     );
                   })()}
-                  <div className="absolute inset-0 rounded-[24px] ring-1 ring-inset ring-[var(--border-neutral-primary)] pointer-events-none" />
+                  {/* Rule-of-thirds guide (native-picker convention) — purely a visual aid, not an
+                      actual crop boundary (the whole viewport IS the crop). */}
+                  <div className="pointer-events-none absolute inset-0">
+                    <div className="absolute left-0 right-0 top-1/3 h-px bg-white/40" />
+                    <div className="absolute left-0 right-0 top-2/3 h-px bg-white/40" />
+                    <div className="absolute top-0 bottom-0 left-1/3 w-px bg-white/40" />
+                    <div className="absolute top-0 bottom-0 left-2/3 w-px bg-white/40" />
+                  </div>
                 </div>
 
-                <div className="w-full max-w-[220px] flex items-center gap-3">
-                  <span className="text-[12px] shrink-0" style={{ ...FONT, color: "var(--text-secondary)" }}>Zoom</span>
+                {/* Zoom — the native picker relies on a real pinch gesture, which this prototype
+                    can't reproduce; a slider stands in, kept unobtrusive (no label row, just
+                    zoom-out/in glyphs) so it doesn't break the full-bleed look above it. */}
+                <div className="w-full max-w-[240px] flex items-center gap-3 pt-6">
+                  <ZoomOut size={16} strokeWidth={1.67} className="text-white/70 shrink-0" />
                   <input
                     type="range"
                     min={1}
@@ -582,13 +591,19 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
                     value={logoZoom}
                     onChange={(e) => setLogoZoom(parseFloat(e.target.value))}
                     className="flex-1"
-                    style={{ accentColor: "var(--bg-brand-primary)" }}
                     aria-label="Zoom logo"
                   />
+                  <ZoomIn size={16} strokeWidth={1.67} className="text-white/70 shrink-0" />
                 </div>
               </div>
 
-              <ButtonDock type="single" sticky primaryLabel="Save" onPrimary={saveLogoEdit} />
+              {/* Plain Cancel/Choose text bar — the native reference's own chrome, not this app's
+                  ButtonDock (which is styled for the light DS, not this dark native-mimicking
+                  screen). */}
+              <div className="flex items-center justify-between px-6 py-4 bg-black shrink-0">
+                <button type="button" onClick={cancelLogoEdit} className="text-[17px] text-white">Cancel</button>
+                <button type="button" onClick={saveLogoEdit} className="text-[17px] font-medium text-white">Choose</button>
+              </div>
             </motion.div>
           )}
           </AnimatePresence>
