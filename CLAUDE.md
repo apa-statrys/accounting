@@ -223,13 +223,13 @@ in-session only — a reload resets it (expected prototype limit).
   within a form doesn't count toward the outer form's own field count — it's what that form's
   trailing selector opens, not a field itself. Once the outer form is a page (not a sheet), that
   picker can no longer be an in-place step-swap of a sheet panel (pages have no panel to swap
-  within) — it becomes either a step-swap of the PAGE itself when the picker is bespoke to that
-  form (AddServicesSheet's Unit list), or a standalone `BottomSheet`/existing single-select sheet
-  stacked on top when one already exists or the picker is generic (InvoiceSettings' Company
-  Details page opens the existing `CountryCodeSheet` for its phone country code, same as
-  AddCustomerPage already did; its Business Address page opens its own small standalone
-  country/city/state `BottomSheet`, nested inside the page's own JSX so it z-stacks above it — see
-  those two pages for the pattern). 3 or fewer fields (ClientEditSheet, ReasonSheet,
+  within, and a page-level step-swap reads like real navigation, not a picker — tried once on
+  AddServicesSheet's Unit list, corrected 2026-08-11) — it's always a standalone `BottomSheet`
+  (or an existing single-select sheet) stacked on top instead, nested inside the page's own JSX so
+  it z-stacks above it: AddServicesSheet's own small Unit `BottomSheet`; InvoiceSettings' Company
+  Details page opens the existing `CountryCodeSheet` for its phone country code (same as
+  AddCustomerPage already did); its Business Address page opens its own small standalone
+  country/city/state `BottomSheet` the same way. 3 or fewer fields (ClientEditSheet, ReasonSheet,
   RecordPaymentSheet's amount+account+date) can stay a sheet. Converted so far: Filters (below),
   AddServicesSheet, InvoiceSettings' Company Details + Business Address pages. BankInfoSheet
   (4 fields) was NOT converted — its "Use Other Bank Accounts" trigger is hardcoded hidden

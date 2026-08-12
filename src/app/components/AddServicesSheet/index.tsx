@@ -4,6 +4,7 @@ import { PageAppHeader } from "../PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { TextField } from "../../ui/TextField";
 import { ButtonDock } from "../ButtonDock";
+import { BottomSheet } from "../BottomSheet";
 import { Tile } from "../../ui/Tile";
 import { CountryFlag } from "../CountryFlag";
 import { CURRENCY_COUNTRY } from "../CurrencySheet";
@@ -34,8 +35,8 @@ interface AddServicesSheetProps {
  * picker inline in the field. CTA always enabled — a failed click scrolls to the first invalid
  * field and shows its inline error (form-cta-validation pattern).
  *
- * The Unit picker is a "next level" of this SAME page (title/back swap with `step`, content
- * slides in/out), not a second page stacked on top — same "no stacking" rule sheets use.
+ * The Unit picker is a standalone `BottomSheet` stacked on top of this page (not an in-page
+ * step-swap) — same pattern as InvoiceSettings' Company Details / Business Address pages.
  */
 export function AddServicesSheet({
   open,
@@ -55,7 +56,7 @@ export function AddServicesSheet({
   // Field errors appear only after a failed CTA click; editing a field clears its error.
   const [errors, setErrors] = useState<{ name?: string; description?: string; price?: string; qty?: string }>({});
 
-  const [step, setStep] = useState<"form" | "unit">("form");
+  const [unitOpen, setUnitOpen] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const focusKeyboard = (e: React.FocusEvent<HTMLElement>) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); };
@@ -113,145 +114,127 @@ export function AddServicesSheet({
             <PageAppHeader scrolled={scrolled}>
               <PageHeader
                 type="center"
-                title={step === "unit" ? "Select Unit" : initial ? "Edit Item" : "Add Item"}
-                onBack={step === "unit" ? () => setStep("form") : onClose}
-                backLabel={step === "unit" ? "Back to item" : undefined}
+                title={initial ? "Edit Item" : "Add Item"}
+                onBack={onClose}
                 showSearch={false}
               />
             </PageAppHeader>
 
             <div className={`px-4 pt-5 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
-              <AnimatePresence mode="wait" initial={false}>
-                {step === "unit" ? (
-                  <motion.div
-                    key="unit"
-                    initial={{ x: 24, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: 24, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: "easeInOut" }}
-                  >
-                    <div className={styles.unitList}>
-                      {UNITS.map((u) => (
-                        <Tile
-                          key={u}
-                          size="sm"
-                          title={u}
-                          selected={unit === u}
-                          trailing={unit === u ? "check" : "none"}
-                          onClick={() => {
-                            setUnit(u);
-                            setStep("form");
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="form"
-                    initial={{ x: -24, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: -24, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: "easeInOut" }}
-                  >
-                    <div className={styles.fields}>
-                      <TextField
-                        dataReq="service-name"
-                        label="Line Item"
-                        mandatory
-                        placeholder="e.g. Brand Identity Design"
-                        value={serviceName}
-                        error={!!errors.name}
-                        caption={errors.name}
-                        onChange={(v) => { setServiceName(v); if (errors.name) setErrors((p) => ({ ...p, name: undefined })); }}
-                        onFocus={focusKeyboard}
-                        onBlur={blurKeyboard}
-                      />
+              <div className={styles.fields}>
+                <TextField
+                  dataReq="service-name"
+                  label="Line Item"
+                  mandatory
+                  placeholder="e.g. Brand Identity Design"
+                  value={serviceName}
+                  error={!!errors.name}
+                  caption={errors.name}
+                  onChange={(v) => { setServiceName(v); if (errors.name) setErrors((p) => ({ ...p, name: undefined })); }}
+                  onFocus={focusKeyboard}
+                  onBlur={blurKeyboard}
+                />
 
-                      <TextField
-                        dataReq="service-description"
-                        label="Description"
-                        mandatory
-                        placeholder="e.g. About Service"
-                        value={description}
-                        error={!!errors.description}
-                        caption={errors.description}
-                        onChange={(v) => { setDescription(v); if (errors.description) setErrors((p) => ({ ...p, description: undefined })); }}
-                        onFocus={focusKeyboard}
-                        onBlur={blurKeyboard}
-                      />
+                <TextField
+                  dataReq="service-description"
+                  label="Description"
+                  mandatory
+                  placeholder="e.g. About Service"
+                  value={description}
+                  error={!!errors.description}
+                  caption={errors.description}
+                  onChange={(v) => { setDescription(v); if (errors.description) setErrors((p) => ({ ...p, description: undefined })); }}
+                  onFocus={focusKeyboard}
+                  onBlur={blurKeyboard}
+                />
 
-                      {/* Currency is fixed per invoice (not chosen per line) — same TextField "currency"
-                          type as everywhere else, just with no onSelectorClick since there's nothing to
-                          open here. */}
-                      <TextField
-                        type="currency"
-                        dataReq="service-price"
-                        label="Unit Price"
-                        mandatory
-                        placeholder="e.g. 10.00"
-                        inputMode="decimal"
-                        value={unitPrice}
-                        error={!!errors.price}
-                        caption={errors.price}
-                        onChange={(v) => { setUnitPrice(v); if (errors.price) setErrors((p) => ({ ...p, price: undefined })); }}
-                        onFocus={focusKeyboard}
-                        onBlur={blurKeyboard}
-                        selectorLabel={currency || "—"}
-                        selectorIcon={currencyCountry && <CountryFlag name={currencyCountry} size={20} />}
-                      />
+                {/* Currency is fixed per invoice (not chosen per line) — same TextField "currency"
+                    type as everywhere else, just with no onSelectorClick since there's nothing to
+                    open here. */}
+                <TextField
+                  type="currency"
+                  dataReq="service-price"
+                  label="Unit Price"
+                  mandatory
+                  placeholder="e.g. 10.00"
+                  inputMode="decimal"
+                  value={unitPrice}
+                  error={!!errors.price}
+                  caption={errors.price}
+                  onChange={(v) => { setUnitPrice(v); if (errors.price) setErrors((p) => ({ ...p, price: undefined })); }}
+                  onFocus={focusKeyboard}
+                  onBlur={blurKeyboard}
+                  selectorLabel={currency || "—"}
+                  selectorIcon={currencyCountry && <CountryFlag name={currencyCountry} size={20} />}
+                />
 
-                      {/* Quantity with the Unit picker inline (Figma) — the trailing "Unit ⌄" pushes the
-                          "unit" step of this same page. TextField's own "unit" type (selectorLabel falls
-                          back to "Unit" when none is chosen yet). */}
-                      <TextField
-                        type="unit"
-                        dataReq="service-qty"
-                        label="Quantity"
-                        mandatory
-                        placeholder="e.g. 3"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={quantity}
-                        error={!!errors.qty}
-                        caption={errors.qty}
-                        onChange={(v) => { setQuantity(v.replace(/[^0-9]/g, "")); if (errors.qty) setErrors((p) => ({ ...p, qty: undefined })); }}
-                        onFocus={focusKeyboard}
-                        onBlur={blurKeyboard}
-                        selectorLabel={unit}
-                        onSelectorClick={() => setStep("unit")}
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                {/* Quantity with the Unit picker inline (Figma) — the trailing "Unit ⌄" opens the
+                    standalone Unit BottomSheet stacked on top of this page. TextField's own "unit"
+                    type (selectorLabel falls back to "Unit" when none is chosen yet). */}
+                <TextField
+                  type="unit"
+                  dataReq="service-qty"
+                  label="Quantity"
+                  mandatory
+                  placeholder="e.g. 3"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={quantity}
+                  error={!!errors.qty}
+                  caption={errors.qty}
+                  onChange={(v) => { setQuantity(v.replace(/[^0-9]/g, "")); if (errors.qty) setErrors((p) => ({ ...p, qty: undefined })); }}
+                  onFocus={focusKeyboard}
+                  onBlur={blurKeyboard}
+                  selectorLabel={unit}
+                  onSelectorClick={() => setUnitOpen(true)}
+                />
+              </div>
             </div>
           </div>
 
-          {step !== "unit" && (
-            initial ? (
-              // Editing an item: "Save" + a plain "Delete" secondary (swiping the line left still
-              // works too) — Delete isn't marked destructive since the primary here isn't either
-              // (see memory: secondaryDestructive needs a destructive primary).
-              <ButtonDock
-                type="double"
-                sticky
-                primaryLabel="Save"
-                secondaryLabel="Delete"
-                onPrimary={handleAdd}
-                onSecondary={onDelete}
-                keyboard={keyboardOpen}
-              />
-            ) : (
-              <ButtonDock
-                type="single"
-                sticky
-                primaryLabel="Add Item"
-                onPrimary={handleAdd}
-                keyboard={keyboardOpen}
-              />
-            )
+          {initial ? (
+            // Editing an item: "Save" + a plain "Delete" secondary (swiping the line left still
+            // works too) — Delete isn't marked destructive since the primary here isn't either
+            // (see memory: secondaryDestructive needs a destructive primary).
+            <ButtonDock
+              type="double"
+              sticky
+              primaryLabel="Save"
+              secondaryLabel="Delete"
+              onPrimary={handleAdd}
+              onSecondary={onDelete}
+              keyboard={keyboardOpen}
+            />
+          ) : (
+            <ButtonDock
+              type="single"
+              sticky
+              primaryLabel="Add Item"
+              onPrimary={handleAdd}
+              keyboard={keyboardOpen}
+            />
           )}
+
+          {/* Unit picker — standalone BottomSheet stacked on top of this page (nested here so it
+              z-stacks above it), same shape as the Sort-by sheet elsewhere: a short, fixed list,
+              no search needed. */}
+          <BottomSheet open={unitOpen} title="Select Unit" onClose={() => setUnitOpen(false)}>
+            <div className={styles.unitList}>
+              {UNITS.map((u) => (
+                <Tile
+                  key={u}
+                  size="sm"
+                  title={u}
+                  selected={unit === u}
+                  trailing={unit === u ? "check" : "none"}
+                  onClick={() => {
+                    setUnit(u);
+                    setUnitOpen(false);
+                  }}
+                />
+              ))}
+            </div>
+          </BottomSheet>
         </motion.div>
       )}
     </AnimatePresence>
