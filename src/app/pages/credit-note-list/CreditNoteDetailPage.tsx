@@ -663,9 +663,10 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       </BottomSheet>
 
       {/* Cancel confirmation — for an APPLIED cancellation note (full reversal) or a pre-payout REFUND
-          note (reverts the invoice to Paid). Previously the cancel happened immediately; both entry
-          points (invoice-detail journey + CN list) now confirm first. Safe action (Keep) is the filled
-          primary; the destructive Cancel is the outline secondary (memory: confirm-dialog-pattern). */}
+          note (reverts the invoice to Paid). Same destructive shape as the Delete confirm above
+          (see the app-wide "every delete action confirms first" rule in CLAUDE.md) — the
+          irreversible Cancel leads as the filled primary, in red; Keep is the destructive
+          secondary, rendering as a plain neutral outline. */}
       <BottomSheet
         open={confirmCancel}
         title={isRefund ? "Cancel refund?" : "Cancel credit note?"}
@@ -674,10 +675,12 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         footer={
           <ButtonDock
             type="double"
-            primaryLabel={isRefund ? "Keep Refund" : "Keep Credit Note"}
-            secondaryLabel={isRefund ? "Cancel Refund" : "Cancel Credit Note"}
-            onPrimary={() => setConfirmCancel(false)}
-            onSecondary={() => { setConfirmCancel(false); onCancel?.(); }}
+            primaryLabel={isRefund ? "Cancel Refund" : "Cancel Credit Note"}
+            primaryDestructive
+            secondaryLabel={isRefund ? "Keep Refund" : "Keep Credit Note"}
+            secondaryDestructive
+            onPrimary={() => { setConfirmCancel(false); onCancel?.(); }}
+            onSecondary={() => setConfirmCancel(false)}
           />
         }
       >
