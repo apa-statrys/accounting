@@ -311,60 +311,62 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          {/* Figma (node 1332-18605) stacks PageHeader/Tabs/Sort with NO gap between them — all the
+          {/* Figma (node 1332-18605) stacks PageHeader/Tabs with NO gap between them — all the
               spacing comes from each row's own padding. PageAppHeader's root flex-col has a 12px gap
-              for the StatusBar→content case, so this trio is wrapped in one gap-less block: the 12px
-              only fires once (StatusBar→block), not again between each row inside it. */}
+              for the StatusBar→content case, so this pair is wrapped in one gap-less block. The
+              Sort/Filter row below is NOT part of this sticky block (decided 2026-08-12) — it scrolls
+              away with the list instead of staying pinned under the tabs. */}
           <div className="flex flex-col">
             {/* DS PageHeader (center) — back chevron only, title optically centered by the spacer. */}
             <PageHeader type="center" title="All Invoices" onBack={onBack} showSearch={false} />
 
-            {/* Zero-data empty state (Figma "All Invoices", node 2070-19191) drops the tabs/sort row
+            {/* Zero-data empty state (Figma "All Invoices", node 2070-19191) drops the tabs row
                 entirely — there's nothing to filter or sort when the register is completely empty. */}
             {!forceEmpty && (
-              <>
-                {/* Status filter tabs — DS HorizontalTabs (button style), horizontally scrollable. Sits
-                    directly in the header's beige→white gradient panel, no separate box/shadow. Right
-                    padding is intentionally omitted (Figma node 1332-18605): the row bleeds to the frame's
-                    edge so an overflowing tab clips flush against it, signalling more content to scroll to.
-                    Figma (node 4240-5598, re-synced 2026-07-28) specs pl-16px / py-16px — symmetric
-                    top/bottom, not the pt-4px/pb-8px an earlier sync had recorded. */}
-                <div ref={tabsWrapRef} className="tabs-wrap shrink-0 pl-4 py-4 relative z-10">
-                  <HorizontalTabs
-                    variant="button"
-                    tabs={FILTERS.map((f, i) => `${f.label} (${counts[i]})`)}
-                    activeIndex={active}
-                    onChange={selectChip}
-                  />
-                </div>
-
-                {/* Sort / Filter row — Figma "Sales Invoice · List" (node 4469-466): pt-1/pb-2/px-4
-                    (4/8/16px). The Sort button always shows the effective sort label (e.g. "Issue
-                    Date: Newest") — a sort is always applied (see defaultSortFor), so a generic
-                    "Sort by" placeholder would be misleading. The Sort sheet below shows the same
-                    effective sortKey as selected/checked, for the same reason. */}
-                <div className="shrink-0 flex items-center justify-between pt-1 pb-2 px-4 border-b border-[var(--border-neutral-primary)]">
-                  <button onClick={() => setSortOpen(true)} className="flex items-center gap-1" style={FONT}>
-                    <ArrowUpDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
-                    <span className="body-sm text-[var(--text-primary)]">
-                      {sortValueText ? `${sortLabelText}: ` : sortLabelText}
-                    </span>
-                    {sortValueText && <span className="body-sm-medium text-[var(--text-primary)]">{sortValueText}</span>}
-                    <ChevronDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
-                  </button>
-                  <button onClick={() => setFilterOpen(true)} className="relative flex items-center justify-center p-1 -m-1" aria-label="Filters">
-                    <FilterIcon size={20} color="var(--text-primary)" />
-                    {filterCount > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[var(--bg-brand-primary)] text-white text-[10px] font-bold flex items-center justify-center">
-                        {filterCount}
-                      </span>
-                    )}
-                  </button>
-                </div>
-              </>
+              /* Status filter tabs — DS HorizontalTabs (button style), horizontally scrollable. Sits
+                  directly in the header's beige→white gradient panel, no separate box/shadow. Right
+                  padding is intentionally omitted (Figma node 1332-18605): the row bleeds to the frame's
+                  edge so an overflowing tab clips flush against it, signalling more content to scroll to.
+                  Figma (node 4240-5598, re-synced 2026-07-28) specs pl-16px / py-16px — symmetric
+                  top/bottom, not the pt-4px/pb-8px an earlier sync had recorded. */
+              <div ref={tabsWrapRef} className="tabs-wrap shrink-0 pl-4 py-4 relative z-10">
+                <HorizontalTabs
+                  variant="button"
+                  tabs={FILTERS.map((f, i) => `${f.label} (${counts[i]})`)}
+                  activeIndex={active}
+                  onChange={selectChip}
+                />
+              </div>
             )}
           </div>
         </PageAppHeader>
+
+        {/* Sort / Filter row — Figma "Sales Invoice · List" (node 4469-466): pt-1/pb-2/px-4
+            (4/8/16px). Scrolls away with the list rather than staying pinned to the sticky header
+            (decided 2026-08-12) — only the title + status tabs stay sticky. The Sort button always
+            shows the effective sort label (e.g. "Issue Date: Newest") — a sort is always applied
+            (see defaultSortFor), so a generic "Sort by" placeholder would be misleading. The Sort
+            sheet below shows the same effective sortKey as selected/checked, for the same reason. */}
+        {!forceEmpty && (
+          <div className="flex items-center justify-between pt-1 pb-2 px-4 border-b border-[var(--border-neutral-primary)]">
+            <button onClick={() => setSortOpen(true)} className="flex items-center gap-1" style={FONT}>
+              <ArrowUpDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
+              <span className="body-sm text-[var(--text-primary)]">
+                {sortValueText ? `${sortLabelText}: ` : sortLabelText}
+              </span>
+              {sortValueText && <span className="body-sm-medium text-[var(--text-primary)]">{sortValueText}</span>}
+              <ChevronDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
+            </button>
+            <button onClick={() => setFilterOpen(true)} className="relative flex items-center justify-center p-1 -m-1" aria-label="Filters">
+              <FilterIcon size={20} color="var(--text-primary)" />
+              {filterCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[var(--bg-brand-primary)] text-white text-[10px] font-bold flex items-center justify-center">
+                  {filterCount}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Invoice list — DS InvoiceRows as a flat list on the white page (divider between rows).
             The empty state skips the opaque white fill: its shorter header (no tabs/sort row)

@@ -288,10 +288,12 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          {/* Figma (node 1332-18605) stacks PageHeader/Tabs/Sort with NO gap between them — all the
+          {/* Figma (node 1332-18605) stacks PageHeader/Tabs with NO gap between them — all the
               spacing comes from each row's own padding. PageAppHeader's root flex-col has a 12px gap
-              for the StatusBar→content case, so this trio is wrapped in one gap-less block: the 12px
-              only fires once (StatusBar→block), not again between each row inside it. */}
+              for the StatusBar→content case, so this pair is wrapped in one gap-less block. The
+              Sort/Filter row below is NOT part of this sticky block (decided 2026-08-12, matches the
+              Sales Invoice List) — it scrolls away with the list instead of staying pinned under the
+              tabs. */}
           <div className="flex flex-col">
             {/* DS PageHeader (center) — same style as the Sales Invoice List. */}
             <PageHeader type="center" title="Credit Notes" onBack={onBack} showSearch={false} />
@@ -310,34 +312,33 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
                 onChange={setActive}
               />
             </div>
-
-            {/* Sort / Filter row — same style as the Sales Invoice List. The Sort button always shows
-                the effective sort label (e.g. "Credit Issue Date: Newest") — a sort is always applied
-                (default "newest"), so a generic "Sort by" placeholder would be misleading. The Sort
-                sheet below shows the same effective sortKey as selected/checked, for the same reason. */}
-            {/* No bg-white here (matches Sales Invoice List) — this row sits inside the
-                transparent-at-rest PageAppHeader, so a solid fill would show as a hard white
-                rectangle cutting into the page's beige→white gradient instead of blending. */}
-            <div className="shrink-0 flex items-center justify-between pt-1 pb-2 px-4 border-b border-[var(--border-neutral-primary)]">
-              <button onClick={() => setSortOpen(true)} className="flex items-center gap-1" style={FONT}>
-                <ArrowUpDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
-                <span className="body-sm text-[var(--text-primary)]">
-                  {sortValueText ? `${sortLabelText}: ` : sortLabelText}
-                </span>
-                {sortValueText && <span className="body-sm-medium text-[var(--text-primary)]">{sortValueText}</span>}
-                <ChevronDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
-              </button>
-              <button onClick={() => setFilterOpen(true)} className="relative flex items-center justify-center p-1 -m-1" aria-label="Filters">
-                <FilterIcon size={20} color="var(--text-primary)" />
-                {activeFilterCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[var(--bg-brand-primary)] text-white text-[10px] font-bold flex items-center justify-center">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
-            </div>
           </div>
         </PageAppHeader>
+
+        {/* Sort / Filter row — same style as the Sales Invoice List. Scrolls away with the list
+            rather than staying pinned to the sticky header (decided 2026-08-12) — only the title +
+            status tabs stay sticky. The Sort button always shows the effective sort label (e.g.
+            "Credit Issue Date: Newest") — a sort is always applied (default "newest"), so a generic
+            "Sort by" placeholder would be misleading. The Sort sheet below shows the same effective
+            sortKey as selected/checked, for the same reason. */}
+        <div className="flex items-center justify-between pt-1 pb-2 px-4 border-b border-[var(--border-neutral-primary)]">
+          <button onClick={() => setSortOpen(true)} className="flex items-center gap-1" style={FONT}>
+            <ArrowUpDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
+            <span className="body-sm text-[var(--text-primary)]">
+              {sortValueText ? `${sortLabelText}: ` : sortLabelText}
+            </span>
+            {sortValueText && <span className="body-sm-medium text-[var(--text-primary)]">{sortValueText}</span>}
+            <ChevronDown size={16} strokeWidth={1.67} color="var(--text-primary)" />
+          </button>
+          <button onClick={() => setFilterOpen(true)} className="relative flex items-center justify-center p-1 -m-1" aria-label="Filters">
+            <FilterIcon size={20} color="var(--text-primary)" />
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[var(--bg-brand-primary)] text-white text-[10px] font-bold flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+        </div>
 
         {/* Credit notes list — same DS InvoiceRow used by the Sales Invoice List: a flat list on the
             white page with a divider between rows (no per-row card/pill). */}
