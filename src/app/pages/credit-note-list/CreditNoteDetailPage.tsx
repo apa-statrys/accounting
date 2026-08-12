@@ -323,6 +323,31 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           />
         )}
 
+        {/* Credit to / Refund to — DS Tile, matching every other "Bill To"-style display in the
+            app. Section order (decided 2026-08-12) now matches the invoice detail's own: Bill
+            To/Credit to → Receiving Account → Details → Items. */}
+        <div className="flex flex-col gap-2">
+          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{isRefund ? (refundSettled ? "Refunded to" : "Refund to") : "Credit to"}</p>
+          <Tile avatar={initials(customerName)} title={customerName || "—"} text={customerEmail} />
+        </div>
+
+        {/* The account this note is set against (Figma 1209) — DS Tile with the account's own country
+            flag, same pattern as every other receiving-account display in the app. Wording follows the
+            money: a credit note settles INTO the "Receiving Account"; a refund pays OUT of the
+            "Payment Account". Hidden on a refund that already has proof — the account is then on the
+            "Refund Method" card below, and showing both would state it twice. */}
+        {receivingAccount && !(isRefund && refundProof) && (
+          <div className="flex flex-col gap-2">
+            <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{isRefund ? "Payment Account" : "Receiving Account"}</p>
+            <Tile
+              flag={receivingAccount.country ? <CountryFlag name={receivingAccount.country} size={30} /> : undefined}
+              title={receivingAccount.name}
+              text={receivingAccount.number}
+              badgeLabel={receivingAccount.primary ? "Primary" : undefined}
+            />
+          </div>
+        )}
+
         {/* Credit Details — Credit Issue Date / Due Date / Currency + reason (+ description) + the
             related invoice, DS ListCard/ListRow (Figma), same shape as the invoice detail's own
             Details card. For a Draft still missing its reason, the row stays visible with an
@@ -348,12 +373,6 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
               <ListRow label="Related Invoice" value={invoiceNo} last />
             )}
           </ListCard>
-        </div>
-
-        {/* Credit to / Refund to — DS Tile, matching every other "Bill To"-style display in the app. */}
-        <div className="flex flex-col gap-2">
-          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{isRefund ? (refundSettled ? "Refunded to" : "Refund to") : "Credit to"}</p>
-          <Tile avatar={initials(customerName)} title={customerName || "—"} text={customerEmail} />
         </div>
 
         {/* Credited / refunded items — DS ListCard/ListRow, same shape as the invoice detail's Items
@@ -397,23 +416,6 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
               </div>
             </div>
           )
-        )}
-
-        {/* The account this note is set against (Figma 1209) — DS Tile with the account's own country
-            flag, same pattern as every other receiving-account display in the app. Wording follows the
-            money: a credit note settles INTO the "Receiving Account"; a refund pays OUT of the
-            "Payment Account". Hidden on a refund that already has proof — the account is then on the
-            "Refund Method" card below, and showing both would state it twice. */}
-        {receivingAccount && !(isRefund && refundProof) && (
-          <div className="flex flex-col gap-2">
-            <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{isRefund ? "Payment Account" : "Receiving Account"}</p>
-            <Tile
-              flag={receivingAccount.country ? <CountryFlag name={receivingAccount.country} size={30} /> : undefined}
-              title={receivingAccount.name}
-              text={receivingAccount.number}
-              badgeLabel={receivingAccount.primary ? "Primary" : undefined}
-            />
-          </div>
         )}
 
         {/* Summary — hidden until there's a credit amount (nothing to total on an empty draft). Card
