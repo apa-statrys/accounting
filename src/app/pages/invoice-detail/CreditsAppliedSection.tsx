@@ -130,7 +130,11 @@ export function CreditsAppliedSection({
                 <div className="mx-4 mb-3 rounded-lg border border-[rgba(15,157,88,0.25)] bg-[rgba(15,157,88,0.06)] px-2.5 py-2 flex flex-col gap-2">
                   <span className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--icon-success-primary)" }} />
-                    <span className="text-[12px] font-semibold" style={{ ...FONT, color: "var(--text-success-primary)" }}>Refunded</span>
+                    {/* Same uppercase/regular text-variant typography as every other status label
+                        in the app (ui/Badge's variant="text", ui/InvoiceStatus's label, the
+                        appliedLabel above) — this is the same status word family, just settled
+                        into its own "receipt" row once there's proof to show alongside it. */}
+                    <span className="text-[12px] uppercase" style={{ ...FONT, color: "var(--text-success-primary)" }}>Refunded</span>
                     <span className="text-[12px] ml-auto text-right" style={{ ...FONT, color: MUTED }}>{proof.method} · {fmtDate(proof.date)}</span>
                   </span>
                   {proof.referenceNo && (
