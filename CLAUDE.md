@@ -197,6 +197,15 @@ in-session only — a reload resets it (expected prototype limit).
   `ButtonDock`'s `secondaryDestructive` only belongs on a secondary paired with a **destructive
   primary** (e.g. Delete Draft/Keep Draft) — not just because the secondary's own action happens to
   be irreversible (e.g. a plain "Discard" next to a neutral primary stays undecorated).
+- **Every delete action confirms first** — never wire a trash icon/⋯ menu row/dock secondary
+  straight to the delete handler, even for something as small as one invoice line. Same shape every
+  time (Sales Invoice List's "Delete Draft Invoice?", InvoiceDetailPage's "Delete this draft?",
+  CreditNoteDetailPage's "Delete credit note?", AddServicesSheet's "Delete this item?"): a `compact`
+  `BottomSheet`, title "Delete this `<noun>`?", body "Are you sure you want to delete this `<noun>`?
+  This action cannot be undone.", footer `ButtonDock` `type="double"` with `primaryLabel="Delete
+  <Noun>"` `primaryDestructive`, `secondaryLabel="Keep <Noun>"` `secondaryDestructive`. This is
+  separate from an edit flow's own "Unsaved changes?" confirm (that one guards losing in-progress
+  edits; this one guards an irreversible delete) — a page can need both.
 - Field label *text* never turns red, even on error — only the hint/caption below the field does.
   The mandatory `*` itself is the one exception (decided 2026-08-04): it turns `--text-error-primary`
   while that specific field currently fails validation, never merely for being mandatory — see
