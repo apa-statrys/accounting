@@ -282,7 +282,9 @@ export interface CompanySettings {
   state: string;
   zip: string;
   country: string;
-  logo: { name: string; size: number } | null;
+  /** `url` is a browser-local object URL (URL.createObjectURL) for the real picked file — never
+   *  persisted/uploaded anywhere, just rendered back for preview (no backend in this prototype). */
+  logo: { name: string; size: number; url?: string } | null;
   /** Default receiving account (id from RECEIVING_ACCOUNTS) customers pay into — seeds new invoices. */
   paymentMethod: string;
   /** Account-level default for the per-invoice automated-chaser toggle. */

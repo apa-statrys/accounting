@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PageAppHeader } from "../components/PageAppHeader";
@@ -18,8 +18,9 @@ import type { CompanySettings } from "../types";
 import { PageHeader } from "../ui/PageHeader";
 import { ListCard } from "../ui/ListCard";
 import { ListRow } from "../ui/ListRow";
+import { Avatar } from "../ui/Avatar";
 
-import { FONT, PAGE_PUSH_TRANSITION } from "../lib/theme";
+import { FONT, PAGE_PUSH_TRANSITION, avatarTint, initials } from "../lib/theme";
 import { scrollFieldIntoView } from "../lib/scrollFieldIntoView";
 import { focusFirstInvalidField } from "../lib/focusFirstInvalidField";
 import { EMAIL_RE } from "../lib/format";
@@ -154,6 +155,17 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   const [companyAttempted, setCompanyAttempted] = useState(false);
   const [addressAttempted, setAddressAttempted] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
+  // Edit Logo (preview + reposition/zoom before committing) — a freshly picked file lands here
+  // first rather than writing straight to the draft, so Save/back-cancel has something real to
+  // commit/discard. Zoom is reset on every fresh pick since the page remounts (AnimatePresence)
+  // each time it opens, but zoom itself lives in the outer component (this app never lifts state
+  // into a picker-only subcomponent), so it needs an explicit reset alongside opening.
+  const [logoEditOpen, setLogoEditOpen] = useState(false);
+  const [pendingLogo, setPendingLogo] = useState<{ name: string; size: number; url: string } | null>(null);
+  const [logoZoom, setLogoZoom] = useState(1);
+  // Real <input type="file"> — the button below just proxies its click (no styleable native
+  // file input), same as any hidden-input file-picker pattern.
+  const logoInputRef = useRef<HTMLInputElement>(null);
   // Active dropdown (country / city / state) inside the Business Address sheet.
   const [picker, setPicker] = useState<{ field: "country" | "city" | "state"; title: string; options: string[] } | null>(null);
   const [pickerQuery, setPickerQuery] = useState("");
@@ -275,13 +287,39 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
     );
   };
 
-  /** Mock a logo pick (sandbox can't open a real file dialog) → validate against the rules. */
-  const pickLogo = () => {
-    const file = { name: "company-logo.png", type: "image/png", size: 240_000 };
+  /** Opens the real OS file picker (the visible button just proxies this hidden input's click —
+   *  a native file input can't be styled directly). */
+  const pickLogo = () => logoInputRef.current?.click();
+
+  /** A real file was picked → validate against the rules, then open Edit Logo to preview/
+   *  reposition the ACTUAL image before it's committed (object URL, never uploaded anywhere —
+   *  this prototype has no backend). */
+  const onLogoFilePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // let picking the same file again still fire this handler
+    if (!file) return;
     if (!LOGO_TYPES.includes(file.type)) { setLogoError("Use a JPG, JPEG, or PNG file."); return; }
     if (file.size > LOGO_MAX_MB * 1024 * 1024) { setLogoError(`Logo must be ${LOGO_MAX_MB} MB or smaller.`); return; }
     setLogoError(null);
-    set("logo", { name: file.name, size: file.size });
+    setPendingLogo({ name: file.name, size: file.size, url: URL.createObjectURL(file) });
+    setLogoZoom(1);
+    setLogoEditOpen(true);
+  };
+  const saveLogoEdit = () => {
+    if (pendingLogo) {
+      // Replacing an earlier real upload — release its object URL now that nothing references it.
+      if (view.logo?.url) URL.revokeObjectURL(view.logo.url);
+      set("logo", pendingLogo);
+    }
+    setLogoEditOpen(false);
+    setPendingLogo(null);
+  };
+  // Nothing's been committed yet either way, so back just discards — no separate "unsaved
+  // changes?" confirm needed the way Company Details' own back chevron has one.
+  const cancelLogoEdit = () => {
+    if (pendingLogo?.url) URL.revokeObjectURL(pendingLogo.url);
+    setLogoEditOpen(false);
+    setPendingLogo(null);
   };
 
   // Unsaved-changes confirm (Company Details / Business Address, dirty only) — same shape as
@@ -401,14 +439,33 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             </PageAppHeader>
 
             <div className={`px-4 pt-5 flex flex-col gap-4 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
-              {/* Logo — beige monogram preview + "Change Logo" (mock picker; sandbox has no real image). */}
+              {/* Logo — no logo yet defaults to an initials placeholder (PMT-41258: "Display
+                  Initials if no logo"); once a real file's picked, its actual image shows here
+                  (object URL — DemoLogo is only a fallback for the no-url edge case). */}
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-4">
-                  <span className="shrink-0"><DemoLogo size={64} /></span>
+                  <span className="shrink-0">
+                    {view.logo ? (
+                      view.logo.url ? (
+                        <img src={view.logo.url} alt="Company logo" className="size-16 rounded-[20px] object-cover" />
+                      ) : (
+                        <DemoLogo size={64} />
+                      )
+                    ) : (
+                      <Avatar size="3xl" initials={initials(view.companyName || "Your Company")} color={avatarTint(view.companyName || "company")} />
+                    )}
+                  </span>
                   <button type="button" onClick={pickLogo} className="flex items-center gap-1 text-[var(--text-primary)]">
                     <Camera size={16} strokeWidth={1.75} />
-                    <span className="text-[16px] font-medium" style={FONT}>Change logo</span>
+                    <span className="text-[16px] font-medium" style={FONT}>{view.logo ? "Change logo" : "Upload logo"}</span>
                   </button>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    onChange={onLogoFilePicked}
+                    className="hidden"
+                  />
                 </div>
                 <AnimatePresence initial={false}>
                   {logoError && (
@@ -450,6 +507,85 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             onClose={() => setPhoneCodeOpen(false)}
             onSelect={(c) => { setPhoneCountry(c); setPhoneCodeOpen(false); }}
           />
+
+          {/* Edit Logo — preview + reposition/zoom before it's actually committed (a freshly
+              picked image may need cropping/aligning before it reads well tiled on an invoice).
+              Stacked on top of Company Details (nested here so it z-stacks above it, same
+              reasoning as CountryCodeSheet above). Save commits `pendingLogo` into the draft; the
+              header back arrow just discards it — nothing's been saved either way, so this
+              doesn't need its own "Unsaved changes?" confirm the way Company Details itself does. */}
+          <AnimatePresence>
+          {logoEditOpen && (
+            <motion.div
+              className="absolute inset-0 z-50 bg-[var(--bg-neutral-tertiary)] rounded-[48px] overflow-hidden flex flex-col"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={PAGE_PUSH_TRANSITION}
+            >
+              <PageAppHeader scrolled={false}>
+                <PageHeader type="center" title="Edit Logo" onBack={cancelLogoEdit} showSearch={false} />
+              </PageAppHeader>
+
+              <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4">
+                <p className="body-sm text-center" style={{ ...FONT, color: "var(--text-secondary)" }}>
+                  Drag to reposition, or zoom to crop.
+                </p>
+
+                {/* Crop frame — the real picked image renders oversized inside it (forced to a
+                    320×320 square via object-cover, regardless of its actual aspect ratio) and
+                    clips on overflow; dragging pans it, the slider below zooms it further in.
+                    Numeric drag bounds (not a ref-based container) since the point is exactly the
+                    opposite of framer's usual "keep it inside the box" — here the image is meant
+                    to be BIGGER than the frame, so there's room to pan. */}
+                <div className="relative size-[200px] rounded-[24px] overflow-hidden bg-[var(--bg-neutral-secondary)]">
+                  {(() => {
+                    const shown = 320 * logoZoom;
+                    const maxOffset = Math.max(0, (shown - 200) / 2);
+                    return (
+                      <motion.div
+                        drag
+                        dragConstraints={{ left: -maxOffset, right: maxOffset, top: -maxOffset, bottom: maxOffset }}
+                        dragElastic={0.1}
+                        dragMomentum={false}
+                        className="absolute inset-0 flex items-center justify-center cursor-grab active:cursor-grabbing"
+                      >
+                        {pendingLogo && (
+                          <img
+                            src={pendingLogo.url}
+                            alt="Logo preview"
+                            width={320}
+                            height={320}
+                            className="object-cover pointer-events-none"
+                            style={{ transform: `scale(${logoZoom})` }}
+                          />
+                        )}
+                      </motion.div>
+                    );
+                  })()}
+                  <div className="absolute inset-0 rounded-[24px] ring-1 ring-inset ring-[var(--border-neutral-primary)] pointer-events-none" />
+                </div>
+
+                <div className="w-full max-w-[220px] flex items-center gap-3">
+                  <span className="text-[12px] shrink-0" style={{ ...FONT, color: "var(--text-secondary)" }}>Zoom</span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={1.6}
+                    step={0.05}
+                    value={logoZoom}
+                    onChange={(e) => setLogoZoom(parseFloat(e.target.value))}
+                    className="flex-1"
+                    style={{ accentColor: "var(--bg-brand-primary)" }}
+                    aria-label="Zoom logo"
+                  />
+                </div>
+              </div>
+
+              <ButtonDock type="single" sticky primaryLabel="Save" onPrimary={saveLogoEdit} />
+            </motion.div>
+          )}
+          </AnimatePresence>
 
           {unsavedSettingsConfirm}
         </motion.div>
