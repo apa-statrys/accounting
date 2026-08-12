@@ -576,7 +576,6 @@ export function InvoiceDetailPage({
   // Pending Refund; the actual money-out (and the move to Refunded) happens in the refund-method step.
   const applyRefundCreditNote = (p: CreditNotePayload) => {
     // Resuming a draft refund CN converts it in place (draft → applied); a fresh form appends a new note.
-    const idx = resumeDraftIndex != null ? resumeDraftIndex : creditNotes.length;
     setCreditNotes((prev) =>
       resumeDraftIndex != null
         ? prev.map((c, i) => (i === resumeDraftIndex ? { ...cnFromPayload(c.no, p), draft: false, sent: c.sent } : c))
@@ -585,7 +584,9 @@ export function InvoiceDetailPage({
     setRefundFormOpen(false);
     setResumeDraftIndex(null);
     setStatus("PendingRefund");
-    setViewingCnIndex(idx); // land on the refund CN detail (now Applied) — payout is a separate step
+    // Lands on the invoice detail (not the refund CN's own detail) — same as createCreditNote's own
+    // cancellation-CN flow, so the user sees it applied to the invoice right away, matching every
+    // other credit-note create flow's return destination.
     setLocalToast("Refund credit note created");
   };
 

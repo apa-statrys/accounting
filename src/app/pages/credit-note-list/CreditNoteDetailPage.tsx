@@ -248,9 +248,11 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       <PageHeader
         type="center"
         // Always generic — never the document number, same convention as the invoice detail's own
-        // page header ("Invoice Details", never the invoice number). The real reference (once
-        // assigned) shows in the hero body below the price instead (see heroReference).
-        title={kind === "refund" ? "Refund Credit Note" : "Credit Note"}
+        // page header ("Invoice Details", never the invoice number) — "Details" for the same
+        // reason: this is the read-only detail view, not the create/edit form (CreditNoteForm's own
+        // header stays "New Credit Note"/"Edit Credit Note"/"New Refund"/"Edit Refund"). The real
+        // reference (once assigned) shows in the hero body below the price instead (see heroReference).
+        title={kind === "refund" ? "Refund Credit Note Details" : "Credit Note Details"}
         onBack={onBack}
         showSearch={hasMenu}
         rightIcon={<MoreVertical size={20} strokeWidth={1} />}
