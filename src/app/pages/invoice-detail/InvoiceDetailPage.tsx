@@ -328,10 +328,11 @@ export function InvoiceDetailPage({
   // (Figma "status + date" format), so it never repeats the badge's own word (no "Overdue" text
   // next to an "Overdue" badge, no "Paid"/"Refunded" text next to those badges either).
   const bannerText: Record<DetailStatus, string> = {
-    // Created drafts show "Created <date>", uploaded drafts show "Uploaded <date>" — inline
-    // beside the "Draft" badge (same "status + date" row every other status uses), not a separate
-    // line. No "on" connector (matches every other date caption).
-    Draft: `${uploaded ? "Uploaded" : "Created"} ${issueDateLabel}`,
+    // Manually-created drafts show the bare date — same "badge word not repeated" convention as
+    // Paid/Void below (the "Draft" badge already says it). Uploaded drafts show "Uploaded <date>"
+    // instead, since that word isn't restating the badge — it's the only signal here that this
+    // draft came from an upload (matches the list row's own InvoiceCard convention).
+    Draft: uploaded ? `Uploaded ${issueDateLabel}` : issueDateLabel,
     // Hero shows the ORIGINAL full total as the big number; the sub-line shows what's actually due —
     // "$X due" once a credit note reduces the balance, otherwise the due date ("Due 5 Jul 2026",
     // same absolute format as the list). All "due" lines share one font weight + size (see render).
@@ -340,9 +341,10 @@ export function InvoiceDetailPage({
     // the one separating genuinely disjoint pieces (the badge word vs. this descriptive clause).
     Awaiting: credited > 0 ? `${money(outstanding, currency)} remaining due ${dueDateLabel}` : `Due ${dueDateLabel}`,
     // Lowercase "since" on purpose in the plain (no credit note) case — it's not an independent
-    // fact the way "Due <date>"/"Paid"/"Created <date>" are (those read fine on their own next to
-    // the badge); "since <date>" only makes sense as a continuation of "Overdue", so render() skips
-    // the "·" for this one case and lets it read as a single sentence, "Overdue since <date>".
+    // fact the way "Due <date>"/the bare Paid/Draft/Void dates are (those read fine on their own
+    // next to the badge); "since <date>" only makes sense as a continuation of "Overdue", so
+    // render() skips the "·" for this one case and lets it read as a single sentence, "Overdue
+    // since <date>".
     Overdue: credited > 0 ? `${money(outstanding, currency)} remaining since ${dueDateLabel}` : `since ${dueDateLabel}`,
     PartiallyPaid: `${money(remaining, currency)} remaining due ${dueDateLabel}`,
     // Bare "Paid <date>" — same convention as Void's bare date (badge already says "Paid", no
@@ -408,9 +410,10 @@ export function InvoiceDetailPage({
     ? (fullyRefunded ? (lastCreditNote?.date ?? "") : `${money(refundAmt, currency)} ${refundVerb}`)
     : bannerText[status];
   // Only the plain (no credit note) Overdue sub-line is a grammatical continuation of the badge
-  // word rather than its own disjoint fact — every other case (Due/Paid/Uploaded/Created/Paused/
-  // Scheduled/refund amount, and Overdue's own credited>0 case) reads fine as a standalone fragment
-  // next to the "·". render() skips the "·" only here so it reads as one sentence: "Overdue since <date>".
+  // word rather than its own disjoint fact — every other case (Due/Paid/Uploaded/the bare
+  // Draft/Void dates/Paused/Scheduled/refund amount, and Overdue's own credited>0 case) reads fine
+  // as a standalone fragment next to the "·". render() skips the "·" only here so it reads as one
+  // sentence: "Overdue since <date>".
   const bannerIsContinuation = status === "Overdue" && credited <= 0.001;
   // Refund dock (DES-720): while a payout is due (refundPending > 0) the primary action is "Refund Credit
   // Note"; once everything committed has been paid out the remaining action is sending the credit-note
