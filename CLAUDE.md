@@ -203,9 +203,20 @@ in-session only — a reload resets it (expected prototype limit).
   step/closes the drawer on failure. A rule with no single field to blame (a cross-field total, e.g.
   CreditNoteForm's "credit at least one line") surfaces as an error toast instead of an inline
   message. This does **not** apply to disabled-until-chosen single-select pickers (ReasonSheet,
-  CreateSalesInvoice's customer picker, RefundCreditNoteFlow, InvoiceSettings' two edit sheets,
-  AddInvoiceDetails' edit-invoice dock, InvoiceDetailPage's Send button) — disabling until exactly
-  one choice is made is the right pattern there, not a gap to fix.
+  CreateSalesInvoice's customer picker, RefundCreditNoteFlow, InvoiceSettings' two edit sheets) —
+  disabling until exactly one choice is made is the right pattern there, not a gap to fix. It also
+  doesn't apply to **Save vs. Send/Create**, a different pair of actions than "submit this form":
+  **Save (persisting a draft) is never blocked by incompleteness** (decided 2026-08-12 — reversed
+  AddInvoiceDetails' edit-invoice dock, which used to hard-disable Save at 0 items; the header
+  back chevron's "Unsaved changes?" confirm sheet already never validated, so the dock's own Save
+  button was just an inconsistent extra gate on the exact same action) — a draft can always be left
+  and resumed incomplete. **Send/Create (issuing something real) still requires completeness**,
+  and stays a disabled-until-complete CTA (InvoiceDetailPage's Send button, gated on
+  `requiredComplete`) rather than a validate-on-click one, since there's no single field to focus
+  for "no items" the way there is for a blank required text field. A page whose Save is now always
+  allowed shows what's still missing inline instead of hiding the incomplete section — e.g.
+  InvoiceDetailPage's Items card, when empty, shows "No items added yet" / "Add at least one item
+  to continue" rather than disappearing.
 - Every phone-frame screen must be inside `.mobile-mode` scope (already applied on App.tsx's root
   wrapper, so all in-app screens inherit it) so typography tokens resolve to mobile sizes — the
   responsive `@media` breakpoint keys off the real browser viewport, not the 375px frame, so any

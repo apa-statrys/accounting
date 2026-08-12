@@ -866,7 +866,10 @@ export function AddInvoiceDetails({
               sticky
               primaryLabel="Save"
               secondaryLabel="Cancel"
-              primaryDisabled={services.length === 0}
+              // Save is never blocked by incomplete fields (decided 2026-08-12) — same as the
+              // header back chevron's "Unsaved changes?" confirm sheet, whose own Save button
+              // never validated at all. An edit with 0 items still saves; InvoiceDetailPage shows
+              // what's missing (e.g. "No items added yet") instead of silently hiding the section.
               onPrimary={onEditSave}
               onSecondary={onEditBack}
               keyboard={keyboardOpen}
@@ -877,9 +880,8 @@ export function AddInvoiceDetails({
             type="single"
             sticky
             primaryLabel="Save"
-            // Edit-existing-from-duplicate is still a draft — Save is always allowed (user can
-            // leave at any time).
-            primaryDisabled={services.length === 0 && !editExitToList}
+            // Save is always allowed, incomplete or not (decided 2026-08-12) — a draft can be left
+            // and resumed at any time; InvoiceDetailPage shows what's missing instead.
             onPrimary={onEditSave}
             keyboard={keyboardOpen}
           />

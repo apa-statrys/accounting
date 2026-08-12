@@ -849,30 +849,39 @@ export function InvoiceDetailPage({
           </ListCard>
         </div>
 
-        {/* An empty draft (saved with 0 items) has nothing to list or total — hide both cards rather
-            than show a 3-line demo Items list or an all-zero Summary that doesn't reflect it. */}
-        {!isEmptyDraft && (
-          <>
         {/* Line items — items only; totals live in their own Summary card below. DS ListCard/ListRow
-            (Figma), same shape as every other line-item list in the app. */}
+            (Figma), same shape as every other line-item list in the app. An empty draft (saved
+            with 0 items — reachable now that Save is never blocked, see CLAUDE.md) shows what's
+            missing inline instead of hiding the section (decided 2026-08-12) — it explains why
+            Send is unavailable and what to do, rather than silently disappearing. */}
         <div className="flex flex-col gap-2">
-          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{`Items ( ${ITEMS.length} )`}</p>
-          <ListCard>
-            {ITEMS.map((it, i) => (
-              <ListRow
-                key={it.name}
-                label={it.name}
-                description={`${it.qty} ${it.unit} · ${money(it.unitPrice, currency)}`}
-                value={money(it.amount, currency)}
-                last={i === ITEMS.length - 1}
-              />
-            ))}
-          </ListCard>
+          <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{isEmptyDraft ? "Items" : `Items ( ${ITEMS.length} )`}</p>
+          {isEmptyDraft ? (
+            <div className="rounded-2xl border px-4 py-6 flex flex-col items-center gap-1 text-center" style={{ background: "var(--bg-neutral-secondary)", borderColor: "rgba(208,208,208,0.4)" }}>
+              <p className="body-sm-medium" style={{ ...FONT, color: INK }}>No items added yet</p>
+              <p className="body-sm" style={{ ...FONT, color: MUTED }}>Add at least one item to continue</p>
+            </div>
+          ) : (
+            <ListCard>
+              {ITEMS.map((it, i) => (
+                <ListRow
+                  key={it.name}
+                  label={it.name}
+                  description={`${it.qty} ${it.unit} · ${money(it.unitPrice, currency)}`}
+                  value={money(it.amount, currency)}
+                  last={i === ITEMS.length - 1}
+                />
+              ))}
+            </ListCard>
+          )}
         </div>
 
         {/* Summary — Subtotal, Discount (only if any), Total. Total is always the final amount due;
             credit notes (DES-719) and partial payments add their own lines below it. Card surface
-            matches Figma's Summary card (bg-neutral-secondary, 16px radius). */}
+            matches Figma's Summary card (bg-neutral-secondary, 16px radius). An empty draft has
+            nothing to total, so this card alone stays hidden (unlike Items above) — an all-zero
+            Summary wouldn't reflect anything real. */}
+        {!isEmptyDraft && (
         <div className="flex flex-col gap-2">
           <p className="body-sm-medium" style={{ ...FONT, color: INK }}>Summary</p>
           <div className="rounded-2xl border px-4 py-1" style={{ background: "var(--bg-neutral-secondary)", borderColor: "rgba(208,208,208,0.4)" }}>
@@ -914,7 +923,6 @@ export function InvoiceDetailPage({
             )}
           </div>
         </div>
-          </>
         )}
 
       </div>
