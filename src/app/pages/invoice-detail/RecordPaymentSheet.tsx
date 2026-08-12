@@ -59,7 +59,14 @@ export function RecordPaymentSheet({
   // The field opens pre-filled with the amount owed and shows no caption at all — only once the
   // user actually edits it do we surface what would still be left owing (amount owed − this entry).
   const [amountEdited, setAmountEdited] = useState(false);
-  useEffect(() => { if (open) { setAttempted(false); setTouched(false); setAmountEdited(false); } }, [open]);
+  // Same brief loading → green success beat as SendInvoiceSheet's "Invoice Sent" (Figma node
+  // 4591-5847): a dots spinner on the button, then it turns green with a "Paid" label for a beat
+  // before actually handing off to the parent's onSubmit (which closes the sheet).
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  useEffect(() => {
+    if (open) { setAttempted(false); setTouched(false); setAmountEdited(false); setSending(false); setSent(false); }
+  }, [open]);
   const amountNum = Number(value) || 0;
   const amountExceeds = amountNum > total + 0.001;
   const amountInvalid = amountNum <= 0 || amountExceeds;
@@ -73,7 +80,12 @@ export function RecordPaymentSheet({
       return;
     }
     setAttempted(false);
-    onSubmit();
+    setSending(true);
+    setTimeout(() => {
+      setSending(false);
+      setSent(true);
+      setTimeout(() => onSubmit(), 900);
+    }, 900);
   };
 
   const titles: Record<PaymentStep, string> = {
@@ -100,7 +112,10 @@ export function RecordPaymentSheet({
           type="double"
           keyboard={keyboardOpen}
           secondaryLabel="Cancel"
-          primaryLabel="Mark as paid"
+          secondaryDisabled={sending || sent}
+          primaryLabel={sent ? "Paid" : "Mark as paid"}
+          primaryLoading={sending}
+          primarySuccess={sent}
           onSecondary={onClose}
           onPrimary={handleSubmit}
         />

@@ -107,7 +107,10 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
     country !== (initial?.country ?? "") ||
     currency !== (initial?.currency ?? "");
 
-  const requestBack = () => (dirty ? setDiscardOpen(true) : onBack?.());
+  // Add mode has no "unsaved changes" concept to confirm — a fresh add that's still in progress
+  // just goes back directly, however many fields are filled in. Only Edit mode confirms via the
+  // discard warning (714 AC1), since only there is `dirty` a divergence from something already saved.
+  const requestBack = () => (isEdit && dirty ? setDiscardOpen(true) : onBack?.());
 
   const noPostal = NO_POSTAL_COUNTRIES.includes(country);
 

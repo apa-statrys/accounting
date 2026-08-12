@@ -64,7 +64,9 @@ interface BottomSheetProps {
   /** Pin to a fixed height (Tailwind class, e.g. "h-[68%]") so sibling sheets match exactly. */
   heightClass?: string;
   /** Almost-full-page drawer (e.g. a Filters/Customer-search sheet) — fixed 92% height, leaving
-   *  just enough room below the phone frame's status bar. Overrides `tall`/`heightClass`. */
+   *  just enough room below the phone frame's status bar. Overrides `tall`/`heightClass`. Also
+   *  gets an automatic ✕ close button in the title row (see `showClose`) — the scrim it leaves
+   *  exposed is too thin a target to rely on as the only way to dismiss. */
   fullPage?: boolean;
   /** 20px icon for the header's frosted 36px action button. */
   action?: React.ReactNode;
@@ -118,6 +120,11 @@ interface BottomSheetProps {
  */
 export function BottomSheet({ open, title, onClose, children, footer, tall, heightClass, fullPage, action, onAction, actionLabel = "Action", onBack, backLabel = "Back", centerTitle, onContentScroll, compact, searchValue, onSearchChange, searchPlaceholder, autoFocusSearch, headerExtra, keyboardOpen = false, minHeightPx, panelRef }: BottomSheetProps) {
   const isSearch = onSearchChange !== undefined;
+  // An almost-full-page sheet (`fullPage`) leaves so little of the scrim exposed around it that
+  // tap-to-dismiss is barely reachable — unlike a normal-height sheet, it needs an explicit X in
+  // the title row too (a caller's own `action` still wins if one is passed, though no `fullPage`
+  // sheet currently uses one).
+  const showClose = fullPage && !action && !isSearch;
   // Drives the header's frost — same transparent-at-rest/frosted-on-scroll
   // recipe as components/PageAppHeader, but tracked internally so every sheet
   // gets it for free (no per-screen `scrolled` plumbing needed).
@@ -213,8 +220,10 @@ export function BottomSheet({ open, title, onClose, children, footer, tall, heig
               }}
             >
               {/* Bottomsheets header (Figma "[APP] Design System" → Bottomsheets, node 4038-2684):
-                  grabber + 28px/22px title + optional frosted action button. No ✕ — sheets dismiss
-                  via the scrim or a footer button. */}
+                  grabber + 28px/22px title + optional frosted action button. A normal-height sheet
+                  has no ✕ — it dismisses via the scrim or a footer button, which stay reachable
+                  around it. `fullPage` leaves too little scrim exposed for that, so it gets an
+                  automatic ✕ in the title row instead (see `showClose`). */}
               <div className={[styles.dsHeader, scrolled ? styles.scrolled : ""].join(" ")}>
                 <div className={styles.frost} aria-hidden />
                 <div className={styles.grabberRow}>
@@ -286,7 +295,7 @@ export function BottomSheet({ open, title, onClose, children, footer, tall, heig
                         </p>
                       )}
                       {/* Invisible spacer balances the back button so a centered title stays optically centered. */}
-                      {centerTitle && onBack && !action && !isSearch && <span className={styles.spacer} aria-hidden />}
+                      {centerTitle && onBack && !action && !showClose && !isSearch && <span className={styles.spacer} aria-hidden />}
                       {action && (
                         <button
                           type="button"
@@ -295,6 +304,18 @@ export function BottomSheet({ open, title, onClose, children, footer, tall, heig
                           aria-label={actionLabel}
                         >
                           {action}
+                        </button>
+                      )}
+                      {showClose && (
+                        <button
+                          type="button"
+                          className={styles.iconButton}
+                          onClick={onClose}
+                          aria-label="Close"
+                        >
+                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                            <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
                         </button>
                       )}
                     </motion.div>
