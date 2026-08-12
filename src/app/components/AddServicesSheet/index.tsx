@@ -215,14 +215,19 @@ export function AddServicesSheet({
 
           {initial ? (
             // Editing an item: hidden until something actually changes (`dirty`) — an untouched
-            // edit session has nothing to save, same as AddCustomerPage/AddInvoiceDetails' edit
-            // docks. Delete now lives in the header's top-right icon instead of a dock secondary.
+            // edit session has nothing to save or cancel, same as AddCustomerPage/AddInvoiceDetails'
+            // edit docks. Explicit Save/Cancel (not a lone Save) — Cancel is a direct, unconfirmed
+            // discard since it's already an explicit choice right next to Save (the header back
+            // chevron is the ambiguous action, so IT confirms via requestBack instead). Delete lives
+            // in the header's top-right icon now, not a third dock button.
             dirty && (
               <ButtonDock
-                type="single"
+                type="double"
                 sticky
                 primaryLabel="Save"
+                secondaryLabel="Cancel"
                 onPrimary={handleAdd}
+                onSecondary={onClose}
                 keyboard={keyboardOpen}
               />
             )
