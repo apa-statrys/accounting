@@ -65,11 +65,12 @@
 }
 
 .secondary {
-  background: transparent;
+  background: var(--bg-neutral-primary);
   border: 1px solid var(--btn-primary);
   color: var(--btn-primary);
 }
 .secondary.active {
+  background: var(--bg-neutral-primary-active);
   border-color: var(--btn-secondary-active);
   color: var(--btn-secondary-active);
 }
