@@ -467,9 +467,11 @@ export default function App() {
         // (right gutter) instead of a separate sidebar entry each — this jump always lands on
         // the plain default, resetting whatever PageControls state was left on.
         { label: "Sales Invoice List", active: screen === "list", onSelect: () => { setToast(null); setListPreset(null); setForceEmptyInvoices(false); setListDevHideStatuses(undefined); setListDevNonce((n) => n + 1); setScreen("list"); } },
-        // Select Customer is step 1 of Create Invoice (happens before the editor) — placed above it.
-        { label: "Select Customer", active: screen === "customer" && !forceNoFrequentCustomers, onSelect: () => { setForceNoFrequentCustomers(false); seedHistory("list"); setScreen("customer"); } },
-        { label: "Select Customer — No Frequently Used", active: screen === "customer" && forceNoFrequentCustomers, onSelect: () => { setForceNoFrequentCustomers(true); seedHistory("list"); setScreen("customer"); } },
+        // Select Customer is step 1 of Create Invoice (happens before the editor) — placed above
+        // it. The Personalised / No Frequently Used states now live on its own PageControls panel
+        // (right gutter) instead of a separate sidebar entry each — this jump always lands on the
+        // plain default, resetting whatever PageControls state was left on.
+        { label: "Select Customer", active: screen === "customer", onSelect: () => { setForceNoFrequentCustomers(false); seedHistory("list"); setScreen("customer"); } },
         // Dev jump lands on the pre-filled editor (demo customer + demo items), not the picker (user, 15/Jul).
         { label: "Create Invoice", active: screen === "customer" || screen === "details", onSelect: () => { setExtracted(null); setCustomer(DEMO_CUSTOMER); setDevSeedItems(true); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setScreen("details"); } },
         { label: "Send Invoice", active: screen === "send" && !sendFailScenario, onSelect: () => { setSendFailScenario(false); setScreen("send"); } },
@@ -597,51 +599,69 @@ export default function App() {
     },
   ];
 
-  // Right-gutter PageControls (dev handoff pilot — Sales Invoice List only for now, see
-  // CLAUDE.md "improve structure for dev handoff"). Each screen that wants dev states listed
-  // here builds its own group(s); a screen with none renders nothing (PageControls returns null).
-  const pageControls: PageControlGroup[] =
-    screen === "list"
-      ? [
+  // Right-gutter PageControls (dev handoff pilot, see CLAUDE.md "improve structure for dev
+  // handoff"). Each screen that wants dev states listed here builds its own group(s); a screen
+  // with none falls to [] and PageControls renders nothing.
+  let pageControls: PageControlGroup[] = [];
+  if (screen === "list") {
+    pageControls = [
+      {
+        label: "Data",
+        options: [
           {
-            label: "Data",
-            options: [
-              {
-                label: "Default",
-                active: !forceEmptyInvoices && !listDevHideStatuses,
-                onSelect: () => {
-                  setForceEmptyInvoices(false);
-                  setListPreset(null);
-                  setListDevHideStatuses(undefined);
-                  setListDevNonce((n) => n + 1);
-                },
-              },
-              {
-                label: "Empty (no invoices)",
-                active: forceEmptyInvoices,
-                onSelect: () => {
-                  setForceEmptyInvoices(true);
-                  setListDevHideStatuses(undefined);
-                  setListDevNonce((n) => n + 1);
-                },
-              },
-              {
-                label: "Category empty (Draft)",
-                active: !forceEmptyInvoices && !!listDevHideStatuses,
-                onSelect: () => {
-                  // Simulates the realistic way a category empties out: not a register with
-                  // nothing in it, but one where the last Draft just got sent (→ Awaiting) and
-                  // left this tab at a genuine 0 — also exercises the tab label hiding "(0)".
-                  setForceEmptyInvoices(false);
-                  setListPreset({ status: "Draft" });
-                  setListDevHideStatuses(["Draft"]);
-                  setListDevNonce((n) => n + 1);
-                },
-              },
-            ],
+            label: "Default",
+            active: !forceEmptyInvoices && !listDevHideStatuses,
+            onSelect: () => {
+              setForceEmptyInvoices(false);
+              setListPreset(null);
+              setListDevHideStatuses(undefined);
+              setListDevNonce((n) => n + 1);
+            },
           },
-        ]
-      : [];
+          {
+            label: "Empty (no invoices)",
+            active: forceEmptyInvoices,
+            onSelect: () => {
+              setForceEmptyInvoices(true);
+              setListDevHideStatuses(undefined);
+              setListDevNonce((n) => n + 1);
+            },
+          },
+          {
+            label: "Category empty (Draft)",
+            active: !forceEmptyInvoices && !!listDevHideStatuses,
+            onSelect: () => {
+              // Simulates the realistic way a category empties out: not a register with
+              // nothing in it, but one where the last Draft just got sent (→ Awaiting) and
+              // left this tab at a genuine 0 — also exercises the tab label hiding "(0)".
+              setForceEmptyInvoices(false);
+              setListPreset({ status: "Draft" });
+              setListDevHideStatuses(["Draft"]);
+              setListDevNonce((n) => n + 1);
+            },
+          },
+        ],
+      },
+    ];
+  } else if (screen === "customer") {
+    pageControls = [
+      {
+        label: "Frequently Used",
+        options: [
+          {
+            label: "Personalised",
+            active: !forceNoFrequentCustomers,
+            onSelect: () => setForceNoFrequentCustomers(false),
+          },
+          {
+            label: "No Frequently Used",
+            active: forceNoFrequentCustomers,
+            onSelect: () => setForceNoFrequentCustomers(true),
+          },
+        ],
+      },
+    ];
+  }
 
   return (
     <div className="mobile-mode min-h-screen bg-[#EDEDED] flex flex-col items-center justify-center gap-4 p-4">
