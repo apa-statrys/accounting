@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Menu, X, ChevronRight } from "lucide-react";
 import { QuickNavSidebar, type SidebarGroup } from "./components/QuickNavSidebar";
 import { DevInspector } from "./components/DevInspector";
+import { PageControls, type PageControlGroup } from "./components/PageControls";
 import { Dashboard } from "./pages/Dashboard";
 import { AccountingHub } from "./pages/AccountingHub";
 import { CreditNotesList } from "./pages/credit-note-list/CreditNotesList";
@@ -33,7 +34,7 @@ import { DEMO_EXTRACTION, DEMO_EXTRACTION_MATCHED, DEMO_EXTRACTION_NO_CUSTOMER, 
 import { CUSTOMERS } from "./data/customers";
 import { DEFAULT_SETTINGS } from "./data/settings";
 import { HERO_SCENARIOS } from "./data/heroScenarios";
-import type { Screen, Customer, DetailStatus, InvoiceEditSeed, InvoiceLine, CompanySettings, ExtractedInvoice, ExistingInvoice, CNStatus, EntityKind, NewFlag } from "./types";
+import type { Screen, Customer, DetailStatus, InvoiceEditSeed, InvoiceLine, CompanySettings, ExtractedInvoice, ExistingInvoice, CNStatus, EntityKind, NewFlag, Status } from "./types";
 
 /** Top-level navigation, grouped by product area. */
 const NAV_GROUPS: { heading: string; items: { id: Screen; label: string }[] }[] = [
@@ -364,6 +365,13 @@ export default function App() {
   const [forceNoFrequentCustomers, setForceNoFrequentCustomers] = useState(false);
   // Dev sidebar deep link: CN detail to open when jumping to the Credit Notes list (null = plain list).
   const [cnPreview, setCnPreview] = useState<string | null>(null);
+  // Dev (PageControls, right-gutter panel): the "Category empty" demo state's hidden status —
+  // simulates a status category draining to zero (e.g. the last Draft gets sent and becomes
+  // Awaiting) rather than the whole register being empty. Paired with listDevNonce so every
+  // PageControls tap remounts the list fresh (same trick jumpDetail uses via detailNavNonce)
+  // instead of layering onto whatever sort/filter state a previous manual poke left behind.
+  const [listDevHideStatuses, setListDevHideStatuses] = useState<Status[] | undefined>(undefined);
+  const [listDevNonce, setListDevNonce] = useState(0);
   // Bumped on every sidebar detail jump so the detail page remounts (fresh state) even when
   // the invoice number/status don't change. In-page actions never bump it.
   const [detailNavNonce, setDetailNavNonce] = useState(0);
@@ -455,8 +463,10 @@ export default function App() {
       // flat-ish rows and was hard to scan for handoff).
       items: [
         // Clear any pending toast so the dev jump never lands with a stale "Saved as draft" flash.
-        { label: "Sales Invoice List", active: screen === "list" && !forceEmptyInvoices, onSelect: () => { setToast(null); setListPreset(null); setForceEmptyInvoices(false); setScreen("list"); } },
-        { label: "Sales Invoice List — Empty", active: screen === "list" && forceEmptyInvoices, onSelect: () => { setToast(null); setListPreset(null); setForceEmptyInvoices(true); setScreen("list"); } },
+        // Empty/category-empty demo states now live on the list page's own PageControls panel
+        // (right gutter) instead of a separate sidebar entry each — this jump always lands on
+        // the plain default, resetting whatever PageControls state was left on.
+        { label: "Sales Invoice List", active: screen === "list", onSelect: () => { setToast(null); setListPreset(null); setForceEmptyInvoices(false); setListDevHideStatuses(undefined); setListDevNonce((n) => n + 1); setScreen("list"); } },
         // Select Customer is step 1 of Create Invoice (happens before the editor) — placed above it.
         { label: "Select Customer", active: screen === "customer" && !forceNoFrequentCustomers, onSelect: () => { setForceNoFrequentCustomers(false); seedHistory("list"); setScreen("customer"); } },
         { label: "Select Customer — No Frequently Used", active: screen === "customer" && forceNoFrequentCustomers, onSelect: () => { setForceNoFrequentCustomers(true); seedHistory("list"); setScreen("customer"); } },
@@ -586,6 +596,52 @@ export default function App() {
       ],
     },
   ];
+
+  // Right-gutter PageControls (dev handoff pilot — Sales Invoice List only for now, see
+  // CLAUDE.md "improve structure for dev handoff"). Each screen that wants dev states listed
+  // here builds its own group(s); a screen with none renders nothing (PageControls returns null).
+  const pageControls: PageControlGroup[] =
+    screen === "list"
+      ? [
+          {
+            label: "Data",
+            options: [
+              {
+                label: "Default",
+                active: !forceEmptyInvoices && !listDevHideStatuses,
+                onSelect: () => {
+                  setForceEmptyInvoices(false);
+                  setListPreset(null);
+                  setListDevHideStatuses(undefined);
+                  setListDevNonce((n) => n + 1);
+                },
+              },
+              {
+                label: "Empty (no invoices)",
+                active: forceEmptyInvoices,
+                onSelect: () => {
+                  setForceEmptyInvoices(true);
+                  setListDevHideStatuses(undefined);
+                  setListDevNonce((n) => n + 1);
+                },
+              },
+              {
+                label: "Category empty (Draft)",
+                active: !forceEmptyInvoices && !!listDevHideStatuses,
+                onSelect: () => {
+                  // Simulates the realistic way a category empties out: not a register with
+                  // nothing in it, but one where the last Draft just got sent (→ Awaiting) and
+                  // left this tab at a genuine 0 — also exercises the tab label hiding "(0)".
+                  setForceEmptyInvoices(false);
+                  setListPreset({ status: "Draft" });
+                  setListDevHideStatuses(["Draft"]);
+                  setListDevNonce((n) => n + 1);
+                },
+              },
+            ],
+          },
+        ]
+      : [];
 
   return (
     <div className="mobile-mode min-h-screen bg-[#EDEDED] flex flex-col items-center justify-center gap-4 p-4">
@@ -833,6 +889,7 @@ export default function App() {
 
       {screen === "list" && (
         <SalesInvoiceList
+          key={listDevNonce}
           forceEmpty={forceEmptyInvoices}
           showSuccess={!!toast}
           successVariant={toast?.variant}
@@ -843,6 +900,7 @@ export default function App() {
           newFlag={newFlag}
           initialStatus={listPreset?.status}
           onActiveStatusChange={(s) => setListPreset({ status: s === "all" ? undefined : s })}
+          hideStatuses={listDevHideStatuses}
           refundState={refundState}
           onBack={() => setScreen("dashboard")}
           onOpenInvoice={(inv) => {
@@ -1448,6 +1506,12 @@ export default function App() {
       {/* Screen jumper — the collapsible QuickNav sidebar (stakeholder demos), shown in
           every build for now so the Vercel demo matches localhost. */}
       <QuickNavSidebar groups={sidebarGroups} />
+
+      {/* Right-gutter "Page States" switcher — dev handoff pilot, Sales Invoice List only for
+          now (see `pageControls` above). Flip straight to a page's documented states without
+          digging through the QuickNav sidebar; also doubles as a live list of what states exist,
+          for whoever picks this prototype up next. */}
+      <PageControls groups={pageControls} />
 
       {/* Dev-mode-style hover inspector for handoff — toggle on (bottom-right), then hover
           any element to see its computed styling in the right-side gutter. Reads live

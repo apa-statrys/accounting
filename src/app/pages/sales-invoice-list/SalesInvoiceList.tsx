@@ -135,9 +135,14 @@ interface SalesInvoiceListProps {
   /** Dev-only (QuickNav): render the zero-data empty state (Figma "All Invoices", node 2070-19191)
    *  in place of the tabs/sort/list — no real flow ever empties the demo register. */
   forceEmpty?: boolean;
+  /** Dev-only (PageControls' "Category empty" demo state): hide every invoice with this raw
+   *  status, so a real (non-"all") status tab lands with a genuine 0 count — the realistic
+   *  version of this is a category draining to zero as its last invoice moves on (e.g. the one
+   *  remaining Draft gets sent and becomes Awaiting) rather than a register that's empty outright. */
+  hideStatuses?: Status[];
 }
 
-export function SalesInvoiceList({ showSuccess, successVariant, successMessage, successSubtext, onSuccessDone, recent, newFlag, onBack, onOpenInvoice, onManual, onUpload, initialStatus, onActiveStatusChange, initialDue, refundState, forceEmpty }: SalesInvoiceListProps) {
+export function SalesInvoiceList({ showSuccess, successVariant, successMessage, successSubtext, onSuccessDone, recent, newFlag, onBack, onOpenInvoice, onManual, onUpload, initialStatus, onActiveStatusChange, initialDue, refundState, forceEmpty, hideStatuses }: SalesInvoiceListProps) {
   const initialActive = initialStatus ? Math.max(0, FILTERS.findIndex((f) => f.match === initialStatus)) : 0;
   const [active, setActive] = useState(initialActive);
   // Keep the selected status tab scrolled into view (e.g. when opened pre-filtered from the hero).
@@ -262,7 +267,10 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
     setCnPreviewInvoiceTotal(amountValue(inv.amount));
     setCnPreview(found ?? { no: inv.cnNo, customer: inv.client, email: "", invoiceNo: inv.id.replace(/[a-z]$/, ""), original: amt, invoiceTotal: amountValue(inv.amount), applied: amt, kind: "cancellation", status: "Applied", date: "", reason: "" });
   };
-  const allInvoices = useMemo(() => allRows.filter((inv) => !deletedIds.includes(inv.id)), [allRows, deletedIds]);
+  const allInvoices = useMemo(
+    () => allRows.filter((inv) => !deletedIds.includes(inv.id) && !hideStatuses?.includes(inv.status)),
+    [allRows, deletedIds, hideStatuses]
+  );
 
   // Whether an invoice row is the just-created one — drives both its "New" badge and its arrival
   // highlight tint from the SAME app-wide flag/timer (App.tsx's newFlag), never a separate timer.
@@ -332,7 +340,7 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
               <div ref={tabsWrapRef} className="tabs-wrap shrink-0 pl-4 py-4 relative z-10">
                 <HorizontalTabs
                   variant="button"
-                  tabs={FILTERS.map((f, i) => `${f.label} (${counts[i]})`)}
+                  tabs={FILTERS.map((f, i) => (counts[i] > 0 ? `${f.label} (${counts[i]})` : f.label))}
                   activeIndex={active}
                   onChange={selectChip}
                 />

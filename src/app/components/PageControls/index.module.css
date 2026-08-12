@@ -1,0 +1,85 @@
+/* PageControls — dev-only page-state switcher, docked in the right-side gutter beside the
+   phone frame. Same bespoke dark palette as the other dev tools (QuickNavSidebar, DevInspector),
+   not the DS — and same right-gutter anchor as DevInspector's hover panel, top-docked since this
+   one stays visible for as long as the screen is open (DevInspector's is bottom-docked instead,
+   since it's transient/hover-only). Hidden below the same 1180px breakpoint DevInspector uses —
+   there isn't room for the gutter below it. */
+
+.panel {
+  display: none;
+}
+
+@media (min-width: 1180px) {
+  .panel {
+    display: block;
+    position: fixed;
+    top: var(--space-24);
+    left: calc(50% + 230px);
+    width: 240px;
+    max-height: calc(100vh - 2 * var(--space-24));
+    overflow-y: auto;
+    z-index: 60;
+    background: var(--bg-neutral-inverse-primary);
+    color: var(--text-neutral-inverse-primary);
+    border-radius: var(--radius-3xl);
+    box-shadow: 0 8px 30px rgba(16, 24, 40, 0.25);
+    padding: var(--space-12);
+  }
+}
+
+.title {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text-neutral-inverse-primary);
+}
+
+.subtitle {
+  font-size: var(--text-xs);
+  color: var(--text-neutral-inverse-secondary);
+  margin-bottom: var(--space-8);
+}
+
+.group + .group {
+  margin-top: var(--space-12);
+  padding-top: var(--space-12);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.groupLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-neutral-inverse-secondary);
+  margin-bottom: var(--space-6);
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.option {
+  text-align: left;
+  padding: var(--space-8) var(--space-10);
+  border-radius: var(--radius-xl);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-neutral-inverse-primary);
+  background: transparent;
+  transition: background-color var(--transition-base);
+}
+
+.option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.optionActive {
+  background: var(--bg-brand-primary);
+  color: var(--text-on-color);
+}
+
+.optionActive:hover {
+  background: var(--bg-brand-primary);
+}

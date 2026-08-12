@@ -42,7 +42,10 @@
   .panel {
     display: block;
     position: fixed;
-    top: var(--space-24);
+    /* Bottom-anchored (not top) so it doesn't collide with PageControls, which docks at the
+       top of this same right-side gutter — this panel is transient (hover-only) while
+       PageControls stays visible for the whole time a screen with dev states is open. */
+    bottom: var(--space-24);
     left: calc(50% + 230px);
     width: 300px;
     max-height: calc(100vh - 2 * var(--space-24));

@@ -307,7 +307,7 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
             <div className="tabs-wrap shrink-0 pl-4 py-4 relative z-10">
               <HorizontalTabs
                 variant="button"
-                tabs={FILTERS.map((f, i) => `${f.label} (${counts[i]})`)}
+                tabs={FILTERS.map((f, i) => (counts[i] > 0 ? `${f.label} (${counts[i]})` : f.label))}
                 activeIndex={active}
                 onChange={setActive}
               />
