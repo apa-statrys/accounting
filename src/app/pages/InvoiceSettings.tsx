@@ -126,13 +126,28 @@ interface InvoiceSettingsProps {
  * Invoice Settings (DES-764) — account-level company info, logo, and default currency,
  * set once and auto-applied to every invoice (not editable per-invoice). Identity-first
  * layout: logo+name header on top, then detail-list cards (each row → single-field sheet).
- * Edits apply live; leaving persists. Bottom CTA previews the invoice template.
+ * Currency / Payment Method / Automatic reminders commit the moment you pick them (no Save step
+ * of their own — same as everywhere else those single-choice pickers are used). Company Details /
+ * Business Address are real multi-field edit forms though, so they follow the app's standard edit
+ * pattern instead: edits happen against a local draft, Save commits it, and the header back
+ * chevron confirms via "Unsaved changes?" when dirty (see `draft`/`view`).
  */
 export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceSettingsProps) {
   const [s, setS] = useState<CompanySettings>(initial);
   const [sheet, setSheet] = useState<SheetKey>(null);
   // Snapshot taken when a sheet opens, so the "Save" CTA only renders once something's changed.
   const [baseline, setBaseline] = useState<CompanySettings | null>(null);
+  // Company Details / Business Address edit against this local draft, not `s` directly — `s` stays
+  // the persisted settings (what the main list rows show) until Save actually commits the draft
+  // into it. Without this, typing a field mutated `s` immediately with no way to discard, so the
+  // header back chevron's "Unsaved changes?" confirm and the dock's own Cancel would've had
+  // nothing real to discard — same edit-vs-live-mutation gap the app's other edit forms avoid
+  // (AddCustomerPage, AddInvoiceDetails, CreditNoteForm, AddServicesSheet all edit a local draft).
+  const [draft, setDraft] = useState<CompanySettings | null>(null);
+  const editingSection = sheet === "company" || sheet === "address";
+  // Read source for anything rendered inside the Company Details / Business Address pages —
+  // falls back to `s` only for the brief instant before `openSheet` seeds `draft`.
+  const view = draft ?? s;
   // form-cta-validation: each sheet's CTA is never disabled — a failed Save reveals inline errors
   // on every offending field and focuses the first one, instead. Flips true on a failed Save
   // attempt within that sheet; reset whenever a sheet (re)opens.
@@ -159,32 +174,42 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   const [addressScrolled, setAddressScrolled] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
-  const openSheet = (k: SheetKey) => { setBaseline(s); setLogoError(null); setCompanyAttempted(false); setAddressAttempted(false); setSheet(k); };
+  const openSheet = (k: SheetKey) => { setBaseline(s); setDraft(s); setLogoError(null); setCompanyAttempted(false); setAddressAttempted(false); setSheet(k); };
   const openPicker = (p: { field: "country" | "city" | "state"; title: string; options: string[] }) => { closePickerSearch(); setPicker(p); };
+  // Edit-only back — same "Unsaved changes?" confirm shape as every other edit flow in the app.
+  const [discardSettingsOpen, setDiscardSettingsOpen] = useState(false);
+  const requestSheetBack = () => (dirty ? setDiscardSettingsOpen(true) : setSheet(null));
 
   /** Apply a dropdown choice — changing country resets the dependent city + state. */
   const selectOption = (val: string) => {
     if (!picker) return;
-    if (picker.field === "country") setS((p) => ({ ...p, country: val, state: "", city: "", zip: NO_POSTAL_COUNTRIES.includes(val) ? "" : p.zip }));
-    else set(picker.field, val);
+    if (picker.field === "country") {
+      setDraft((p) => (p ? { ...p, country: val, state: "", city: "", zip: NO_POSTAL_COUNTRIES.includes(val) ? "" : p.zip } : p));
+    } else set(picker.field, val);
     setPicker(null);
   };
 
-  const set = <K extends keyof CompanySettings>(k: K, v: CompanySettings[K]) => setS((p) => ({ ...p, [k]: v }));
+  // Company Details / Business Address route through `draft` (discardable); every other field
+  // (Currency, Payment Method, the Automatic reminders toggle) has no Save step of its own — picking
+  // one commits immediately — so it writes straight to `s`.
+  const set = <K extends keyof CompanySettings>(k: K, v: CompanySettings[K]) => {
+    if (editingSection) setDraft((p) => (p ? { ...p, [k]: v } : p));
+    else setS((p) => ({ ...p, [k]: v }));
+  };
 
   // A field is OK when filled (email must also be valid); optional fields may be blank.
   const fieldOk = (k: FieldKey) => {
-    const v = s[k].trim();
+    const v = view[k].trim();
     if (k === "email") return EMAIL_RE.test(v);
     return FIELD_META[k].required ? v.length > 0 : true;
   };
   // Inline error message for a field, or false when it's fine — mirrors AddCustomerPage's `err`.
   const fieldError = (k: FieldKey): string | false => {
     if (fieldOk(k)) return false;
-    if (k === "email") return s.email.trim() ? "Enter a valid email address" : "Email address is required";
+    if (k === "email") return view.email.trim() ? "Enter a valid email address" : "Email address is required";
     return `${FIELD_META[k].label} is required`;
   };
-  const zipShown = !NO_POSTAL_COUNTRIES.includes(s.country);
+  const zipShown = !NO_POSTAL_COUNTRIES.includes(view.country);
   const companyValid = fieldOk("companyName") && fieldOk("email");
   const detailsValid = DETAIL_FIELDS.every(fieldOk);
   // DES-764: only Address is required in the Business Address section (Country / City / Zip optional).
@@ -193,32 +218,35 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   // Has the open section changed since it was opened? The CTA itself is only rendered once dirty —
   // an untouched sheet has nothing to save (see the ButtonDock footers below).
   const dirty = (() => {
-    if (!baseline) return false;
+    if (!baseline || !draft) return false;
     if (sheet === "company")
       return (
-        s.companyName !== baseline.companyName ||
-        s.email !== baseline.email ||
-        JSON.stringify(s.logo) !== JSON.stringify(baseline.logo) ||
-        DETAIL_FIELDS.some((k) => s[k] !== baseline[k])
+        draft.companyName !== baseline.companyName ||
+        draft.email !== baseline.email ||
+        JSON.stringify(draft.logo) !== JSON.stringify(baseline.logo) ||
+        DETAIL_FIELDS.some((k) => draft[k] !== baseline[k])
       );
-    if (sheet === "address") return ADDRESS_FIELDS.some((k) => s[k] !== baseline[k]);
+    if (sheet === "address") return ADDRESS_FIELDS.some((k) => draft[k] !== baseline[k]);
     return false;
   })();
 
   // form-cta-validation: the CTA is never disabled — a failed Save reveals every offending field's
-  // inline error at once and focuses the first one, instead of just refusing to proceed.
+  // inline error at once and focuses the first one, instead of just refusing to proceed. A valid
+  // Save commits the draft into `s` — this is the only place Company Details / Business Address
+  // edits actually persist; Cancel/back-without-saving just closes, leaving `s` untouched.
   const handleSaveCompany = () => {
-    if (companyValid && detailsValid) { setSheet(null); return; }
+    if (companyValid && detailsValid) { setS(draft ?? s); setSheet(null); return; }
     setCompanyAttempted(true);
     const order: FieldKey[] = ["companyName", "email", ...DETAIL_FIELDS];
     const firstInvalid = order.find((k) => !fieldOk(k));
     if (firstInvalid) focusFirstInvalidField(`settings-${firstInvalid}`);
   };
   const handleSaveAddress = () => {
-    if (addressValid) { setSheet(null); return; }
+    if (addressValid) { setS(draft ?? s); setSheet(null); return; }
     setAddressAttempted(true);
     focusFirstInvalidField("settings-address");
   };
+  const handleSaveActiveSection = () => (sheet === "company" ? handleSaveCompany() : sheet === "address" ? handleSaveAddress() : undefined);
 
   /** One field's TextField, configured from FIELD_META — used inside the section sheets.
    *  Phone uses TextField's own "mobile" type (flag + dial code + chevron selector) instead of
@@ -236,7 +264,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
       selectorLabel={k === "phone" ? phoneCountry.dialCode : undefined}
       selectorIcon={k === "phone" ? <CountryFlag name={phoneCountry.name} size={20} /> : undefined}
       onSelectorClick={k === "phone" ? () => setPhoneCodeOpen(true) : undefined}
-      value={s[k]}
+      value={view[k]}
       onChange={(v) => set(k, v)}
       onFocus={(e) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); }}
       onBlur={() => setKeyboardOpen(false)}
@@ -255,6 +283,36 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
     setLogoError(null);
     set("logo", { name: file.name, size: file.size });
   };
+
+  // Unsaved-changes confirm (Company Details / Business Address, dirty only) — same shape as
+  // AddCustomerPage/AddInvoiceDetails/CreditNoteForm's back-tap confirm. Save persists via the same
+  // handler the dock's own Save button calls (still runs validation); Cancel discards by just
+  // closing — `s` was never touched mid-edit, so there's nothing else to roll back. Rendered inside
+  // EACH page's own motion.div (never as a plain top-level sibling) — BottomSheet's overlay is
+  // `position: fixed` at z-index 40, which only stacks above a page's own z-50 once it's nested
+  // inside that page's transformed motion.div (Framer sets an inline `transform`, which contains
+  // fixed descendants to that subtree); as a bare sibling it silently rendered BEHIND the page.
+  const unsavedSettingsConfirm = (
+    <BottomSheet
+      open={discardSettingsOpen}
+      title="Unsaved changes?"
+      onClose={() => setDiscardSettingsOpen(false)}
+      compact
+      footer={
+        <ButtonDock
+          type="double"
+          primaryLabel="Save"
+          secondaryLabel="Cancel"
+          onPrimary={() => { setDiscardSettingsOpen(false); handleSaveActiveSection(); }}
+          onSecondary={() => { setDiscardSettingsOpen(false); setSheet(null); }}
+        />
+      }
+    >
+      <p className="body-sm" style={{ ...FONT, color: "var(--text-secondary)" }}>
+        You have unsaved changes. Save them before you go, or cancel to discard them.
+      </p>
+    </BottomSheet>
+  );
 
   return (
     <div className="relative bg-[var(--bg-neutral-tertiary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
@@ -339,7 +397,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             onScroll={(e) => setCompanyScrolled(e.currentTarget.scrollTop > 4)}
           >
             <PageAppHeader scrolled={companyScrolled}>
-              <PageHeader type="center" title="Company Details" onBack={() => setSheet(null)} showSearch={false} />
+              <PageHeader type="center" title="Company Details" onBack={requestSheetBack} showSearch={false} />
             </PageAppHeader>
 
             <div className={`px-4 pt-5 flex flex-col gap-4 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
@@ -375,7 +433,15 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
           </div>
 
           {dirty && (
-            <ButtonDock type="single" sticky primaryLabel="Save" onPrimary={handleSaveCompany} keyboard={keyboardOpen} />
+            <ButtonDock
+              type="double"
+              sticky
+              primaryLabel="Save"
+              secondaryLabel="Cancel"
+              onPrimary={handleSaveCompany}
+              onSecondary={() => setSheet(null)}
+              keyboard={keyboardOpen}
+            />
           )}
 
           <CountryCodeSheet
@@ -384,6 +450,8 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             onClose={() => setPhoneCodeOpen(false)}
             onSelect={(c) => { setPhoneCountry(c); setPhoneCodeOpen(false); }}
           />
+
+          {unsavedSettingsConfirm}
         </motion.div>
       )}
       </AnimatePresence>
@@ -407,7 +475,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             onScroll={(e) => setAddressScrolled(e.currentTarget.scrollTop > 4)}
           >
             <PageAppHeader scrolled={addressScrolled}>
-              <PageHeader type="center" title="Business Address" onBack={() => setSheet(null)} showSearch={false} />
+              <PageHeader type="center" title="Business Address" onBack={requestSheetBack} showSearch={false} />
             </PageAppHeader>
 
             <div className={`px-4 pt-5 flex flex-col gap-4 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
@@ -418,19 +486,19 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
                 label={FIELD_META.country.label}
                 placeholder="Select country"
                 mandatory={FIELD_META.country.required}
-                value={s.country}
+                value={view.country}
                 onClick={() => openPicker({ field: "country", title: "Country", options: COUNTRIES })}
               />
 
               {/* City — dropdown when the country has preset cities, otherwise free text */}
-              {(COUNTRY_DATA[s.country]?.cities.length ?? 0) > 0 ? (
+              {(COUNTRY_DATA[view.country]?.cities.length ?? 0) > 0 ? (
                 <TextField
                   type="dropdown"
                   label={FIELD_META.city.label}
                   placeholder="Select city"
                   mandatory={FIELD_META.city.required}
-                  value={s.city}
-                  onClick={() => openPicker({ field: "city", title: "City", options: COUNTRY_DATA[s.country].cities })}
+                  value={view.city}
+                  onClick={() => openPicker({ field: "city", title: "City", options: COUNTRY_DATA[view.country].cities })}
                 />
               ) : (
                 field("city", addressAttempted)
@@ -438,7 +506,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
 
               {/* State — only shown when the country has states/provinces. */}
               <AnimatePresence>
-                {(COUNTRY_DATA[s.country]?.states.length ?? 0) > 0 && (
+                {(COUNTRY_DATA[view.country]?.states.length ?? 0) > 0 && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
@@ -450,8 +518,8 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
                       type="dropdown"
                       label={FIELD_META.state.label}
                       placeholder="Select state / province"
-                      value={s.state}
-                      onClick={() => openPicker({ field: "state", title: "State / province", options: COUNTRY_DATA[s.country].states })}
+                      value={view.state}
+                      onClick={() => openPicker({ field: "state", title: "State / province", options: COUNTRY_DATA[view.country].states })}
                     />
                   </motion.div>
                 )}
@@ -478,7 +546,15 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
           </div>
 
           {dirty && (
-            <ButtonDock type="single" sticky primaryLabel="Save" onPrimary={handleSaveAddress} keyboard={keyboardOpen} />
+            <ButtonDock
+              type="double"
+              sticky
+              primaryLabel="Save"
+              secondaryLabel="Cancel"
+              onPrimary={handleSaveAddress}
+              onSecondary={() => setSheet(null)}
+              keyboard={keyboardOpen}
+            />
           )}
 
           {/* Country/City/State picker — own BottomSheet stacked on top of this page (nested here
@@ -511,8 +587,8 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
                         size="sm"
                         title={o}
                         flag={picker?.field === "country" ? <CountryFlag name={o} size={30} /> : undefined}
-                        selected={picker && s[picker.field] === o}
-                        trailing={picker && s[picker.field] === o ? "check" : "none"}
+                        selected={picker && view[picker.field] === o}
+                        trailing={picker && view[picker.field] === o ? "check" : "none"}
                         onClick={() => selectOption(o)}
                       />
                     ))}
@@ -520,6 +596,8 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
               </motion.div>
             </AnimatePresence>
           </BottomSheet>
+
+          {unsavedSettingsConfirm}
         </motion.div>
       )}
       </AnimatePresence>
