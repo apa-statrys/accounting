@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { Trash2 } from "lucide-react";
 import { PageAppHeader } from "../PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
 import { TextField } from "../../ui/TextField";
@@ -8,7 +9,7 @@ import { BottomSheet } from "../BottomSheet";
 import { Tile } from "../../ui/Tile";
 import { CountryFlag } from "../CountryFlag";
 import { CURRENCY_COUNTRY } from "../CurrencySheet";
-import { PAGE_PUSH_TRANSITION } from "../../lib/theme";
+import { FONT, PAGE_PUSH_TRANSITION } from "../../lib/theme";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
 import type { ServiceLine } from "../../types";
@@ -61,6 +62,19 @@ export function AddServicesSheet({
   const [scrolled, setScrolled] = useState(false);
   const focusKeyboard = (e: React.FocusEvent<HTMLElement>) => { setKeyboardOpen(true); scrollFieldIntoView(e.currentTarget); };
   const blurKeyboard = () => setKeyboardOpen(false);
+
+  // Edit mode only: hide the Save dock until something actually changes (`dirty`), and confirm via
+  // the same "Unsaved changes?" sheet + Save/Cancel CTAs as AddCustomerPage/AddInvoiceDetails'
+  // editingIssuedInvoice pattern — keeps this form consistent with every other edit flow in the app.
+  const dirty = !!initial && (
+    serviceName !== (initial.name ?? "") ||
+    description !== (initial.description ?? "") ||
+    unit !== (initial.unit ?? "Unit") ||
+    quantity !== String(initial.quantity) ||
+    unitPrice !== String(initial.unitPrice)
+  );
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const requestBack = () => (dirty ? setDiscardOpen(true) : onClose?.());
 
   // Every line uses the invoice currency — it's shown (read-only) here, not chosen per line.
   const currency = invoiceCurrency;
@@ -115,8 +129,15 @@ export function AddServicesSheet({
               <PageHeader
                 type="center"
                 title={initial ? "Edit Item" : "Add Item"}
-                onBack={onClose}
-                showSearch={false}
+                onBack={initial ? requestBack : onClose}
+                // Edit mode swaps the right-side spacer for a delete icon (Figma MenuPageHeader
+                // "More actions" slot) instead of a secondary "Delete" dock button — same header
+                // slot CustomerDetailPage's edit-icon button uses. Red (--icon-error-primary)
+                // since deleting the line is irreversible (see the app's destructive-color rule).
+                showSearch={!!initial}
+                rightIcon={initial ? <Trash2 size={20} strokeWidth={1} color="var(--icon-error-primary)" /> : undefined}
+                rightLabel="Delete item"
+                onRightClick={onDelete}
               />
             </PageAppHeader>
 
@@ -193,18 +214,18 @@ export function AddServicesSheet({
           </div>
 
           {initial ? (
-            // Editing an item: "Save" + a plain "Delete" secondary (swiping the line left still
-            // works too) — Delete isn't marked destructive since the primary here isn't either
-            // (see memory: secondaryDestructive needs a destructive primary).
-            <ButtonDock
-              type="double"
-              sticky
-              primaryLabel="Save"
-              secondaryLabel="Delete"
-              onPrimary={handleAdd}
-              onSecondary={onDelete}
-              keyboard={keyboardOpen}
-            />
+            // Editing an item: hidden until something actually changes (`dirty`) — an untouched
+            // edit session has nothing to save, same as AddCustomerPage/AddInvoiceDetails' edit
+            // docks. Delete now lives in the header's top-right icon instead of a dock secondary.
+            dirty && (
+              <ButtonDock
+                type="single"
+                sticky
+                primaryLabel="Save"
+                onPrimary={handleAdd}
+                keyboard={keyboardOpen}
+              />
+            )
           ) : (
             <ButtonDock
               type="single"
@@ -214,6 +235,30 @@ export function AddServicesSheet({
               keyboard={keyboardOpen}
             />
           )}
+
+          {/* Unsaved-changes confirm (edit mode only) — same "Unsaved changes?" sheet + Save/Cancel
+              CTAs as AddCustomerPage/AddInvoiceDetails' back-tap confirm. Save persists via the
+              same handleAdd the dock's own Save button calls (still runs validation); Cancel
+              discards via onClose. */}
+          <BottomSheet
+            open={discardOpen}
+            title="Unsaved changes?"
+            onClose={() => setDiscardOpen(false)}
+            compact
+            footer={
+              <ButtonDock
+                type="double"
+                primaryLabel="Save"
+                secondaryLabel="Cancel"
+                onPrimary={() => { setDiscardOpen(false); handleAdd(); }}
+                onSecondary={() => { setDiscardOpen(false); onClose?.(); }}
+              />
+            }
+          >
+            <p className="body-sm" style={{ ...FONT, color: "var(--text-secondary)" }}>
+              You have unsaved changes. Save them before you go, or cancel to discard them.
+            </p>
+          </BottomSheet>
 
           {/* Unit picker — standalone BottomSheet stacked on top of this page (nested here so it
               z-stacks above it), same shape as the Sort-by sheet elsewhere: a short, fixed list,

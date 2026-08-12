@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ChevronDown, X } from "lucide-react";
 import styles from "./index.module.css";
@@ -54,11 +54,22 @@ export function SummaryDock({
   className = "",
 }: SummaryDockProps) {
   const [expanded, setExpanded] = useState(false);
+  // A caller with a custom `amount` (e.g. Credit Note's "Amount Due"/refund figure) always has a
+  // real breakdown behind it, so it always keeps "View details". The default plain-total case
+  // (Create Invoice) has nothing to break down while the invoice is still empty — no items means
+  // Subtotal/Discount/Total are all 0.00 too — so the link/chevron disappears until `total` is
+  // actually non-zero, leaving just the bare amount.
+  const hasDetails = amount !== undefined || total !== 0;
+  // The panel can only be open while there's something to show it for — collapse it the moment
+  // the last item is removed and the total drops back to 0.00 instead of leaving it stuck open.
+  useEffect(() => {
+    if (!hasDetails) setExpanded(false);
+  }, [hasDetails]);
 
   return (
     <div className={[styles.root, expanded ? styles.expanded : "", className].filter(Boolean).join(" ")}>
       <AnimatePresence initial={false}>
-        {expanded && (
+        {hasDetails && expanded && (
           <motion.div
             key="panel"
             className={styles.panel}
@@ -90,20 +101,22 @@ export function SummaryDock({
       <div className={styles.footer}>
         <div className={styles.info}>
           <p className={`body-md-bold ${styles.amount}`}>{amount ?? money(total, currency)}</p>
-          <button
-            type="button"
-            className={styles.viewDetails}
-            onClick={() => setExpanded((v) => !v)}
-            aria-expanded={expanded}
-          >
-            <span className="link-sentence-sm">View details</span>
-            <ChevronDown
-              size={16}
-              strokeWidth={1.67}
-              color="var(--link-primary)"
-              className={`${styles.chevron} ${expanded ? styles.chevronOpen : ""}`}
-            />
-          </button>
+          {hasDetails && (
+            <button
+              type="button"
+              className={styles.viewDetails}
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+            >
+              <span className="link-sentence-sm">View details</span>
+              <ChevronDown
+                size={16}
+                strokeWidth={1.67}
+                color="var(--link-primary)"
+                className={`${styles.chevron} ${expanded ? styles.chevronOpen : ""}`}
+              />
+            </button>
+          )}
         </div>
         <Button hierarchy="primary" label={primaryLabel} onClick={onPrimary} loading={primaryLoading} />
       </div>
