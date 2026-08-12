@@ -1,6 +1,8 @@
 /* InvoiceStatus — Figma "[APP] Design System" → InvoiceStatus (node 4250-477).
-   Caption/Medium label (transparent, no pill) + a text-secondary caption,
-   space-between across the full width. Colors from styles/theme.css. */
+   Caption label (transparent, no pill) + a text-secondary caption, space-between
+   across the full width. Colors from styles/theme.css. Same uppercase/regular
+   typography as ui/Badge's "text" variant (re-synced together so every status
+   label in the app reads the same way, list rows included). */
 
 .row {
   display: flex;
@@ -12,10 +14,11 @@
 
 .label {
   font-family: var(--font-primary);
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-regular);
   font-size: var(--fs-caption);
   line-height: 1.3;
   white-space: nowrap;
+  text-transform: uppercase;
 }
 
 .neutral {
