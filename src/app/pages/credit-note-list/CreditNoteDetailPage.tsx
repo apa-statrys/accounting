@@ -161,23 +161,30 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
   // Complete = a reason + a credit amount. The free-text description is only required when the reason is
   // "Other" (mirrors the form's create validation) — preset reasons don't carry a note.
   const draftComplete = !!reason && total > 0.001 && (reason !== "Other" || !!(reasonNote && reasonNote.trim()));
-  // Apply to invoice is ALWAYS the dock's primary CTA for an Open/refund-draft note (whether
-  // complete or not) — form-cta-validation convention: never disabled or swapped out, a failed
-  // tap reveals what's missing instead (see applyBlockedReason below). Applying a refund draft
-  // commits it and moves the invoice to Pending Refund (the payout step stays separate).
   const canApply = (isOpen || isRefundDraft) && !!onApply;
+  const canEdit = (isOpen || isRefundDraft) && !!onEdit;
+  // The dock's primary CTA switches on completeness (decided 2026-08-12, reverses the earlier
+  // "Apply is always the primary CTA" rule) — an incomplete draft leads with Edit (go fix what's
+  // missing directly) rather than Apply (tap it just to be told what's wrong via a toast); once
+  // nothing required is left missing, Apply to invoice takes over as the primary CTA instead.
+  // Falls back to whichever action IS wired if the other one isn't (defensive — in practice a real
+  // Draft always has both onEdit and onApply wired together).
+  const showEditPrimary = canEdit && (!draftComplete || !canApply);
+  const showApplyPrimary = canApply && (draftComplete || !canEdit);
   // What's blocking Apply — null once complete. No single field to focus (unlike a real form), so
-  // this surfaces as an error toast on the failed tap instead.
+  // this surfaces as an error toast on the failed tap instead. Rarely reachable now that an
+  // incomplete draft leads with Edit instead, but stays as a safety net (e.g. the fallback case
+  // above, or a completeness check that changes between render and tap).
   const applyBlockedReason = (): string | null => {
     if (!reason) return "Add a reason before applying";
     if (total <= 0.001) return "Add a credited amount before applying";
     if (reason === "Other" && !(reasonNote && reasonNote.trim())) return "Add a description before applying";
     return null;
   };
-  // Edit lives in the ⋯ menu for a Draft (any completeness) — Apply to invoice is always the
-  // dock's own primary CTA now, so Edit never needs promoting there instead. An Applied note is
-  // locked (never editable — see `isApplied` above).
-  const canEditFromMenu = (isOpen || isRefundDraft) && !!onEdit;
+  // Edit lives in the ⋯ menu only once the draft is already complete — an incomplete draft's Edit
+  // is already the primary dock CTA above, so it's suppressed here to avoid offering it twice. An
+  // Applied note is locked (never editable — see `isApplied` above).
+  const canEditFromMenu = canEdit && !showEditPrimary;
   // ⋯ exists for a Draft (Edit + Delete — cancellation OR refund), an Applied note (Preview +
   // Cancel-if-wired), any non-draft refund (Preview + Cancel-if-cancellable), or a Cancelled note
   // (Preview as PDF — no dock). Applied/refund/Cancelled always render at least their Preview row,
@@ -191,10 +198,9 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
 
   // Mirrors the status-driven dock ternary below (Toast needs its type before that JSX renders) —
   // keep in sync: "single" with the Toast default (96), no dock at all (Cancelled, or a Draft
-  // preview with Apply not wired at all) with 16, matching this app's Toast convention. Never
-  // "double" now — Edit no longer shares the dock with Apply/Send, so every dock that exists is a
-  // single CTA.
-  const stickyDockKind: "single" | "none" = canApply
+  // preview with neither Edit nor Apply wired at all) with 16, matching this app's Toast
+  // convention. Never "double" — every dock that exists is a single CTA.
+  const stickyDockKind: "single" | "none" = showEditPrimary || showApplyPrimary
     ? "single"
     : isOpen || isRefundDraft
       ? "none"
@@ -527,12 +533,15 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
       </div>
 
       {/* Status-driven dock (DES-763):
-          Open/refund draft (Apply wired) → Apply to invoice, always — form-cta-validation
-          convention: never disabled, a failed tap surfaces what's missing as a toast instead of
-          swapping to a different CTA · Open preview-only (Apply not wired at all) → no dock ·
-          Applied → Send (locked, never editable) · list-Open → Preview as PDF · Cancelled →
-          no dock · refund → Send/Resend. */}
-      {canApply ? (
+          Open/refund draft, incomplete (Edit wired) → Edit Credit Note, so fixing what's missing
+          is one tap away instead of a toast · Open/refund draft, complete (or Edit not wired) →
+          Apply to invoice — form-cta-validation convention: never disabled, a failed tap surfaces
+          what's missing as a toast instead of swapping to a different CTA · Open preview-only
+          (neither wired) → no dock · Applied → Send (locked, never editable) · list-Open →
+          Preview as PDF · Cancelled → no dock · refund → Send/Resend. */}
+      {showEditPrimary ? (
+        <ButtonDock type="single" sticky primaryLabel="Edit Credit Note" onPrimary={() => onEdit?.()} />
+      ) : showApplyPrimary ? (
         <ButtonDock
           type="single"
           sticky

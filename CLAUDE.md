@@ -214,10 +214,15 @@ in-session only — a reload resets it (expected prototype limit).
   existing register note used to fall through to the validated `handleCreate`/`canCreate` — now
   always calls `onCreate` directly, matching the resumed-draft `onSaveDraft` path it already had).
   **Send/Create/Apply (issuing something real) still requires completeness**, and stays a
-  disabled-until-complete or validate-on-click CTA (InvoiceDetailPage's Send button gated on
-  `requiredComplete`; CreditNoteDetailPage's Apply-to-invoice button always enabled but toasts
-  `applyBlockedReason` on a failed tap) rather than silently succeeding, since there's often no
-  single field to focus for "no items" the way there is for a blank required text field. A page
+  disabled-until-complete or validate-on-click CTA rather than silently succeeding — InvoiceDetailPage's
+  Send button is gated on `requiredComplete`. CreditNoteDetailPage's dock goes one step further
+  (decided 2026-08-12, supersedes the earlier "Apply is always the primary CTA" rule): an
+  incomplete Open/refund-draft note leads with **Edit Credit Note** as the primary CTA instead of
+  Apply — fixing what's missing is one tap away rather than a toast explaining it after a failed
+  Apply tap. Once `draftComplete` (reason + a credited amount), the primary CTA swaps to **Apply
+  to invoice** (still toasts `applyBlockedReason` on a failed tap as a safety net, now rarely
+  reachable) and Edit moves into the ⋯ menu instead — see `showEditPrimary`/`showApplyPrimary`/
+  `canEditFromMenu` in CreditNoteDetailPage.tsx, which stay mutually exclusive by construction. A page
   whose Save is now always allowed shows what's still missing inline instead of hiding the
   incomplete section — InvoiceDetailPage's Items card, when empty, shows "No items added yet" /
   "Add at least one item to continue"; CreditNoteDetailPage's Credited/Refund items card does the
