@@ -583,7 +583,7 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
                         )
                       )}
                       {visibleClients.map((c) => (
-                        <div key={c} className="py-4 flex items-center gap-3">
+                        <div key={c} className="py-3 flex items-center gap-3">
                           <Avatar size="sm" initials={initials(c)} color={avatarTint(c)} />
                           <div className="flex-1">
                             <Checkbox reverse label={c} checked={selectedClients.includes(c)} onChange={() => toggleClient(c)} />
@@ -616,11 +616,12 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
                       </div>
                     )}
 
-                    <div ref={issueDateRef} className="flex flex-col">
-                      {/* pt-6 only when Due Date precedes it (some status tabs hide that section —
-                          see `showDueFilter`) — otherwise Issue Date is the page's first section and
-                          that top padding would just be extra dead space under the header. */}
-                      <p className={`body-sm text-[var(--text-secondary)] pb-4 ${showDueFilter ? "pt-6" : ""}`}>Issue Date</p>
+                    {/* The divider + its mt-6/pt-6 spacing only apply when Due Date precedes it
+                        (some status tabs hide that section — see `showDueFilter`) — otherwise Issue
+                        Date is the page's first section and a leading rule would just float under
+                        the header with nothing above it to separate from. */}
+                    <div ref={issueDateRef} className={`flex flex-col ${showDueFilter ? "mt-6 pt-6 border-t border-[var(--border-neutral-primary)]" : ""}`}>
+                      <p className="body-sm text-[var(--text-secondary)] pb-4">Issue Date</p>
                       <div className="flex items-start gap-3">
                         <TextField
                           type="date-picker"
@@ -680,10 +681,10 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
 
                     {/* Refund status — a refunded invoice is still Paid, so it's a filter here (only on All / Paid). */}
                     {showRefundFilter && (
-                      <div className="flex flex-col">
-                        <p className="body-sm text-[var(--text-secondary)] pt-6">Refund Status</p>
+                      <div className="flex flex-col mt-6 pt-6 border-t border-[var(--border-neutral-primary)]">
+                        <p className="body-sm text-[var(--text-secondary)] pb-2">Refund Status</p>
                         {REFUND_FILTERS.map((r) => (
-                          <div key={r.key} className="py-4">
+                          <div key={r.key} className="py-3">
                             <Checkbox
                               reverse
                               label={r.label}
@@ -699,21 +700,21 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
                         (this SAME page's header swaps to a search pill) instead of revealing a
                         field inline. Selected picks surface as a removable chip row right below
                         the title; the list itself (all/"suggested" customers) needs no further
-                        label — the title + chips above it already frame what it is. */}
-                    <div className="pb-2">
-                      <div className="flex items-center justify-between pt-2">
-                        <p className="body-sm text-[var(--text-secondary)]">Customer</p>
-                        {CLIENTS.length >= 5 && (
-                          <button
-                            type="button"
-                            aria-label="Search customers"
-                            onClick={() => setFilterStep("search")}
-                            className="p-1 -m-1"
-                          >
-                            <Search size={20} strokeWidth={1} color="var(--text-primary)" />
-                          </button>
-                        )}
-                      </div>
+                        label — the title + chips above it already frame what it is. Always preceded
+                        by Issue Date (unconditional above), so the divider itself is unconditional
+                        too — unlike Issue Date's own leading divider. */}
+                    <div className="flex items-center justify-between mt-6 pt-6 pb-2 border-t border-[var(--border-neutral-primary)]">
+                      <p className="body-sm text-[var(--text-secondary)]">Customer</p>
+                      {CLIENTS.length >= 5 && (
+                        <button
+                          type="button"
+                          aria-label="Search customers"
+                          onClick={() => setFilterStep("search")}
+                          className="p-1 -m-1"
+                        >
+                          <Search size={20} strokeWidth={1} color="var(--text-primary)" />
+                        </button>
+                      )}
                     </div>
                     <SelectedCustomers clients={selectedClients} onRemove={toggleClient} />
                     <div className="flex flex-col">
@@ -721,7 +722,7 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
                         <p className="text-center text-[13px] text-[var(--text-placeholder)] py-3.5" style={FONT}>No customers found</p>
                       )}
                       {visibleClients.map((c) => (
-                        <div key={c} className="py-4 flex items-center gap-3">
+                        <div key={c} className="py-3 flex items-center gap-3">
                           <Avatar size="sm" initials={initials(c)} color={avatarTint(c)} />
                           <div className="flex-1">
                             <Checkbox reverse label={c} checked={selectedClients.includes(c)} onChange={() => toggleClient(c)} />

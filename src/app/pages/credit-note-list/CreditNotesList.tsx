@@ -454,7 +454,7 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
                         )
                       )}
                       {visibleCustomers.map((c) => (
-                        <div key={c} className="py-4 flex items-center gap-3">
+                        <div key={c} className="py-3 flex items-center gap-3">
                           <Avatar size="sm" initials={initials(c)} color={avatarTint(c)} />
                           <div className="flex-1">
                             <Checkbox reverse label={c} checked={selectedCustomers.includes(c)} onChange={() => toggleCustomer(c)} />
@@ -523,21 +523,20 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
                     {/* Customer — title + search toggle. Tapping search pushes the "search" step
                         (this SAME page's header swaps to a search pill) instead of revealing a
                         field inline. Selected picks surface as a removable chip row right below
-                        the title. */}
-                    <div className="pb-2">
-                      <div className="flex items-center justify-between pt-6">
-                        <p className="body-sm text-[var(--text-secondary)]">Customer</p>
-                        {CUSTOMERS.length >= 5 && (
-                          <button
-                            type="button"
-                            aria-label="Search customers"
-                            onClick={() => setFilterStep("search")}
-                            className="p-1 -m-1"
-                          >
-                            <Search size={20} strokeWidth={1} color="var(--text-primary)" />
-                          </button>
-                        )}
-                      </div>
+                        the title. Always preceded by Credit Issue Date (unconditional above), so
+                        the divider itself is unconditional too. */}
+                    <div className="flex items-center justify-between mt-6 pt-6 pb-2 border-t border-[var(--border-neutral-primary)]">
+                      <p className="body-sm text-[var(--text-secondary)]">Customer</p>
+                      {CUSTOMERS.length >= 5 && (
+                        <button
+                          type="button"
+                          aria-label="Search customers"
+                          onClick={() => setFilterStep("search")}
+                          className="p-1 -m-1"
+                        >
+                          <Search size={20} strokeWidth={1} color="var(--text-primary)" />
+                        </button>
+                      )}
                     </div>
                     <SelectedCustomers clients={selectedCustomers} onRemove={toggleCustomer} />
                     <div className="flex flex-col">
@@ -545,7 +544,7 @@ export function CreditNotesList({ onBack, onOpenInvoice, initialPreviewNo, compa
                         <p className="text-center text-[13px] text-[var(--text-placeholder)] py-3.5" style={FONT}>No customers found</p>
                       )}
                       {visibleCustomers.map((c) => (
-                        <div key={c} className="py-4 flex items-center gap-3">
+                        <div key={c} className="py-3 flex items-center gap-3">
                           <Avatar size="sm" initials={initials(c)} color={avatarTint(c)} />
                           <div className="flex-1">
                             <Checkbox reverse label={c} checked={selectedCustomers.includes(c)} onChange={() => toggleCustomer(c)} />
