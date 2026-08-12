@@ -22,7 +22,6 @@ import { SummaryCard } from "../../components/SummaryCard";
 import { SendInvoiceSheet } from "../../components/SendInvoiceSheet";
 import { InvoicePreviewPage, InvoiceDocumentPreview } from "../shared/InvoicePreviewPage";
 import { Toast } from "../../components/Toast";
-import { BankInfoSheet } from "../../components/BankInfoSheet";
 import { CustomerSheet } from "../../components/CustomerSheet";
 import { CURRENCIES, CURRENCY_COUNTRY, CurrencySheet } from "../../components/CurrencySheet";
 import { CountryFlag } from "../../components/CountryFlag";
@@ -286,11 +285,6 @@ export function AddInvoiceDetails({
   const [chaser, setChaser] = useState(defaultChaser);
   const [accountId, setAccountId] = useState(defaultAccountId);
   const [accountSheetOpen, setAccountSheetOpen] = useState(false);
-  // "Use Other Bank Accounts" card-details sheet (opened from the receiving-account sheet).
-  const [otherBankOpen, setOtherBankOpen] = useState(false);
-  // Confirmed external card's last 4 digits — the receiving account shows "Visa *1234".
-  // A Statrys account pick clears it. Prototype-only: resets with the editor.
-  const [externalCardLast4, setExternalCardLast4] = useState<string | null>(null);
 
   const [servicesSheetOpen, setServicesSheetOpen] = useState(false);
   const [services, setServices] = useState<ServiceLine[]>(extracted?.services ?? initial?.services ?? seedServices ?? []);
@@ -309,7 +303,6 @@ export function AddInvoiceDetails({
     issueDateMs: issueDate.getTime(),
     dueDate,
     accountId,
-    externalCardLast4,
     chaser,
     discountOn,
     discount,
@@ -322,7 +315,6 @@ export function AddInvoiceDetails({
       issueDate.getTime() !== editBaselineRef.current.issueDateMs ||
       dueDate !== editBaselineRef.current.dueDate ||
       accountId !== editBaselineRef.current.accountId ||
-      externalCardLast4 !== editBaselineRef.current.externalCardLast4 ||
       chaser !== editBaselineRef.current.chaser ||
       discountOn !== editBaselineRef.current.discountOn ||
       discount !== editBaselineRef.current.discount ||
@@ -508,7 +500,7 @@ export function AddInvoiceDetails({
     { label: "Currency", value: currencyLabel, onClick: () => setCurrencySheetOpen(true), locked: false, readOnly: false },
     { label: "Issue Date", value: !issuePicked ? issuePlaceholder! : showIssueToday ? `Today (${format(issueDate, "d MMM yyyy")})` : format(issueDate, "d MMM yyyy"), onClick: () => setIssueSheetOpen(true), locked: false, readOnly: false, placeholder: !issuePicked },
     { label: "Due Date", value: dueRowLabel, onClick: () => setDueSheetOpen(true), locked: false, readOnly: false },
-    { label: "Receiving Account", value: externalCardLast4 ? `Visa *${externalCardLast4}` : formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false, readOnly: false },
+    { label: "Receiving Account", value: formatAccount(accountId), onClick: () => setAccountSheetOpen(true), locked: false, readOnly: false },
   ];
 
   return (
@@ -1056,18 +1048,8 @@ export function AddInvoiceDetails({
         onClose={() => setAccountSheetOpen(false)}
         onSelect={(id) => {
           setAccountId(id);
-          setExternalCardLast4(null); // a Statrys pick replaces the external card
           setAccountSheetOpen(false);
         }}
-      />
-
-      {/* Card-details sheet — back returns to the account sheet; Confirm lands on the editor
-          with the receiving account showing "Visa *1234". */}
-      <BankInfoSheet
-        open={otherBankOpen}
-        onBack={() => { setOtherBankOpen(false); setAccountSheetOpen(true); }}
-        onClose={() => setOtherBankOpen(false)}
-        onConfirm={(last4) => { setExternalCardLast4(last4); setOtherBankOpen(false); }}
       />
 
       <AddServicesSheet
