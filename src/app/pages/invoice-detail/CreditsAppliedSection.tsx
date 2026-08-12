@@ -78,8 +78,10 @@ export function CreditsAppliedSection({
   const visible = collapsible ? ordered.slice(0, 2) : ordered;
   return (
     <div className="flex flex-col gap-2">
-      {/* No "( N )" count — MVP is one credit note per invoice, so it'd always read "( 1 )". */}
-      <p className="body-sm-medium" style={{ ...FONT, color: INK }}>Credits</p>
+      {/* "( N )" count, same convention as the Items card — a cancelled note is retired rather
+          than reused (a new one can be raised after), so this can genuinely hold 2+ records (e.g.
+          one Cancelled + one Applied), not just the single active note at a time. */}
+      <p className="body-sm-medium" style={{ ...FONT, color: INK }}>{`Credits (${creditNotes.length})`}</p>
       <div className="flex flex-col gap-2">
         {visible.map(({ cn, idx }) => {
           const proof = cn.refundProof;
