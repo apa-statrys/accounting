@@ -222,8 +222,9 @@ in-session only — a reload resets it (expected prototype limit).
   incomplete section — InvoiceDetailPage's Items card, when empty, shows "No items added yet" /
   "Add at least one item to continue"; CreditNoteDetailPage's Credited/Refund items card does the
   same ("No items credited yet" / "Credit at least one item to continue"), gated on `total`
-  rather than `lines.length` since the register's own save path doesn't keep `lines` in sync
-  (flagged separately) the way it does `total`.
+  rather than `lines.length` — kept as `total` even after `CreditNotesList`'s `saveFromList` was
+  fixed (2026-08-12) to also persist `p.lines` on edit, since `total` is the more direct signal
+  for "is this note creditless" either way.
 - Every phone-frame screen must be inside `.mobile-mode` scope (already applied on App.tsx's root
   wrapper, so all in-app screens inherit it) so typography tokens resolve to mobile sizes — the
   responsive `@media` breakpoint keys off the real browser viewport, not the 375px frame, so any
