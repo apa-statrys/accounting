@@ -259,6 +259,12 @@ export default function App() {
   // lockedPeriodEditInvoice/lockedPeriodPaid/lockedPeriodRefundDraft/lockedPeriodRefundApplied
   // screens into this same screen's own panel instead of a separate screen identity each.
   const [detailDevLockedPeriod, setDetailDevLockedPeriod] = useState(false);
+  // Dev (PageControls, invoice detail "Applied CN" group) — folds the former standalone
+  // "Overdue + 1 Applied CN" sidebar demo into a toggle available on any status where adding a
+  // credit note is applicable (Awaiting/Overdue/PartiallyPaid — same `cancellable` gate
+  // InvoiceDetailPage uses for its own "Add credit note" action). Only takes effect when the open
+  // invoice doesn't already carry a real CN of its own (see the initialCreditNote fallback below).
+  const [detailDevAppliedCn, setDetailDevAppliedCn] = useState(false);
   // Dev (PageControls, Add/Edit Customer "Form" group) — seeds AddCustomerPage's submit-attempted
   // state so every required field's inline error shows on mount. Nonce forces a remount since
   // that seed is a useState initializer (mount-only).
@@ -307,6 +313,7 @@ export default function App() {
     setDetailDevEmptyDraft(false);
     setDetailDevRecordPaymentError(false);
     setDetailDevLockedPeriod(false);
+    setDetailDevAppliedCn(false);
     // InvoiceDetailPage's own Back always targets "list", which itself targets "dashboard" (the
     // permanent stack root) — one link is enough here.
     seedHistory("list");
@@ -398,10 +405,10 @@ export default function App() {
         {
           heading: "Invoice Detail — Unpaid",
           items: [
-            // Locked Period now lives on the invoice detail's own PageControls panel (right
-            // gutter) instead of a separate sidebar entry each.
+            // Locked Period / Applied CN now live on the invoice detail's own PageControls panel
+            // (right gutter) instead of a separate sidebar entry each.
             { label: "Awaiting Payment", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000004", onSelect: () => jumpDetail({ number: "INV-2026-000004", client: "Marlow & Finch Studio", status: "Awaiting" }) },
-            { label: "Overdue + 1 Applied CN", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000010", onSelect: () => jumpDetail({ number: "INV-2026-000010", client: "Harbor & Co.", status: "Overdue", cnNo: "CN-2026-000003", cnAmount: 2000, cnSent: true }) },
+            { label: "Overdue", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000010", onSelect: () => jumpDetail({ number: "INV-2026-000010", client: "Harbor & Co.", status: "Overdue" }) },
             { label: "Partially Paid", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000014", onSelect: () => jumpDetail({ number: "INV-2026-000014", client: "Verde Coffee Roasters", status: "PartiallyPaid" }) },
           ],
         },
@@ -602,6 +609,26 @@ export default function App() {
           },
         ],
       });
+      // Only meaningful while the open invoice doesn't already carry its own real CN — folds the
+      // former standalone "Overdue + 1 Applied CN" sidebar demo into a toggle available on every
+      // status where "Add credit note" is actually offered (same cancellable gate).
+      if (!openInvoice.cnNo) {
+        invoiceDetailGroups.push({
+          label: "Applied CN",
+          options: [
+            {
+              label: "Default",
+              active: !detailDevAppliedCn,
+              onSelect: () => { setDetailDevAppliedCn(false); setDetailNavNonce((n) => n + 1); },
+            },
+            {
+              label: "Applied",
+              active: detailDevAppliedCn,
+              onSelect: () => { setDetailDevAppliedCn(true); setDetailNavNonce((n) => n + 1); },
+            },
+          ],
+        });
+      }
     }
     pageControls = invoiceDetailGroups;
   } else if (screen === "creditNotes" && cnPreview !== null) {
@@ -1043,7 +1070,15 @@ export default function App() {
           customerEmail={CREDIT_NOTES.find((c) => c.no === openInvoice.cnNo)?.email}
           companyEmail={settings.email}
           dueDateLabel={(() => { const inv = INVOICES.find((i) => i.id === openInvoice.number); return inv?.due ? fmtDate(inv.due) : undefined; })()}
-          initialCreditNote={openInvoice.cnNo ? { no: openInvoice.cnNo, amount: openInvoice.cnAmount, sent: !!openInvoice.cnSent, draft: openInvoice.cnDraft, awaiting: openInvoice.cnAwaiting } : undefined}
+          initialCreditNote={
+            openInvoice.cnNo
+              ? { no: openInvoice.cnNo, amount: openInvoice.cnAmount, sent: !!openInvoice.cnSent, draft: openInvoice.cnDraft, awaiting: openInvoice.cnAwaiting }
+              // Dev (PageControls "Applied CN" group) — synthesizes a demo applied CN when the open
+              // invoice doesn't already carry a real one of its own.
+              : detailDevAppliedCn
+              ? { no: "CN-2026-000003", amount: 2000, sent: true }
+              : undefined
+          }
           refundTag={(() => {
             // A refund completed in-session this run wins (Partially Refunded / Refunded).
             const done = refundState[openInvoice.number];
