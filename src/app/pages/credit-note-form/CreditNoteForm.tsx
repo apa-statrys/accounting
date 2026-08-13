@@ -436,7 +436,7 @@ export function CreditNoteForm({
     </>
   );
 
-  // Optional free-text description (any reason) — rendered below the summary in both flows.
+  // Optional free-text description (any reason) — rendered right below Reason in both flows.
   const descriptionBlock = (
     <TextArea
       label="Description"
@@ -530,8 +530,8 @@ export function CreditNoteForm({
           onClick={() => setReasonSheetOpen(true)}
         />
 
-        {/* Credit note: description sits above the items (refund shows it below the summary). */}
-        {!refund && descriptionBlock}
+        {/* Description sits directly below Reason in both flows, above the items. */}
+        {descriptionBlock}
 
         {/* Corrected invoice — edit each line to its CORRECT value; the credit is derived automatically. */}
         <div className="flex flex-col gap-2" data-req="cn-items">
@@ -684,8 +684,6 @@ export function CreditNoteForm({
           ) : null;
         })()}
 
-        {/* Refund: description sits below the summary. */}
-        {refund && descriptionBlock}
         </div>
       </div>
 
