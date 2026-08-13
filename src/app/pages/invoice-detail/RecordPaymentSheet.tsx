@@ -36,6 +36,9 @@ interface RecordPaymentSheetProps {
   date: Date | null;
   onDateChange: (d: Date | null) => void;
   onSubmit: () => void;
+  /** Dev (PageControls): seed the amount field's validation error as shown on open, instead of
+   *  requiring a real empty/invalid submit first. */
+  forceAttempted?: boolean;
 }
 
 /** "Receiving Account" and "Payment date" are sub-levels of THIS SAME sheet (header/content swap via
@@ -45,6 +48,7 @@ type PaymentStep = "form" | "account" | "date";
 
 export function RecordPaymentSheet({
   open, onClose, value, onChange, total, currency = "USD", accountId, onAccountChange, date, onDateChange, onSubmit,
+  forceAttempted = false,
 }: RecordPaymentSheetProps) {
   const [step, setStep] = useState<PaymentStep>("form");
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -67,8 +71,8 @@ export function RecordPaymentSheet({
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   useEffect(() => {
-    if (open) { setAttempted(false); setTouched(false); setAmountEdited(false); setSending(false); setSent(false); setStep("form"); }
-  }, [open]);
+    if (open) { setAttempted(forceAttempted); setTouched(false); setAmountEdited(false); setSending(false); setSent(false); setStep("form"); }
+  }, [open, forceAttempted]);
   const amountNum = Number(value) || 0;
   const amountExceeds = amountNum > total + 0.001;
   const amountInvalid = amountNum <= 0 || amountExceeds;

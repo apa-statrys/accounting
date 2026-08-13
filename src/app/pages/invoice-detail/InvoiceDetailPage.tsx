@@ -76,6 +76,9 @@ interface InvoiceDetailPageProps {
   /** Locked-period demo (DES-751): "Send invoice" and "Edit invoice" open a blocking locked-period
    *  dialog instead of proceeding (the invoice is dated in a closed accounting period). */
   lockedPeriod?: boolean;
+  /** Dev (PageControls): open Record Payment on mount with an invalid amount, so the field's
+   *  validation error shows immediately instead of requiring a real empty/invalid submit. */
+  devRecordPaymentError?: boolean;
 }
 
 /** Status-aware sales-invoice detail (DES-715 / DES-716). */
@@ -102,6 +105,7 @@ export function InvoiceDetailPage({
   onRefunded,
   initialViewCn = false,
   lockedPeriod = false,
+  devRecordPaymentError = false,
 }: InvoiceDetailPageProps) {
   const [status, setStatus] = useState<DetailStatus>(initialStatus);
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -186,8 +190,8 @@ export function InvoiceDetailPage({
   const [proofPreview, setProofPreview] = useState<UploadedFileInfo | null>(null);
   // "View all credit notes" expand — collapse to the 2 most recent when there are more.
   const [cnExpanded, setCnExpanded] = useState(false);
-  const [recordPayOpen, setRecordPayOpen] = useState(false);
-  const [recordAmount, setRecordAmount] = useState("");
+  const [recordPayOpen, setRecordPayOpen] = useState(devRecordPaymentError);
+  const [recordAmount, setRecordAmount] = useState(devRecordPaymentError ? "0" : "");
   // "Record Payment" also captures which bank account received it + an optional payment date (DES-715
   // comment — indicator for reconciliation; no GL impact). Seeded to the primary receiving account.
   const [recordAccountId, setRecordAccountId] = useState("personal");
@@ -1270,6 +1274,7 @@ export function InvoiceDetailPage({
         onAccountChange={setRecordAccountId}
         date={recordDate}
         onDateChange={setRecordDate}
+        forceAttempted={devRecordPaymentError}
         onSubmit={() => {
           const amt = Math.max(0, Number(recordAmount) || 0);
           setRecordPayOpen(false);

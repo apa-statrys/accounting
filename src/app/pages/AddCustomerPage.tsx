@@ -43,6 +43,9 @@ export interface AddCustomerPageProps {
   onBack?: () => void;
   /** Returns the full client record on save (Add: new id; Edit: keeps initial.id). */
   onAdd?: (customer: Customer) => void;
+  /** Dev (PageControls): seed the form as if a failed save already happened, so every required
+   *  field's inline error shows on mount instead of requiring a real empty submit. */
+  devShowErrors?: boolean;
 }
 
 /**
@@ -53,7 +56,7 @@ export interface AddCustomerPageProps {
  * AC1) — one consistent edit experience across the app. The lightweight company+email version stays a
  * BottomSheet for the in-invoice quick-add.
  */
-export function AddCustomerPage({ mode = "add", initial, existing = [], defaultCurrency = "USD", onBack, onAdd }: AddCustomerPageProps) {
+export function AddCustomerPage({ mode = "add", initial, existing = [], defaultCurrency = "USD", onBack, onAdd, devShowErrors = false }: AddCustomerPageProps) {
   const isEdit = mode === "edit";
   const [company, setCompany] = useState(initial?.name ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
@@ -73,7 +76,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
 
   // Form rule (user, 15/Jul): the CTA is always enabled. Clicking it with missing/invalid required
   // fields scrolls to the first offender and surfaces its inline error instead of saving.
-  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(devShowErrors);
 
   const [dupOpen, setDupOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);

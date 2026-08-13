@@ -68,6 +68,12 @@ interface CreditNoteFormProps {
   onCreate: (payload: CreditNotePayload) => void;
   /** When set, the back arrow saves the current form state as a Draft (DES-719) instead of discarding. */
   onSaveDraft?: (payload: CreditNotePayload) => void;
+  /** Dev (PageControls): seed the form as if Create was already tapped with nothing filled in, so
+   *  the Reason error + red Items asterisk show on mount instead of requiring a real empty submit. */
+  devShowErrors?: boolean;
+  /** Dev (PageControls): seed the first line's unit price above its original-amount cap, so the
+   *  per-line "exceeds the original amount" error shows on mount. */
+  devLineExceedsCap?: boolean;
 }
 
 /**
@@ -93,6 +99,8 @@ export function CreditNoteForm({
   onBack,
   onCreate,
   onSaveDraft,
+  devShowErrors = false,
+  devLineExceedsCap = false,
 }: CreditNoteFormProps) {
   const isEdit = mode === "edit";
   const money = (n: number) =>
@@ -145,7 +153,17 @@ export function CreditNoteForm({
   // credit that's the un-corrected invoice = nothing credited yet (its Partial default). applyFull /
   // applyPartial adjust from here when the user switches tabs.
   const initLines = (): DraftLine[] =>
-    items.map((it, i) => ({ id: `cn-${i}`, name: it.name, unit: it.unit, qty: it.qty, unitPrice: String(it.unitPrice), maxQty: it.qty, origAmount: it.amount }));
+    items.map((it, i) => ({
+      id: `cn-${i}`,
+      name: it.name,
+      unit: it.unit,
+      qty: it.qty,
+      // Dev (PageControls "Line exceeds cap"): bump the first line's unit price above its original —
+      // seeds the per-line "exceeds the original amount" error on mount.
+      unitPrice: devLineExceedsCap && i === 0 ? String(it.unitPrice * 1.5) : String(it.unitPrice),
+      maxQty: it.qty,
+      origAmount: it.amount,
+    }));
   // Which refund input is focused (raw while editing; comma/2dp formatted when blurred).
   const [focusedLineId, setFocusedLineId] = useState<string | null>(null);
   // Per-line unit-price fields whose error can surface (blurred at least once, or a failed submit
@@ -207,7 +225,8 @@ export function CreditNoteForm({
 
   // form-cta-validation: the CTA is always enabled; a failed click focuses the first invalid field
   // and reveals its inline error. `attempted` flips on the first failed submit (errors clear as fixed).
-  const [attempted, setAttempted] = useState(false);
+  // Dev (PageControls) can seed it true so the errors show on mount instead of requiring a real tap.
+  const [attempted, setAttempted] = useState(devShowErrors || devLineExceedsCap);
   // Amount-invalid has no single field to point at (a cross-line total) — surfaces as a toast instead.
   const [localToast, setLocalToast] = useState<string | null>(null);
 
