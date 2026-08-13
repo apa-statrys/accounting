@@ -457,7 +457,7 @@ export function SendInvoiceSheet({
                     transition={{ duration: 0.15 }}
                     className="inline-block"
                   >
-                    {sent ? `${docLabel} Sent` : sendFailed ? "Send Failed" : `Send ${docLabel}`}
+                    {sent ? `${docLabel} Sent` : sendFailed ? "Send Failed" : "Confirm & Send"}
                   </motion.span>
                 </AnimatePresence>
               ) : (
