@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, X, ChevronRight } from "lucide-react";
 import { QuickNavSidebar, type SidebarGroup } from "./components/QuickNavSidebar";
 import { DevInspector } from "./components/DevInspector";
 import { PageControls, type PageControlGroup } from "./components/PageControls";
@@ -35,29 +34,6 @@ import { CUSTOMERS } from "./data/customers";
 import { DEFAULT_SETTINGS } from "./data/settings";
 import { HERO_SCENARIOS } from "./data/heroScenarios";
 import type { Screen, Customer, DetailStatus, InvoiceEditSeed, InvoiceLine, CompanySettings, ExtractedInvoice, ExistingInvoice, CNStatus, EntityKind, NewFlag, Status } from "./types";
-
-/** Top-level navigation, grouped by product area. */
-const NAV_GROUPS: { heading: string; items: { id: Screen; label: string }[] }[] = [
-  {
-    heading: "Sales Invoice",
-    items: [
-      { id: "hub", label: "Menu (Hub)" },
-      { id: "dashboard", label: "Dashboard" },
-      { id: "list", label: "Invoice List" },
-      { id: "customers", label: "Customers List" },
-      { id: "send", label: "Send Sheet" },
-      { id: "duplicateCheck", label: "Duplicate Found (Awaiting)" },
-    ],
-  },
-  {
-    heading: "Sales Credit Notes",
-    items: [
-      { id: "creditNotes", label: "Credit Notes List" },
-      { id: "creditNote", label: "Sales Credit Note" },
-      { id: "refundCreditNote", label: "Sales Refund Credit Notes" },
-    ],
-  },
-];
 
 /** Demo line items + invoice context for previewing the standalone Credit Note form. */
 const CREDIT_NOTE_ITEMS: InvoiceLine[] = [
@@ -98,111 +74,6 @@ const SCREEN_SLIDE = {
     transition: SLIDE_TRANSITION,
   }),
 };
-
-/** Map a screen to its top-level nav section (customer + details = the create flow). */
-function navFor(screen: Screen): Screen {
-  return screen === "details" ? "customer" : screen;
-}
-
-/** Screens shown in QuickNav on prod (any build). Localhost (import.meta.env.DEV) shows all. */
-const QUICKNAV_PROD_SCREENS: Screen[] = ["hub", "dashboard", "list", "creditNotes"];
-
-/** Floating menu (bottom-left) that jumps between sections. Full list on localhost; a curated subset
- *  (Menu Hub / Dashboard / Invoice List / Credit Notes List) on prod. */
-function QuickNav({ current, onChange, scenario, onScenario }: { current: Screen; onChange: (s: Screen) => void; scenario: number; onScenario: (i: number) => void }) {
-  const [open, setOpen] = useState(false);
-  const active = navFor(current);
-  // On prod, filter each group to the allowed screens and drop groups left empty.
-  const groups = NAV_GROUPS
-    .map((g) => ({ ...g, items: g.items.filter((it) => import.meta.env.DEV || QUICKNAV_PROD_SCREENS.includes(it.id)) }))
-    .filter((g) => g.items.length > 0);
-
-  return (
-    <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start gap-3">
-      {/* Expanding navigation panel */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.96 }}
-            transition={{ type: "spring", stiffness: 420, damping: 32 }}
-            style={{ transformOrigin: "0% 100%" }}
-            className="w-[300px] bg-white rounded-3xl shadow-2xl border border-black/5 max-h-[72vh] overflow-y-auto"
-          >
-            {/* Header */}
-            <div className="px-4 pt-4 pb-3 border-b border-gray-100 sticky top-0 bg-white z-10">
-              <p className="text-[18px] font-bold tracking-[-0.3px] text-[#1b1b1b]">Quick Navigation</p>
-              <p className="text-[13px] text-gray-500 mt-0.5">For internal testing</p>
-            </div>
-
-            <div className="p-2 flex flex-col gap-3">
-              {groups.map((group) => (
-                <div key={group.heading} className="flex flex-col gap-1.5">
-                  <p className="px-2 pt-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">{group.heading}</p>
-                  {group.items.map((page) => {
-                    const isActive = active === page.id;
-                    return (
-                      <div key={page.id} className="flex flex-col gap-1.5">
-                        <button
-                          onClick={() => {
-                            if (page.id === "dashboard") onScenario(0);
-                            onChange(page.id);
-                            setOpen(false);
-                          }}
-                          className={`w-full flex items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors border ${
-                            isActive
-                              ? "bg-gradient-to-r from-[#f24e63] to-[#ff6a1a] border-transparent text-white shadow-sm"
-                              : "bg-[#faf9f4] border-black/[0.06] hover:bg-gray-100"
-                          }`}
-                        >
-                          <span className="flex-1 min-w-0">
-                            <span className={`block text-[14px] font-bold leading-tight ${isActive ? "text-white" : "text-[#1b1b1b]"}`}>{page.label}</span>
-                          </span>
-                          <ChevronRight size={18} className={isActive ? "text-white shrink-0" : "text-gray-400 shrink-0"} />
-                        </button>
-
-                        {/* Dashboard hero demo states — nested under Dashboard (dev/localhost only). */}
-                        {import.meta.env.DEV && page.id === "dashboard" && (
-                          <div className="ml-4 flex flex-col gap-0.5 border-l border-gray-200 pl-2">
-                            {HERO_SCENARIOS.map((s, i) => (
-                              <button
-                                key={s.label}
-                                onClick={() => { onScenario(i); onChange("dashboard"); setOpen(false); }}
-                                className={`pl-3 py-1.5 rounded-lg text-left text-[12px] font-medium transition-colors ${
-                                  active === "dashboard" && scenario === i
-                                    ? "text-[#ff4a15]"
-                                    : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                                }`}
-                              >
-                                {s.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Menu FAB */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        aria-label={open ? "Close navigation" : "Open navigation"}
-        className="w-12 h-12 rounded-full bg-[#1B1B1B] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-      >
-        <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.2 }}>
-          {open ? <X size={20} /> : <Menu size={20} />}
-        </motion.span>
-      </button>
-    </div>
-  );
-}
 
 export default function App() {
   // Initial screen comes from the URL path (shallow routing, see lib/routes.ts) so a shared/
@@ -379,6 +250,19 @@ export default function App() {
   // Bumped on every sidebar detail jump so the detail page remounts (fresh state) even when
   // the invoice number/status don't change. In-page actions never bump it.
   const [detailNavNonce, setDetailNavNonce] = useState(0);
+  // Dev (PageControls, invoice detail "Items"/"Record Payment" groups) — see the pageControls
+  // chain below for how these seed InvoiceDetailPage's isEmptyDraft / RecordPaymentSheet state.
+  const [detailDevEmptyDraft, setDetailDevEmptyDraft] = useState(false);
+  const [detailDevRecordPaymentError, setDetailDevRecordPaymentError] = useState(false);
+  // Dev (PageControls, Add/Edit Customer "Form" group) — seeds AddCustomerPage's submit-attempted
+  // state so every required field's inline error shows on mount. Nonce forces a remount since
+  // that seed is a useState initializer (mount-only).
+  const [customerDevShowErrors, setCustomerDevShowErrors] = useState(false);
+  const [addCustomerDevNonce, setAddCustomerDevNonce] = useState(0);
+  // Dev (PageControls, Credit Note / Refund CN "Form" group) — same idea for CreditNoteForm.
+  const [cnDevShowErrors, setCnDevShowErrors] = useState(false);
+  const [cnDevLineExceeds, setCnDevLineExceeds] = useState(false);
+  const [cnDevNonce, setCnDevNonce] = useState(0);
 
   // QuickNav jumps straight to a deep screen, skipping whatever it would normally take to get
   // there — so a screen's own Back button (hardcoded to a specific target elsewhere in this file)
@@ -407,6 +291,9 @@ export default function App() {
     // Back from any QuickNav-opened detail lands on the full (unfiltered) invoice list.
     setListPreset(null);
     setDetailReturn("list");
+    // A fresh jump always resets whatever PageControls dev state a previous detail visit left on.
+    setDetailDevEmptyDraft(false);
+    setDetailDevRecordPaymentError(false);
     // InvoiceDetailPage's own Back always targets "list", which itself targets "dashboard" (the
     // permanent stack root) — one link is enough here.
     seedHistory("list");
@@ -437,19 +324,18 @@ export default function App() {
     {
       title: "Dashboard",
       items: [
-        ...HERO_SCENARIOS.map((s, i) => ({
-          label: s.label,
-          active: screen === "dashboard" && heroScenario === i,
-          onSelect: () => { setHeroScenario(i); setScreen("dashboard"); },
-        })),
+        // Hero-scenario states now live on the Dashboard's own PageControls panel (right gutter)
+        // instead of a separate sidebar entry each — this jump always resets to scenario 0.
+        { label: "Dashboard", active: screen === "dashboard", onSelect: () => { setHeroScenario(0); setScreen("dashboard"); } },
       ],
     },
     {
       title: "Customer",
       items: [
-        { label: "Customer List", active: screen === "customers" && !forceEmptyCustomers, onSelect: () => { setForceEmptyCustomers(false); seedHistory("hub"); setScreen("customers"); } },
-        { label: "Customer List — Empty", active: screen === "customers" && forceEmptyCustomers, onSelect: () => { setForceEmptyCustomers(true); seedHistory("hub"); setScreen("customers"); } },
-        { label: "Add New Customer", active: screen === "addCustomer", onSelect: () => { setAddCustomerReturn("customers"); seedHistory("hub", "customers"); setScreen("addCustomer"); } },
+        // Default / Empty now live on the Customer List's own PageControls panel (right gutter)
+        // instead of a separate sidebar entry each — this jump always resets to the default.
+        { label: "Customer List", active: screen === "customers", onSelect: () => { setForceEmptyCustomers(false); seedHistory("hub"); setScreen("customers"); } },
+        { label: "Add New Customer", active: screen === "addCustomer", onSelect: () => { setCustomerDevShowErrors(false); setAddCustomerReturn("customers"); seedHistory("hub", "customers"); setScreen("addCustomer"); } },
         { label: "Customer Details", active: screen === "customerDetail", onSelect: () => { setSelectedCustomer(customers[0]); setCustomerFlash(null); seedHistory("hub", "customers"); setScreen("customerDetail"); } },
       ],
     },
@@ -549,7 +435,7 @@ export default function App() {
         {
           heading: "Unpaid Invoice",
           items: [
-            { label: "Create Credit Note", active: screen === "creditNote", onSelect: () => setScreen("creditNote") },
+            { label: "Create Credit Note", active: screen === "creditNote", onSelect: () => { setCnDevShowErrors(false); setCnDevLineExceeds(false); setScreen("creditNote"); } },
             { label: "CN Detail — Draft", active: screen === "creditNotes" && cnPreview === "CN-2026-000005", onSelect: () => { setCnPreview("CN-2026-000005"); seedHistory("hub"); setScreen("creditNotes"); } },
             { label: "CN Detail — Draft (Locked Period)", active: screen === "lockedPeriodEditCn", onSelect: () => { seedHistory("hub"); setScreen("lockedPeriodEditCn"); } },
             { label: "CN Detail — Applied", active: screen === "creditNotes" && cnPreview === "CN-2026-000003", onSelect: () => { setCnPreview("CN-2026-000003"); seedHistory("hub"); setScreen("creditNotes"); } },
@@ -562,7 +448,7 @@ export default function App() {
           // full-refund demo invoice (INV-…015, CN = the $6,450 detail total) with its CN detail overlaid.
           heading: "Paid Invoices",
           items: [
-            { label: "Create Refund Credit Note", active: screen === "refundCreditNote", onSelect: () => setScreen("refundCreditNote") },
+            { label: "Create Refund Credit Note", active: screen === "refundCreditNote", onSelect: () => { setCnDevShowErrors(false); setCnDevLineExceeds(false); setScreen("refundCreditNote"); } },
             {
               label: "Refund CN — Draft",
               active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && !!openInvoice.cnDraft,
@@ -608,7 +494,108 @@ export default function App() {
   // handoff"). Each screen that wants dev states listed here builds its own group(s); a screen
   // with none falls to [] and PageControls renders nothing.
   let pageControls: PageControlGroup[] = [];
-  if (screen === "list") {
+  if (screen === "dashboard") {
+    pageControls = [
+      {
+        label: "Hero",
+        options: HERO_SCENARIOS.map((s, i) => ({
+          label: s.label,
+          active: heroScenario === i,
+          onSelect: () => setHeroScenario(i),
+        })),
+      },
+    ];
+  } else if (screen === "customers") {
+    pageControls = [
+      {
+        label: "Data",
+        options: [
+          { label: "Default", active: !forceEmptyCustomers, onSelect: () => setForceEmptyCustomers(false) },
+          { label: "Empty (no customers)", active: forceEmptyCustomers, onSelect: () => setForceEmptyCustomers(true) },
+        ],
+      },
+    ];
+  } else if (screen === "addCustomer" || screen === "editCustomer") {
+    pageControls = [
+      {
+        label: "Form",
+        options: [
+          {
+            label: "Default",
+            active: !customerDevShowErrors,
+            onSelect: () => { setCustomerDevShowErrors(false); setAddCustomerDevNonce((n) => n + 1); },
+          },
+          {
+            label: "Validation errors",
+            active: customerDevShowErrors,
+            onSelect: () => { setCustomerDevShowErrors(true); setAddCustomerDevNonce((n) => n + 1); },
+          },
+        ],
+      },
+    ];
+  } else if (screen === "creditNote" || screen === "refundCreditNote") {
+    pageControls = [
+      {
+        label: "Form",
+        options: [
+          {
+            label: "Default",
+            active: !cnDevShowErrors && !cnDevLineExceeds,
+            onSelect: () => { setCnDevShowErrors(false); setCnDevLineExceeds(false); setCnDevNonce((n) => n + 1); },
+          },
+          {
+            label: "Validation errors",
+            active: cnDevShowErrors,
+            onSelect: () => { setCnDevShowErrors(true); setCnDevLineExceeds(false); setCnDevNonce((n) => n + 1); },
+          },
+          {
+            label: "Line exceeds cap",
+            active: cnDevLineExceeds,
+            onSelect: () => { setCnDevShowErrors(false); setCnDevLineExceeds(true); setCnDevNonce((n) => n + 1); },
+          },
+        ],
+      },
+    ];
+  } else if (screen === "invoiceDetail" && openInvoice.status === "Draft") {
+    pageControls = [
+      {
+        label: "Items",
+        options: [
+          {
+            label: "Default",
+            active: !detailDevEmptyDraft,
+            onSelect: () => { setDetailDevEmptyDraft(false); setDetailNavNonce((n) => n + 1); },
+          },
+          {
+            label: "Empty draft",
+            active: detailDevEmptyDraft,
+            onSelect: () => { setDetailDevEmptyDraft(true); setDetailNavNonce((n) => n + 1); },
+          },
+        ],
+      },
+    ];
+  } else if (
+    screen === "invoiceDetail" &&
+    (openInvoice.status === "Awaiting" || openInvoice.status === "Overdue" || openInvoice.status === "PartiallyPaid")
+  ) {
+    pageControls = [
+      {
+        label: "Record Payment",
+        options: [
+          {
+            label: "Default",
+            active: !detailDevRecordPaymentError,
+            onSelect: () => { setDetailDevRecordPaymentError(false); setDetailNavNonce((n) => n + 1); },
+          },
+          {
+            label: "Validation error",
+            active: detailDevRecordPaymentError,
+            onSelect: () => { setDetailDevRecordPaymentError(true); setDetailNavNonce((n) => n + 1); },
+          },
+        ],
+      },
+    ];
+  } else if (screen === "list") {
     pageControls = [
       {
         label: "Data",
@@ -823,6 +810,8 @@ export default function App() {
           list entry opens the new customer's DETAIL page (user, 15/Jul) — back from there lands on the list. */}
       {screen === "addCustomer" && (
         <AddCustomerPage
+          key={addCustomerDevNonce}
+          devShowErrors={customerDevShowErrors}
           existing={customers}
           defaultCurrency={settings.currency}
           onBack={() => setScreen(addCustomerReturn)}
@@ -855,6 +844,8 @@ export default function App() {
       {/* Edit Client — full page (DES-714). Save updates the register + the open record, then returns. */}
       {screen === "editCustomer" && selectedCustomer && (
         <AddCustomerPage
+          key={addCustomerDevNonce}
+          devShowErrors={customerDevShowErrors}
           mode="edit"
           initial={selectedCustomer}
           existing={customers.filter((c) => c.id !== selectedCustomer.id)}
@@ -896,6 +887,9 @@ export default function App() {
       {screen === "creditNote" && (
         <div className="relative rounded-[48px] overflow-hidden shadow-2xl" style={{ width: 375, height: 812 }}>
           <CreditNoteForm
+            key={cnDevNonce}
+            devShowErrors={cnDevShowErrors}
+            devLineExceedsCap={cnDevLineExceeds}
             creditNoteNo="CN-2026-000001"
             invoiceNo="INV-2026-000007"
             customerName="Northwind Traders"
@@ -931,6 +925,9 @@ export default function App() {
       {screen === "refundCreditNote" && (
         <div className="relative rounded-[48px] overflow-hidden shadow-2xl" style={{ width: 375, height: 812 }}>
           <CreditNoteForm
+            key={cnDevNonce}
+            devShowErrors={cnDevShowErrors}
+            devLineExceedsCap={cnDevLineExceeds}
             refund
             creditNoteNo="CN-2026-000010"
             invoiceNo="INV-2026-000005"
@@ -999,7 +996,8 @@ export default function App() {
           origin={openInvoice.origin}
           invoiceNo={openInvoice.number}
           customerName={openInvoice.client}
-          itemsCount={openInvoice.itemsCount}
+          itemsCount={detailDevEmptyDraft ? 0 : openInvoice.itemsCount}
+          devRecordPaymentError={detailDevRecordPaymentError}
           customerEmail={CREDIT_NOTES.find((c) => c.no === openInvoice.cnNo)?.email}
           companyEmail={settings.email}
           dueDateLabel={(() => { const inv = INVOICES.find((i) => i.id === openInvoice.number); return inv?.due ? fmtDate(inv.due) : undefined; })()}
