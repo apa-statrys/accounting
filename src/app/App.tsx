@@ -398,8 +398,8 @@ export default function App() {
         {
           heading: "Invoice Detail — Draft",
           items: [
+            // "Draft (Uploaded)" removed — an uploaded invoice saved as a draft isn't a real case.
             { label: "Draft (Created)", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "created", onSelect: () => jumpDetail({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Draft", origin: "created" }) },
-            { label: "Draft (Uploaded)", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "uploaded", onSelect: () => jumpDetail({ number: "INV-2026-000003", client: "Bright Harbor Co.", status: "Draft", origin: "uploaded" }) },
           ],
         },
         {
@@ -449,15 +449,8 @@ export default function App() {
           // full-refund demo invoice (INV-…015, CN = the $6,450 detail total) with its CN detail overlaid.
           heading: "Paid Invoices",
           items: [
+            // "Refund CN — Draft" removed — a refund credit note left in Draft isn't a real case.
             { label: "Create Refund Credit Note", active: screen === "refundCreditNote", onSelect: () => { setCnDevShowErrors(false); setCnDevLineExceeds(false); setScreen("refundCreditNote"); } },
-            {
-              label: "Refund CN — Draft",
-              active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && !!openInvoice.cnDraft,
-              onSelect: () => {
-                setRefundState(({ ["INV-2026-000015"]: _drop, ...rest }) => rest);
-                jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false, cnDraft: true }, true);
-              },
-            },
             {
               label: "Refund CN — Applied",
               active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && !openInvoice.cnDraft && !openInvoice.cnAwaiting && !refundState["INV-2026-000015"],
@@ -1378,27 +1371,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Design-rationale annotation — shown in the white space to the right of the phone frame on the
-          Refund CN — Draft screen (INV-…015), explaining the Apply-vs-Edit CTA gating. */}
-      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && openInvoice.cnDraft && openInvoice.viewCn && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              This draft has all required information, so it leads with{" "}
-              <span className="font-semibold">Apply to invoice</span> as the primary action.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              If a credit-note draft is not completed with all required information, only the{" "}
-              <span className="font-semibold">Edit</span> button is shown instead.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Design-rationale annotation — shown in the white space to the right of the phone frame, only on
           the created Draft demo invoice (INV-…003), explaining the Send-Invoice gating on the detail page. */}
       {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "created" && (
@@ -1415,28 +1387,6 @@ export default function App() {
             </p>
             <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
               Otherwise, the <span className="font-semibold">Edit</span> button is shown as the primary button.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Design-rationale annotation — shown in the white space to the right of the phone frame, only on
-          the uploaded Draft demo invoice (INV-…003), explaining the Mark-as-Sent/Paid actions. */}
-      {screen === "invoiceDetail" && openInvoice.number === "INV-2026-000003" && openInvoice.origin === "uploaded" && (
-        <div
-          className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-[calc(50%+230px)] w-[320px]"
-          style={FONT}
-        >
-          <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(16,24,40,0.10)] border border-black/5 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#a0a0a0] mb-4">Note</p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b] mb-4">
-              Invoices imported through the <span className="font-semibold">Upload Invoice</span> flow may have
-              already been sent to customers outside of Statrys.
-            </p>
-            <p className="text-[15px] leading-[1.55] text-[#1b1b1b]">
-              Instead of requiring users to go through the Send Invoice flow again, we provide{" "}
-              <span className="font-semibold">Mark as Sent</span> and{" "}
-              <span className="font-semibold">Record Payment</span> actions directly.
             </p>
           </div>
         </div>
