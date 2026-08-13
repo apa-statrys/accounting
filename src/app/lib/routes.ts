@@ -28,14 +28,6 @@ const SCREEN_PATHS: Record<Screen, string> = {
   customerDetail: "/customers/detail",
   addCustomer: "/customers/add",
   editCustomer: "/customers/edit",
-  lockedPeriodDialog: "/locked-period/dialog",
-  lockedPeriodUpload: "/locked-period/upload",
-  lockedPeriodEditCn: "/locked-period/edit-cn",
-  lockedPeriodEditInvoice: "/locked-period/edit-invoice",
-  lockedPeriodPaid: "/locked-period/paid",
-  lockedPeriodRefundDraft: "/locked-period/refund-draft",
-  lockedPeriodRefundApplied: "/locked-period/refund-applied",
-  lockedPeriodCnApplied: "/locked-period/cn-applied",
 };
 
 const PATH_SCREENS: Partial<Record<string, Screen>> = Object.fromEntries(
