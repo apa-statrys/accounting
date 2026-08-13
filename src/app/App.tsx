@@ -594,7 +594,9 @@ export default function App() {
       });
     }
     pageControls = invoiceDetailGroups;
-  } else if (screen === "creditNotes" && cnPreview !== null) {
+  } else if (screen === "creditNotes" && cnPreview !== null && CREDIT_NOTES.find((c) => c.no === cnPreview)?.status !== "Draft") {
+    // No locked-period demo for a Draft CN (still editable/uncommitted, same reasoning as
+    // Invoice Detail's own Draft exclusion above) — only Applied/Cancelled get the toggle.
     pageControls = [
       {
         label: "Locked Period",
