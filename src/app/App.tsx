@@ -507,29 +507,18 @@ export default function App() {
   } else if (screen === "customers") {
     pageControls = [
       {
-        label: "Data",
-        options: [
-          { label: "Default", active: !forceEmptyCustomers, onSelect: () => setForceEmptyCustomers(false) },
-          { label: "Empty (no customers)", active: forceEmptyCustomers, onSelect: () => setForceEmptyCustomers(true) },
-        ],
+        label: "Empty (no customers)",
+        toggle: { checked: forceEmptyCustomers, onChange: setForceEmptyCustomers },
       },
     ];
   } else if (screen === "addCustomer" || screen === "editCustomer") {
     pageControls = [
       {
-        label: "Form",
-        options: [
-          {
-            label: "Default",
-            active: !customerDevShowErrors,
-            onSelect: () => { setCustomerDevShowErrors(false); setAddCustomerDevNonce((n) => n + 1); },
-          },
-          {
-            label: "Validation errors",
-            active: customerDevShowErrors,
-            onSelect: () => { setCustomerDevShowErrors(true); setAddCustomerDevNonce((n) => n + 1); },
-          },
-        ],
+        label: "Validation errors",
+        toggle: {
+          checked: customerDevShowErrors,
+          onChange: (next) => { setCustomerDevShowErrors(next); setAddCustomerDevNonce((n) => n + 1); },
+        },
       },
     ];
   } else if (screen === "creditNote" || screen === "refundCreditNote") {
@@ -564,51 +553,27 @@ export default function App() {
     if (openInvoice.status !== "Draft") {
       invoiceDetailGroups.push({
         label: "Locked Period",
-        options: [
-          {
-            label: "Default",
-            active: !detailDevLockedPeriod,
-            onSelect: () => { setDetailDevLockedPeriod(false); setDetailNavNonce((n) => n + 1); },
-          },
-          {
-            label: "Locked period",
-            active: detailDevLockedPeriod,
-            onSelect: () => { setDetailDevLockedPeriod(true); setDetailNavNonce((n) => n + 1); },
-          },
-        ],
+        toggle: {
+          checked: detailDevLockedPeriod,
+          onChange: (next) => { setDetailDevLockedPeriod(next); setDetailNavNonce((n) => n + 1); },
+        },
       });
     }
     if (openInvoice.status === "Draft") {
       invoiceDetailGroups.push({
-        label: "Items",
-        options: [
-          {
-            label: "Default",
-            active: !detailDevEmptyDraft,
-            onSelect: () => { setDetailDevEmptyDraft(false); setDetailNavNonce((n) => n + 1); },
-          },
-          {
-            label: "Empty draft",
-            active: detailDevEmptyDraft,
-            onSelect: () => { setDetailDevEmptyDraft(true); setDetailNavNonce((n) => n + 1); },
-          },
-        ],
+        label: "Empty Draft",
+        toggle: {
+          checked: detailDevEmptyDraft,
+          onChange: (next) => { setDetailDevEmptyDraft(next); setDetailNavNonce((n) => n + 1); },
+        },
       });
     } else if (openInvoice.status === "Awaiting" || openInvoice.status === "Overdue" || openInvoice.status === "PartiallyPaid") {
       invoiceDetailGroups.push({
-        label: "Record Payment",
-        options: [
-          {
-            label: "Default",
-            active: !detailDevRecordPaymentError,
-            onSelect: () => { setDetailDevRecordPaymentError(false); setDetailNavNonce((n) => n + 1); },
-          },
-          {
-            label: "Validation error",
-            active: detailDevRecordPaymentError,
-            onSelect: () => { setDetailDevRecordPaymentError(true); setDetailNavNonce((n) => n + 1); },
-          },
-        ],
+        label: "Record Payment Error",
+        toggle: {
+          checked: detailDevRecordPaymentError,
+          onChange: (next) => { setDetailDevRecordPaymentError(next); setDetailNavNonce((n) => n + 1); },
+        },
       });
     }
     // Only meaningful while the open invoice doesn't already carry its own real CN — folds the
@@ -633,10 +598,7 @@ export default function App() {
     pageControls = [
       {
         label: "Locked Period",
-        options: [
-          { label: "Default", active: !cnListDevLockedPeriod, onSelect: () => setCnListDevLockedPeriod(false) },
-          { label: "Locked period", active: cnListDevLockedPeriod, onSelect: () => setCnListDevLockedPeriod(true) },
-        ],
+        toggle: { checked: cnListDevLockedPeriod, onChange: setCnListDevLockedPeriod },
       },
     ];
   } else if (screen === "list") {
@@ -682,19 +644,8 @@ export default function App() {
   } else if (screen === "customer") {
     pageControls = [
       {
-        label: "Frequently Used",
-        options: [
-          {
-            label: "Personalised",
-            active: !forceNoFrequentCustomers,
-            onSelect: () => setForceNoFrequentCustomers(false),
-          },
-          {
-            label: "No Frequently Used",
-            active: forceNoFrequentCustomers,
-            onSelect: () => setForceNoFrequentCustomers(true),
-          },
-        ],
+        label: "No Frequently Used",
+        toggle: { checked: forceNoFrequentCustomers, onChange: setForceNoFrequentCustomers },
       },
     ];
   } else if (screen === "details" && extracted === null && editInitial === null) {
@@ -702,37 +653,22 @@ export default function App() {
     // screen, which have their own dedicated QuickNav entries already).
     pageControls = [
       {
-        label: "Items",
-        options: [
-          {
-            label: "Default",
-            active: !detailsDevError,
-            onSelect: () => {
-              setCustomer(DEMO_CUSTOMER);
-              setDevSeedItems(true);
-              setDetailsDevError(false);
-            },
+        label: "Items Error",
+        toggle: {
+          checked: detailsDevError,
+          onChange: (next) => {
+            // Seeds the same validation state a real "Create Invoice" tap with 0 items sets —
+            // see AddInvoiceDetails' initialItemsError.
+            setCustomer(DEMO_CUSTOMER);
+            setDevSeedItems(!next);
+            setDetailsDevError(next);
           },
-          {
-            label: "Error (no items)",
-            active: detailsDevError,
-            onSelect: () => {
-              // Seeds the same validation state a real "Create Invoice" tap with 0 items sets —
-              // see AddInvoiceDetails' initialItemsError.
-              setCustomer(DEMO_CUSTOMER);
-              setDevSeedItems(false);
-              setDetailsDevError(true);
-            },
-          },
-        ],
+        },
       },
       {
         // Folds the former standalone lockedPeriodDialog screen into this same panel.
         label: "Locked Period",
-        options: [
-          { label: "Default", active: !detailsDevLockedPeriod, onSelect: () => setDetailsDevLockedPeriod(false) },
-          { label: "Locked period", active: detailsDevLockedPeriod, onSelect: () => setDetailsDevLockedPeriod(true) },
-        ],
+        toggle: { checked: detailsDevLockedPeriod, onChange: setDetailsDevLockedPeriod },
       },
     ];
   } else if (screen === "details" && extracted === DEMO_EXTRACTION) {
@@ -742,28 +678,14 @@ export default function App() {
       {
         // Folds the former standalone lockedPeriodUpload screen into this same panel.
         label: "Locked Period",
-        options: [
-          { label: "Default", active: !detailsDevLockedPeriod, onSelect: () => setDetailsDevLockedPeriod(false) },
-          { label: "Locked period", active: detailsDevLockedPeriod, onSelect: () => setDetailsDevLockedPeriod(true) },
-        ],
+        toggle: { checked: detailsDevLockedPeriod, onChange: setDetailsDevLockedPeriod },
       },
     ];
   } else if (screen === "send") {
     pageControls = [
       {
-        label: "Send",
-        options: [
-          {
-            label: "Default",
-            active: !sendFailScenario,
-            onSelect: () => setSendFailScenario(false),
-          },
-          {
-            label: "Failed",
-            active: sendFailScenario,
-            onSelect: () => setSendFailScenario(true),
-          },
-        ],
+        label: "Send Failed",
+        toggle: { checked: sendFailScenario, onChange: setSendFailScenario },
       },
     ];
   }
