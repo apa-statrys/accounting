@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Image as ImageIcon, ZoomIn, ZoomOut } from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { ButtonDock } from "../components/ButtonDock";
@@ -157,14 +157,11 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   const [companyAttempted, setCompanyAttempted] = useState(false);
   const [addressAttempted, setAddressAttempted] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
-  // Edit Logo (preview + reposition/zoom before committing) — a freshly picked file lands here
-  // first rather than writing straight to the draft, so Save/back-cancel has something real to
-  // commit/discard. Zoom is reset on every fresh pick since the page remounts (AnimatePresence)
-  // each time it opens, but zoom itself lives in the outer component (this app never lifts state
-  // into a picker-only subcomponent), so it needs an explicit reset alongside opening.
+  // Edit Logo (preview + reposition before committing) — a freshly picked file lands here first
+  // rather than writing straight to the draft, so Save/back-cancel has something real to
+  // commit/discard.
   const [logoEditOpen, setLogoEditOpen] = useState(false);
   const [pendingLogo, setPendingLogo] = useState<{ name: string; size: number; url: string } | null>(null);
-  const [logoZoom, setLogoZoom] = useState(1);
   // Real <input type="file"> — the button below just proxies its click (no styleable native
   // file input), same as any hidden-input file-picker pattern.
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -309,7 +306,6 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
     if (file.size > LOGO_MAX_MB * 1024 * 1024) { setLogoError(`Logo must be ${LOGO_MAX_MB} MB or smaller.`); return; }
     setLogoError(null);
     setPendingLogo({ name: file.name, size: file.size, url: URL.createObjectURL(file) });
-    setLogoZoom(1);
     setLogoEditOpen(true);
   };
   const saveLogoEdit = () => {
@@ -516,7 +512,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
           {/* Edit Logo — full-page crop over the still-mounted, dimmed Company Details page (this
               app's own sheet-over-page scrim, ui/Overlay — never a separate solid-black page).
               The crop image itself is edge-to-edge (no framing card/box around it — same bare
-              treatment as before), draggable/zoomable, with a plain Cancel/Choose text row near
+              treatment as before), draggable, with a plain Cancel/Choose text row near
               the bottom sitting directly on the scrim rather than a separate opaque footer bar.
               Choose commits `pendingLogo` into the draft; Cancel/tapping the scrim both just
               discard it — nothing's been saved either way, so this doesn't need its own "Unsaved
@@ -528,14 +524,12 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
 
               {/* Crop viewport — full frame width, no wrapping card/background of its own (bare
                   image, edge-to-edge). The picked image renders oversized inside it and clips on
-                  overflow; dragging pans it, the slider zooms it further in. Numeric drag bounds
-                  (not a ref-based container) since the point is exactly the opposite of framer's
-                  usual "keep it inside the box" — here the image is meant to be BIGGER than the
-                  frame, so there's room to pan. */}
+                  overflow; dragging pans it. Numeric drag bounds (not a ref-based container) since
+                  the point is exactly the opposite of framer's usual "keep it inside the box" —
+                  here the image is meant to be BIGGER than the frame, so there's room to pan. */}
               <div className="relative w-full aspect-square overflow-hidden">
                 {(() => {
-                  const shown = 500 * logoZoom;
-                  const maxOffset = Math.max(0, (shown - 375) / 2);
+                  const maxOffset = Math.max(0, (500 - 375) / 2);
                   return (
                     <motion.div
                       drag
@@ -551,7 +545,6 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
                           width={500}
                           height={500}
                           className="object-cover pointer-events-none"
-                          style={{ transform: `scale(${logoZoom})` }}
                         />
                       )}
                     </motion.div>
@@ -565,23 +558,6 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
                   <div className="absolute top-0 bottom-0 left-1/3 w-px bg-white/40" />
                   <div className="absolute top-0 bottom-0 left-2/3 w-px bg-white/40" />
                 </div>
-              </div>
-
-              {/* Zoom — a real pinch gesture isn't reproducible in a browser prototype; a slider
-                  stands in for it. */}
-              <div className="w-full max-w-[240px] flex items-center gap-3">
-                <ZoomOut size={16} strokeWidth={1.67} className="text-white/80 shrink-0" />
-                <input
-                  type="range"
-                  min={1}
-                  max={1.6}
-                  step={0.05}
-                  value={logoZoom}
-                  onChange={(e) => setLogoZoom(parseFloat(e.target.value))}
-                  className="flex-1"
-                  aria-label="Zoom logo"
-                />
-                <ZoomIn size={16} strokeWidth={1.67} className="text-white/80 shrink-0" />
               </div>
 
               {/* Plain Cancel/Choose text row, floating directly on the scrim. */}
