@@ -932,7 +932,11 @@ export function AddInvoiceDetails({
             subtotal={subtotal}
             discount={discountAmount}
             total={total}
-            primaryLabel="Create Invoice"
+            // "Review & Send" (not "Create Invoice") — tapping it opens the Send Invoice sheet
+            // (handleSendInvoiceClick) to review/edit the delivery email before it actually sends,
+            // unlike the upload-review flow's own "Create Invoice" CTA below (isExtracted branch),
+            // which really does just record the invoice immediately with no review step.
+            primaryLabel="Review & Send"
             primaryLoading={sendPending}
             // Locked-period demo: the CTA stays visually enabled but tapping it goes nowhere.
             onPrimary={() => {
