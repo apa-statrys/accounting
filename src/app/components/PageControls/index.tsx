@@ -1,3 +1,4 @@
+import { Toggle } from "../../ui/Toggle";
 import styles from "./index.module.css";
 
 /**
@@ -14,9 +15,19 @@ export interface PageControlOption {
   onSelect: () => void;
 }
 
+/** A plain on/off switch — for a group with exactly two states and no third variant, this reads
+ *  faster than picking between two labeled buttons (e.g. "Applied CN"). */
+export interface PageControlToggle {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}
+
 export interface PageControlGroup {
   label: string;
-  options: PageControlOption[];
+  /** Either a multi-option button list (2+ named states)... */
+  options?: PageControlOption[];
+  /** ...or a single on/off switch — mutually exclusive with `options`. */
+  toggle?: PageControlToggle;
 }
 
 export function PageControls({ groups }: { groups: PageControlGroup[] }) {
@@ -28,18 +39,27 @@ export function PageControls({ groups }: { groups: PageControlGroup[] }) {
       <p className={styles.subtitle}>For dev handoff</p>
       {groups.map((group) => (
         <div key={group.label} className={styles.group}>
-          <p className={styles.groupLabel}>{group.label}</p>
-          <div className={styles.options}>
-            {group.options.map((opt) => (
-              <button
-                key={opt.label}
-                onClick={opt.onSelect}
-                className={[styles.option, opt.active ? styles.optionActive : ""].filter(Boolean).join(" ")}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          {group.toggle ? (
+            <div className={styles.toggleRow}>
+              <p className={styles.groupLabel}>{group.label}</p>
+              <Toggle checked={group.toggle.checked} onChange={group.toggle.onChange} aria-label={group.label} />
+            </div>
+          ) : (
+            <>
+              <p className={styles.groupLabel}>{group.label}</p>
+              <div className={styles.options}>
+                {group.options?.map((opt) => (
+                  <button
+                    key={opt.label}
+                    onClick={opt.onSelect}
+                    className={[styles.option, opt.active ? styles.optionActive : ""].filter(Boolean).join(" ")}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       ))}
     </aside>

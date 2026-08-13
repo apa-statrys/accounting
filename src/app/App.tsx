@@ -415,8 +415,9 @@ export default function App() {
         {
           heading: "Invoice Detail — Paid & Closed",
           items: [
+            // Applied CN (cancellation or refund-pending) now lives on the invoice detail's own
+            // PageControls panel (right gutter) instead of a separate sidebar entry each.
             { label: "Paid", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000005", onSelect: () => jumpDetail({ number: "INV-2026-000005", client: "Atlas Logistics", status: "Paid" }) },
-            { label: "Refund Pending + 1 Applied CN", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000011", onSelect: () => jumpDetail({ number: "INV-2026-000011", client: "Cobalt Systems", status: "Paid", cnNo: "CN-2026-000004", cnAmount: 1200, cnSent: false }) },
             // Fully-refunded invoice — its refund CN is paid out (refundState=full), so the detail reads "Refunded".
             { label: "Refunded", active: screen === "invoiceDetail" && openInvoice.number === "INV-2026-000015" && refundState["INV-2026-000015"] === "full", onSelect: () => { setRefundState((s) => ({ ...s, "INV-2026-000015": "full" })); jumpDetail({ number: "INV-2026-000015", client: "Solstice Media", status: "Paid", cnNo: "CN-2026-000007", cnAmount: 6450, cnSent: false }); } },
             // Voided invoice (terminal) — voided with a credit note (CN-…001).
@@ -609,26 +610,23 @@ export default function App() {
           },
         ],
       });
-      // Only meaningful while the open invoice doesn't already carry its own real CN — folds the
-      // former standalone "Overdue + 1 Applied CN" sidebar demo into a toggle available on every
-      // status where "Add credit note" is actually offered (same cancellable gate).
-      if (!openInvoice.cnNo) {
-        invoiceDetailGroups.push({
-          label: "Applied CN",
-          options: [
-            {
-              label: "Default",
-              active: !detailDevAppliedCn,
-              onSelect: () => { setDetailDevAppliedCn(false); setDetailNavNonce((n) => n + 1); },
-            },
-            {
-              label: "Applied",
-              active: detailDevAppliedCn,
-              onSelect: () => { setDetailDevAppliedCn(true); setDetailNavNonce((n) => n + 1); },
-            },
-          ],
-        });
-      }
+    }
+    // Only meaningful while the open invoice doesn't already carry its own real CN — folds the
+    // former standalone "Overdue + 1 Applied CN" / "Refund Pending + 1 Applied CN" sidebar demos
+    // into one toggle available on every status where adding a credit note is actually offered:
+    // a cancellation CN on Awaiting/Overdue/PartiallyPaid, or a refund CN on Paid (both gated the
+    // same way InvoiceDetailPage gates its own "Add credit note"/"Refund with Credit Note" rows).
+    if (
+      (openInvoice.status === "Awaiting" || openInvoice.status === "Overdue" || openInvoice.status === "PartiallyPaid" || openInvoice.status === "Paid") &&
+      !openInvoice.cnNo
+    ) {
+      invoiceDetailGroups.push({
+        label: "Applied CN",
+        toggle: {
+          checked: detailDevAppliedCn,
+          onChange: (next) => { setDetailDevAppliedCn(next); setDetailNavNonce((n) => n + 1); },
+        },
+      });
     }
     pageControls = invoiceDetailGroups;
   } else if (screen === "creditNotes" && cnPreview !== null) {
@@ -1073,10 +1071,13 @@ export default function App() {
           initialCreditNote={
             openInvoice.cnNo
               ? { no: openInvoice.cnNo, amount: openInvoice.cnAmount, sent: !!openInvoice.cnSent, draft: openInvoice.cnDraft, awaiting: openInvoice.cnAwaiting }
-              // Dev (PageControls "Applied CN" group) — synthesizes a demo applied CN when the open
-              // invoice doesn't already carry a real one of its own.
+              // Dev (PageControls "Applied CN" toggle) — synthesizes a demo applied CN when the
+              // open invoice doesn't already carry a real one of its own: a refund-kind CN on Paid
+              // (reads as "Refund pending"), a cancellation-kind CN otherwise.
               : detailDevAppliedCn
-              ? { no: "CN-2026-000003", amount: 2000, sent: true }
+              ? openInvoice.status === "Paid"
+                ? { no: "CN-2026-000004", amount: 1200, sent: false }
+                : { no: "CN-2026-000003", amount: 2000, sent: true }
               : undefined
           }
           refundTag={(() => {
@@ -1086,7 +1087,10 @@ export default function App() {
             // Otherwise the derived tag: a Paid invoice whose linked CN is a refund reads as pending until
             // an in-session refund settles it (the register no longer carries refund lifecycle states).
             const cn = CREDIT_NOTES.find((c) => c.no === openInvoice.cnNo);
-            return cn?.kind === "refund" ? "Refund pending" : undefined;
+            if (cn?.kind === "refund") return "Refund pending";
+            // Dev (PageControls "Applied CN" toggle) — the synthesized CN-2026-000004 fallback used
+            // when Paid doesn't have a real cnNo is itself a refund-kind note, so it reads the same way.
+            return detailDevAppliedCn && openInvoice.status === "Paid" && !openInvoice.cnNo ? "Refund pending" : undefined;
           })()}
           onRefunded={(no, result) => setRefundState((s) => ({ ...s, [no]: result }))}
           flashToast={detailFlash ?? undefined}
