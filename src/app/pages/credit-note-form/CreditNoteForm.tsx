@@ -25,7 +25,6 @@ import { CURRENCY_COUNTRY } from "../../components/CurrencySheet";
 import { FONT, INK, MUTED, initials } from "../../lib/theme";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
-import { Toast } from "../../components/Toast";
 import type { CreditNoteEditSeed, CreditNotePayload, DraftLine, InvoiceLine } from "../../types";
 import { fmtAmount, lineAmount } from "./lineMath";
 import { ReasonSheet } from "./ReasonSheet";
@@ -227,8 +226,6 @@ export function CreditNoteForm({
   // and reveals its inline error. `attempted` flips on the first failed submit (errors clear as fixed).
   // Dev (PageControls) can seed it true so the errors show on mount instead of requiring a real tap.
   const [attempted, setAttempted] = useState(devShowErrors || devLineExceedsCap);
-  // Amount-invalid has no single field to point at (a cross-line total) — surfaces as a toast instead.
-  const [localToast, setLocalToast] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -353,19 +350,16 @@ export function CreditNoteForm({
 
   const handleCreate = () => {
     if (canCreate) { setAttempted(false); onCreate(buildPayload()); return; }
-    // Failed submit → reveal inline errors. Reason/per-line unit price are real fields (focus them);
-    // the credited-amount total isn't (no single field to blame), so it surfaces as a toast instead.
+    // Failed submit → reveal inline errors and scroll to the first offender. The credited-amount
+    // total has no single field to blame, so it scrolls to the Items section heading instead of a
+    // specific row.
     setAttempted(true);
     if (reasonInvalid) {
       focusFirstInvalidField("cn-reason");
     } else if (anyLineExceeds) {
       focusFirstInvalidField(lines.filter(lineUnitExceeds).map((l) => `cn-line-${l.id}`));
     } else if (amountInvalid) {
-      setLocalToast(
-        refund
-          ? "Set a quantity to refund on at least one item."
-          : "Lower at least one item's amount to credit — the credit can't be zero."
-      );
+      focusFirstInvalidField("cn-items");
     }
   };
 
@@ -540,7 +534,7 @@ export function CreditNoteForm({
         {!refund && descriptionBlock}
 
         {/* Corrected invoice — edit each line to its CORRECT value; the credit is derived automatically. */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2" data-req="cn-items">
           <div className="flex items-center justify-between gap-2">
             <p className="body-sm-medium" style={{ ...FONT, color: INK }}>
               {refund ? "Items to Refund" : "Items"} <span style={{ color: amountError ? "var(--text-error-primary)" : undefined }}>*</span>
@@ -549,6 +543,15 @@ export function CreditNoteForm({
               <Badge label={isFull ? "Full Credit" : "Partial Credit"} color={isFull ? "error" : "warning"} variant="text" size="sm" />
             )}
           </div>
+          {/* Cross-line total (no single field to blame) — inline under the section heading + scrolled
+              to on a failed submit, same as every other required-field error (form-cta-validation). */}
+          {amountError && (
+            <p className="text-[12px] -mt-1" style={{ ...FONT, color: "var(--text-error-primary)" }}>
+              {refund
+                ? "Set a quantity to refund on at least one item."
+                : "Lower at least one item's amount to credit — the credit can't be zero."}
+            </p>
+          )}
           {/* Refund only: Full (read-only lines) vs Partial (editable). DS tab control. */}
           {refund && (
             <HorizontalTabs
@@ -831,9 +834,6 @@ export function CreditNoteForm({
       >
         <p className="body-sm" style={{ ...FONT, color: MUTED }}>You have unsaved changes. Do you want to save them before leaving?</p>
       </BottomSheet>
-
-      {/* Credited-total validation failure — no single field to blame, so it's a toast (form-cta-validation). */}
-      <Toast open={!!localToast} message={localToast ?? ""} variant="error" onDone={() => setLocalToast(null)} />
     </div>
   );
 }

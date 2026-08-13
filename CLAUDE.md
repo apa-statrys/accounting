@@ -221,8 +221,11 @@ in-session only — a reload resets it (expected prototype limit).
   border + pale `--bg-error-subtle` fill + a caption naming what's required), and calls
   `focusFirstInvalidField` with the first-in-visual-order key to scroll/focus it — never advances the
   step/closes the drawer on failure. A rule with no single field to blame (a cross-field total, e.g.
-  CreditNoteForm's "credit at least one line") surfaces as an error toast instead of an inline
-  message. This does **not** apply to disabled-until-chosen single-select pickers (ReasonSheet,
+  CreditNoteForm's "credit at least one line") surfaces as an inline error under the relevant
+  section's own heading instead (reversed 2026-08-13 — CreditNoteForm's "credit at least one line"
+  used to be a toast; now `data-req="cn-items"` on the Items section wrapper scrolls to it like any
+  other field, with the message shown inline under the "Items"/"Items to Refund" label). This does
+  **not** apply to disabled-until-chosen single-select pickers (ReasonSheet,
   CreateSalesInvoice's customer picker, RefundCreditNoteFlow, InvoiceSettings' two edit sheets) —
   disabling until exactly one choice is made is the right pattern there, not a gap to fix. It also
   doesn't apply to **Save vs. Send/Create**, a different pair of actions than "submit this form":
