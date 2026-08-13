@@ -343,40 +343,46 @@ export default function App() {
     },
     {
       title: "Sales Invoice",
-      // Core flow only — the 4 primary happy-path actions stay flat (no expanding needed) so
-      // they're the first thing a dev/PO sees; every edge case and status variant lives in its
-      // own labeled, collapsible section below (2026-08-02 reorg — this group had grown to 20
-      // flat-ish rows and was hard to scan for handoff).
+      // Only the register + send-preview stay flat — the two Create Invoice paths (manual/upload)
+      // each get their own collapsible section below (2026-08-13 reorg: manual entry and upload
+      // used to be split across two flat rows and a disconnected "Upload Scenarios" section further
+      // down, which read as unrelated when they're really the same "Create Invoice" flow's two
+      // entry points).
       items: [
         // Clear any pending toast so the dev jump never lands with a stale "Saved as draft" flash.
         // Empty/category-empty demo states now live on the list page's own PageControls panel
         // (right gutter) instead of a separate sidebar entry each — this jump always lands on
         // the plain default, resetting whatever PageControls state was left on.
         { label: "Sales Invoice List", active: screen === "list", onSelect: () => { setToast(null); setListPreset(null); setForceEmptyInvoices(false); setListDevHideStatuses(undefined); setListDevNonce((n) => n + 1); setScreen("list"); } },
-        // Select Customer is step 1 of Create Invoice (happens before the editor) — placed above
-        // it. The Personalised / No Frequently Used states now live on its own PageControls panel
-        // (right gutter) instead of a separate sidebar entry each — this jump always lands on the
-        // plain default, resetting whatever PageControls state was left on.
-        { label: "Select Customer", active: screen === "customer", onSelect: () => { setForceNoFrequentCustomers(false); seedHistory("list"); setScreen("customer"); } },
-        // Dev jump lands on the pre-filled editor (demo customer + demo items), not the picker (user, 15/Jul).
-        { label: "Create Invoice", active: screen === "customer" || screen === "details", onSelect: () => { setExtracted(null); setCustomer(DEMO_CUSTOMER); setDevSeedItems(true); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setDetailsDevLockedPeriod(false); setScreen("details"); } },
         // Default / Failed now live on the Send sheet's own PageControls panel (right gutter)
         // instead of a separate sidebar entry each — this jump always lands on the plain default.
         { label: "Send Invoice", active: screen === "send", onSelect: () => { setSendFailScenario(false); setScreen("send"); } },
-        // Upload is native scan/picker now (no in-app sheet) — dev jump reproduces what a real
-        // pick hands back: straight to the "reading your invoice" loading step.
-        { label: "Upload Invoice", active: screen === "extracting", onSelect: () => { setUploadReturn("list"); startUpload(); } },
       ],
       sections: [
         {
-          // Upload scenario shortcuts (jump straight to each OCR outcome, skipping the native picker).
-          heading: "Upload Scenarios",
+          heading: "Create Invoice — Manual",
           items: [
-            { label: "Upload — Error (Too Large)", active: screen === "list" && uploadError?.kind === "tooLarge", onSelect: () => { setUploadError(null); setScreen("list"); setUploadError({ kind: "tooLarge", title: "Unsupported file format", body: <>This file can’t be uploaded. Please upload your invoice as a PDF, JPG, JPEG, or PNG file up to <strong>5 MB</strong>.</> }); } },
-            { label: "Upload — Error (Unsupported Type)", active: screen === "list" && uploadError?.kind === "unsupportedType", onSelect: () => { setUploadError(null); setScreen("list"); setUploadError({ kind: "unsupportedType", title: "Unsupported file format", body: "This file can’t be uploaded. Please upload your invoice as a PDF, JPG, JPEG, or PNG." }); } },
+            // Select Customer is step 1 of Create Invoice (happens before the editor). The
+            // Personalised / No Frequently Used states now live on its own PageControls panel
+            // (right gutter) instead of a separate sidebar entry each — this jump always lands on
+            // the plain default, resetting whatever PageControls state was left on.
+            { label: "Select Customer", active: screen === "customer", onSelect: () => { setForceNoFrequentCustomers(false); seedHistory("list"); setScreen("customer"); } },
+            // Dev jump lands on the pre-filled editor (demo customer + demo items), not the picker (user, 15/Jul).
+            { label: "Create Invoice", active: screen === "customer" || screen === "details", onSelect: () => { setExtracted(null); setCustomer(DEMO_CUSTOMER); setDevSeedItems(true); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setDetailsDevLockedPeriod(false); setScreen("details"); } },
+          ],
+        },
+        {
+          // Upload happy path + every OCR outcome (jump straight to each, skipping the native picker).
+          heading: "Create Invoice — Upload",
+          items: [
+            // Upload is native scan/picker now (no in-app sheet) — dev jump reproduces what a real
+            // pick hands back: straight to the "reading your invoice" loading step.
+            { label: "Upload Invoice", active: screen === "extracting", onSelect: () => { setUploadReturn("list"); startUpload(); } },
             { label: "Upload — Duplicate", active: screen === "duplicateCheck", onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_MATCHED); setExtracted(DEMO_EXTRACTION_MATCHED); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-scan.png", size: 1258291 }); setDupExisting(EXISTING_INVOICES.find((i) => i.number === DEMO_EXTRACTION_MATCHED.invoiceNumber) ?? null); setScreen("duplicateCheck"); } },
             { label: "Upload — Manual Entry Needed", active: screen === "details" && extracted === DEMO_EXTRACTION_NO_CUSTOMER, onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_NO_CUSTOMER); setExtracted(DEMO_EXTRACTION_NO_CUSTOMER); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice.pdf", size: 419430 }); setScreen("details"); } },
             { label: "Upload — Unreadable (Blank)", active: screen === "details" && extracted === BLANK_EXTRACTION, onSelect: () => { setPendingExtraction(null); setExtracted(BLANK_EXTRACTION); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-unreadable.jpg", size: 3565158 }); setScreen("details"); } },
+            { label: "Upload — Error (Too Large)", active: screen === "list" && uploadError?.kind === "tooLarge", onSelect: () => { setUploadError(null); setScreen("list"); setUploadError({ kind: "tooLarge", title: "Unsupported file format", body: <>This file can’t be uploaded. Please upload your invoice as a PDF, JPG, JPEG, or PNG file up to <strong>5 MB</strong>.</> }); } },
+            { label: "Upload — Error (Unsupported Type)", active: screen === "list" && uploadError?.kind === "unsupportedType", onSelect: () => { setUploadError(null); setScreen("list"); setUploadError({ kind: "unsupportedType", title: "Unsupported file format", body: "This file can’t be uploaded. Please upload your invoice as a PDF, JPG, JPEG, or PNG." }); } },
           ],
         },
         // Invoice Detail split by lifecycle stage (2026-08-02 reorg) rather than one flat 11-item
