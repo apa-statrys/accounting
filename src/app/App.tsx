@@ -542,11 +542,13 @@ export default function App() {
       },
     ];
   } else if (screen === "invoiceDetail") {
-    // "Locked Period" applies to any status (folds the former standalone lockedPeriodEditInvoice/
-    // lockedPeriodPaid/lockedPeriodRefundDraft/lockedPeriodRefundApplied screens into this one
-    // panel); "Items"/"Record Payment" stay status-specific, same as before.
-    const invoiceDetailGroups: PageControlGroup[] = [
-      {
+    // "Locked Period" folds the former standalone lockedPeriodEditInvoice/lockedPeriodPaid/
+    // lockedPeriodRefundDraft/lockedPeriodRefundApplied screens into this one panel — every status
+    // EXCEPT Draft, which never had a locked-period demo (no real flow locks a still-editable
+    // Draft). "Items"/"Record Payment" stay status-specific, same as before.
+    const invoiceDetailGroups: PageControlGroup[] = [];
+    if (openInvoice.status !== "Draft") {
+      invoiceDetailGroups.push({
         label: "Locked Period",
         options: [
           {
@@ -560,8 +562,8 @@ export default function App() {
             onSelect: () => { setDetailDevLockedPeriod(true); setDetailNavNonce((n) => n + 1); },
           },
         ],
-      },
-    ];
+      });
+    }
     if (openInvoice.status === "Draft") {
       invoiceDetailGroups.push({
         label: "Items",
