@@ -41,6 +41,17 @@ function zeroPx(v: string) {
   return v === "0px" ? "0" : v;
 }
 
+/** getComputedStyle always returns "rgb(...)"/"rgba(...)" — reformat as hex for display
+ *  (8-digit "#RRGGBBAA" when alpha < 1, to keep transparency visible). */
+function toHex(raw: string): string {
+  const m = raw.match(/rgba?\(([^)]+)\)/);
+  if (!m) return raw;
+  const [r, g, b, a] = m[1].split(",").map((s) => parseFloat(s.trim()));
+  const byte = (n: number) => Math.round(n).toString(16).padStart(2, "0");
+  const hex = `#${byte(r)}${byte(g)}${byte(b)}`;
+  return (a === undefined || a >= 1 ? hex : `${hex}${byte(a * 255)}`).toUpperCase();
+}
+
 /** Matches each side against a length token, dedupes, keeps first-seen order. */
 function sideTokens(el: HTMLElement, sides: string[], hints: string[]): string[] {
   const seen = new Set<string>();
@@ -73,9 +84,9 @@ function describeElement(el: HTMLElement): HoverInfo {
     className,
     rect,
     size: `${Math.round(rect.width)} × ${Math.round(rect.height)}`,
-    color: cs.color,
+    color: toHex(cs.color),
     colorToken: colorToken(el, cs.color, ["text-", "icon-"]),
-    background: cs.backgroundColor,
+    background: toHex(cs.backgroundColor),
     backgroundToken: colorToken(el, cs.backgroundColor, ["bg-"]),
     fontSize: `${parseFloat(cs.fontSize)}px`,
     fontSizeToken: lengthToken(el, cs.fontSize, ["fs-", "text-"]),
