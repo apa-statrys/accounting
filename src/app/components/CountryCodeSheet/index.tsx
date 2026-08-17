@@ -40,7 +40,11 @@ interface CountryCodeRowsProps {
  *  memory: sub-level-drawer-same-sheet) can render it directly instead of nesting a whole
  *  CountryCodeSheet (which brings its own BottomSheet). */
 export function CountryCodeRows({ value, query, onSelect }: CountryCodeRowsProps) {
-  const filtered = COUNTRY_CODES.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()));
+  const q = query.trim().toLowerCase();
+  const digits = q.replace(/\D/g, "");
+  const filtered = COUNTRY_CODES.filter(
+    (c) => c.name.toLowerCase().includes(q) || (digits.length > 0 && c.dialCode.replace("+", "").includes(digits))
+  );
   return (
     <div className={styles.list}>
       {filtered.map((c) => (

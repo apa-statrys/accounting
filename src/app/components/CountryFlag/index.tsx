@@ -236,6 +236,24 @@ function IndonesiaFlag({ size = 20 }: FlagProps) {
   );
 }
 
+function ThailandFlag({ size = 20 }: FlagProps) {
+  const stripeH = 20 / 5;
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <g clipPath="url(#th-flag-clip)">
+        <rect width="20" height="20" fill="#F0F0F0" />
+        <rect y={0} width="20" height={stripeH} fill="#D80027" />
+        <rect y={stripeH * 3} width="20" height={stripeH} fill="#F0F0F0" />
+        <rect y={stripeH * 4} width="20" height={stripeH} fill="#D80027" />
+        <rect y={stripeH} width="20" height={stripeH * 2} fill="#0052B4" />
+      </g>
+      <defs>
+        <clipPath id="th-flag-clip"><circle cx="10" cy="10" r="10" /></clipPath>
+      </defs>
+    </svg>
+  );
+}
+
 function UnitedArabEmiratesFlag({ size = 20 }: FlagProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -408,6 +426,7 @@ const FLAG_COMPONENTS: Record<string, (props: FlagProps) => React.ReactElement> 
   China: ChinaFlag,
   Malaysia: MalaysiaFlag,
   Indonesia: IndonesiaFlag,
+  Thailand: ThailandFlag,
   "United Arab Emirates": UnitedArabEmiratesFlag,
   "European Union": EuropeanUnionFlag,
   Switzerland: SwitzerlandFlag,

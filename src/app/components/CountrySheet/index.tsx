@@ -23,6 +23,7 @@ const COUNTRIES: string[] = [
   "China",
   "Malaysia",
   "Indonesia",
+  "Thailand",
   "United Arab Emirates",
 ];
 

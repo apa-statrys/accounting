@@ -21,6 +21,7 @@ export const COUNTRY_CODES: CountryCode[] = [
   { name: "China", dialCode: "+86" },
   { name: "Malaysia", dialCode: "+60" },
   { name: "Indonesia", dialCode: "+62" },
+  { name: "Thailand", dialCode: "+66" },
   { name: "United Arab Emirates", dialCode: "+971" },
 ];
 
