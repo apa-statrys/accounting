@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { TextField } from "../ui/TextField";
@@ -31,6 +32,14 @@ const URL_RE = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/\S*)?$/;
 /** Countries without postal codes — Zip is hidden (and not required) for these (e.g. Hong Kong). */
 const NO_POSTAL_COUNTRIES = ["Hong Kong"];
 
+/** Dev-only demo "someone else's" edit (PageControls "Concurrent edit conflict" toggle, edit mode
+ *  only) — a fixed stand-in for what a real concurrent-session save would have changed, since this
+ *  prototype has no backend to actually race against. Phone/Address only: identity fields (name,
+ *  email) already have their own possible-duplicate warning above, and mixing the two would muddy
+ *  which sheet is demonstrating what. */
+const CONFLICT_DEMO_PHONE = "+1 415 555 0134";
+const CONFLICT_DEMO_ADDRESS = "482 Market Street, Suite 300";
+
 export interface AddCustomerPageProps {
   /** "add" (DES-713) or "edit" (DES-714) — drives the title, CTA label, and dirty-gating. */
   mode?: "add" | "edit";
@@ -46,6 +55,11 @@ export interface AddCustomerPageProps {
   /** Dev (PageControls): seed the form as if a failed save already happened, so every required
    *  field's inline error shows on mount instead of requiring a real empty submit. */
   devShowErrors?: boolean;
+  /** Dev (PageControls, edit mode only): simulate another user having changed this same customer's
+   *  Phone Number + Address while this session was open — Save shows the conflict sheet instead of
+   *  saving straight through. No real backend to race against in this prototype, so this is the
+   *  only way to demo the "someone else edited it first" screen. */
+  simulateConflict?: boolean;
 }
 
 /**
@@ -56,7 +70,7 @@ export interface AddCustomerPageProps {
  * AC1) — one consistent edit experience across the app. The lightweight company+email version stays a
  * BottomSheet for the in-invoice quick-add.
  */
-export function AddCustomerPage({ mode = "add", initial, existing = [], defaultCurrency = "USD", onBack, onAdd, devShowErrors = false }: AddCustomerPageProps) {
+export function AddCustomerPage({ mode = "add", initial, existing = [], defaultCurrency = "USD", onBack, onAdd, devShowErrors = false, simulateConflict = false }: AddCustomerPageProps) {
   const isEdit = mode === "edit";
   const [company, setCompany] = useState(initial?.name ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
@@ -80,6 +94,8 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
 
   const [dupOpen, setDupOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [conflictOpen, setConflictOpen] = useState(false);
+  const [conflictStep, setConflictStep] = useState<"notice" | "compare">("notice");
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
   const [phoneCountry, setPhoneCountry] = useState(DEFAULT_COUNTRY_CODE);
@@ -192,7 +208,18 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
     }
     // AC4: a match opens the possible-duplicate warning instead of saving; the user resolves it there.
     if (duplicate) { setDupOpen(true); return; }
+    // Dev demo only (no real backend to detect a real concurrent edit) — someone else changed this
+    // customer while this session was open; resolve before saving.
+    if (isEdit && simulateConflict) { setConflictStep("notice"); setConflictOpen(true); return; }
     commitSave();
+  };
+
+  // "Use Their Changes" (conflict sheet) — discards this session's edits entirely and keeps the
+  // original record with the other user's changes applied on top, same shape commitSave() hands up.
+  const useTheirChanges = () => {
+    if (!initial) return;
+    setSubmitAttempted(false);
+    onAdd?.({ ...initial, phone: CONFLICT_DEMO_PHONE, address: CONFLICT_DEMO_ADDRESS });
   };
 
   return (
@@ -395,6 +422,76 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
             />
           )}
         </div>
+      </BottomSheet>
+
+      {/* Concurrent-edit conflict (dev demo — PageControls "Concurrent edit conflict" toggle,
+          edit mode only). A deeper "Review Changes" level swaps content in this SAME sheet
+          instance (step state + slide, not a second sheet stacked on top) rather than opening a
+          separate screen. "Keep My Changes" saves this session's edits as normal; "Use Their
+          Changes" discards them and keeps the other user's version instead (useTheirChanges). */}
+      <BottomSheet
+        open={conflictOpen}
+        title={conflictStep === "notice" ? "This customer was updated by someone else" : "Review the changes"}
+        onBack={conflictStep === "compare" ? () => setConflictStep("notice") : undefined}
+        onClose={() => setConflictOpen(false)}
+        compact
+        footer={
+          conflictStep === "notice" ? (
+            <ButtonDock
+              type="triple"
+              primaryLabel="Review Changes"
+              secondaryLabel="Keep My Changes"
+              tertiaryLabel="Use Their Changes"
+              onPrimary={() => setConflictStep("compare")}
+              onSecondary={() => { setConflictOpen(false); commitSave(); }}
+              onTertiary={() => { setConflictOpen(false); useTheirChanges(); }}
+            />
+          ) : (
+            <ButtonDock
+              type="double"
+              primaryLabel="Keep My Changes"
+              secondaryLabel="Use Their Changes"
+              onPrimary={() => { setConflictOpen(false); commitSave(); }}
+              onSecondary={() => { setConflictOpen(false); useTheirChanges(); }}
+            />
+          )
+        }
+      >
+        <AnimatePresence mode="wait">
+          {conflictStep === "notice" ? (
+            <motion.div key="notice" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <p className="body-sm" style={{ ...FONT, color: "var(--text-secondary)" }}>
+                Someone else changed this customer's Phone Number and Address while you were editing.
+                Choose how to resolve this before saving.
+              </p>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="compare"
+              initial={{ opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 }}
+              className="flex flex-col gap-3"
+            >
+              {[
+                { label: "Phone Number", mine: phone, theirs: CONFLICT_DEMO_PHONE },
+                { label: "Address", mine: address, theirs: CONFLICT_DEMO_ADDRESS },
+              ].map((row) => (
+                <div key={row.label} className="rounded-xl border border-[var(--border-neutral-primary)] p-3 flex flex-col gap-2">
+                  <p className="text-[13px] font-bold" style={{ ...FONT, color: "var(--text-primary)" }}>{row.label}</p>
+                  <div>
+                    <p className="text-[12px]" style={{ ...FONT, color: "var(--text-secondary)" }}>Your version</p>
+                    <p className="text-[14px]" style={{ ...FONT, color: "var(--text-primary)" }}>{row.mine || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[12px]" style={{ ...FONT, color: "var(--text-secondary)" }}>Their version</p>
+                    <p className="text-[14px]" style={{ ...FONT, color: "var(--text-primary)" }}>{row.theirs}</p>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </BottomSheet>
     </div>
   );

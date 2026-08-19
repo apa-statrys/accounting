@@ -80,14 +80,16 @@ src/app/
     invoice-detail/       # InvoiceDetailPage (page) + demoInvoice.ts + creditNoteTypes.ts +
                           # CreditsAppliedSection + ActionsMenu + RecordPaymentSheet +
                           # RefundCreditNoteFlow (DES-720, private to this page)
-    upload-invoice/       # UploadInvoice (page) + ScanDocument (native-scanner stand-in, private)
     credit-note-list/     # CreditNotesList (page) + CreditNoteDetailPage + CreditNotePreviewPage
                           # (the CN detail/preview are also opened from invoice-detail & the list)
     shared/               # pages rendered inside >1 screen's flow: InvoicePreviewPage
                           # (invoice-detail + add-invoice-details). Flat single-file screens
                           # (Dashboard, AccountingHub, InvoiceSettings, NeedAttention,
                           # CustomerList, CustomerDetailPage, AddCustomerPage, CreateSalesInvoice,
-                          # GeneratingInvoice, DuplicateDecision) stay directly under pages/.
+                          # GeneratingInvoice, DuplicateDecision, UploadQueue) stay directly under
+                          # pages/ — upload is native scan/picker now (no in-app upload screen), so
+                          # ScanDocument (native-scanner stand-in) + UploadErrorDialog live in
+                          # components/ instead, not a pages/upload-invoice/ folder.
 ```
 
 Rules for new code:
@@ -118,8 +120,9 @@ All screen components live in `pages/`:
 | list | sales-invoice-list/SalesInvoiceList | | creditNotes | credit-note-list/CreditNotesList |
 | customer (pick) | CreateSalesInvoice | | customers | CustomerList |
 | details (editor) | add-invoice-details/AddInvoiceDetails | | customerDetail | CustomerDetailPage |
-| upload / extracting | upload-invoice/UploadInvoice / GeneratingInvoice | | addCustomer / editCustomer | AddCustomerPage |
-| duplicateCheck | DuplicateDecision | | needAttention | NeedAttention |
+| extracting | GeneratingInvoice | | addCustomer / editCustomer | AddCustomerPage |
+| uploadQueue | UploadQueue | | duplicateCheck | DuplicateDecision |
+| needAttention | NeedAttention | | | |
 | settings | InvoiceSettings | | send | (send sub-flow inside the editor/detail) |
 
 Navigation notes: detail page tracks `detailReturn` (back + in-page actions return to wherever it was
@@ -133,7 +136,25 @@ in-session only — a reload resets it (expected prototype limit).
   show a derived `DF-…` header; the real number is assigned on issue (DES-715).
 - **Single-line toasts**, keyed to action: "Saved as draft" / "Saved as awaiting payment" /
   "Invoice created successfully" (upload-flow) / "Invoice marked as sent" / "Draft deleted" /
-  "Changes saved" / "Payment recorded" / "Invoice voided" / "Invoice duplicated".
+  "Changes saved" / "Payment recorded" / "Invoice voided" / "Invoice duplicated" / "N invoices
+  created" (multi-file upload, below).
+- **Multi-file upload → Review Invoices queue** (added 2026-08-19, DES-894 feedback): the native
+  picker/scanner can return several files in one pick — QuickNav's "Upload — Multiple Files" (Sales
+  Invoice → Create Invoice — Upload) simulates this with `DEMO_UPLOAD_QUEUE` (data/extraction.ts).
+  One batch OCR pass (`extracting` screen, plural copy) lands on `uploadQueue`
+  (pages/UploadQueue.tsx) listing each file with a Reviewed/Needs Review badge; tapping a row opens
+  the SAME single-file `details` (AddInvoiceDetails) review screen, which returns to the queue
+  (`uploadQueueActiveIndex` in App.tsx) instead of the list until every file is done, then shows the
+  one summary toast and returns to the list. Leaving the queue early just abandons the remaining
+  files — no partial invoices are created, same "reload resets state" limit as the rest of the app.
+- **Customer-edit concurrent conflict** (added 2026-08-19, DES-894 feedback): no real backend to
+  race against in this prototype, so it's demo-only — Edit Customer's own "Page States" panel has a
+  "Concurrent edit conflict" toggle (`simulateConflict` prop, AddCustomerPage.tsx) that makes Save
+  show a "This customer was updated by someone else" sheet instead of saving straight through.
+  "Review Changes" steps (same sheet instance, not a stacked second sheet) to a Phone
+  Number/Address your-version-vs-their-version compare; "Keep My Changes" commits this session's
+  edits as normal, "Use Their Changes" discards them and keeps the fixed demo "other user" values
+  instead.
 - **Edit for issued invoices (Awaiting/Overdue)** (updated story): **every field is editable** —
   issue date, due date, currency, receiving account, items, discount — **except** the auto-generated
   invoice number and the client identity (Company Info / client name, address, email). The client

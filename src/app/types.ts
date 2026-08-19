@@ -11,6 +11,7 @@ export type Screen =
   | "customer"
   | "details"
   | "extracting"
+  | "uploadQueue"
   | "send"
   | "invoiceDetail"
   | "needAttention"
