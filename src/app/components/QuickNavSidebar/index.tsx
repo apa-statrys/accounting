@@ -15,6 +15,8 @@ export interface SidebarItem {
   label: string;
   active?: boolean;
   onSelect: () => void;
+  /** Small trailing pill (e.g. "WIP") — flags a jump whose flow isn't finished/final yet. */
+  tag?: string;
 }
 
 export interface SidebarSection {
@@ -118,6 +120,7 @@ export function QuickNavSidebar({ groups }: { groups: SidebarGroup[] }) {
                 .join(" ")}
             >
               {item.label}
+              {item.tag && <span className={styles.itemTag}>{item.tag}</span>}
             </button>
           );
           return (

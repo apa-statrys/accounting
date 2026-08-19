@@ -433,7 +433,7 @@ export default function App() {
             // Upload is native scan/picker now (no in-app sheet) — dev jump reproduces what a real
             // pick hands back: straight to the "reading your invoice" loading step.
             { label: "Upload Invoice", active: screen === "extracting" && !uploadQueue, onSelect: () => { setUploadReturn("list"); startUpload(); } },
-            { label: "Upload — Multiple Files", active: (screen === "extracting" && !!uploadQueue) || screen === "uploadQueue", onSelect: () => { setUploadReturn("list"); startBatchUpload(); } },
+            { label: "Upload — Multiple Files", tag: "WIP", active: (screen === "extracting" && !!uploadQueue) || screen === "uploadQueue", onSelect: () => { setUploadReturn("list"); startBatchUpload(); } },
             { label: "Upload — Duplicate", active: screen === "duplicateCheck", onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_MATCHED); setExtracted(DEMO_EXTRACTION_MATCHED); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-scan.png", size: 1258291 }); setDupExisting(EXISTING_INVOICES.find((i) => i.number === DEMO_EXTRACTION_MATCHED.invoiceNumber) ?? null); setScreen("duplicateCheck"); } },
             { label: "Upload — Manual Entry Needed", active: screen === "details" && extracted === DEMO_EXTRACTION_NO_CUSTOMER, onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_NO_CUSTOMER); setExtracted(DEMO_EXTRACTION_NO_CUSTOMER); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice.pdf", size: 419430 }); setScreen("details"); } },
             { label: "Upload — Unreadable (Blank)", active: screen === "details" && extracted === BLANK_EXTRACTION, onSelect: () => { setPendingExtraction(null); setExtracted(BLANK_EXTRACTION); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-unreadable.jpg", size: 3565158 }); setScreen("details"); } },
@@ -566,6 +566,7 @@ export default function App() {
         ? [
             {
               label: "Concurrent edit conflict",
+              tag: "WIP",
               toggle: { checked: customerDevConflict, onChange: setCustomerDevConflict },
             },
           ]

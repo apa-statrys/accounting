@@ -65,6 +65,21 @@
   margin-bottom: 0;
 }
 
+/* Trailing "WIP" pill — same amber treatment as QuickNavSidebar's itemTag, flags a state whose
+   flow isn't finished/final yet. */
+.groupTag {
+  display: inline-block;
+  margin-left: var(--space-2);
+  padding: 1px 5px;
+  border-radius: var(--radius-md);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #ffcc80;
+  background: rgba(255, 179, 71, 0.16);
+  vertical-align: middle;
+}
+
 .options {
   display: flex;
   flex-direction: column;

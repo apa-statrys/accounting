@@ -165,6 +165,22 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
+/* Trailing "WIP" pill — flags a jump whose flow isn't finished/final yet. Amber reads as
+   in-progress without borrowing the DS's error/warning tokens (bespoke to this dark dev tool). */
+.itemTag {
+  display: inline-block;
+  margin-left: var(--space-2);
+  padding: 1px 6px;
+  border-radius: var(--radius-md);
+  font-size: 9.5px;
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #ffcc80;
+  background: rgba(255, 179, 71, 0.16);
+  vertical-align: middle;
+}
+
 /* Sub-section header — same collapsible-accordion behavior as a top-level group header (one open
    at a time, via QuickNavSidebar's `openSection` state), just smaller/indented one level in — so a
    big group (e.g. "Sales Invoice") doesn't dump every one of its sections' rows at once. */

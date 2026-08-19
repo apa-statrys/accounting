@@ -24,6 +24,8 @@ export interface PageControlToggle {
 
 export interface PageControlGroup {
   label: string;
+  /** Small trailing pill (e.g. "WIP") — flags a state whose flow isn't finished/final yet. */
+  tag?: string;
   /** Either a multi-option button list (2+ named states)... */
   options?: PageControlOption[];
   /** ...or a single on/off switch — mutually exclusive with `options`. */
@@ -41,12 +43,18 @@ export function PageControls({ groups }: { groups: PageControlGroup[] }) {
         <div key={group.label} className={styles.group}>
           {group.toggle ? (
             <div className={styles.toggleRow}>
-              <p className={styles.groupLabel}>{group.label}</p>
+              <p className={styles.groupLabel}>
+                {group.label}
+                {group.tag && <span className={styles.groupTag}>{group.tag}</span>}
+              </p>
               <Toggle checked={group.toggle.checked} onChange={group.toggle.onChange} aria-label={group.label} />
             </div>
           ) : (
             <>
-              <p className={styles.groupLabel}>{group.label}</p>
+              <p className={styles.groupLabel}>
+                {group.label}
+                {group.tag && <span className={styles.groupTag}>{group.tag}</span>}
+              </p>
               <div className={styles.options}>
                 {group.options?.map((opt) => (
                   <button
