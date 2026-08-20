@@ -17,6 +17,7 @@ interface SearchProps {
   disabled?: boolean;
   error?: boolean;
   onFocus?: () => void;
+  onBlur?: () => void;
   /** Paints the focused border + clear button without real focus — Showcase-only. */
   forceFocus?: boolean;
   /** Trailing mic action (Figma showAction). */
@@ -69,6 +70,7 @@ export function Search({
   disabled = false,
   error = false,
   onFocus,
+  onBlur,
   forceFocus = false,
   showAction = true,
   onMicClick,
@@ -94,6 +96,7 @@ export function Search({
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         onFocus={onFocus}
+        onBlur={onBlur}
         placeholder={placeholder}
         disabled={disabled}
         aria-label={ariaLabel}

@@ -322,7 +322,11 @@ in-session only — a reload resets it (expected prototype limit).
   `headerExtra`, title stays plain text, and the ✕ shows for free since `isSearch`/`action` are no
   longer in play). Doesn't apply to sheets that already open straight into search with no toggle at
   all (CustomerSheet, ReceivingAccountSheet, InvoiceSettings' pickers, Filters' customer-search
-  step, CreateSalesInvoice) — ask before converting those too.
+  step, CreateSalesInvoice) — ask before converting those too. The field is NOT focused on open
+  (no `autoFocus`) — the on-screen `Keyboard` mock footer only appears once the user actually taps
+  in (a `keyboardOpen` state wired to `ui/Search`'s `onFocus`/`onBlur`, the same pair `TextField`
+  fields elsewhere use to drive their own dock/keyboard-mock timing). `ui/Search` gained an
+  `onBlur` prop for this (it only had `onFocus` before).
 - **A form with more than 3 data-entry fields is a full pushed page, not a `BottomSheet` drawer**
   (decided 2026-08-11). "Field" means a TextField/TextArea/dropdown-TextField the user actually
   fills in — not a single-select list picker (CountrySheet, CurrencySheet, DueDateSheet,

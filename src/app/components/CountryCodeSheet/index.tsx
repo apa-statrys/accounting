@@ -54,10 +54,13 @@ export function CountryCodeRows({ value, query, onSelect }: CountryCodeRowsProps
  * Phone country-code picker (Figma "Select Country Code") — plain title (DS Bottomsheet header,
  * ✕ close) with a persistent full-width `ui/Search` field pinned below it via `headerExtra`
  * (decided 2026-08-20 — replaces the old tap-the-icon-to-reveal-a-header-pill toggle; search is
- * just always there instead of a separate step). Rows read "Country (+Code)" per Figma.
+ * just always there instead of a separate step). Not focused by default — the on-screen keyboard
+ * mock only appears once the user actually taps into the field (decided 2026-08-20). Rows read
+ * "Country (+Code)" per Figma.
  */
 export function CountryCodeSheet({ open, value, onClose, onSelect }: CountryCodeSheetProps) {
   const [query, setQuery] = useState("");
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   return (
     <BottomSheet
@@ -65,13 +68,22 @@ export function CountryCodeSheet({ open, value, onClose, onSelect }: CountryCode
       title="Select Country Code"
       onClose={() => { setQuery(""); onClose?.(); }}
       tall
+      keyboardOpen={keyboardOpen}
       headerExtra={
-        <Search value={query} onChange={setQuery} placeholder="Search Country" showAction={false} autoFocus />
+        <Search
+          value={query}
+          onChange={setQuery}
+          placeholder="Search Country"
+          showAction={false}
+          onFocus={() => setKeyboardOpen(true)}
+          onBlur={() => setKeyboardOpen(false)}
+        />
       }
       // Decorative on-screen keyboard fills the space below the focused search field — same
       // stand-in as Sales Invoice List's Filters→Customer search (components/Keyboard, since a
-      // desktop web view never shows the real OS keyboard).
-      footer={<Keyboard />}
+      // desktop web view never shows the real OS keyboard). Only shown once the field is actually
+      // focused (decided 2026-08-20) — search isn't active by default on open.
+      footer={keyboardOpen ? <Keyboard /> : undefined}
     >
       <div className={styles.body}>
         <CountryCodeRows value={value} query={query} onSelect={onSelect} />

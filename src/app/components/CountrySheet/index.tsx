@@ -39,11 +39,13 @@ interface CountrySheetProps {
  * Country picker for a client record — plain title (DS Bottomsheet header, ✕ close) with a
  * persistent full-width `ui/Search` field pinned below it via `headerExtra` (decided 2026-08-20 —
  * replaces the old tap-the-icon-to-reveal-a-header-pill toggle; search is just always there
- * instead of a separate step). Rows are the DS Tile country variant (flag + title, check when
- * selected).
+ * instead of a separate step). Not focused by default — the on-screen keyboard mock only appears
+ * once the user actually taps into the field (decided 2026-08-20). Rows are the DS Tile country
+ * variant (flag + title, check when selected).
  */
 export function CountrySheet({ open, value, onClose, onSelect }: CountrySheetProps) {
   const [query, setQuery] = useState("");
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const filtered = COUNTRIES.filter((c) => c.toLowerCase().includes(query.toLowerCase()));
 
   return (
@@ -52,13 +54,22 @@ export function CountrySheet({ open, value, onClose, onSelect }: CountrySheetPro
       title="Select Country"
       onClose={() => { setQuery(""); onClose?.(); }}
       tall
+      keyboardOpen={keyboardOpen}
       headerExtra={
-        <Search value={query} onChange={setQuery} placeholder="Search Country" showAction={false} autoFocus />
+        <Search
+          value={query}
+          onChange={setQuery}
+          placeholder="Search Country"
+          showAction={false}
+          onFocus={() => setKeyboardOpen(true)}
+          onBlur={() => setKeyboardOpen(false)}
+        />
       }
       // Decorative on-screen keyboard fills the space below the focused search field — same
       // stand-in as Sales Invoice List's Filters→Customer search (components/Keyboard, since a
-      // desktop web view never shows the real OS keyboard).
-      footer={<Keyboard />}
+      // desktop web view never shows the real OS keyboard). Only shown once the field is actually
+      // focused (decided 2026-08-20) — search isn't active by default on open.
+      footer={keyboardOpen ? <Keyboard /> : undefined}
     >
       <div className={styles.body}>
         <div className={styles.list}>
