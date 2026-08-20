@@ -306,7 +306,15 @@ in-session only — a reload resets it (expected prototype limit).
   (the ✕ replaces it) — e.g. AddCustomerPage's duplicate-warning sheet is now a single "Save/Create
   Anyway" CTA, RecordPaymentSheet's form step is now a single "Confirm" CTA. A sheet with NO Cancel
   to begin with (plain single-select pickers, the conflict sheet's "Keep Mine"/"Use Theirs" compare
-  step) just gains the ✕ for free — nothing else changes.
+  step) just gains the ✕ for free — nothing else changes. Two more `hideClose` categories added
+  the same week: (3) a bare Tile-row action/navigation chooser with no other content — the ⋯
+  actions menus (`ActionsMenu.tsx`, CreditNoteDetailPage's own) and the FAB's `CreateInvoiceSheet`
+  — since tapping a row (or the scrim) is already how these dismiss, same spirit as excluding
+  single-select pickers from the >3-field-is-a-page rule below; (4) SendInvoiceSheet's own Preview
+  sheet (Email/PDF segmented control replaces the title) — no ✕ there either. `UploadErrorDialog`
+  (file too large/unsupported) is `hideClose` too, but unlike the two categories above it needed a
+  replacement: `type="double"` with `secondaryLabel="Cancel"` alongside "Choose Another File",
+  since it's posing a real choice (retry vs. give up), not a plain chooser/preview.
 - **A form with more than 3 data-entry fields is a full pushed page, not a `BottomSheet` drawer**
   (decided 2026-08-11). "Field" means a TextField/TextArea/dropdown-TextField the user actually
   fills in — not a single-select list picker (CountrySheet, CurrencySheet, DueDateSheet,

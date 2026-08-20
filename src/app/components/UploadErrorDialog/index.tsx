@@ -13,9 +13,9 @@ const warningTriangleIcon = new URL("../../pages/duplicate-decision-warning.svg"
  * unsupported type), shown as a sheet instead of a toast so the client has a clear next step.
  * Icon + heading + description block mirrors DuplicateDecision's own "This invoice already
  * exists" layout — title stays out of the sheet's own header row so the icon can sit above it,
- * same as that page. Single "Choose Another File" CTA re-invokes the scanner/picker directly,
- * same as every other in-flow re-upload action (DuplicateDecision, AddInvoiceDetails' own file
- * row).
+ * same as that page. No header ✕ (`hideClose`, decided 2026-08-20) — "Cancel" is the explicit way
+ * out instead, next to "Choose Another File" (which re-invokes the scanner/picker directly, same
+ * as every other in-flow re-upload action — DuplicateDecision, AddInvoiceDetails' own file row).
  */
 export function UploadErrorDialog({
   open,
@@ -35,8 +35,17 @@ export function UploadErrorDialog({
       open={open}
       title=""
       onClose={onClose}
+      hideClose
       compact
-      footer={<ButtonDock type="single" primaryLabel="Choose Another File" onPrimary={onReupload} />}
+      footer={
+        <ButtonDock
+          type="double"
+          primaryLabel="Choose Another File"
+          secondaryLabel="Cancel"
+          onPrimary={onReupload}
+          onSecondary={onClose}
+        />
+      }
     >
       <div className="flex flex-col gap-4">
         <img src={warningTriangleIcon} alt="" width={48} height={45} />

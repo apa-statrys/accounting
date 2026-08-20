@@ -15,8 +15,10 @@ interface CreateInvoiceSheetProps {
 
 /**
  * "Create" bottom sheet — slides up from the FAB with a list of choices: build
- * manually or scan/upload a file. DS Bottomsheets header (grabber, no ✕); choices are
- * DS Tile icon rows (24px icon + title, no description). "Scan and upload" opens the native
+ * manually or scan/upload a file. No header ✕ (`hideClose`, decided 2026-08-20 — a plain
+ * Tile-row chooser like this dismisses via picking a row or tapping the scrim, same as the
+ * ⋯ actions menus); choices are DS Tile icon rows (24px icon + title, no description).
+ * "Scan and upload" opens the native
  * document-scanner mock (ScanDocument) on top of this sheet — its own Close (X) exits the whole
  * Create flow (never falls back to this chooser); capture/import both proceed straight to OCR.
  */
@@ -30,7 +32,7 @@ export function CreateInvoiceSheet({ open, onClose, onManual, onUpload }: Create
 
   return (
     <>
-      <BottomSheet open={open} title="Create Invoice" onClose={handleClose}>
+      <BottomSheet open={open} title="Create Invoice" onClose={handleClose} hideClose>
         <div className={styles.list}>
           <motion.div variants={sheetItem}>
             <Tile

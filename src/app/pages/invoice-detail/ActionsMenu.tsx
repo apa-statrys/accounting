@@ -53,7 +53,7 @@ export function ActionsMenu({
   lockedPeriod = false,
 }: ActionsMenuProps) {
   return (
-    <BottomSheet open={open} title="" onClose={onClose}>
+    <BottomSheet open={open} title="" onClose={onClose} hideClose>
       <div className="flex flex-col gap-2 pt-2">
         {/* Plain Paid invoice (no refund yet) → start a refund with a credit note (DES-720). Once a refund
             is in progress, this drops out and the ⋯ shows Duplicate invoice instead. Hidden entirely

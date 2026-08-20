@@ -585,7 +585,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
           same Tile-row recipe as invoice-detail/ActionsMenu (not a hand-rolled button+divider
           list — that was a drift from this shared ⋯-menu convention). An Applied note is locked
           (never editable, single-invoice model — see `isApplied` above). */}
-      <BottomSheet open={actionsOpen} title="" onClose={() => setActionsOpen(false)}>
+      <BottomSheet open={actionsOpen} title="" onClose={() => setActionsOpen(false)} hideClose>
         <div className="flex flex-col gap-2 pt-2">
           {/* Draft (cancellation or refund) → Edit (resume it, complete drafts only) + Delete
               (confirmed via a prompt). */}

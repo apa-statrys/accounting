@@ -507,6 +507,7 @@ export function SendInvoiceSheet({
             open={previewOpen}
             title=""
             onClose={() => setPreviewOpen(false)}
+            hideClose
             headerExtra={
               <div className="px-4 pb-3">
                 <SegmentedControls segments={["Email", "PDF"]} activeIndex={previewSegment} onChange={setPreviewSegment} />
