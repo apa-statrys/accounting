@@ -75,6 +75,7 @@
   color: var(--btn-secondary-active);
 }
 .secondary:disabled {
+  background: var(--bg-neutral-disabled);
   border-color: var(--btn-disabled);
   color: var(--btn-disabled);
 }
@@ -137,6 +138,11 @@
 .destructive.secondary.active {
   background: var(--bg-neutral-primary-active);
   border-color: var(--border-neutral-primary-active);
+}
+.destructive.secondary:disabled {
+  background: var(--bg-neutral-disabled);
+  border-color: var(--btn-disabled);
+  color: var(--btn-disabled);
 }
 .destructive.tertiary {
   color: var(--text-error-primary);
