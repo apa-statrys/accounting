@@ -18,7 +18,7 @@ import { TextArea } from "../../ui/TextArea";
 import { Checkbox } from "../../ui/Checkbox";
 import { Toggle } from "../../ui/Toggle";
 import { Chips } from "../../ui/Chips";
-import { FONT, avatarTint, initials } from "../../lib/theme";
+import { FONT, INK, avatarTint, initials } from "../../lib/theme";
 import { EMAIL_RE } from "../../lib/format";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import styles from "./index.module.css";
@@ -266,7 +266,21 @@ export function SendInvoiceSheet({
         >
           <div className={styles.body} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}>
             <PageAppHeader scrolled={scrolled}>
-              <PageHeader type="center" title={`Send ${docLabel}`} onBack={onClose} showSearch={false} />
+              <PageHeader
+                type="center"
+                title={`Send ${docLabel}`}
+                onBack={onClose}
+                rightSlot={
+                  <button
+                    type="button"
+                    className="link-sentence-sm"
+                    style={{ color: INK }}
+                    onClick={() => { setPreviewSegment(0); setPreviewOpen(true); }}
+                  >
+                    Preview
+                  </button>
+                }
+              />
               {/* PageAppHeader's own flex `gap: 12px` already provides part of Figma's 16px top
                   padding here (node 1896-17204) — pt-1 (4px) tops it up to 16px total; pb-2 (8px)
                   matches the frame's asymmetric bottom padding. */}
@@ -455,9 +469,8 @@ export function SendInvoiceSheet({
           </div>
 
           <ButtonDock
-            type={tab === 0 ? "double" : "single"}
+            type="single"
             sticky
-            secondaryLabel="Preview"
             primaryLabel={
               tab === 0 ? (
                 // Just the label text crossfades between states — the button itself doesn't move.
@@ -481,7 +494,6 @@ export function SendInvoiceSheet({
             primaryLoading={tab === 0 && sending}
             primarySuccess={tab === 0 && sent}
             primaryDestructive={tab === 0 && sendFailed}
-            onSecondary={() => { setPreviewSegment(0); setPreviewOpen(true); }}
             onPrimary={tab === 0 ? handleSend : onSent}
             keyboard={tab === 0 && keyboardOpen}
           />
