@@ -1,25 +1,12 @@
 import { useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { BottomSheet, sheetItem, stepSlide } from "../BottomSheet";
+import { motion } from "motion/react";
+import { BottomSheet, sheetItem } from "../BottomSheet";
 import { Tile } from "../../ui/Tile";
+import { Search } from "../../ui/Search";
 import { CountryFlag } from "../CountryFlag";
 import { Keyboard } from "../Keyboard";
 import { COUNTRY_CODES, type CountryCode } from "../../data/countryCodes";
 import styles from "./index.module.css";
-
-function SearchGlyph() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path
-        d="M17.4999 17.5001L13.8833 13.8835M15.8333 9.16667C15.8333 12.8486 12.8486 15.8333 9.16667 15.8333C5.48477 15.8333 2.5 12.8486 2.5 9.16667C2.5 5.48477 5.48477 2.5 9.16667 2.5C12.8486 2.5 15.8333 5.48477 15.8333 9.16667Z"
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 interface CountryCodeSheetProps {
   open: boolean;
@@ -64,47 +51,30 @@ export function CountryCodeRows({ value, query, onSelect }: CountryCodeRowsProps
 }
 
 /**
- * Phone country-code picker (Figma "Select Country Code") — DS Bottomsheet search-mode header
- * (same experience as Sales Invoice List's Filters→Customer search, and CountrySheet): tapping
- * the search icon swaps the title for a frosted search pill in place, with a back chevron to
- * return. Rows read "Country (+Code)" per Figma.
+ * Phone country-code picker (Figma "Select Country Code") — plain title (DS Bottomsheet header,
+ * ✕ close) with a persistent full-width `ui/Search` field pinned below it via `headerExtra`
+ * (decided 2026-08-20 — replaces the old tap-the-icon-to-reveal-a-header-pill toggle; search is
+ * just always there instead of a separate step). Rows read "Country (+Code)" per Figma.
  */
 export function CountryCodeSheet({ open, value, onClose, onSelect }: CountryCodeSheetProps) {
   const [query, setQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
-
-  const closeSearch = () => { setSearchOpen(false); setQuery(""); };
 
   return (
     <BottomSheet
       open={open}
       title="Select Country Code"
-      onClose={() => { closeSearch(); onClose?.(); }}
+      onClose={() => { setQuery(""); onClose?.(); }}
       tall
-      action={!searchOpen ? <SearchGlyph /> : undefined}
-      onAction={!searchOpen ? () => setSearchOpen(true) : undefined}
-      actionLabel="Search country"
-      onBack={searchOpen ? closeSearch : undefined}
-      searchValue={searchOpen ? query : undefined}
-      onSearchChange={searchOpen ? setQuery : undefined}
-      searchPlaceholder="Search Country"
-      autoFocusSearch
+      headerExtra={
+        <Search value={query} onChange={setQuery} placeholder="Search Country" showAction={false} autoFocus />
+      }
       // Decorative on-screen keyboard fills the space below the focused search field — same
       // stand-in as Sales Invoice List's Filters→Customer search (components/Keyboard, since a
       // desktop web view never shows the real OS keyboard).
-      footer={searchOpen ? <Keyboard /> : undefined}
+      footer={<Keyboard />}
     >
       <div className={styles.body}>
-        {/* Same content-level step transition as Sales Invoice List's Filters→Customer search —
-            entering/exiting search re-animates the row list too, not just the header's title/pill
-            crossfade. CountryCodeRows has its own nested `sheetItem`-variant rows, so this wrapper
-            uses `stepSlide()`'s STRING labels (not object-literal targets) — see BottomSheet's own
-            doc comment on why that distinction matters for propagation. */}
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={searchOpen ? "search" : "list"} variants={stepSlide(searchOpen ? 1 : -1)} initial="closed" animate="open" exit="closed">
-            <CountryCodeRows value={value} query={query} onSelect={onSelect} />
-          </motion.div>
-        </AnimatePresence>
+        <CountryCodeRows value={value} query={query} onSelect={onSelect} />
       </div>
     </BottomSheet>
   );

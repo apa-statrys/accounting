@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { BottomSheet, sheetItem, stepSlide } from "../BottomSheet";
+import { motion } from "motion/react";
+import { BottomSheet, sheetItem } from "../BottomSheet";
 import { Tile } from "../../ui/Tile";
+import { Search } from "../../ui/Search";
 import { CountryFlag } from "../CountryFlag";
 import { Keyboard } from "../Keyboard";
 import styles from "./index.module.css";
@@ -27,20 +28,6 @@ const COUNTRIES: string[] = [
   "United Arab Emirates",
 ];
 
-function SearchGlyph() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path
-        d="M17.4999 17.5001L13.8833 13.8835M15.8333 9.16667C15.8333 12.8486 12.8486 15.8333 9.16667 15.8333C5.48477 15.8333 2.5 12.8486 2.5 9.16667C2.5 5.48477 5.48477 2.5 9.16667 2.5C12.8486 2.5 15.8333 5.48477 15.8333 9.16667Z"
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 interface CountrySheetProps {
   open: boolean;
   value?: string;
@@ -49,61 +36,45 @@ interface CountrySheetProps {
 }
 
 /**
- * Country picker for a client record — DS Bottomsheet search-mode header (Figma node 1333-38370,
- * same experience as Sales Invoice List's Filters→Customer search): tapping the search icon swaps
- * the "Select Country" title for a frosted search pill in place, with a back chevron to return to
- * the plain title. Rows are the DS Tile country variant (flag + title, check when selected).
+ * Country picker for a client record — plain title (DS Bottomsheet header, ✕ close) with a
+ * persistent full-width `ui/Search` field pinned below it via `headerExtra` (decided 2026-08-20 —
+ * replaces the old tap-the-icon-to-reveal-a-header-pill toggle; search is just always there
+ * instead of a separate step). Rows are the DS Tile country variant (flag + title, check when
+ * selected).
  */
 export function CountrySheet({ open, value, onClose, onSelect }: CountrySheetProps) {
   const [query, setQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
   const filtered = COUNTRIES.filter((c) => c.toLowerCase().includes(query.toLowerCase()));
-
-  const closeSearch = () => { setSearchOpen(false); setQuery(""); };
 
   return (
     <BottomSheet
       open={open}
       title="Select Country"
-      onClose={() => { closeSearch(); onClose?.(); }}
+      onClose={() => { setQuery(""); onClose?.(); }}
       tall
-      action={!searchOpen ? <SearchGlyph /> : undefined}
-      onAction={!searchOpen ? () => setSearchOpen(true) : undefined}
-      actionLabel="Search country"
-      onBack={searchOpen ? closeSearch : undefined}
-      searchValue={searchOpen ? query : undefined}
-      onSearchChange={searchOpen ? setQuery : undefined}
-      searchPlaceholder="Search Country"
-      autoFocusSearch
+      headerExtra={
+        <Search value={query} onChange={setQuery} placeholder="Search Country" showAction={false} autoFocus />
+      }
       // Decorative on-screen keyboard fills the space below the focused search field — same
       // stand-in as Sales Invoice List's Filters→Customer search (components/Keyboard, since a
       // desktop web view never shows the real OS keyboard).
-      footer={searchOpen ? <Keyboard /> : undefined}
+      footer={<Keyboard />}
     >
       <div className={styles.body}>
-        {/* Same content-level step transition as Sales Invoice List's Filters→Customer search —
-            entering/exiting search re-animates the row list too, not just the header's title/pill
-            crossfade. Rows below are a shared shape with their own nested `sheetItem` variants, so
-            this wrapper uses `stepSlide()`'s STRING labels (not object-literal targets) — see
-            BottomSheet's own doc comment on why that distinction matters for propagation. */}
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={searchOpen ? "search" : "list"} variants={stepSlide(searchOpen ? 1 : -1)} initial="closed" animate="open" exit="closed">
-            <div className={styles.list}>
-              {filtered.map((c) => (
-                <motion.div key={c} variants={sheetItem}>
-                  <Tile
-                    size="sm"
-                    title={c}
-                    flag={<CountryFlag name={c} size={30} />}
-                    trailing={value === c ? "check" : "none"}
-                    selected={value === c}
-                    onClick={() => onSelect?.(c)}
-                  />
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </AnimatePresence>
+        <div className={styles.list}>
+          {filtered.map((c) => (
+            <motion.div key={c} variants={sheetItem}>
+              <Tile
+                size="sm"
+                title={c}
+                flag={<CountryFlag name={c} size={30} />}
+                trailing={value === c ? "check" : "none"}
+                selected={value === c}
+                onClick={() => onSelect?.(c)}
+              />
+            </motion.div>
+          ))}
+        </div>
       </div>
     </BottomSheet>
   );

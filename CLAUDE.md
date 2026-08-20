@@ -315,6 +315,14 @@ in-session only — a reload resets it (expected prototype limit).
   (file too large/unsupported) is `hideClose` too, but unlike the two categories above it needed a
   replacement: `type="double"` with `secondaryLabel="Cancel"` alongside "Choose Another File",
   since it's posing a real choice (retry vs. give up), not a plain chooser/preview.
+- **A picker sheet's own search is a static field below the title, not a header-icon toggle**
+  (decided 2026-08-20 — CountryCodeSheet/CountrySheet used to hide search behind a tap-to-reveal
+  icon that morphed the title into a frosted pill, via `BottomSheet`'s `action`+`isSearch` props
+  and a `searchOpen` step-swap; both now just render a `ui/Search` field permanently via
+  `headerExtra`, title stays plain text, and the ✕ shows for free since `isSearch`/`action` are no
+  longer in play). Doesn't apply to sheets that already open straight into search with no toggle at
+  all (CustomerSheet, ReceivingAccountSheet, InvoiceSettings' pickers, Filters' customer-search
+  step, CreateSalesInvoice) — ask before converting those too.
 - **A form with more than 3 data-entry fields is a full pushed page, not a `BottomSheet` drawer**
   (decided 2026-08-11). "Field" means a TextField/TextArea/dropdown-TextField the user actually
   fills in — not a single-select list picker (CountrySheet, CurrencySheet, DueDateSheet,
