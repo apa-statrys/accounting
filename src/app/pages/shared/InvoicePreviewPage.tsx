@@ -263,8 +263,18 @@ export function InvoiceDocumentPreview(props: InvoiceDocumentPreviewProps) {
 export function InvoicePreviewPage(props: InvoicePreviewPageProps) {
   const { onBack, onDownloaded, hideDownload, ...docProps } = props;
 
-  // Prototype: skip the actual file save — just confirm + mark sent.
-  const download = () => onDownloaded?.();
+  // Brief loading state on the dock (dev feedback DES-894, same beat as Send Invoice's own
+  // Download row) before the prototype "downloads" — Prototype: skip the actual file save, just
+  // confirm + mark sent.
+  const [downloading, setDownloading] = useState(false);
+  const download = () => {
+    if (downloading) return;
+    setDownloading(true);
+    setTimeout(() => {
+      setDownloading(false);
+      onDownloaded?.();
+    }, 900);
+  };
 
   const [scrolled, setScrolled] = useState(false);
 
@@ -286,6 +296,7 @@ export function InvoicePreviewPage(props: InvoicePreviewPageProps) {
           type="single"
           sticky
           primaryLabel="Download PDF"
+          primaryLoading={downloading}
           onPrimary={download}
         />
       )}

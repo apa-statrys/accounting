@@ -247,8 +247,18 @@ export function CreditNotePreviewPage(props: CreditNotePreviewPageProps) {
   const { invoiceNo } = docProps;
   const isView = variant === "view";
 
-  // Prototype: skip the actual file save — just confirm.
-  const download = () => onDownloaded?.();
+  // Brief loading state on the dock (dev feedback DES-894, same beat as Send Invoice's own
+  // Download row) before the prototype "downloads" — Prototype: skip the actual file save, just
+  // confirm.
+  const [downloading, setDownloading] = useState(false);
+  const download = () => {
+    if (downloading) return;
+    setDownloading(true);
+    setTimeout(() => {
+      setDownloading(false);
+      onDownloaded?.();
+    }, 900);
+  };
 
   const [scrolled, setScrolled] = useState(false);
 
@@ -285,7 +295,7 @@ export function CreditNotePreviewPage(props: CreditNotePreviewPageProps) {
       {isView ? (
         <ButtonDock type="single" sticky primaryLabel="Send Credit Note" onPrimary={onSend ?? (() => {})} />
       ) : !hideDownload ? (
-        <ButtonDock type="single" sticky primaryLabel="Download PDF" onPrimary={download} />
+        <ButtonDock type="single" sticky primaryLabel="Download PDF" primaryLoading={downloading} onPrimary={download} />
       ) : null}
     </div>
   );
