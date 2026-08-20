@@ -142,6 +142,18 @@ export function SendInvoiceSheet({
 
   // ===== Share/Download tab state (Figma "Share/Download") =====
   const [copied, setCopied] = useState(false);
+  // Brief spinner on the Download row (dev feedback DES-894: "need a loading icon when
+  // downloading the PDF") before the parent's onDownload actually fires — same loading beat as
+  // handleSend's `sending` above, just on FileItemBase's own trailing icon instead of the dock.
+  const [downloading, setDownloading] = useState(false);
+  const handleDownload = () => {
+    if (downloading) return;
+    setDownloading(true);
+    setTimeout(() => {
+      setDownloading(false);
+      onDownload?.();
+    }, 900);
+  };
 
   const commit = (raw: string) => {
     const parts = raw
@@ -433,8 +445,9 @@ export function SendInvoiceSheet({
                     fileType="pdf"
                     state="completed"
                     action="download"
-                    onClick={onDownload}
-                    onDownload={onDownload}
+                    downloading={downloading}
+                    onClick={handleDownload}
+                    onDownload={handleDownload}
                   />
                 </div>
               </div>

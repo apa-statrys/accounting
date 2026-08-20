@@ -2091,13 +2091,21 @@ const FILEITEMBASE_CONTROL_GROUPS: ControlGroup[] = [
       { value: "none", label: "None — no trailing control; use for a read-only context with nothing to change (e.g. a past decision/summary screen)" },
     ],
   },
+  {
+    key: "downloading",
+    label: "Download state (download action only)",
+    options: [
+      { value: "idle", label: "Idle — download icon, tappable" },
+      { value: "downloading", label: "Downloading — icon swaps to ui/Loading, row ignores taps" },
+    ],
+  },
 ];
 
 function FileItemBaseOverview() {
   return (
     <InteractiveDemo
       groups={FILEITEMBASE_CONTROL_GROUPS}
-      defaultValues={{ state: "completed", action: "delete" }}
+      defaultValues={{ state: "completed", action: "delete", downloading: "idle" }}
       render={(v) => (
         <div className="w-[320px]">
           <FileItemBase
@@ -2105,6 +2113,7 @@ function FileItemBaseOverview() {
             size="200 KB"
             state={v.state as FileItemState}
             action={v.action as FileItemAction}
+            downloading={v.downloading === "downloading"}
             progress={40}
             onDelete={() => {}}
             onReplace={() => {}}

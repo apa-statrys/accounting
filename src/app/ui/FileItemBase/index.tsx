@@ -1,3 +1,4 @@
+import { Loading } from "../Loading";
 import styles from "./index.module.css";
 
 /**
@@ -14,7 +15,10 @@ import styles from "./index.module.css";
  * completed file the user can save — Send Invoice's Share/Download tab), or "none" (no trailing
  * control at all — not a Figma axis, for a read-only context with nothing to change, e.g. a past
  * decision/summary screen). Pass `onClick` to make the whole row tappable (e.g. open a preview) —
- * the trailing action's own click stops propagation so it doesn't also fire that.
+ * the trailing action's own click stops propagation so it doesn't also fire that. `downloading`
+ * (action="download" only, added 2026-08-20 per dev feedback DES-894) swaps the download icon for
+ * a small ui/Loading spinner and ignores taps while true — not the same as `state="loading"`,
+ * which is upload-in-progress semantics (progress fill, upload arrow, always-shown cancel).
  */
 
 export type FileItemState = "completed" | "loading" | "error";
@@ -31,6 +35,10 @@ interface FileItemBaseProps {
   progress?: number;
   /** Trailing action when not loading. Loading always shows delete (cancel upload). */
   action?: FileItemAction;
+  /** `action="download"` only — swaps the download icon for a small spinner (ui/Loading) and
+   *  ignores clicks while the file is being prepared, instead of the row appearing to do nothing
+   *  during that wait. Caller owns the timing (e.g. a brief setState before the real download). */
+  downloading?: boolean;
   /** Tap the row itself (e.g. open a preview) — ignored while loading. */
   onClick?: () => void;
   onDelete?: () => void;
@@ -109,6 +117,7 @@ export function FileItemBase({
   state = "completed",
   progress = 0,
   action = "delete",
+  downloading = false,
   onClick,
   onDelete,
   onReplace,
@@ -137,10 +146,11 @@ export function FileItemBase({
       <button
         type="button"
         className={styles.iconBtn}
-        aria-label="Download file"
-        onClick={(e) => { e.stopPropagation(); onDownload?.(); }}
+        aria-label={downloading ? "Downloading file" : "Download file"}
+        disabled={downloading}
+        onClick={(e) => { e.stopPropagation(); if (!downloading) onDownload?.(); }}
       >
-        <DownloadIcon />
+        {downloading ? <Loading size="2xs" aria-label="Downloading" /> : <DownloadIcon />}
       </button>
     ) : !isLoading && action === "none" ? null : (
       <button
@@ -154,7 +164,12 @@ export function FileItemBase({
     );
 
   return (
-    <div className={classes} onClick={onClick} role={onClick ? "button" : undefined} tabIndex={onClick ? 0 : undefined}>
+    <div
+      className={classes}
+      onClick={downloading ? undefined : onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       {isLoading && <span className={styles.progressFill} style={{ width: `${pct}%` }} aria-hidden="true" />}
 
       <FileIcon label={fileType} />
