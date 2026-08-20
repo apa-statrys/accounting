@@ -7,6 +7,7 @@ import { Toast } from "../components/Toast";
 import { BottomSheet, stepSlide } from "../components/BottomSheet";
 import { TextField } from "../ui/TextField";
 import { Tile } from "../ui/Tile";
+import { Search } from "../ui/Search";
 import { CurrencySheet, CURRENCY_COUNTRY } from "../components/CurrencySheet";
 import { ReceivingAccountSheet } from "../components/ReceivingAccountSheet";
 import { CountryCodeSheet } from "../components/CountryCodeSheet";
@@ -64,22 +65,6 @@ function DemoLogo({ size = 72 }: { size?: number }) {
   );
 }
 
-/** Same search-mode header trigger as CountrySheet/CountryCodeSheet — tapping it swaps the
- *  sheet's title for a frosted search pill in place, same interaction everywhere in the app. */
-function SearchGlyph() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path
-        d="M17.4999 17.5001L13.8833 13.8835M15.8333 9.16667C15.8333 12.8486 12.8486 15.8333 9.16667 15.8333C5.48477 15.8333 2.5 12.8486 2.5 9.16667C2.5 5.48477 5.48477 2.5 9.16667 2.5C12.8486 2.5 15.8333 5.48477 15.8333 9.16667Z"
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 /** Text fields editable one-at-a-time via a single-input sheet. */
 type FieldKey = "companyName" | "email" | "registrationNumber" | "phone" | "website" | "address" | "city" | "state" | "zip" | "country";
 interface FieldMeta { label: string; placeholder: string; hint?: string; type?: "email" | "tel"; required?: boolean }
@@ -90,8 +75,8 @@ const FIELD_META: Record<FieldKey, FieldMeta> = {
   phone: { label: "Phone number", type: "tel", placeholder: "Enter contact phone number", hint: "Shown on invoices for customer queries." },
   website: { label: "Website", placeholder: "https://company.com", hint: "e.g. yourcompany.com" },
   address: { label: "Address", placeholder: "123 Queen's Road Central", hint: "Street address shown on your invoices.", required: true },
-  city: { label: "City", placeholder: "Select", hint: "The city of your registered address." },
-  state: { label: "State / province", placeholder: "Select", hint: "Leave blank if not applicable." },
+  city: { label: "City", placeholder: "Enter city", hint: "The city of your registered address." },
+  state: { label: "State / province", placeholder: "Enter state or province", hint: "Leave blank if not applicable." },
   zip: { label: "Zip / postal code", placeholder: "Enter zip or postal code", hint: "Postal or ZIP code of your address." },
   country: { label: "Country", placeholder: "Select", hint: "Country where your business operates." },
 };
@@ -106,15 +91,6 @@ const COUNTRIES = [
   "Indonesia", "Ireland", "Italy", "Japan", "Malaysia", "Mexico", "Netherlands",
   "New Zealand", "Singapore", "Spain", "United Kingdom", "United States",
 ];
-
-/** Country → its states/provinces and cities (demo data). Absent / empty → free-text input. */
-const COUNTRY_DATA: Record<string, { states: string[]; cities: string[] }> = {
-  "Hong Kong": { states: [], cities: ["Hong Kong Island", "Kowloon", "New Territories"] },
-  Singapore: { states: [], cities: ["Singapore"] },
-  "United States": { states: ["California", "New York", "Texas", "Florida", "Washington"], cities: [] },
-  "United Kingdom": { states: ["England", "Scotland", "Wales", "Northern Ireland"], cities: ["London", "Manchester", "Birmingham", "Edinburgh"] },
-  Australia: { states: ["New South Wales", "Victoria", "Queensland"], cities: ["Sydney", "Melbourne", "Brisbane"] },
-};
 
 /** Countries without postal codes — hide the Zip field for these (e.g. Hong Kong). */
 const NO_POSTAL_COUNTRIES = ["Hong Kong"];
@@ -165,13 +141,15 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   // Real <input type="file"> — the button below just proxies its click (no styleable native
   // file input), same as any hidden-input file-picker pattern.
   const logoInputRef = useRef<HTMLInputElement>(null);
-  // Active dropdown (country / city / state) inside the Business Address sheet.
-  const [picker, setPicker] = useState<{ field: "country" | "city" | "state"; title: string; options: string[] } | null>(null);
-  const [pickerQuery, setPickerQuery] = useState("");
-  // Search-mode header (Figma node 1333-38370, same interaction as CountrySheet/CountryCodeSheet):
-  // the title-row search icon swaps to a frosted search pill in place, back returns to the plain title.
-  const [pickerSearchOpen, setPickerSearchOpen] = useState(false);
-  const closePickerSearch = () => { setPickerSearchOpen(false); setPickerQuery(""); };
+  // Country picker (only dropdown left in Business Address — City/State are plain free-text
+  // fields, decided 2026-08-20, so there's no per-country options list to drive anymore).
+  const [countryPickerOpen, setCountryPickerOpen] = useState(false);
+  const [countryQuery, setCountryQuery] = useState("");
+  // Search-mode header (same interaction as CountrySheet/CountryCodeSheet, decided 2026-08-20): a
+  // plain non-sticky `ui/Search` row sits in the list as the entry point; tapping it swaps the
+  // sticky title row for a frosted search pill in place, back returns to the plain title.
+  const [countrySearchOpen, setCountrySearchOpen] = useState(false);
+  const closeCountrySearch = () => { setCountrySearchOpen(false); setCountryQuery(""); };
   const [phoneCountry, setPhoneCountry] = useState(DEFAULT_COUNTRY_CODE);
   // Country-code picker — a standalone CountryCodeSheet stacked on top of the Company Details
   // page (same pattern AddCustomerPage uses), not a sub-level swap — pages don't have a "panel"
@@ -191,18 +169,16 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   const openSheet = (k: SheetKey) => { setBaseline(s); setDraft(s); setLogoError(null); setCompanyAttempted(false); setAddressAttempted(false); setSheet(k); };
-  const openPicker = (p: { field: "country" | "city" | "state"; title: string; options: string[] }) => { closePickerSearch(); setPicker(p); };
+  const openCountryPicker = () => { closeCountrySearch(); setCountryPickerOpen(true); };
   // Edit-only back — same "Unsaved changes?" confirm shape as every other edit flow in the app.
   const [discardSettingsOpen, setDiscardSettingsOpen] = useState(false);
   const requestSheetBack = () => (dirty ? setDiscardSettingsOpen(true) : setSheet(null));
 
-  /** Apply a dropdown choice — changing country resets the dependent city + state. */
-  const selectOption = (val: string) => {
-    if (!picker) return;
-    if (picker.field === "country") {
-      setDraft((p) => (p ? { ...p, country: val, state: "", city: "", zip: NO_POSTAL_COUNTRIES.includes(val) ? "" : p.zip } : p));
-    } else set(picker.field, val);
-    setPicker(null);
+  /** Pick a country — City/State are free text now (decided 2026-08-20) so nothing dependent on
+   *  the old options lists needs resetting; only Zip still reacts (no-postal countries). */
+  const selectCountry = (val: string) => {
+    setDraft((p) => (p ? { ...p, country: val, zip: NO_POSTAL_COUNTRIES.includes(val) ? "" : p.zip } : p));
+    setCountryPickerOpen(false);
   };
 
   // Company Details / Business Address route through `draft` (discardable); every other field
@@ -573,10 +549,10 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
       </AnimatePresence>
 
       {/* Business Address — a full pushed page (decided 2026-08-11: over this app's 3-field
-          sheet-vs-page threshold — up to 5 fields) for the whole section. The country/city/state
-          dropdown picker is a standalone BottomSheet stacked on top (same shape as
-          CountrySheet/CountryCodeSheet: search only offered once a list has more than 8 rows) —
-          pages don't have a "panel" to swap sub-level steps within the way a BottomSheet did. */}
+          sheet-vs-page threshold — up to 5 fields) for the whole section. City/State are plain
+          free-text fields (decided 2026-08-20); Country is the only dropdown left, a standalone
+          BottomSheet stacked on top (same shape as CountrySheet/CountryCodeSheet) — pages don't
+          have a "panel" to swap sub-level steps within the way a BottomSheet did. */}
       <AnimatePresence>
       {sheet === "address" && (
         <motion.div
@@ -595,51 +571,21 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             </PageAppHeader>
 
             <div className={`px-4 pt-5 flex flex-col gap-4 ${keyboardOpen ? "pb-[380px]" : "pb-28"}`}>
-              {/* Country first — drives the city/state options below. Dropdown TextField to match
-                  the Create/Edit Customer fields (plain text + chevron, no flag icon — matches Figma). */}
+              {/* Country first. Dropdown TextField to match the Create/Edit Customer fields (plain
+                  text + chevron, no flag icon — matches Figma). */}
               <TextField
                 type="dropdown"
                 label={FIELD_META.country.label}
                 placeholder="Select country"
                 mandatory={FIELD_META.country.required}
                 value={view.country}
-                onClick={() => openPicker({ field: "country", title: "Country", options: COUNTRIES })}
+                onClick={openCountryPicker}
               />
 
-              {/* City — dropdown when the country has preset cities, otherwise free text */}
-              {(COUNTRY_DATA[view.country]?.cities.length ?? 0) > 0 ? (
-                <TextField
-                  type="dropdown"
-                  label={FIELD_META.city.label}
-                  placeholder="Select city"
-                  mandatory={FIELD_META.city.required}
-                  value={view.city}
-                  onClick={() => openPicker({ field: "city", title: "City", options: COUNTRY_DATA[view.country].cities })}
-                />
-              ) : (
-                field("city", addressAttempted)
-              )}
-
-              {/* State — only shown when the country has states/provinces. */}
-              <AnimatePresence>
-                {(COUNTRY_DATA[view.country]?.states.length ?? 0) > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="overflow-hidden"
-                  >
-                    <TextField
-                      type="dropdown"
-                      label={FIELD_META.state.label}
-                      placeholder="Select state / province"
-                      value={view.state}
-                      onClick={() => openPicker({ field: "state", title: "State / province", options: COUNTRY_DATA[view.country].states })}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* City / State — plain free-text fields (decided 2026-08-20, reversed the old
+                  per-country dropdown-options behavior) — same as Create/Edit Customer. */}
+              {field("city", addressAttempted)}
+              {field("state", addressAttempted)}
 
               {/* Zip — hidden for countries without postal codes (e.g. Hong Kong). */}
               <AnimatePresence>
@@ -670,41 +616,48 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             keyboard={keyboardOpen}
           />
 
-          {/* Country/City/State picker — own BottomSheet stacked on top of this page (nested here
-              so it z-stacks above it), same search-toggle convention as CountryCodeSheet. */}
+          {/* Country picker — own BottomSheet stacked on top of this page (nested here so it
+              z-stacks above it). A plain, non-sticky `ui/Search` row sits in the list as the entry
+              point; tapping it hands off to the same header search-pill mode CountrySheet/
+              CountryCodeSheet use (decided 2026-08-20 — see those for the full pattern doc). */}
           <BottomSheet
-            open={!!picker}
-            title={picker?.title ?? ""}
-            onBack={pickerSearchOpen ? closePickerSearch : undefined}
-            onClose={() => { setPicker(null); closePickerSearch(); }}
+            open={countryPickerOpen}
+            title="Country"
+            onBack={countrySearchOpen ? closeCountrySearch : undefined}
+            onClose={() => { setCountryPickerOpen(false); closeCountrySearch(); }}
             tall
-            action={picker && picker.options.length > 8 && !pickerSearchOpen ? <SearchGlyph /> : undefined}
-            onAction={picker && picker.options.length > 8 && !pickerSearchOpen ? () => setPickerSearchOpen(true) : undefined}
-            actionLabel={`Search ${picker?.title.toLowerCase() ?? ""}`}
-            searchValue={pickerSearchOpen ? pickerQuery : undefined}
-            onSearchChange={pickerSearchOpen ? setPickerQuery : undefined}
-            searchPlaceholder={`Search ${picker?.title.toLowerCase() ?? ""}`}
+            searchValue={countrySearchOpen ? countryQuery : undefined}
+            onSearchChange={countrySearchOpen ? setCountryQuery : undefined}
+            searchPlaceholder="Search Country"
             autoFocusSearch
-            footer={pickerSearchOpen ? <Keyboard /> : undefined}
+            footer={countrySearchOpen ? <Keyboard /> : undefined}
           >
             {/* Same content-level step transition as CountryCodeSheet — entering/exiting search
                 re-animates the row list too, not just the header's title/pill crossfade. */}
             <AnimatePresence mode="wait" initial={false}>
-              <motion.div key={pickerSearchOpen ? "search" : "list"} variants={stepSlide(pickerSearchOpen ? 1 : -1)} initial="closed" animate="open" exit="closed">
+              <motion.div
+                key={countrySearchOpen ? "search" : "list"}
+                className="flex flex-col gap-4"
+                variants={stepSlide(countrySearchOpen ? 1 : -1)}
+                initial="closed"
+                animate="open"
+                exit="closed"
+              >
+                {!countrySearchOpen && (
+                  <Search value="" onChange={() => {}} placeholder="Search Country" showAction={false} onFocus={() => setCountrySearchOpen(true)} />
+                )}
                 <div className="flex flex-col gap-2">
-                  {(picker?.options ?? [])
-                    .filter((o) => o.toLowerCase().includes(pickerQuery.toLowerCase()))
-                    .map((o) => (
-                      <Tile
-                        key={o}
-                        size="sm"
-                        title={o}
-                        flag={picker?.field === "country" ? <CountryFlag name={o} size={30} /> : undefined}
-                        selected={picker && view[picker.field] === o}
-                        trailing={picker && view[picker.field] === o ? "check" : "none"}
-                        onClick={() => selectOption(o)}
-                      />
-                    ))}
+                  {COUNTRIES.filter((o) => o.toLowerCase().includes(countryQuery.toLowerCase())).map((o) => (
+                    <Tile
+                      key={o}
+                      size="sm"
+                      title={o}
+                      flag={<CountryFlag name={o} size={30} />}
+                      selected={view.country === o}
+                      trailing={view.country === o ? "check" : "none"}
+                      onClick={() => selectCountry(o)}
+                    />
+                  ))}
                 </div>
               </motion.div>
             </AnimatePresence>

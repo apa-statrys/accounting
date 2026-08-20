@@ -317,22 +317,30 @@ in-session only — a reload resets it (expected prototype limit).
   since it's posing a real choice (retry vs. give up), not a plain chooser/preview.
 - **A picker sheet's own search entry is a plain, non-sticky field below the title — tapping it
   still hands off to the SAME header search-pill mode every other search-in-sheet flow uses**
-  (decided 2026-08-20, two-part iteration — CountryCodeSheet/CountrySheet used to hide search
-  behind a small tap-to-reveal ICON that morphed the title into a frosted pill). First pass replaced
-  the icon with an always-visible `ui/Search` field pinned in the sticky header via `headerExtra` —
-  corrected once the user clarified: the field itself isn't sticky and doesn't stay a separate
-  mechanism. Final shape: a real (but inert, not `autoFocus`) `ui/Search` row renders as normal
-  scrollable CONTENT right below the title (so it scrolls away like any other row, not pinned) —
-  tapping/focusing it sets `searchOpen` true, which switches the SAME `BottomSheet`
-  `searchValue`/`onSearchChange`/`onBack` props the old icon used to drive, so the sticky header
-  itself becomes the back-chevron + frosted search pill (with `autoFocusSearch`), same content-step
-  slide (`stepSlide()`) as Filters' own customer-search step. The on-screen `Keyboard` mock footer
-  only renders while `searchOpen`. `ui/Search` gained an `onBlur` prop along the way (it only had
-  `onFocus` before) — no longer used by these two sheets in the final shape, but kept since other
-  callers may still want focus/blur-driven `keyboardOpen` tracking. Doesn't apply to sheets that
-  already open straight into search with no toggle at all (CustomerSheet, ReceivingAccountSheet,
-  InvoiceSettings' pickers, Filters' customer-search step, CreateSalesInvoice) — ask before
-  converting those too.
+  (decided 2026-08-20, two-part iteration — CountryCodeSheet/CountrySheet/InvoiceSettings' own
+  Business Address country picker used to hide search behind a small tap-to-reveal ICON that
+  morphed the title into a frosted pill). First pass replaced the icon with an always-visible
+  `ui/Search` field pinned in the sticky header via `headerExtra` — corrected once the user
+  clarified: the field itself isn't sticky and doesn't stay a separate mechanism. Final shape: a
+  real (but inert, not `autoFocus`) `ui/Search` row renders as normal scrollable CONTENT right
+  below the title (so it scrolls away like any other row, not pinned) — tapping/focusing it sets
+  `searchOpen` true, which switches the SAME `BottomSheet` `searchValue`/`onSearchChange`/`onBack`
+  props the old icon used to drive, so the sticky header itself becomes the back-chevron + frosted
+  search pill (with `autoFocusSearch`), same content-step slide (`stepSlide()`) as Filters' own
+  customer-search step. The on-screen `Keyboard` mock footer only renders while `searchOpen`.
+  `ui/Search` gained an `onBlur` prop along the way (it only had `onFocus` before) — no longer used
+  by these three sheets in the final shape, but kept since other callers may still want
+  focus/blur-driven `keyboardOpen` tracking. Doesn't apply to sheets that already open straight
+  into search with no toggle at all (CustomerSheet, ReceivingAccountSheet, Filters'
+  customer-search step, CreateSalesInvoice) — ask before converting those too.
+- **City / State-province are always plain free-text fields, never a per-country dropdown**
+  (decided 2026-08-20 — InvoiceSettings' Business Address used to look up a demo `COUNTRY_DATA`
+  table and switch City/State to a dropdown-with-preset-options for a handful of countries
+  (US/UK/Australia/Hong Kong/Singapore), hiding State entirely for every other country. Reversed
+  to match AddCustomerPage's existing plain-text City/State fields — `COUNTRY_DATA` deleted
+  (nothing else used it), both fields always render, and picking a different Country no longer
+  clears whatever City/State text was already typed (only Zip still reacts, for no-postal
+  countries) — same as AddCustomerPage already did.
 - **A form with more than 3 data-entry fields is a full pushed page, not a `BottomSheet` drawer**
   (decided 2026-08-11). "Field" means a TextField/TextArea/dropdown-TextField the user actually
   fills in — not a single-select list picker (CountrySheet, CurrencySheet, DueDateSheet,
