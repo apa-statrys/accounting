@@ -6,6 +6,15 @@
   gap: var(--space-8);
 }
 
+/* Wraps the (optional, pre-search) trigger field + the row list for a single step — same gap
+   .body itself would give direct children, needed here since the step wrapper (AnimatePresence's
+   motion.div) sits between them. */
+.stepBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
 .list {
   display: flex;
   flex-direction: column;

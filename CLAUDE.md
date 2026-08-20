@@ -315,18 +315,24 @@ in-session only — a reload resets it (expected prototype limit).
   (file too large/unsupported) is `hideClose` too, but unlike the two categories above it needed a
   replacement: `type="double"` with `secondaryLabel="Cancel"` alongside "Choose Another File",
   since it's posing a real choice (retry vs. give up), not a plain chooser/preview.
-- **A picker sheet's own search is a static field below the title, not a header-icon toggle**
-  (decided 2026-08-20 — CountryCodeSheet/CountrySheet used to hide search behind a tap-to-reveal
-  icon that morphed the title into a frosted pill, via `BottomSheet`'s `action`+`isSearch` props
-  and a `searchOpen` step-swap; both now just render a `ui/Search` field permanently via
-  `headerExtra`, title stays plain text, and the ✕ shows for free since `isSearch`/`action` are no
-  longer in play). Doesn't apply to sheets that already open straight into search with no toggle at
-  all (CustomerSheet, ReceivingAccountSheet, InvoiceSettings' pickers, Filters' customer-search
-  step, CreateSalesInvoice) — ask before converting those too. The field is NOT focused on open
-  (no `autoFocus`) — the on-screen `Keyboard` mock footer only appears once the user actually taps
-  in (a `keyboardOpen` state wired to `ui/Search`'s `onFocus`/`onBlur`, the same pair `TextField`
-  fields elsewhere use to drive their own dock/keyboard-mock timing). `ui/Search` gained an
-  `onBlur` prop for this (it only had `onFocus` before).
+- **A picker sheet's own search entry is a plain, non-sticky field below the title — tapping it
+  still hands off to the SAME header search-pill mode every other search-in-sheet flow uses**
+  (decided 2026-08-20, two-part iteration — CountryCodeSheet/CountrySheet used to hide search
+  behind a small tap-to-reveal ICON that morphed the title into a frosted pill). First pass replaced
+  the icon with an always-visible `ui/Search` field pinned in the sticky header via `headerExtra` —
+  corrected once the user clarified: the field itself isn't sticky and doesn't stay a separate
+  mechanism. Final shape: a real (but inert, not `autoFocus`) `ui/Search` row renders as normal
+  scrollable CONTENT right below the title (so it scrolls away like any other row, not pinned) —
+  tapping/focusing it sets `searchOpen` true, which switches the SAME `BottomSheet`
+  `searchValue`/`onSearchChange`/`onBack` props the old icon used to drive, so the sticky header
+  itself becomes the back-chevron + frosted search pill (with `autoFocusSearch`), same content-step
+  slide (`stepSlide()`) as Filters' own customer-search step. The on-screen `Keyboard` mock footer
+  only renders while `searchOpen`. `ui/Search` gained an `onBlur` prop along the way (it only had
+  `onFocus` before) — no longer used by these two sheets in the final shape, but kept since other
+  callers may still want focus/blur-driven `keyboardOpen` tracking. Doesn't apply to sheets that
+  already open straight into search with no toggle at all (CustomerSheet, ReceivingAccountSheet,
+  InvoiceSettings' pickers, Filters' customer-search step, CreateSalesInvoice) — ask before
+  converting those too.
 - **A form with more than 3 data-entry fields is a full pushed page, not a `BottomSheet` drawer**
   (decided 2026-08-11). "Field" means a TextField/TextArea/dropdown-TextField the user actually
   fills in — not a single-select list picker (CountrySheet, CurrencySheet, DueDateSheet,
