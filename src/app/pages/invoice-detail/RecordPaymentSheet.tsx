@@ -115,15 +115,13 @@ export function RecordPaymentSheet({
       keyboardOpen={keyboardOpen}
       footer={step === "form" ? (
         <ButtonDock
-          type="double"
+          type="single"
           keyboard={keyboardOpen}
-          secondaryLabel="Cancel"
-          secondaryDisabled={sending || sent}
-          // The sheet title already names the action, so the CTA is just the commit verb.
+          // The sheet title already names the action, so the CTA is just the commit verb — the
+          // header's own ✕ close covers "cancel" now (decided 2026-08-20), no secondary needed.
           primaryLabel={sent ? "Recorded" : "Confirm"}
           primaryLoading={sending}
           primarySuccess={sent}
-          onSecondary={onClose}
           onPrimary={handleSubmit}
         />
       ) : undefined}

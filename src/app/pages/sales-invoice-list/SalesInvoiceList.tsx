@@ -796,6 +796,7 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
         open={!!confirmDeleteId}
         title="Delete Draft Invoice?"
         onClose={() => setConfirmDeleteId(null)}
+        hideClose
         compact
         footer={
           <ButtonDock

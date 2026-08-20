@@ -48,7 +48,7 @@
   max-height: calc(100% - 43px);
 }
 
-/* Scrollable area — grabber+title header sticks to its top (see .dsHeader)
+/* Scrollable area — the title header sticks to its top (see .dsHeader)
    while everything below scrolls underneath it. */
 .scrollArea {
   flex: 1 1 0%;
@@ -105,28 +105,12 @@
   opacity: 1;
 }
 
-.grabberRow {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  height: 24px;
-  padding-top: var(--space-4);
-}
-
-.grabber {
-  width: 48px;
-  height: 5px;
-  border-radius: var(--radius-full);
-  /* Value matches --text-disabled / --icon-disabled numerically, but this is
-     a grabber indicator (not disabled text/icon) — kept literal on purpose. */
-  background: rgba(27, 27, 27, 0.3);
-}
-
-/* Titleless menu sheets (e.g. the ⋯ actions menu) show just the grabber —
-   the 60px title row collapses down when there's no title/back/action. Still
-   needs real breathing room before the content though (no title row means no
-   60px of vertical centering to fall back on) — 32px, not the tight 8px
-   between the grabber and a real title's baseline. */
+/* Titleless menu sheets with nothing at all in the header (rare — even a bare
+   ⋯ actions menu sheet now normally shows the ✕) collapse the 60px title row
+   down to a small gap instead. Still needs real breathing room before the
+   content though (no title row means no 60px of vertical centering to fall
+   back on) — 32px, not the tight 8px between the grabber and a real title's
+   baseline (kept even though the grabber itself is gone, 2026-08-20). */
 .titlelessGap {
   height: var(--space-16);
 }

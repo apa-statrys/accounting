@@ -338,6 +338,7 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
       open={discardSettingsOpen}
       title="Unsaved changes?"
       onClose={() => setDiscardSettingsOpen(false)}
+      hideClose
       compact
       footer={
         <ButtonDock

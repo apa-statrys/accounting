@@ -293,6 +293,20 @@ in-session only — a reload resets it (expected prototype limit).
 - A deeper "level" inside a sheet (a sub-menu, a nested detail, RecordPaymentSheet's
   account/date sub-steps) swaps content in the SAME `BottomSheet` instance (a `step` state +
   slide transition + `onBack`) — never a second sheet stacked on top of the first.
+- **`BottomSheet` shows a header ✕ close by default, no more grabber handle** (decided 2026-08-20 —
+  the handle is gone everywhere; the ✕ is now the sheet's primary explicit dismiss affordance,
+  replacing the old fullPage-only `showClose`). Two opt-outs, both via `hideClose`: (1) a modal
+  CONFIRM dialog whose footer already poses the decision as an explicit button pair — delete
+  confirmations ("Delete this draft?" etc.) and "Unsaved changes?" sheets keep their existing
+  Cancel/Keep-X secondary and get no ✕, since a second, differently-meaning way to leave would only
+  confuse which action actually happens; (2) any `footer` with 3 CTAs (`ButtonDock type="triple"`,
+  e.g. AddInvoiceDetails'/CreditNoteForm's "Saved as draft" sheets, the customer-conflict sheet's
+  notice step) — three explicit actions already on offer, a ✕ has no single clear meaning. Every
+  OTHER sheet with a footer `secondaryLabel="Cancel"` had that button removed in the same pass
+  (the ✕ replaces it) — e.g. AddCustomerPage's duplicate-warning sheet is now a single "Save/Create
+  Anyway" CTA, RecordPaymentSheet's form step is now a single "Confirm" CTA. A sheet with NO Cancel
+  to begin with (plain single-select pickers, the conflict sheet's "Keep Mine"/"Use Theirs" compare
+  step) just gains the ✕ for free — nothing else changes.
 - **A form with more than 3 data-entry fields is a full pushed page, not a `BottomSheet` drawer**
   (decided 2026-08-11). "Field" means a TextField/TextArea/dropdown-TextField the user actually
   fills in — not a single-select list picker (CountrySheet, CurrencySheet, DueDateSheet,

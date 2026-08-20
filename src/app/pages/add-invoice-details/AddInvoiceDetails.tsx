@@ -997,6 +997,7 @@ export function AddInvoiceDetails({
         open={savedDraftSheetOpen}
         title="Saved as draft"
         onClose={() => setSavedDraftSheetOpen(false)}
+        hideClose
         compact
         footer={
           <ButtonDock
@@ -1031,6 +1032,7 @@ export function AddInvoiceDetails({
         open={discardEditOpen}
         title="Unsaved changes?"
         onClose={() => setDiscardEditOpen(false)}
+        hideClose
         compact
         footer={
           <ButtonDock

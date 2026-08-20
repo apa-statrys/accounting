@@ -64,9 +64,7 @@ interface BottomSheetProps {
   /** Pin to a fixed height (Tailwind class, e.g. "h-[68%]") so sibling sheets match exactly. */
   heightClass?: string;
   /** Almost-full-page drawer (e.g. a Filters/Customer-search sheet) — fixed 92% height, leaving
-   *  just enough room below the phone frame's status bar. Overrides `tall`/`heightClass`. Also
-   *  gets an automatic ✕ close button in the title row (see `showClose`) — the scrim it leaves
-   *  exposed is too thin a target to rely on as the only way to dismiss. */
+   *  just enough room below the phone frame's status bar. Overrides `tall`/`heightClass`. */
   fullPage?: boolean;
   /** 20px icon for the header's frosted 36px action button. */
   action?: React.ReactNode;
@@ -75,6 +73,13 @@ interface BottomSheetProps {
   /** Frosted back-chevron button before the title (e.g. a nested sheet returning to its parent sheet). */
   onBack?: () => void;
   backLabel?: string;
+  /** Suppress the header's ✕ close button (shown by default — see `showClose`). Set this on a
+   *  modal CONFIRM dialog (delete-confirmation, "Unsaved changes?", etc.) whose footer already
+   *  poses the decision as an explicit button pair — an extra ✕ would just be a second, competing
+   *  way to leave with a different (unclear) meaning. Also set it on any `footer` with 3 CTAs
+   *  (`ButtonDock type="triple"`) — with three explicit actions already on offer, a ✕ has no clear
+   *  single meaning either. */
+  hideClose?: boolean;
   /** Center the title (same card-title-md size as the default left-aligned title — only the alignment differs). */
   centerTitle?: boolean;
   /** Fires when the scrollable content scrolls (e.g. to collapse an inline search). */
@@ -118,13 +123,12 @@ interface BottomSheetProps {
  * The parent screen handles the "book-page" recede of the page behind.
  * See memory: bottom-sheet-animation.
  */
-export function BottomSheet({ open, title, onClose, children, footer, tall, heightClass, fullPage, action, onAction, actionLabel = "Action", onBack, backLabel = "Back", centerTitle, onContentScroll, compact, searchValue, onSearchChange, searchPlaceholder, autoFocusSearch, headerExtra, keyboardOpen = false, minHeightPx, panelRef }: BottomSheetProps) {
+export function BottomSheet({ open, title, onClose, children, footer, tall, heightClass, fullPage, action, onAction, actionLabel = "Action", onBack, backLabel = "Back", hideClose = false, centerTitle, onContentScroll, compact, searchValue, onSearchChange, searchPlaceholder, autoFocusSearch, headerExtra, keyboardOpen = false, minHeightPx, panelRef }: BottomSheetProps) {
   const isSearch = onSearchChange !== undefined;
-  // An almost-full-page sheet (`fullPage`) leaves so little of the scrim exposed around it that
-  // tap-to-dismiss is barely reachable — unlike a normal-height sheet, it needs an explicit X in
-  // the title row too (a caller's own `action` still wins if one is passed, though no `fullPage`
-  // sheet currently uses one).
-  const showClose = fullPage && !action && !isSearch;
+  // Shown by default (decided 2026-08-20 — replaces the old grabber handle as the sheet's dismiss
+  // affordance) — a caller's own `action` icon or search-mode pill still wins the one top-right
+  // icon slot, and `hideClose` opts a modal confirm (or a 3-CTA footer) out entirely (see prop doc).
+  const showClose = !hideClose && !action && !isSearch;
   // Drives the header's frost — same transparent-at-rest/frosted-on-scroll
   // recipe as components/PageAppHeader, but tracked internally so every sheet
   // gets it for free (no per-screen `scrolled` plumbing needed).
@@ -208,7 +212,7 @@ export function BottomSheet({ open, title, onClose, children, footer, tall, heig
             variants={sheet}
             ref={panelRef}
           >
-            {/* Scrollable area — the grabber+title header sticks to its top (frosting
+            {/* Scrollable area — the title header sticks to its top (frosting
                 as content scrolls beneath it), everything else scrolls normally. */}
             <div
               ref={scrollRef}
@@ -220,18 +224,14 @@ export function BottomSheet({ open, title, onClose, children, footer, tall, heig
               }}
             >
               {/* Bottomsheets header (Figma "[APP] Design System" → Bottomsheets, node 4038-2684):
-                  grabber + 28px/22px title + optional frosted action button. A normal-height sheet
-                  has no ✕ — it dismisses via the scrim or a footer button, which stay reachable
-                  around it. `fullPage` leaves too little scrim exposed for that, so it gets an
-                  automatic ✕ in the title row instead (see `showClose`). */}
+                  28px/22px title + optional frosted action button + a ✕ close (decided 2026-08-20 —
+                  replaces the old grabber-handle affordance; see `showClose`/`hideClose`). */}
               <div className={[styles.dsHeader, scrolled ? styles.scrolled : ""].join(" ")}>
                 <div className={styles.frost} aria-hidden />
-                <div className={styles.grabberRow}>
-                  <span className={styles.grabber} />
-                </div>
-                {/* Titleless menu sheets (e.g. the ⋯ actions menu) show just the grabber — the 60px
-                    title row is collapsed to a small gap when there's no title / back / action. */}
-                {!title && !onBack && !action && !isSearch ? (
+                {/* Titleless menu sheets (e.g. the ⋯ actions menu) show just the ✕ (or nothing, if
+                    even that's suppressed) — the 60px title row collapses to a small gap only when
+                    NONE of title/back/action/search/close have anything to show. */}
+                {!title && !onBack && !action && !isSearch && !showClose ? (
                   <div className={styles.titlelessGap} />
                 ) : (
                 <div className={styles.titleRow}>

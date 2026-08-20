@@ -250,6 +250,7 @@ export function AddServicesSheet({
             open={discardOpen}
             title="Unsaved changes?"
             onClose={() => setDiscardOpen(false)}
+            hideClose
             compact
             footer={
               <ButtonDock
@@ -275,6 +276,7 @@ export function AddServicesSheet({
             open={confirmDeleteOpen}
             title="Delete this item?"
             onClose={() => setConfirmDeleteOpen(false)}
+            hideClose
             compact
             footer={
               <ButtonDock

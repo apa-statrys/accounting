@@ -369,6 +369,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         open={discardOpen}
         title="Unsaved changes?"
         onClose={() => setDiscardOpen(false)}
+        hideClose
         compact
         footer={
           <ButtonDock
@@ -394,10 +395,8 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         compact
         footer={
           <ButtonDock
-            type="double"
-            secondaryLabel="Cancel"
+            type="single"
             primaryLabel={isEdit ? "Save Anyway" : "Create Anyway"}
-            onSecondary={() => setDupOpen(false)} // Cancel → stay on the customer form
             onPrimary={() => { setDupOpen(false); commitSave(); }}
           />
         }
@@ -430,6 +429,7 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         title={conflictStep === "notice" ? "This customer was updated by someone else" : "Review the changes"}
         onBack={conflictStep === "compare" ? () => setConflictStep("notice") : undefined}
         onClose={() => setConflictOpen(false)}
+        hideClose={conflictStep === "notice"}
         compact
         footer={
           conflictStep === "notice" ? (

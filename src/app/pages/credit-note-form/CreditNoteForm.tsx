@@ -790,6 +790,7 @@ export function CreditNoteForm({
         open={savedDraftOpen}
         title="Saved as draft"
         onClose={() => setSavedDraftOpen(false)}
+        hideClose
         compact
         footer={
           <ButtonDock
@@ -817,6 +818,7 @@ export function CreditNoteForm({
         open={unsavedOpen}
         title="Unsaved changes?"
         onClose={() => setUnsavedOpen(false)}
+        hideClose
         compact
         footer={
           <ButtonDock

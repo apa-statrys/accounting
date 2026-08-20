@@ -649,6 +649,7 @@ export function CreditNoteDetailPage(props: CreditNoteDetailPageProps) {
         open={confirmDelete}
         title="Delete credit note?"
         onClose={() => setConfirmDelete(false)}
+        hideClose
         compact
         footer={
           <ButtonDock

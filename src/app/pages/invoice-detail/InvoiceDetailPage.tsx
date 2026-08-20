@@ -1011,6 +1011,7 @@ export function InvoiceDetailPage({
         open={confirmDelete}
         title="Delete this draft?"
         onClose={() => setConfirmDelete(false)}
+        hideClose
         compact
         footer={
           <ButtonDock
