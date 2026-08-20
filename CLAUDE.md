@@ -276,8 +276,8 @@ in-session only — a reload resets it (expected prototype limit).
   for "is this note creditless" either way.
 - **Editing an existing record: one always-shown Save CTA, no Cancel** (decided 2026-08-20,
   supersedes the earlier hidden-until-dirty Save+Cancel pair) — AddCustomerPage (edit mode),
-  AddInvoiceDetails' `editingIssuedInvoice`, InvoiceSettings' Company Details/Business Address, and
-  CreditNoteForm's edit mode all use a `type="single"` `ButtonDock`, always rendered, with
+  AddInvoiceDetails' `editingIssuedInvoice`, InvoiceSettings' Company Details/Business Address,
+  CreditNoteForm's edit mode, and AddServicesSheet's Edit Item all use a `type="single"` `ButtonDock`, always rendered, with
   `primaryLabel="Save"` and `primaryDisabled={!dirty}` — no `secondaryLabel`/`onSecondary`. The
   header back chevron is unchanged: it's still the way to leave without saving, still confirming via
   a separate "Unsaved changes?" `BottomSheet` (Save/Cancel, `type="double"`) when dirty — that
