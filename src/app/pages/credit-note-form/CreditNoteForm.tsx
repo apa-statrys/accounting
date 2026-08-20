@@ -694,8 +694,9 @@ export function CreditNoteForm({
           is too much motion; instead the Keyboard mock below overlays it in place (same idea as
           NumericKeypad already does for a focused unit price), so the dock never moves.
           Edit mode has no total dock — the inline Summary card above already shows the same
-          totals — just a Save/Cancel dock, hidden until the user actually changes something
-          (`dirty`), same as AddInvoiceDetails' editingIssuedInvoice pattern (no ⋯ menu anymore). */}
+          totals — just a single Save dock, always shown but disabled until the user actually
+          changes something (`dirty`), no separate Cancel CTA (decided 2026-08-20), same as
+          AddInvoiceDetails' editingIssuedInvoice pattern (no ⋯ menu anymore). */}
       {!isEdit ? (
         <SummaryDock
           amount={
@@ -708,17 +709,14 @@ export function CreditNoteForm({
           onPrimary={handleCreate}
         />
       ) : (
-        dirty && (
-          <ButtonDock
-            type="double"
-            sticky
-            primaryLabel={submitLabel ?? "Save"}
-            secondaryLabel="Cancel"
-            onPrimary={handleSave}
-            onSecondary={onBack}
-            keyboard={keyboardOpen}
-          />
-        )
+        <ButtonDock
+          type="single"
+          sticky
+          primaryLabel={submitLabel ?? "Save"}
+          primaryDisabled={!dirty}
+          onPrimary={handleSave}
+          keyboard={keyboardOpen}
+        />
       )}
 
       {/* On-screen keyboard mock for the focused Description field — overlays the sticky dock

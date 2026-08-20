@@ -490,17 +490,14 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             </div>
           </div>
 
-          {dirty && (
-            <ButtonDock
-              type="double"
-              sticky
-              primaryLabel="Save"
-              secondaryLabel="Cancel"
-              onPrimary={handleSaveCompany}
-              onSecondary={() => setSheet(null)}
-              keyboard={keyboardOpen}
-            />
-          )}
+          <ButtonDock
+            type="single"
+            sticky
+            primaryLabel="Save"
+            primaryDisabled={!dirty}
+            onPrimary={handleSaveCompany}
+            keyboard={keyboardOpen}
+          />
 
           <CountryCodeSheet
             open={phoneCodeOpen}
@@ -663,17 +660,14 @@ export function InvoiceSettings({ initial = DEFAULT_SETTINGS, onExit }: InvoiceS
             </div>
           </div>
 
-          {dirty && (
-            <ButtonDock
-              type="double"
-              sticky
-              primaryLabel="Save"
-              secondaryLabel="Cancel"
-              onPrimary={handleSaveAddress}
-              onSecondary={() => setSheet(null)}
-              keyboard={keyboardOpen}
-            />
-          )}
+          <ButtonDock
+            type="single"
+            sticky
+            primaryLabel="Save"
+            primaryDisabled={!dirty}
+            onPrimary={handleSaveAddress}
+            keyboard={keyboardOpen}
+          />
 
           {/* Country/City/State picker — own BottomSheet stacked on top of this page (nested here
               so it z-stacks above it), same search-toggle convention as CountryCodeSheet. */}

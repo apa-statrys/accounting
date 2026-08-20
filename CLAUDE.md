@@ -274,6 +274,16 @@ in-session only — a reload resets it (expected prototype limit).
   rather than `lines.length` — kept as `total` even after `CreditNotesList`'s `saveFromList` was
   fixed (2026-08-12) to also persist `p.lines` on edit, since `total` is the more direct signal
   for "is this note creditless" either way.
+- **Editing an existing record: one always-shown Save CTA, no Cancel** (decided 2026-08-20,
+  supersedes the earlier hidden-until-dirty Save+Cancel pair) — AddCustomerPage (edit mode),
+  AddInvoiceDetails' `editingIssuedInvoice`, InvoiceSettings' Company Details/Business Address, and
+  CreditNoteForm's edit mode all use a `type="single"` `ButtonDock`, always rendered, with
+  `primaryLabel="Save"` and `primaryDisabled={!dirty}` — no `secondaryLabel`/`onSecondary`. The
+  header back chevron is unchanged: it's still the way to leave without saving, still confirming via
+  a separate "Unsaved changes?" `BottomSheet` (Save/Cancel, `type="double"`) when dirty — that
+  modal confirm is a different concern (a one-time binary decision) from the page's own persistent
+  dock, and keeps both buttons. Delete-confirmation dialogs and other modal confirms (duplicate-
+  record warnings, etc.) are unaffected by this rule for the same reason.
 - Every phone-frame screen must be inside `.mobile-mode` scope (already applied on App.tsx's root
   wrapper, so all in-app screens inherit it) so typography tokens resolve to mobile sizes — the
   responsive `@media` breakpoint keys off the real browser viewport, not the 375px frame, so any

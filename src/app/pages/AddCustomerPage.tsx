@@ -316,24 +316,20 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
         </div>
       </div>
 
-      {/* Edit: hidden until something actually changes (`dirty`) — an untouched edit session has
-          nothing to save or cancel, same as AddInvoiceDetails' editingIssuedInvoice dock. Cancel
-          is a direct, unconfirmed discard (already an explicit choice next to Save); the header
-          back chevron is the ambiguous action, so it confirms via requestBack instead. Add mode
+      {/* Edit: always shown, disabled until something actually changes (`dirty`) — no separate
+          Cancel CTA (decided 2026-08-20: one primary action, not a pair); the header back chevron
+          is still the way to leave without saving, confirming via requestBack when dirty. Add mode
           keeps its own single always-shown "Add Customer" CTA — there's nothing to "cancel" on a
           still-empty fresh add. */}
       {isEdit ? (
-        dirty && (
-          <ButtonDock
-            type="double"
-            sticky
-            primaryLabel="Save"
-            secondaryLabel="Cancel"
-            onPrimary={handleSave}
-            onSecondary={onBack}
-            keyboard={keyboardOpen}
-          />
-        )
+        <ButtonDock
+          type="single"
+          sticky
+          primaryLabel="Save"
+          primaryDisabled={!dirty}
+          onPrimary={handleSave}
+          keyboard={keyboardOpen}
+        />
       ) : (
         <ButtonDock
           type="single"

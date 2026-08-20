@@ -859,27 +859,23 @@ export function AddInvoiceDetails({
       </div>
 
         {isEditing && editingIssuedInvoice ? (
-          // Plain Edit Invoice (an issued invoice, opened from its detail page) — explicit Save/
-          // Cancel, no autosave. Hidden until the user actually changes something (`dirty`): an
-          // untouched edit session has nothing to save or cancel. Cancel reuses the same
-          // onEditBack the header chevron calls when nothing's dirty — a clean, unconfirmed
-          // return, since choosing Cancel (right next to Save) is already an explicit choice;
-          // the header chevron is the ambiguous action, so it confirms via requestEditBack instead.
-          dirty && (
-            <ButtonDock
-              type="double"
-              sticky
-              primaryLabel="Save"
-              secondaryLabel="Cancel"
-              // Save is never blocked by incomplete fields (decided 2026-08-12) — same as the
-              // header back chevron's "Unsaved changes?" confirm sheet, whose own Save button
-              // never validated at all. An edit with 0 items still saves; InvoiceDetailPage shows
-              // what's missing (e.g. "No items added yet") instead of silently hiding the section.
-              onPrimary={onEditSave}
-              onSecondary={onEditBack}
-              keyboard={keyboardOpen}
-            />
-          )
+          // Plain Edit Invoice (an issued invoice, opened from its detail page) — always shown,
+          // disabled until the user actually changes something (`dirty`); no separate Cancel CTA
+          // (decided 2026-08-20: one primary action, not a pair). The header chevron is still the
+          // way to leave without saving, confirming via requestEditBack when dirty.
+          <ButtonDock
+            type="single"
+            sticky
+            primaryLabel="Save"
+            // Disabled until dirty (above) — once enabled, never blocked by incomplete fields
+            // (decided 2026-08-12), same as the header back chevron's "Unsaved changes?" confirm
+            // sheet, whose own Save button never validated at all. An edit with 0 items still
+            // saves; InvoiceDetailPage shows what's missing (e.g. "No items added yet") instead of
+            // silently hiding the section.
+            primaryDisabled={!dirty}
+            onPrimary={onEditSave}
+            keyboard={keyboardOpen}
+          />
         ) : isEditing ? (
           <ButtonDock
             type="single"
