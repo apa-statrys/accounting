@@ -2350,7 +2350,7 @@ function PageHeaderTestMe() {
                 title="Title"
                 showSearch={false}
                 rightSlot={
-                  <span className="flex items-center gap-2 text-[16px]" style={{ ...FONT, color: INK }}>
+                  <span className="body-sm flex items-center gap-2" style={{ color: INK }}>
                     <CircleIcon size={20} /> Slot
                   </span>
                 }

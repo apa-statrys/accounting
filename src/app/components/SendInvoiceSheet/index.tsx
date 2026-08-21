@@ -273,7 +273,7 @@ export function SendInvoiceSheet({
                 rightSlot={
                   <button
                     type="button"
-                    className="link-sentence-sm"
+                    className="body-sm"
                     style={{ color: INK }}
                     onClick={() => { setPreviewSegment(0); setPreviewOpen(true); }}
                   >
