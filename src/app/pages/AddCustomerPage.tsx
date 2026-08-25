@@ -250,13 +250,13 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
                 onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
               <div className="flex gap-4">
-                <TextField label="First Name" placeholder="Enter first name" className="flex-1"
+                <TextField label="First Name" placeholder="e.g. Amelia" className="flex-1"
                   value={firstName} onChange={setFirstName} onFocus={focusKeyboard} onBlur={blurKeyboard} />
-                <TextField label="Last Name" placeholder="Enter last name" className="flex-1"
+                <TextField label="Last Name" placeholder="e.g. Chan" className="flex-1"
                   value={lastName} onChange={setLastName} onFocus={focusKeyboard} onBlur={blurKeyboard} />
               </div>
 
-              <TextField label="Company Registration Number" placeholder="Enter registration number"
+              <TextField label="Company Registration Number" placeholder="e.g. 201934567K"
                 value={regNo} onChange={setRegNo} onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
               <TextField dataReq="customer-email" label="Email Address" inputType="email" placeholder="e.g. abc@gmail.com" mandatory
@@ -265,14 +265,14 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
 
               {/* TextField's own "mobile" type (flag + dial code + chevron selector) — see
                   memory: no-handrolled-ds-duplicates. */}
-              <TextField type="mobile" dataReq="customer-phone" label="Phone Number" inputType="tel" placeholder="Enter contact phone number"
+              <TextField type="mobile" dataReq="customer-phone" label="Phone Number" inputType="tel" placeholder="e.g. +65 8123 4567"
                 selectorLabel={phoneCountry.dialCode}
                 selectorIcon={<CountryFlag name={phoneCountry.name} size={20} />}
                 onSelectorClick={() => setPhoneCodeOpen(true)}
                 error={!!err("phone")} caption={err("phone") || undefined} value={phone} onChange={setPhone}
                 onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
-              <TextField dataReq="customer-website" label="Website" placeholder="Enter company website"
+              <TextField dataReq="customer-website" label="Website" placeholder="e.g. atlaslogistics.com"
                 error={!!err("website")} caption={err("website") || undefined} value={website} onChange={setWebsite}
                 onFocus={focusKeyboard} onBlur={blurKeyboard} />
             </div>
@@ -284,12 +284,12 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
               <TextField type="dropdown" dataReq="customer-country" label="Country" mandatory placeholder="Select country"
                 error={!!err("country")} caption={err("country") || undefined} value={country} onClick={() => setCountryOpen(true)} />
 
-              <TextField dataReq="customer-address" label="Address" mandatory placeholder="Enter company address"
+              <TextField dataReq="customer-address" label="Address" mandatory placeholder="e.g. 12 Marina Boulevard, #09-01"
                 error={!!err("address")} caption={err("address") || undefined} value={address} onChange={setAddress}
                 onFocus={focusKeyboard} onBlur={blurKeyboard} />
 
               <div className="flex gap-4">
-                <TextField dataReq="customer-city" label="City" mandatory placeholder="Enter city"
+                <TextField dataReq="customer-city" label="City" mandatory placeholder="e.g. Singapore"
                   error={!!err("city")} caption={err("city") || undefined} className="flex-1" value={city} onChange={setCity}
                   onFocus={focusKeyboard} onBlur={blurKeyboard} />
                 {!noPostal && (
