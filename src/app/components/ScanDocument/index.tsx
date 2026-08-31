@@ -20,13 +20,43 @@ function Corner({ pos }: { pos: "tl" | "tr" | "bl" | "br" }) {
   return <span className={`${base} ${map[pos]}`} aria-hidden />;
 }
 
-/** Small captured-page preview tile for the filmstrip below the viewfinder — a miniature of
- *  the same document mock. Order is implicit (left to right), no badge needed. */
-function PageThumb() {
+/** The demo invoice-page visual — same mock reused at filmstrip-thumbnail, viewfinder, and
+ *  full-page-preview sizes (via `className`), so all three stay pixel-consistent. */
+function DocMockCard({ className = "" }: { className?: string }) {
   return (
-    <div
-      className="relative shrink-0 w-12 h-16 rounded-md bg-white overflow-hidden shadow-[0_2px_6px_rgba(0,0,0,0.35)] flex flex-col gap-1 p-1.5"
-      aria-hidden
+    <div className={`bg-white rounded-md overflow-hidden flex flex-col gap-3 p-5 shadow-[0_0_40px_rgba(0,0,0,0.5)] ${className}`}>
+      <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-1.5">
+          <div className="h-3 w-20 rounded bg-[var(--bg-neutral-inverse-primary)]" />
+          <div className="h-1.5 w-16 rounded bg-[#e5e5e5]" />
+        </div>
+        <div className="h-8 w-8 rounded bg-[#eee]" />
+      </div>
+      <div className="h-px w-full bg-[#f0f0f0]" />
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="flex items-center justify-between">
+          <div className="h-2 rounded bg-[#ececec]" style={{ width: `${52 - i * 7}%` }} />
+          <div className="h-2 w-9 rounded bg-[#ececec]" />
+        </div>
+      ))}
+      <div className="mt-auto flex items-center justify-between">
+        <div className="h-2.5 w-12 rounded bg-[#e5e5e5]" />
+        <div className="h-2.5 w-16 rounded bg-[var(--bg-neutral-inverse-primary)]" />
+      </div>
+    </div>
+  );
+}
+
+/** Small captured-page tile for the filmstrip below the viewfinder — a miniature of the same
+ *  document mock; tap to view that page full-screen. Order is implicit (left to right), no
+ *  badge needed. */
+function PageThumb({ index, onClick }: { index: number; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={`View page ${index + 1}`}
+      onClick={onClick}
+      className="relative shrink-0 w-12 h-16 rounded-md bg-white overflow-hidden shadow-[0_2px_6px_rgba(0,0,0,0.35)] flex flex-col gap-1 p-1.5 active:scale-95 transition-transform"
     >
       <div className="h-1 w-6 rounded-sm bg-[var(--bg-neutral-inverse-primary)]" />
       <div className="h-0.5 w-5 rounded-sm bg-[#e5e5e5]" />
@@ -34,7 +64,7 @@ function PageThumb() {
         <div className="h-0.5 w-full rounded-sm bg-[#ececec]" />
         <div className="h-0.5 w-4/5 rounded-sm bg-[#ececec]" />
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -46,10 +76,11 @@ function PageThumb() {
  * close anything) drops back to the live scanner to try again, same as the shutter tap never
  * happened; it never exits the whole scan. Once at least one page is confirmed, the user can
  * shoot another page (multi-page invoice) or tap Done to finish — all pages become ONE invoice
- * document, handed back via a single `onCapture(pageCount)` call. The bottom-bar photo-library
- * button opens a multi-select photo grid (no retake needed for already-existing photos) — same
- * spot as iOS Camera's last-shot thumbnail, so upload isn't camera-only; picking several at
- * once adds them all as pages in one go.
+ * document, handed back via a single `onCapture(pageCount)` call. Tapping a filmstrip
+ * thumbnail opens that page full-screen (back chevron top-left) so it isn't stuck tiny. The
+ * bottom-bar photo-library button opens a multi-select photo grid the same way — tap a tile to
+ * preview it full-screen and pick/unpick it there — no retake needed for already-existing
+ * photos, and picking several at once adds them all as pages in one go.
  * Renders full-screen (`absolute inset-0`) over whatever's underneath (CreateInvoiceSheet) —
  * needs a positioned ancestor sized to the phone frame, same as any other sheet overlay.
  */
@@ -70,6 +101,8 @@ export function ScanDocument({
   const [selectedOrder, setSelectedOrder] = useState<number[]>([]);
   // Which library tile is open full-screen for detail — null = showing the grid.
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  // Which already-captured page (filmstrip) is open full-screen — null = not previewing one.
+  const [pagePreviewIndex, setPagePreviewIndex] = useState<number | null>(null);
 
   // Reset to the live viewfinder, page count cleared, each time the camera opens.
   useEffect(() => {
@@ -78,6 +111,7 @@ export function ScanDocument({
       setPages(0);
       setSelectedOrder([]);
       setPreviewIndex(null);
+      setPagePreviewIndex(null);
     }
   }, [open]);
 
@@ -125,307 +159,315 @@ export function ScanDocument({
         >
           <StatusBar darkMode />
 
-          {/* Top bar — back chevron (photo detail returns to the grid; library grid returns to
-              the camera; review step returns to the scanner) or ✕ (closes the whole scan) +
-              title + trailing control */}
-          <div className="shrink-0 flex items-center justify-between px-4 py-3">
-            <button
-              type="button"
-              aria-label={
-                phase === "library" && previewIndex !== null
-                  ? "Back to photos"
-                  : phase === "library"
-                  ? "Back to camera"
-                  : phase === "review"
-                  ? "Back to scanner"
-                  : "Close"
-              }
-              onClick={
-                phase === "library" && previewIndex !== null
-                  ? () => setPreviewIndex(null)
-                  : phase === "library"
-                  ? handleCancelLibrary
-                  : phase === "review"
-                  ? handleRetake
-                  : onClose
-              }
-              className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
-            >
-              {phase === "library" || phase === "review" ? (
-                <ChevronLeft size={20} strokeWidth={1.67} />
-              ) : (
-                <X size={20} strokeWidth={1.67} />
-              )}
-            </button>
-            <span className="text-[15px] font-bold text-white" style={FONT}>
-              {phase === "library"
-                ? previewIndex !== null
-                  ? `Photo ${previewIndex + 1}`
-                  : selectedOrder.length > 0
-                  ? `${selectedOrder.length} Selected`
-                  : "Select Photos"
-                : phase === "review"
-                ? "Review page"
-                : pages > 0
-                ? `Page ${pages + 1}`
-                : "Scan invoice"}
-            </span>
-            {phase === "library" && previewIndex !== null ? (
-              <button
-                type="button"
-                aria-label={selectedOrder.includes(previewIndex) ? "Deselect photo" : "Select photo"}
-                onClick={() => toggleSelect(previewIndex)}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-white"
-                style={{ background: selectedOrder.includes(previewIndex) ? BRAND : "rgba(255,255,255,0.1)" }}
-              >
-                <Check size={18} strokeWidth={2.25} />
-              </button>
-            ) : phase === "library" ? (
-              <span className="w-9 h-9" aria-hidden />
-            ) : (
-              <span className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/70" aria-hidden>
-                <Zap size={19} strokeWidth={1.67} />
-              </span>
-            )}
-          </div>
-
-          {phase === "library" && previewIndex !== null ? (
-            /* Full-screen photo detail — see it up close, select/deselect right here (via the
-               header check or tapping the image), then go back to the grid. */
-            <div className="flex-1 flex items-center justify-center px-8">
-              <button
-                type="button"
-                aria-label={selectedOrder.includes(previewIndex) ? "Deselect photo" : "Select photo"}
-                onClick={() => toggleSelect(previewIndex)}
-                className="relative w-full max-w-[280px] aspect-square rounded-lg overflow-hidden bg-white/10 flex items-center justify-center"
-              >
-                <ImageIcon size={64} strokeWidth={1} className="text-white/30" />
-                {selectedOrder.includes(previewIndex) && (
-                  <>
-                    <span className="absolute inset-0 border-2 rounded-lg" style={{ borderColor: BRAND }} aria-hidden />
-                    <span
-                      className="absolute top-3 right-3 min-w-[26px] h-[26px] px-1.5 rounded-full flex items-center justify-center text-[13px] font-bold text-white"
-                      style={{ background: BRAND, ...FONT }}
-                      aria-hidden
-                    >
-                      {selectedOrder.indexOf(previewIndex) + 1}
-                    </span>
-                  </>
-                )}
-              </button>
-            </div>
-          ) : phase === "library" ? (
-            /* Multi-select photo grid — tap a photo to see it full-screen and pick/unpick it. */
-            <div className="flex-1 overflow-y-auto px-4 py-4">
-              <div className="grid grid-cols-4 gap-2">
-                {Array.from({ length: LIBRARY_TILE_COUNT }).map((_, i) => {
-                  const pickNumber = selectedOrder.indexOf(i) + 1;
-                  const isSelected = pickNumber > 0;
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      aria-label={`Photo ${i + 1}${isSelected ? `, selected (${pickNumber})` : ""}`}
-                      onClick={() => setPreviewIndex(i)}
-                      className="relative aspect-square rounded-md overflow-hidden bg-white/10 flex items-center justify-center active:scale-95 transition-transform"
-                    >
-                      <ImageIcon size={22} strokeWidth={1.5} className="text-white/40" />
-                      {isSelected && (
-                        <>
-                          <span className="absolute inset-0 bg-black/30" aria-hidden />
-                          <span className="absolute inset-0 border-2 rounded-md" style={{ borderColor: BRAND }} aria-hidden />
-                          <span
-                            className="absolute top-1 right-1 min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
-                            style={{ background: BRAND, ...FONT }}
-                            aria-hidden
-                          >
-                            {pickNumber}
-                          </span>
-                        </>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            /* Viewfinder */
-            <div className="flex-1 flex flex-col items-center justify-center px-8">
-              <div className="relative w-full max-w-[280px] aspect-[3/4]">
-                {/* The framed document the camera "sees" */}
-                <div className="absolute inset-2 bg-white rounded-md overflow-hidden flex flex-col gap-3 p-5 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
-                  <div className="flex items-start justify-between">
-                    <div className="flex flex-col gap-1.5">
-                      <div className="h-3 w-20 rounded bg-[var(--bg-neutral-inverse-primary)]" />
-                      <div className="h-1.5 w-16 rounded bg-[#e5e5e5]" />
-                    </div>
-                    <div className="h-8 w-8 rounded bg-[#eee]" />
-                  </div>
-                  <div className="h-px w-full bg-[#f0f0f0]" />
-                  {[0, 1, 2, 3].map((i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <div className="h-2 rounded bg-[#ececec]" style={{ width: `${52 - i * 7}%` }} />
-                      <div className="h-2 w-9 rounded bg-[#ececec]" />
-                    </div>
-                  ))}
-                  <div className="mt-auto flex items-center justify-between">
-                    <div className="h-2.5 w-12 rounded bg-[#e5e5e5]" />
-                    <div className="h-2.5 w-16 rounded bg-[var(--bg-neutral-inverse-primary)]" />
-                  </div>
-                </div>
-
-                {/* Edge-detection brackets — gently pulse while framing */}
-                <motion.div
-                  className="absolute inset-0"
-                  animate={phase === "frame" ? { opacity: [0.55, 1, 0.55] } : { opacity: 1 }}
-                  transition={phase === "frame" ? { duration: 1.6, repeat: Infinity, ease: "easeInOut" } : { duration: 0.2 }}
-                >
-                  <Corner pos="tl" />
-                  <Corner pos="tr" />
-                  <Corner pos="bl" />
-                  <Corner pos="br" />
-                </motion.div>
-
-                {/* Scanning sweep — a band travels down the document */}
-                {phase === "scanning" && (
-                  <div className="absolute inset-2 overflow-hidden rounded-md pointer-events-none">
-                    <motion.div
-                      className="absolute inset-x-0 h-20"
-                      style={{ background: "linear-gradient(180deg, rgba(255,74,21,0) 0%, rgba(255,74,21,0.35) 50%, rgba(255,74,21,0) 100%)" }}
-                      initial={{ y: "-80%" }}
-                      animate={{ y: "420%" }}
-                      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-                    />
-                  </div>
-                )}
-
-                {/* Kept-page confirmation badge */}
-                {phase === "review" && (
-                  <div
-                    className="absolute -top-3 -right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
-                    style={{ background: BRAND }}
-                    aria-hidden
-                  >
-                    <Check size={18} strokeWidth={2.25} color="#fff" />
-                  </div>
-                )}
-              </div>
-
-              <p className="mt-8 text-[14px] leading-[1.4] text-white/70 text-center" style={FONT}>
-                {phase === "scanning"
-                  ? "Scanning…"
-                  : phase === "review"
-                  ? "Use this image, or go back to retake it"
-                  : pages > 0
-                  ? "Add another page, or tap Done to finish"
-                  : "Position the invoice within the frame"}
-              </p>
-            </div>
-          )}
-
-          {/* Captured-page filmstrip — scrolls horizontally once it overflows the frame. Hidden
-              on the review step so the one shot being confirmed isn't competing for attention
-              with earlier pages. */}
-          {(phase === "frame" || phase === "scanning") && pages > 0 && (
-            <div className="shrink-0 overflow-x-auto px-6 pb-3">
-              <div className="flex gap-2 w-max">
-                {Array.from({ length: pages }).map((_, i) => (
-                  <PageThumb key={i} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {phase === "library" ? (
-            /* Add every selected photo as a page in one go — no per-photo retake, they're
-               already-existing files. */
-            <div className="shrink-0 px-6 pb-10 pt-4">
-              <button
-                type="button"
-                onClick={handleAddSelected}
-                disabled={selectedOrder.length === 0}
-                className="w-full h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform disabled:opacity-40"
-                style={{ ...FONT, background: BRAND }}
-              >
-                {selectedOrder.length > 0 ? `Add ${selectedOrder.length} Photo${selectedOrder.length === 1 ? "" : "s"}` : "Select Photos"}
-              </button>
-            </div>
-          ) : phase === "review" ? (
-            /* Review step — Retake tries the shot again, Use Image adds it as a page. The back
-               chevron up top does the same thing as Retake, just from the header. */
-            <div className="shrink-0 flex items-center gap-3 px-6 pb-10 pt-4">
-              <button
-                type="button"
-                onClick={handleRetake}
-                className="flex-1 h-12 rounded-full bg-white/15 text-white text-[15px] font-semibold active:scale-95 transition-transform"
-                style={FONT}
-              >
-                Retake
-              </button>
-              <button
-                type="button"
-                onClick={handleUseImage}
-                className="flex-1 h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform"
-                style={{ ...FONT, background: BRAND }}
-              >
-                Use Image
-              </button>
-            </div>
-          ) : (
-            /* Shutter + photo-library import (same spot as iOS Camera's last-shot thumbnail) +
-               Done once at least one page is shot — balanced 44px slots either side of the shutter. */
-            <div className="shrink-0 flex items-center justify-between px-8 pb-10 pt-4">
-              <div className="w-11 h-11 flex items-center justify-center">
-                {phase === "frame" && (
-                  <button
-                    type="button"
-                    aria-label="Choose from library"
-                    onClick={openLibrary}
-                    className="w-11 h-11 rounded-lg bg-white/15 flex items-center justify-center text-white active:scale-95 transition-transform"
-                  >
-                    <Images size={20} strokeWidth={1.67} />
-                  </button>
-                )}
-              </div>
-
-              {phase === "frame" ? (
+          {pagePreviewIndex !== null ? (
+            <>
+              {/* Full-screen captured-page detail — view only, back returns to the scanner. */}
+              <div className="shrink-0 flex items-center justify-between px-4 py-3">
                 <button
                   type="button"
-                  aria-label="Capture"
-                  onClick={() => setPhase("scanning")}
-                  className="w-[72px] h-[72px] rounded-full bg-white/15 flex items-center justify-center active:scale-95 transition-transform"
+                  aria-label="Back to scanner"
+                  onClick={() => setPagePreviewIndex(null)}
+                  className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
                 >
-                  <span className="w-14 h-14 rounded-full bg-white" />
+                  <ChevronLeft size={20} strokeWidth={1.67} />
                 </button>
+                <span className="text-[15px] font-bold text-white" style={FONT}>
+                  Page {pagePreviewIndex + 1}
+                </span>
+                <span className="w-9 h-9" aria-hidden />
+              </div>
+              <div className="flex-1 flex items-center justify-center px-8">
+                <div className="relative w-full max-w-[280px] aspect-[3/4]">
+                  <DocMockCard className="absolute inset-0" />
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Top bar — back chevron (photo detail returns to the grid; library grid returns
+                  to the camera; review step returns to the scanner) or ✕ (closes the whole scan)
+                  + title + trailing control */}
+              <div className="shrink-0 flex items-center justify-between px-4 py-3">
+                <button
+                  type="button"
+                  aria-label={
+                    phase === "library" && previewIndex !== null
+                      ? "Back to photos"
+                      : phase === "library"
+                      ? "Back to camera"
+                      : phase === "review"
+                      ? "Back to scanner"
+                      : "Close"
+                  }
+                  onClick={
+                    phase === "library" && previewIndex !== null
+                      ? () => setPreviewIndex(null)
+                      : phase === "library"
+                      ? handleCancelLibrary
+                      : phase === "review"
+                      ? handleRetake
+                      : onClose
+                  }
+                  className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
+                >
+                  {phase === "library" || phase === "review" ? (
+                    <ChevronLeft size={20} strokeWidth={1.67} />
+                  ) : (
+                    <X size={20} strokeWidth={1.67} />
+                  )}
+                </button>
+                <span className="text-[15px] font-bold text-white" style={FONT}>
+                  {phase === "library"
+                    ? previewIndex !== null
+                      ? `Photo ${previewIndex + 1}`
+                      : selectedOrder.length > 0
+                      ? `${selectedOrder.length} Selected`
+                      : "Select Photos"
+                    : phase === "review"
+                    ? "Review page"
+                    : pages > 0
+                    ? `Page ${pages + 1}`
+                    : "Scan invoice"}
+                </span>
+                {phase === "library" && previewIndex !== null ? (
+                  <button
+                    type="button"
+                    aria-label={selectedOrder.includes(previewIndex) ? "Deselect photo" : "Select photo"}
+                    onClick={() => toggleSelect(previewIndex)}
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white"
+                    style={{ background: selectedOrder.includes(previewIndex) ? BRAND : "rgba(255,255,255,0.1)" }}
+                  >
+                    <Check size={18} strokeWidth={2.25} />
+                  </button>
+                ) : phase === "library" ? (
+                  <span className="w-9 h-9" aria-hidden />
+                ) : (
+                  <span className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/70" aria-hidden>
+                    <Zap size={19} strokeWidth={1.67} />
+                  </span>
+                )}
+              </div>
+
+              {phase === "library" && previewIndex !== null ? (
+                /* Full-screen photo detail — see it up close, select/deselect right here (via
+                   the header check or tapping the image), then go back to the grid. */
+                <div className="flex-1 flex items-center justify-center px-8">
+                  <button
+                    type="button"
+                    aria-label={selectedOrder.includes(previewIndex) ? "Deselect photo" : "Select photo"}
+                    onClick={() => toggleSelect(previewIndex)}
+                    className="relative w-full max-w-[280px] aspect-square rounded-lg overflow-hidden bg-white/10 flex items-center justify-center"
+                  >
+                    <ImageIcon size={64} strokeWidth={1} className="text-white/30" />
+                    {selectedOrder.includes(previewIndex) && (
+                      <>
+                        <span className="absolute inset-0 border-2 rounded-lg" style={{ borderColor: BRAND }} aria-hidden />
+                        <span
+                          className="absolute top-3 right-3 min-w-[26px] h-[26px] px-1.5 rounded-full flex items-center justify-center text-[13px] font-bold text-white"
+                          style={{ background: BRAND, ...FONT }}
+                          aria-hidden
+                        >
+                          {selectedOrder.indexOf(previewIndex) + 1}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : phase === "library" ? (
+                /* Multi-select photo grid — tap a photo to see it full-screen and pick/unpick it. */
+                <div className="flex-1 overflow-y-auto px-4 py-4">
+                  <div className="grid grid-cols-4 gap-2">
+                    {Array.from({ length: LIBRARY_TILE_COUNT }).map((_, i) => {
+                      const pickNumber = selectedOrder.indexOf(i) + 1;
+                      const isSelected = pickNumber > 0;
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          aria-label={`Photo ${i + 1}${isSelected ? `, selected (${pickNumber})` : ""}`}
+                          onClick={() => setPreviewIndex(i)}
+                          className="relative aspect-square rounded-md overflow-hidden bg-white/10 flex items-center justify-center active:scale-95 transition-transform"
+                        >
+                          <ImageIcon size={22} strokeWidth={1.5} className="text-white/40" />
+                          {isSelected && (
+                            <>
+                              <span className="absolute inset-0 bg-black/30" aria-hidden />
+                              <span className="absolute inset-0 border-2 rounded-md" style={{ borderColor: BRAND }} aria-hidden />
+                              <span
+                                className="absolute top-1 right-1 min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
+                                style={{ background: BRAND, ...FONT }}
+                                aria-hidden
+                              >
+                                {pickNumber}
+                              </span>
+                            </>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               ) : (
-                <div className="w-[72px] h-[72px] flex items-center justify-center" aria-hidden>
-                  <span
-                    className="w-9 h-9 rounded-full border-[3px] border-white/25 animate-spin"
-                    style={{ borderTopColor: BRAND }}
-                  />
+                /* Viewfinder */
+                <div className="flex-1 flex flex-col items-center justify-center px-8">
+                  <div className="relative w-full max-w-[280px] aspect-[3/4]">
+                    <DocMockCard className="absolute inset-2" />
+
+                    {/* Edge-detection brackets — gently pulse while framing */}
+                    <motion.div
+                      className="absolute inset-0"
+                      animate={phase === "frame" ? { opacity: [0.55, 1, 0.55] } : { opacity: 1 }}
+                      transition={phase === "frame" ? { duration: 1.6, repeat: Infinity, ease: "easeInOut" } : { duration: 0.2 }}
+                    >
+                      <Corner pos="tl" />
+                      <Corner pos="tr" />
+                      <Corner pos="bl" />
+                      <Corner pos="br" />
+                    </motion.div>
+
+                    {/* Scanning sweep — a band travels down the document */}
+                    {phase === "scanning" && (
+                      <div className="absolute inset-2 overflow-hidden rounded-md pointer-events-none">
+                        <motion.div
+                          className="absolute inset-x-0 h-20"
+                          style={{ background: "linear-gradient(180deg, rgba(255,74,21,0) 0%, rgba(255,74,21,0.35) 50%, rgba(255,74,21,0) 100%)" }}
+                          initial={{ y: "-80%" }}
+                          animate={{ y: "420%" }}
+                          transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Kept-page confirmation badge */}
+                    {phase === "review" && (
+                      <div
+                        className="absolute -top-3 -right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
+                        style={{ background: BRAND }}
+                        aria-hidden
+                      >
+                        <Check size={18} strokeWidth={2.25} color="#fff" />
+                      </div>
+                    )}
+                  </div>
+
+                  <p className="mt-8 text-[14px] leading-[1.4] text-white/70 text-center" style={FONT}>
+                    {phase === "scanning"
+                      ? "Scanning…"
+                      : phase === "review"
+                      ? "Use this image, or go back to retake it"
+                      : pages > 0
+                      ? "Add another page, or tap Done to finish"
+                      : "Position the invoice within the frame"}
+                  </p>
                 </div>
               )}
 
-              <div className="w-11 h-11 flex items-center justify-center">
-                {phase === "frame" && pages > 0 && (
+              {/* Captured-page filmstrip — scrolls horizontally once it overflows the frame.
+                  Hidden on the review step so the one shot being confirmed isn't competing for
+                  attention with earlier pages. Tap a thumbnail to view that page full-screen. */}
+              {(phase === "frame" || phase === "scanning") && pages > 0 && (
+                <div className="shrink-0 overflow-x-auto px-6 pb-3">
+                  <div className="flex gap-2 w-max">
+                    {Array.from({ length: pages }).map((_, i) => (
+                      <PageThumb key={i} index={i} onClick={() => setPagePreviewIndex(i)} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {phase === "library" ? (
+                /* Add every selected photo as a page in one go — no per-photo retake, they're
+                   already-existing files. */
+                <div className="shrink-0 px-6 pb-10 pt-4">
                   <button
                     type="button"
-                    aria-label={`Done — use ${pages} page${pages === 1 ? "" : "s"}`}
-                    onClick={handleDone}
-                    className="relative w-11 h-11 rounded-full flex items-center justify-center text-white active:scale-95 transition-transform"
-                    style={{ background: BRAND }}
+                    onClick={handleAddSelected}
+                    disabled={selectedOrder.length === 0}
+                    className="w-full h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform disabled:opacity-40"
+                    style={{ ...FONT, background: BRAND }}
                   >
-                    <Check size={20} strokeWidth={2} />
-                    <span
-                      className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-[10px] font-bold flex items-center justify-center"
-                      style={{ ...FONT, color: BRAND }}
-                    >
-                      {pages}
-                    </span>
+                    {selectedOrder.length > 0 ? `Add ${selectedOrder.length} Photo${selectedOrder.length === 1 ? "" : "s"}` : "Select Photos"}
                   </button>
-                )}
-              </div>
-            </div>
+                </div>
+              ) : phase === "review" ? (
+                /* Review step — Retake tries the shot again, Use Image adds it as a page. The
+                   back chevron up top does the same thing as Retake, just from the header. */
+                <div className="shrink-0 flex items-center gap-3 px-6 pb-10 pt-4">
+                  <button
+                    type="button"
+                    onClick={handleRetake}
+                    className="flex-1 h-12 rounded-full bg-white/15 text-white text-[15px] font-semibold active:scale-95 transition-transform"
+                    style={FONT}
+                  >
+                    Retake
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleUseImage}
+                    className="flex-1 h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform"
+                    style={{ ...FONT, background: BRAND }}
+                  >
+                    Use Image
+                  </button>
+                </div>
+              ) : (
+                /* Shutter + photo-library import (same spot as iOS Camera's last-shot
+                   thumbnail) + Done once at least one page is shot — balanced 44px slots either
+                   side of the shutter. */
+                <div className="shrink-0 flex items-center justify-between px-8 pb-10 pt-4">
+                  <div className="w-11 h-11 flex items-center justify-center">
+                    {phase === "frame" && (
+                      <button
+                        type="button"
+                        aria-label="Choose from library"
+                        onClick={openLibrary}
+                        className="w-11 h-11 rounded-lg bg-white/15 flex items-center justify-center text-white active:scale-95 transition-transform"
+                      >
+                        <Images size={20} strokeWidth={1.67} />
+                      </button>
+                    )}
+                  </div>
+
+                  {phase === "frame" ? (
+                    <button
+                      type="button"
+                      aria-label="Capture"
+                      onClick={() => setPhase("scanning")}
+                      className="w-[72px] h-[72px] rounded-full bg-white/15 flex items-center justify-center active:scale-95 transition-transform"
+                    >
+                      <span className="w-14 h-14 rounded-full bg-white" />
+                    </button>
+                  ) : (
+                    <div className="w-[72px] h-[72px] flex items-center justify-center" aria-hidden>
+                      <span
+                        className="w-9 h-9 rounded-full border-[3px] border-white/25 animate-spin"
+                        style={{ borderTopColor: BRAND }}
+                      />
+                    </div>
+                  )}
+
+                  <div className="w-11 h-11 flex items-center justify-center">
+                    {phase === "frame" && pages > 0 && (
+                      <button
+                        type="button"
+                        aria-label={`Done — use ${pages} page${pages === 1 ? "" : "s"}`}
+                        onClick={handleDone}
+                        className="relative w-11 h-11 rounded-full flex items-center justify-center text-white active:scale-95 transition-transform"
+                        style={{ background: BRAND }}
+                      >
+                        <Check size={20} strokeWidth={2} />
+                        <span
+                          className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-[10px] font-bold flex items-center justify-center"
+                          style={{ ...FONT, color: BRAND }}
+                        >
+                          {pages}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </motion.div>
       )}
