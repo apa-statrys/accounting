@@ -78,12 +78,13 @@ function PageThumb({ index, onClick }: { index: number; onClick: () => void }) {
  * shoot another page (multi-page invoice) or tap Done to finish — all pages become ONE invoice
  * document, handed back via a single `onCapture(pageCount)` call. Tapping a filmstrip
  * thumbnail opens that page full-screen (back chevron top-left) so it isn't stuck tiny — the
- * check there (header or tapping the page) deselects it, removing it from the document. The
- * bottom-bar photo-library button opens a multi-select photo grid the same way, but split into
- * two tap targets per tile: the image itself opens that photo full-screen (with the same
- * select/deselect check), while an always-visible dot in the corner selects/deselects right
- * there without leaving the grid — no retake needed for already-existing photos, and picking
- * several at once adds them all as pages in one go.
+ * check there (header or tapping the page) just toggles kept/removed on that one screen, so the
+ * user can flip it back and forth freely; the removal only actually applies once they tap the
+ * back chevron. The bottom-bar photo-library button opens a multi-select photo grid the same
+ * way, but split into two tap targets per tile: the image itself opens that photo full-screen
+ * (with the same select/deselect check), while an always-visible dot in the corner
+ * selects/deselects right there without leaving the grid — no retake needed for
+ * already-existing photos, and picking several at once adds them all as pages in one go.
  * Renders full-screen (`absolute inset-0`) over whatever's underneath (CreateInvoiceSheet) —
  * needs a positioned ancestor sized to the phone frame, same as any other sheet overlay.
  */
@@ -106,6 +107,9 @@ export function ScanDocument({
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   // Which already-captured page (filmstrip) is open full-screen — null = not previewing one.
   const [pagePreviewIndex, setPagePreviewIndex] = useState<number | null>(null);
+  // Whether the page currently open in that preview is still kept — toggling this only updates
+  // the check shown on THIS screen; the page isn't actually removed until the user backs out.
+  const [pagePreviewKept, setPagePreviewKept] = useState(true);
 
   // Reset to the live viewfinder, page count cleared, each time the camera opens.
   useEffect(() => {
@@ -115,6 +119,7 @@ export function ScanDocument({
       setSelectedOrder([]);
       setPreviewIndex(null);
       setPagePreviewIndex(null);
+      setPagePreviewKept(true);
     }
   }, [open]);
 
@@ -149,10 +154,15 @@ export function ScanDocument({
     setPreviewIndex(null);
     setPhase("frame");
   };
-  // Deselecting an already-captured page removes it from the document — pages are
-  // interchangeable placeholders here, so any one page is as good as any other to drop.
-  const handleRemovePage = () => {
-    setPages((p) => Math.max(0, p - 1));
+  const openPagePreview = (i: number) => {
+    setPagePreviewKept(true);
+    setPagePreviewIndex(i);
+  };
+  const toggleKeepPage = () => setPagePreviewKept((k) => !k);
+  // Only applies the deselect (removing the page) when the user actually backs out — staying
+  // on the preview after tapping the check lets them keep flipping it before deciding.
+  const handleBackFromPagePreview = () => {
+    if (!pagePreviewKept) setPages((p) => Math.max(0, p - 1));
     setPagePreviewIndex(null);
   };
 
@@ -170,13 +180,14 @@ export function ScanDocument({
 
           {pagePreviewIndex !== null ? (
             <>
-              {/* Full-screen captured-page detail — back returns to the scanner; the check
-                  (header or tapping the page) deselects it, removing it from the document. */}
+              {/* Full-screen captured-page detail — the check (header or tapping the page) just
+                  toggles kept/removed on THIS screen; back (top-left) is what actually applies
+                  it, so flipping the check doesn't bounce the user out immediately. */}
               <div className="shrink-0 flex items-center justify-between px-4 py-3">
                 <button
                   type="button"
                   aria-label="Back to scanner"
-                  onClick={() => setPagePreviewIndex(null)}
+                  onClick={handleBackFromPagePreview}
                   className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
                 >
                   <ChevronLeft size={20} strokeWidth={1.67} />
@@ -186,10 +197,10 @@ export function ScanDocument({
                 </span>
                 <button
                   type="button"
-                  aria-label="Deselect page"
-                  onClick={handleRemovePage}
+                  aria-label={pagePreviewKept ? "Deselect page" : "Select page"}
+                  onClick={toggleKeepPage}
                   className="w-9 h-9 rounded-full flex items-center justify-center text-white"
-                  style={{ background: BRAND }}
+                  style={{ background: pagePreviewKept ? BRAND : "rgba(255,255,255,0.1)" }}
                 >
                   <Check size={18} strokeWidth={2.25} />
                 </button>
@@ -197,14 +208,14 @@ export function ScanDocument({
               <div className="flex-1 flex items-center justify-center px-8">
                 <button
                   type="button"
-                  aria-label="Deselect page"
-                  onClick={handleRemovePage}
+                  aria-label={pagePreviewKept ? "Deselect page" : "Select page"}
+                  onClick={toggleKeepPage}
                   className="relative w-full max-w-[280px] aspect-[3/4]"
                 >
-                  <DocMockCard className="absolute inset-0" />
+                  <DocMockCard className={`absolute inset-0 ${pagePreviewKept ? "" : "opacity-40"}`} />
                   <span
                     className="absolute -top-3 -right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
-                    style={{ background: BRAND }}
+                    style={{ background: pagePreviewKept ? BRAND : "rgba(255,255,255,0.2)" }}
                     aria-hidden
                   >
                     <Check size={18} strokeWidth={2.25} color="#fff" />
@@ -407,7 +418,7 @@ export function ScanDocument({
                 <div className="shrink-0 overflow-x-auto px-6 pb-3">
                   <div className="flex gap-2 w-max">
                     {Array.from({ length: pages }).map((_, i) => (
-                      <PageThumb key={i} index={i} onClick={() => setPagePreviewIndex(i)} />
+                      <PageThumb key={i} index={i} onClick={() => openPagePreview(i)} />
                     ))}
                   </div>
                 </div>
