@@ -81,10 +81,13 @@ function PageThumb({ index, onClick }: { index: number; onClick: () => void }) {
  * check there (header or tapping the page) just toggles kept/removed on that one screen, so the
  * user can flip it back and forth freely; the removal only actually applies once they tap the
  * back chevron. The bottom-bar photo-library button opens a multi-select photo grid the same
- * way, but split into two tap targets per tile: the image itself opens that photo full-screen
- * (with the same select/deselect check), while an always-visible dot in the corner
- * selects/deselects right there without leaving the grid — no retake needed for
- * already-existing photos, and picking several at once adds them all as pages in one go.
+ * way, but split into two tap targets per tile: the image opens that photo full-screen, while
+ * an always-visible dot in the corner selects/deselects right there without leaving the grid.
+ * Once full-screen, the image itself is swipe-only (left/right moves between photos) —
+ * select/deselect lives in a "Select"/"Selected" + dot control up top instead, and a filmstrip
+ * of every currently-selected photo appears at the bottom (tap one to jump to it, its own ✕
+ * removes it) — no retake needed for already-existing photos, and picking several at once adds
+ * them all as pages in one go.
  * Renders full-screen (`absolute inset-0`) over whatever's underneath (CreateInvoiceSheet) —
  * needs a positioned ancestor sized to the phone frame, same as any other sheet overlay.
  */
@@ -148,6 +151,9 @@ export function ScanDocument({
   };
   const toggleSelect = (i: number) =>
     setSelectedOrder((prev) => (prev.includes(i) ? prev.filter((n) => n !== i) : [...prev, i]));
+  // Swipe (or the filmstrip below) moves between photos without leaving the full-screen preview.
+  const goToPreviousPhoto = () => setPreviewIndex((i) => (i === null ? i : Math.max(0, i - 1)));
+  const goToNextPhoto = () => setPreviewIndex((i) => (i === null ? i : Math.min(LIBRARY_TILE_COUNT - 1, i + 1)));
   const handleAddSelected = () => {
     setPages((p) => p + selectedOrder.length);
     setSelectedOrder([]);
@@ -271,15 +277,30 @@ export function ScanDocument({
                     : "Scan invoice"}
                 </span>
                 {phase === "library" && previewIndex !== null ? (
-                  <button
-                    type="button"
-                    aria-label={selectedOrder.includes(previewIndex) ? "Deselect photo" : "Select photo"}
-                    onClick={() => toggleSelect(previewIndex)}
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-white"
-                    style={{ background: selectedOrder.includes(previewIndex) ? BRAND : "rgba(255,255,255,0.1)" }}
-                  >
-                    <Check size={18} strokeWidth={2.25} />
-                  </button>
+                  (() => {
+                    const pickNumber = selectedOrder.indexOf(previewIndex) + 1;
+                    const isSelected = pickNumber > 0;
+                    return (
+                      <button
+                        type="button"
+                        aria-label={isSelected ? `Deselect photo ${previewIndex + 1}` : `Select photo ${previewIndex + 1}`}
+                        onClick={() => toggleSelect(previewIndex)}
+                        className="flex items-center gap-1.5 h-9 pl-3 pr-2 rounded-full bg-white/10 text-white text-[13px] font-semibold"
+                        style={FONT}
+                      >
+                        {isSelected ? "Selected" : "Select"}
+                        <span
+                          className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
+                          style={{
+                            background: isSelected ? BRAND : "transparent",
+                            border: isSelected ? "none" : "1.5px solid rgba(255,255,255,0.7)",
+                          }}
+                        >
+                          {isSelected ? pickNumber : ""}
+                        </span>
+                      </button>
+                    );
+                  })()
                 ) : phase === "library" ? (
                   <span className="w-9 h-9" aria-hidden />
                 ) : (
@@ -290,13 +311,18 @@ export function ScanDocument({
               </div>
 
               {phase === "library" && previewIndex !== null ? (
-                /* Full-screen photo detail — see it up close, select/deselect right here (via
-                   the header check or tapping the image), then go back to the grid. */
+                /* Full-screen photo detail — swipe left/right to browse; select/deselect only
+                   via the header "Select" control (tapping the image itself just swipes). */
                 <div className="flex-1 flex items-center justify-center px-8">
-                  <button
-                    type="button"
-                    aria-label={selectedOrder.includes(previewIndex) ? "Deselect photo" : "Select photo"}
-                    onClick={() => toggleSelect(previewIndex)}
+                  <motion.div
+                    key={previewIndex}
+                    drag="x"
+                    dragConstraints={{ left: 0, right: 0 }}
+                    dragElastic={0.5}
+                    onDragEnd={(_, info) => {
+                      if (info.offset.x < -60) goToNextPhoto();
+                      else if (info.offset.x > 60) goToPreviousPhoto();
+                    }}
                     className="relative w-full max-w-[280px] aspect-square rounded-lg overflow-hidden bg-white/10 flex items-center justify-center"
                   >
                     <ImageIcon size={64} strokeWidth={1} className="text-white/30" />
@@ -312,7 +338,7 @@ export function ScanDocument({
                         </span>
                       </>
                     )}
-                  </button>
+                  </motion.div>
                 </div>
               ) : phase === "library" ? (
                 /* Multi-select photo grid — tap the image to preview it full-screen; tap the dot
@@ -419,6 +445,37 @@ export function ScanDocument({
                   <div className="flex gap-2 w-max">
                     {Array.from({ length: pages }).map((_, i) => (
                       <PageThumb key={i} index={i} onClick={() => openPagePreview(i)} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Selected-photos filmstrip — only on the full-screen photo preview, so the user
+                  can see everything picked so far while browsing. Tap a thumbnail to jump to
+                  that photo; the ✕ removes it from the selection without opening it. */}
+              {phase === "library" && previewIndex !== null && selectedOrder.length > 0 && (
+                <div className="shrink-0 overflow-x-auto px-6 pb-3">
+                  <div className="flex gap-2 w-max">
+                    {selectedOrder.map((idx) => (
+                      <div key={idx} className="relative shrink-0 w-12 h-12 rounded-md overflow-hidden bg-white/10">
+                        <button
+                          type="button"
+                          aria-label={`View photo ${idx + 1}`}
+                          onClick={() => setPreviewIndex(idx)}
+                          className="absolute inset-0 flex items-center justify-center active:scale-95 transition-transform"
+                          style={idx === previewIndex ? { boxShadow: `inset 0 0 0 2px ${BRAND}` } : undefined}
+                        >
+                          <ImageIcon size={16} strokeWidth={1.5} className="text-white/40" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Remove photo ${idx + 1} from selection`}
+                          onClick={() => toggleSelect(idx)}
+                          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 flex items-center justify-center text-white"
+                        >
+                          <X size={10} strokeWidth={2.5} />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
