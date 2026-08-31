@@ -238,6 +238,15 @@ export function ScanDocument({
     setPagePreviewId(null);
     setRemovedPageIds(new Set());
   };
+  // Finishing straight from the preview applies any pending removals first, same as backing out
+  // would, then hands off exactly like the scanner's own Next button.
+  const finishFromPagePreview = () => {
+    const finalIds = removedPageIds.size > 0 ? pageIds.filter((id) => !removedPageIds.has(id)) : pageIds;
+    if (removedPageIds.size > 0) setPageIds(finalIds);
+    setPagePreviewId(null);
+    setRemovedPageIds(new Set());
+    onCapture?.(finalIds.length);
+  };
 
   return (
     <AnimatePresence>
@@ -346,6 +355,19 @@ export function ScanDocument({
                   </Reorder.Group>
                 </div>
               )}
+
+              {/* Finish straight from the preview, same action as the scanner's own Next button —
+                  applies any pending removals first. */}
+              <div className="shrink-0 px-6 pb-10 pt-2">
+                <button
+                  type="button"
+                  onClick={finishFromPagePreview}
+                  className="w-full h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform"
+                  style={{ ...FONT, background: BRAND }}
+                >
+                  Next ({pageIds.length - removedPageIds.size})
+                </button>
+              </div>
             </>
           ) : (
             <>
@@ -381,19 +403,15 @@ export function ScanDocument({
                     <X size={20} strokeWidth={1.67} />
                   )}
                 </button>
-                {!(phase === "library" && previewIndex !== null) && (
+                {phase === "review" ? (
                   <span className="text-[15px] font-bold text-white" style={FONT}>
-                    {phase === "library"
-                      ? selectedOrder.length > 0
-                        ? `${selectedOrder.length} Selected`
-                        : "Select Photos"
-                      : phase === "review"
-                      ? "Review page"
-                      : pageIds.length > 0
-                      ? `Page ${pageIds.length + 1}`
-                      : "Scan invoice"}
+                    Review page
                   </span>
-                )}
+                ) : phase === "library" && previewIndex === null ? (
+                  <span className="text-[15px] font-bold text-white" style={FONT}>
+                    {selectedOrder.length > 0 ? `${selectedOrder.length} Selected` : "Select Photos"}
+                  </span>
+                ) : null}
                 {phase === "library" && previewIndex !== null ? (
                   (() => {
                     const pickNumber = selectedOrder.indexOf(previewIndex) + 1;
@@ -570,11 +588,12 @@ export function ScanDocument({
                 </div>
               )}
 
-              {/* Selected-photos filmstrip — only on the full-screen photo preview, so the user
-                  can see everything picked so far while browsing. Tap a thumbnail to jump to
-                  that photo, the ✕ removes it from the selection without opening it, and the
-                  whole strip can be dragged to reorder — pick numbers update to match. */}
-              {phase === "library" && previewIndex !== null && selectedOrder.length > 0 && (
+              {/* Selected-photos filmstrip — shows on the grid too, not just the full-screen
+                  preview, so the user sees everything picked so far right as they're picking.
+                  Tap a thumbnail to open/jump to that photo, the ✕ removes it from the selection
+                  without opening it, and the whole strip can be dragged to reorder — pick
+                  numbers update to match. */}
+              {phase === "library" && selectedOrder.length > 0 && (
                 <div className="shrink-0 overflow-x-auto px-6 pb-3">
                   <Reorder.Group
                     as="div"
