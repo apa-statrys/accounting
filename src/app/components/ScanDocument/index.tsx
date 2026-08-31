@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence, Reorder } from "motion/react";
 import { X, Zap, Images, Check, ChevronLeft, Image as ImageIcon } from "lucide-react";
 import StatusBar from "../StatusBar";
 
@@ -104,24 +104,25 @@ function PageThumb({
  * sequence. The review step is a plain confirm of that one shot, not a screen you navigate
  * away from: Use Image adds it as a page, and the back chevron up top (not a ✕ — this doesn't
  * close anything) drops back to the live scanner to try again, same as the shutter tap never
- * happened; it never exits the whole scan. Once at least one page is confirmed, the user can
- * shoot another page (multi-page invoice) or tap Done to finish — all pages become ONE invoice
- * document, handed back via a single `onCapture(pageCount)` call. Tapping a filmstrip
- * thumbnail opens that page full-screen (✕ top-left closes it) so it isn't stuck tiny — swipe
- * left/right (or tap another thumbnail in the filmstrip shown there too, each with its own ✕ to
- * mark/unmark it right from the strip) to browse the other captured pages without leaving
- * full-screen. The page itself isn't tappable there — a "Select"/"Selected" + dot control up top
+ * happened; it never exits the whole scan. Once at least one page is confirmed, a text "Next
+ * (N)" button (bottom-right, replacing the shutter row's usual spacer) finishes and hands back
+ * every page as ONE invoice document via a single `onCapture(pageCount)` call — or the user can
+ * keep shooting. Captured pages track a stable id each (not just a count), so the filmstrip
+ * below the viewfinder can be dragged to reorder them (`Reorder.Group`/`Reorder.Item`); each
+ * thumbnail's own ✕ removes that page immediately (no confirm — same directness as the shutter),
+ * and tapping the image opens that page full-screen instead. That full-screen view (✕ top-left
+ * closes it) can swipe left/right (or use its own filmstrip, no reordering there) to browse the
+ * other pages — the page itself isn't tappable, only a "Select"/"Selected" + dot control up top
  * (same shape and wording as the library preview's, just applied to a page that starts out
- * already included) toggles kept/removed for whichever page is showing, dimming it in place;
- * nothing is actually removed until the user closes the preview, which applies every page marked
- * that way in one go. The bottom-bar photo-library button opens a multi-select photo grid the
- * same way, but split into two tap targets per tile: the image opens that photo full-screen,
- * while an always-visible dot in the corner selects/deselects right there without leaving the
- * grid. Once full-screen, the image itself is swipe-only (left/right moves between photos) —
- * select/deselect lives in the same "Select"/"Selected" + dot header control, and a filmstrip of
- * every currently-selected photo appears at the bottom (tap one to jump to it, its own ✕ removes
- * it) — no retake needed for already-existing photos, and picking several at once adds them all
- * as pages in one go.
+ * already included) toggles kept/removed for whichever page is showing; nothing is actually
+ * removed until the user closes the preview, which applies every page marked that way in one go.
+ * The bottom-bar photo-library button opens a multi-select photo grid the same way, but split
+ * into two tap targets per tile: the image opens that photo full-screen, while an always-visible
+ * dot in the corner selects/deselects right there without leaving the grid. Once full-screen,
+ * the image itself is swipe-only (left/right moves between photos) — select/deselect lives in
+ * the same "Select"/"Selected" + dot header control, and a filmstrip of every currently-selected
+ * photo appears at the bottom (tap one to jump to it, its own ✕ removes it) — no retake needed
+ * for already-existing photos, and picking several at once adds them all as pages in one go.
  * Renders full-screen (`absolute inset-0`) over whatever's underneath (CreateInvoiceSheet) —
  * needs a positioned ancestor sized to the phone frame, same as any other sheet overlay.
  */
@@ -136,7 +137,11 @@ export function ScanDocument({
   onCapture?: (pageCount: number) => void;
 }) {
   const [phase, setPhase] = useState<"frame" | "scanning" | "review" | "library">("frame");
-  const [pages, setPages] = useState(0);
+  // Stable per-page ids (not just a count) so the filmstrip can be dragged to reorder and React
+  // keeps track of the right thumbnail while that happens. Never reused within one open session.
+  const [pageIds, setPageIds] = useState<number[]>([]);
+  const nextPageIdRef = useRef(0);
+  const newPageId = () => nextPageIdRef.current++;
   // Order selected, not just membership — so each tile can show its pick number (1, 2, 3…)
   // and deselecting one renumbers the rest instead of leaving a gap.
   const [selectedOrder, setSelectedOrder] = useState<number[]>([]);
@@ -153,7 +158,8 @@ export function ScanDocument({
   useEffect(() => {
     if (open) {
       setPhase("frame");
-      setPages(0);
+      setPageIds([]);
+      nextPageIdRef.current = 0;
       setSelectedOrder([]);
       setPreviewIndex(null);
       setPagePreviewIndex(null);
@@ -168,12 +174,15 @@ export function ScanDocument({
     return () => clearTimeout(t);
   }, [phase]);
 
-  const handleDone = () => onCapture?.(pages);
+  const handleDone = () => onCapture?.(pageIds.length);
   const handleRetake = () => setPhase("frame");
   const handleUseImage = () => {
-    setPages((p) => p + 1);
+    setPageIds((ids) => [...ids, newPageId()]);
     setPhase("frame");
   };
+  // Removes a page straight away (no defer) — this is the base filmstrip, not a browsing
+  // session with its own confirm/cancel, so the action is immediate like the shutter itself.
+  const removePageDirect = (id: number) => setPageIds((ids) => ids.filter((pid) => pid !== id));
   const openLibrary = () => {
     setSelectedOrder([]);
     setPreviewIndex(null);
@@ -190,7 +199,7 @@ export function ScanDocument({
   const goToPreviousPhoto = () => setPreviewIndex((i) => (i === null ? i : Math.max(0, i - 1)));
   const goToNextPhoto = () => setPreviewIndex((i) => (i === null ? i : Math.min(LIBRARY_TILE_COUNT - 1, i + 1)));
   const handleAddSelected = () => {
-    setPages((p) => p + selectedOrder.length);
+    setPageIds((ids) => [...ids, ...selectedOrder.map(() => newPageId())]);
     setSelectedOrder([]);
     setPreviewIndex(null);
     setPhase("frame");
@@ -208,11 +217,11 @@ export function ScanDocument({
     });
   // Swipe (or the filmstrip below) moves between pages without leaving the full-screen preview.
   const goToPreviousPage = () => setPagePreviewIndex((i) => (i === null ? i : Math.max(0, i - 1)));
-  const goToNextPage = () => setPagePreviewIndex((i) => (i === null ? i : Math.min(pages - 1, i + 1)));
+  const goToNextPage = () => setPagePreviewIndex((i) => (i === null ? i : Math.min(pageIds.length - 1, i + 1)));
   // Only applies every marked removal when the user actually backs out — staying on the preview
   // after tapping a check lets them keep flipping choices before deciding.
   const handleBackFromPagePreview = () => {
-    if (removedPages.size > 0) setPages((p) => Math.max(0, p - removedPages.size));
+    if (removedPages.size > 0) setPageIds((ids) => ids.filter((_, idx) => !removedPages.has(idx)));
     setPagePreviewIndex(null);
     setRemovedPages(new Set());
   };
@@ -282,18 +291,30 @@ export function ScanDocument({
                   }}
                   className="relative w-full max-w-[280px] aspect-[3/4]"
                 >
-                  <DocMockCard className={`absolute inset-0 ${removedPages.has(pagePreviewIndex) ? "opacity-40" : ""}`} />
+                  <DocMockCard className="absolute inset-0" />
+                  {!removedPages.has(pagePreviewIndex) && (
+                    <>
+                      <span className="absolute inset-0 border-2 rounded-md" style={{ borderColor: BRAND }} aria-hidden />
+                      <span
+                        className="absolute top-3 right-3 min-w-[26px] h-[26px] px-1.5 rounded-full flex items-center justify-center text-[13px] font-bold text-white"
+                        style={{ background: BRAND, ...FONT }}
+                        aria-hidden
+                      >
+                        {pagePreviewIndex + 1}
+                      </span>
+                    </>
+                  )}
                 </motion.div>
               </div>
 
               {/* Every captured page, so the user can jump around while deciding what to keep —
                   the one marked for removal (this session) shows dimmed, not gone. */}
-              {pages > 1 && (
+              {pageIds.length > 1 && (
                 <div className="shrink-0 overflow-x-auto px-6 pb-3">
                   <div className="flex gap-2 w-max">
-                    {Array.from({ length: pages }).map((_, i) => (
+                    {pageIds.map((id, i) => (
                       <PageThumb
-                        key={i}
+                        key={id}
                         index={i}
                         onClick={() => setPagePreviewIndex(i)}
                         active={i === pagePreviewIndex}
@@ -348,8 +369,8 @@ export function ScanDocument({
                       : "Select Photos"
                     : phase === "review"
                     ? "Review page"
-                    : pages > 0
-                    ? `Page ${pages + 1}`
+                    : pageIds.length > 0
+                    ? `Page ${pageIds.length + 1}`
                     : "Scan invoice"}
                 </span>
                 {phase === "library" && previewIndex !== null ? (
@@ -495,8 +516,8 @@ export function ScanDocument({
                       ? "Scanning…"
                       : phase === "review"
                       ? "Use this image, or go back to retake it"
-                      : pages > 0
-                      ? "Add another page, or tap Done to finish"
+                      : pageIds.length > 0
+                      ? "Add another page, or tap Next to finish"
                       : "Position the invoice within the frame"}
                   </p>
                 </div>
@@ -504,14 +525,27 @@ export function ScanDocument({
 
               {/* Captured-page filmstrip — scrolls horizontally once it overflows the frame.
                   Hidden on the review step so the one shot being confirmed isn't competing for
-                  attention with earlier pages. Tap a thumbnail to view that page full-screen. */}
-              {(phase === "frame" || phase === "scanning") && pages > 0 && (
+                  attention with earlier pages. Tap a thumbnail to view that page full-screen, its
+                  own ✕ removes it immediately, and the strip can be dragged to reorder pages. */}
+              {(phase === "frame" || phase === "scanning") && pageIds.length > 0 && (
                 <div className="shrink-0 overflow-x-auto px-6 pb-3">
-                  <div className="flex gap-2 w-max">
-                    {Array.from({ length: pages }).map((_, i) => (
-                      <PageThumb key={i} index={i} onClick={() => openPagePreview(i)} />
+                  <Reorder.Group
+                    as="div"
+                    axis="x"
+                    values={pageIds}
+                    onReorder={setPageIds}
+                    className="flex gap-2 w-max"
+                  >
+                    {pageIds.map((id, i) => (
+                      <Reorder.Item key={id} value={id} as="div" className="shrink-0">
+                        <PageThumb
+                          index={i}
+                          onClick={() => openPagePreview(i)}
+                          onToggleRemove={() => removePageDirect(id)}
+                        />
+                      </Reorder.Item>
                     ))}
-                  </div>
+                  </Reorder.Group>
                 </div>
               )}
 
@@ -583,8 +617,7 @@ export function ScanDocument({
                 </div>
               ) : (
                 /* Shutter + photo-library import (same spot as iOS Camera's last-shot
-                   thumbnail) + Done once at least one page is shot — balanced 44px slots either
-                   side of the shutter. */
+                   thumbnail) + Next once at least one page is shot. */
                 <div className="shrink-0 flex items-center justify-between px-8 pb-10 pt-4">
                   <div className="w-11 h-11 flex items-center justify-center">
                     {phase === "frame" && (
@@ -617,22 +650,15 @@ export function ScanDocument({
                     </div>
                   )}
 
-                  <div className="w-11 h-11 flex items-center justify-center">
-                    {phase === "frame" && pages > 0 && (
+                  <div className="flex items-center justify-center min-w-[44px]">
+                    {phase === "frame" && pageIds.length > 0 && (
                       <button
                         type="button"
-                        aria-label={`Done — use ${pages} page${pages === 1 ? "" : "s"}`}
                         onClick={handleDone}
-                        className="relative w-11 h-11 rounded-full flex items-center justify-center text-white active:scale-95 transition-transform"
-                        style={{ background: BRAND }}
+                        className="h-9 px-4 rounded-full text-white text-[14px] font-semibold whitespace-nowrap active:scale-95 transition-transform"
+                        style={{ ...FONT, background: BRAND }}
                       >
-                        <Check size={20} strokeWidth={2} />
-                        <span
-                          className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-[10px] font-bold flex items-center justify-center"
-                          style={{ ...FONT, color: BRAND }}
-                        >
-                          {pages}
-                        </span>
+                        Next ({pageIds.length})
                       </button>
                     )}
                   </div>
