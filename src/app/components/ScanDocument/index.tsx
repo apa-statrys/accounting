@@ -47,14 +47,15 @@ function PageThumb({ index }: { index: number }) {
 /**
  * Camera + document-scanner demo. In a published build the shutter opens the native
  * scanner (iOS VisionKit / Android ML Kit); here it plays a framing → scanning → review
- * sequence. After each shot the user confirms it — Retake tries the shot again, Use Image
- * adds it as a page, and Cancel (top-left, replacing the usual close icon on this step) backs
- * out of the whole scan. Once at least one page is confirmed, the user can shoot another page
- * (multi-page invoice) or tap Done to finish — all pages become ONE invoice document, handed
- * back via a single `onCapture(pageCount)` call. The bottom-bar photo-library button opens a
- * multi-select photo grid (no retake needed for already-existing photos) — same spot as iOS
- * Camera's last-shot thumbnail, so upload isn't camera-only; picking several at once adds them
- * all as pages in one go.
+ * sequence. The review step is a plain confirm of that one shot, not a screen you navigate
+ * away from: Use Image adds it as a page, and the back chevron up top (not a ✕ — this doesn't
+ * close anything) drops back to the live scanner to try again, same as the shutter tap never
+ * happened; it never exits the whole scan. Once at least one page is confirmed, the user can
+ * shoot another page (multi-page invoice) or tap Done to finish — all pages become ONE invoice
+ * document, handed back via a single `onCapture(pageCount)` call. The bottom-bar photo-library
+ * button opens a multi-select photo grid (no retake needed for already-existing photos) — same
+ * spot as iOS Camera's last-shot thumbnail, so upload isn't camera-only; picking several at
+ * once adds them all as pages in one go.
  * Renders full-screen (`absolute inset-0`) over whatever's underneath (CreateInvoiceSheet) —
  * needs a positioned ancestor sized to the phone frame, same as any other sheet overlay.
  */
@@ -127,37 +128,21 @@ export function ScanDocument({
         >
           <StatusBar darkMode />
 
-          {/* Top bar — close (back, from the library grid; Cancel, on the review step) + title + trailing control */}
+          {/* Top bar — back chevron (review step returns to the scanner; library grid returns
+              to the camera) or ✕ (closes the whole scan) + title + trailing control */}
           <div className="shrink-0 flex items-center justify-between px-4 py-3">
-            {phase === "library" ? (
-              <button
-                type="button"
-                aria-label="Back to camera"
-                onClick={handleCancelLibrary}
-                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
-              >
+            <button
+              type="button"
+              aria-label={phase === "library" ? "Back to camera" : phase === "review" ? "Back to scanner" : "Close"}
+              onClick={phase === "library" ? handleCancelLibrary : phase === "review" ? handleRetake : onClose}
+              className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
+            >
+              {phase === "library" || phase === "review" ? (
                 <ChevronLeft size={20} strokeWidth={1.67} />
-              </button>
-            ) : phase === "review" ? (
-              <button
-                type="button"
-                aria-label="Cancel"
-                onClick={onClose}
-                className="h-9 px-3 rounded-full bg-white/10 flex items-center justify-center text-white text-[14px] font-semibold"
-                style={FONT}
-              >
-                Cancel
-              </button>
-            ) : (
-              <button
-                type="button"
-                aria-label="Close"
-                onClick={onClose}
-                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
-              >
+              ) : (
                 <X size={20} strokeWidth={1.67} />
-              </button>
-            )}
+              )}
+            </button>
             <span className="text-[15px] font-bold text-white" style={FONT}>
               {phase === "library"
                 ? selected.size > 0
@@ -278,7 +263,7 @@ export function ScanDocument({
                 {phase === "scanning"
                   ? "Scanning…"
                   : phase === "review"
-                  ? "Use this image, or retake it"
+                  ? "Use this image, or go back to retake it"
                   : pages > 0
                   ? "Add another page, or tap Done to finish"
                   : "Position the invoice within the frame"}
@@ -312,20 +297,13 @@ export function ScanDocument({
               </button>
             </div>
           ) : phase === "review" ? (
-            /* Review step — use this page (adds it to the document) or retake it. Cancel (top-left) exits the whole scan. */
-            <div className="shrink-0 flex items-center gap-3 px-6 pb-10 pt-4">
-              <button
-                type="button"
-                onClick={handleRetake}
-                className="flex-1 h-12 rounded-full bg-white/15 text-white text-[15px] font-semibold active:scale-95 transition-transform"
-                style={FONT}
-              >
-                Retake
-              </button>
+            /* Review step — a plain confirm of this one shot. The back chevron up top returns
+               to the live scanner; this is the only other action, adding it as a page. */
+            <div className="shrink-0 px-6 pb-10 pt-4">
               <button
                 type="button"
                 onClick={handleUseImage}
-                className="flex-1 h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform"
+                className="w-full h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform"
                 style={{ ...FONT, background: BRAND }}
               >
                 Use Image
