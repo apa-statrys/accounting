@@ -21,8 +21,8 @@ function Corner({ pos }: { pos: "tl" | "tr" | "bl" | "br" }) {
 }
 
 /** Small captured-page preview tile for the filmstrip below the viewfinder — a miniature of
- *  the same document mock, numbered so order is legible even once it scrolls off-screen. */
-function PageThumb({ index }: { index: number }) {
+ *  the same document mock. Order is implicit (left to right), no badge needed. */
+function PageThumb() {
   return (
     <div
       className="relative shrink-0 w-12 h-16 rounded-md bg-white overflow-hidden shadow-[0_2px_6px_rgba(0,0,0,0.35)] flex flex-col gap-1 p-1.5"
@@ -34,12 +34,6 @@ function PageThumb({ index }: { index: number }) {
         <div className="h-0.5 w-full rounded-sm bg-[#ececec]" />
         <div className="h-0.5 w-4/5 rounded-sm bg-[#ececec]" />
       </div>
-      <span
-        className="absolute -top-1 -left-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
-        style={{ background: BRAND, ...FONT }}
-      >
-        {index + 1}
-      </span>
     </div>
   );
 }
@@ -71,14 +65,16 @@ export function ScanDocument({
 }) {
   const [phase, setPhase] = useState<"frame" | "scanning" | "review" | "library">("frame");
   const [pages, setPages] = useState(0);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  // Order selected, not just membership — so each tile can show its pick number (1, 2, 3…)
+  // and deselecting one renumbers the rest instead of leaving a gap.
+  const [selectedOrder, setSelectedOrder] = useState<number[]>([]);
 
   // Reset to the live viewfinder, page count cleared, each time the camera opens.
   useEffect(() => {
     if (open) {
       setPhase("frame");
       setPages(0);
-      setSelected(new Set());
+      setSelectedOrder([]);
     }
   }, [open]);
 
@@ -96,23 +92,18 @@ export function ScanDocument({
     setPhase("frame");
   };
   const openLibrary = () => {
-    setSelected(new Set());
+    setSelectedOrder([]);
     setPhase("library");
   };
   const handleCancelLibrary = () => {
-    setSelected(new Set());
+    setSelectedOrder([]);
     setPhase("frame");
   };
   const toggleSelect = (i: number) =>
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(i)) next.delete(i);
-      else next.add(i);
-      return next;
-    });
+    setSelectedOrder((prev) => (prev.includes(i) ? prev.filter((n) => n !== i) : [...prev, i]));
   const handleAddSelected = () => {
-    setPages((p) => p + selected.size);
-    setSelected(new Set());
+    setPages((p) => p + selectedOrder.length);
+    setSelectedOrder([]);
     setPhase("frame");
   };
 
@@ -145,8 +136,8 @@ export function ScanDocument({
             </button>
             <span className="text-[15px] font-bold text-white" style={FONT}>
               {phase === "library"
-                ? selected.size > 0
-                  ? `${selected.size} Selected`
+                ? selectedOrder.length > 0
+                  ? `${selectedOrder.length} Selected`
                   : "Select Photos"
                 : phase === "review"
                 ? "Review page"
@@ -168,12 +159,13 @@ export function ScanDocument({
             <div className="flex-1 overflow-y-auto px-4 py-4">
               <div className="grid grid-cols-4 gap-2">
                 {Array.from({ length: LIBRARY_TILE_COUNT }).map((_, i) => {
-                  const isSelected = selected.has(i);
+                  const pickNumber = selectedOrder.indexOf(i) + 1;
+                  const isSelected = pickNumber > 0;
                   return (
                     <button
                       key={i}
                       type="button"
-                      aria-label={`Photo ${i + 1}${isSelected ? ", selected" : ""}`}
+                      aria-label={`Photo ${i + 1}${isSelected ? `, selected (${pickNumber})` : ""}`}
                       onClick={() => toggleSelect(i)}
                       className="relative aspect-square rounded-md overflow-hidden bg-white/10 flex items-center justify-center active:scale-95 transition-transform"
                     >
@@ -183,11 +175,11 @@ export function ScanDocument({
                           <span className="absolute inset-0 bg-black/30" aria-hidden />
                           <span className="absolute inset-0 border-2 rounded-md" style={{ borderColor: BRAND }} aria-hidden />
                           <span
-                            className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center"
-                            style={{ background: BRAND }}
+                            className="absolute top-1 right-1 min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
+                            style={{ background: BRAND, ...FONT }}
                             aria-hidden
                           >
-                            <Check size={12} strokeWidth={2.5} color="#fff" />
+                            {pickNumber}
                           </span>
                         </>
                       )}
@@ -278,7 +270,7 @@ export function ScanDocument({
             <div className="shrink-0 overflow-x-auto px-6 pb-3">
               <div className="flex gap-2 w-max">
                 {Array.from({ length: pages }).map((_, i) => (
-                  <PageThumb key={i} index={i} />
+                  <PageThumb key={i} />
                 ))}
               </div>
             </div>
@@ -291,11 +283,11 @@ export function ScanDocument({
               <button
                 type="button"
                 onClick={handleAddSelected}
-                disabled={selected.size === 0}
+                disabled={selectedOrder.length === 0}
                 className="w-full h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform disabled:opacity-40"
                 style={{ ...FONT, background: BRAND }}
               >
-                {selected.size > 0 ? `Add ${selected.size} Photo${selected.size === 1 ? "" : "s"}` : "Select Photos"}
+                {selectedOrder.length > 0 ? `Add ${selectedOrder.length} Photo${selectedOrder.length === 1 ? "" : "s"}` : "Select Photos"}
               </button>
             </div>
           ) : phase === "review" ? (
