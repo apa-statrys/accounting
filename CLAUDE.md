@@ -86,7 +86,7 @@ src/app/
                           # (invoice-detail + add-invoice-details). Flat single-file screens
                           # (Dashboard, AccountingHub, InvoiceSettings, NeedAttention,
                           # CustomerList, CustomerDetailPage, AddCustomerPage, CreateSalesInvoice,
-                          # GeneratingInvoice, DuplicateDecision, UploadQueue) stay directly under
+                          # GeneratingInvoice, DuplicateDecision) stay directly under
                           # pages/ — upload is native scan/picker now (no in-app upload screen), so
                           # ScanDocument (native-scanner stand-in) + UploadErrorDialog live in
                           # components/ instead, not a pages/upload-invoice/ folder.
@@ -121,8 +121,7 @@ All screen components live in `pages/`:
 | customer (pick) | CreateSalesInvoice | | customers | CustomerList |
 | details (editor) | add-invoice-details/AddInvoiceDetails | | customerDetail | CustomerDetailPage |
 | extracting | GeneratingInvoice | | addCustomer / editCustomer | AddCustomerPage |
-| uploadQueue | UploadQueue | | duplicateCheck | DuplicateDecision |
-| needAttention | NeedAttention | | | |
+| needAttention | NeedAttention | | duplicateCheck | DuplicateDecision |
 | settings | InvoiceSettings | | send | (send sub-flow inside the editor/detail) |
 
 Navigation notes: detail page tracks `detailReturn` (back + in-page actions return to wherever it was
@@ -136,17 +135,17 @@ in-session only — a reload resets it (expected prototype limit).
   show a derived `DF-…` header; the real number is assigned on issue (DES-715).
 - **Single-line toasts**, keyed to action: "Saved as draft" / "Saved as awaiting payment" /
   "Invoice created successfully" (upload-flow) / "Invoice marked as sent" / "Draft deleted" /
-  "Changes saved" / "Payment recorded" / "Invoice voided" / "Invoice duplicated" / "N invoices
-  created" (multi-file upload, below).
-- **Multi-file upload → Review Invoices queue** (added 2026-08-19, DES-894 feedback): the native
-  picker/scanner can return several files in one pick — QuickNav's "Upload — Multiple Files" (Sales
-  Invoice → Create Invoice — Upload) simulates this with `DEMO_UPLOAD_QUEUE` (data/extraction.ts).
-  One batch OCR pass (`extracting` screen, plural copy) lands on `uploadQueue`
-  (pages/UploadQueue.tsx) listing each file with a Reviewed/Needs Review badge; tapping a row opens
-  the SAME single-file `details` (AddInvoiceDetails) review screen, which returns to the queue
-  (`uploadQueueActiveIndex` in App.tsx) instead of the list until every file is done, then shows the
-  one summary toast and returns to the list. Leaving the queue early just abandons the remaining
-  files — no partial invoices are created, same "reload resets state" limit as the rest of the app.
+  "Changes saved" / "Payment recorded" / "Invoice voided" / "Invoice duplicated".
+- **Multi-page camera/library scan → one invoice document** (added 2026-08-31): the in-app
+  scanner (`components/ScanDocument`) is the only multi-file/multi-page entry point now — the
+  earlier "Upload — Multiple Files" batch-of-separate-invoices queue (DES-894, `UploadQueue.tsx` +
+  `DEMO_UPLOAD_QUEUE`) was removed since this covers the same need. Shutter capture (keep/retake
+  review each shot) or the photo-library grid (multi-select, drag to reorder) both accumulate
+  pages into ONE document via a stable per-page id list — never separate invoices. Tapping the
+  scanner's own filmstrip opens that page full-screen (swipe or drag its filmstrip to reorder,
+  its own ✕ removes a page immediately from the base filmstrip or marks-for-removal-until-close
+  inside the full-screen preview) before a single "Next (N)" hands the whole set to OCR as
+  `uploadedFile.pages` (see `lib/format.ts`'s `fileSizeLabel`).
 - **Customer-edit concurrent conflict** (added 2026-08-19, DES-894 feedback): no real backend to
   race against in this prototype, so it's demo-only — Edit Customer's own "Page States" panel has a
   "Concurrent edit conflict" toggle (`simulateConflict` prop, AddCustomerPage.tsx) that makes Save

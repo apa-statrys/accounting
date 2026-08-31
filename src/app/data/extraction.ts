@@ -82,39 +82,3 @@ export const DEMO_EXTRACTION_MATCHED: ExtractedInvoice = {
     { id: "ext-d", name: "Landing page design", unit: "Page", quantity: 3, unitPrice: 580 },
   ],
 };
-
-/**
- * Demo queue for a multi-file upload — the native picker/scanner can return several files at
- * once; each pairs the "file" it returned with its own OCR extraction, reviewed one at a time on
- * the Review Invoices queue screen (none of these invoice numbers collide with EXISTING_INVOICES,
- * so the batch flow never has to detour through the single-file duplicate-check screen).
- */
-export const DEMO_UPLOAD_QUEUE: { file: { name: string; size: number }; extraction: ExtractedInvoice }[] = [
-  { file: { name: "invoice-daniel-smith.pdf", size: 419430 }, extraction: DEMO_EXTRACTION },
-  {
-    file: { name: "invoice-bright-harbor.jpg", size: 892112 },
-    extraction: {
-      invoiceNumber: "UPL-2026-000104",
-      customerName: "Bright Harbor Co.",
-      customerEmail: "accounts@brightharbor.co",
-      emailNotFound: false,
-      currency: "USD",
-      issueDate: new Date(2026, 5, 20),
-      dueDate: "20 Jul 2026",
-      services: [{ id: "ext-e", name: "Consulting Hours", unit: "Hour", quantity: 12, unitPrice: 85 }],
-    },
-  },
-  {
-    file: { name: "invoice-otto-reyes.png", size: 1258291 },
-    extraction: {
-      invoiceNumber: "UPL-2026-000105",
-      customerName: "Otto Reyes",
-      customerEmail: "",
-      emailNotFound: true,
-      currency: "USD",
-      issueDate: new Date(2026, 5, 22),
-      dueDate: "22 Jul 2026",
-      services: [{ id: "ext-f", name: "Photography Package", unit: "Project", quantity: 1, unitPrice: 950 }],
-    },
-  },
-];

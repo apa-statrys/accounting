@@ -27,10 +27,9 @@ import { NeedAttention } from "./pages/NeedAttention";
 import { DuplicateDecision } from "./pages/DuplicateDecision";
 import { InvoiceSettings } from "./pages/InvoiceSettings";
 import { GeneratingInvoice } from "./pages/GeneratingInvoice";
-import { UploadQueue, type UploadQueueItem, type UploadQueueResult } from "./pages/UploadQueue";
 import { ScanDocument } from "./components/ScanDocument";
 import { UploadErrorDialog } from "./components/UploadErrorDialog";
-import { DEMO_EXTRACTION, DEMO_EXTRACTION_MATCHED, DEMO_EXTRACTION_NO_CUSTOMER, BLANK_EXTRACTION, EXISTING_INVOICES, DEMO_UPLOAD_QUEUE } from "./data/extraction";
+import { DEMO_EXTRACTION, DEMO_EXTRACTION_MATCHED, DEMO_EXTRACTION_NO_CUSTOMER, BLANK_EXTRACTION, EXISTING_INVOICES } from "./data/extraction";
 import { CUSTOMERS } from "./data/customers";
 import { DEFAULT_SETTINGS } from "./data/settings";
 import { HERO_SCENARIOS } from "./data/heroScenarios";
@@ -212,50 +211,7 @@ export default function App() {
     setPendingExtraction(DEMO_EXTRACTION);
     setUploadedFile({ name: "invoice.pdf", size: 419430, pages });
     setDetailsDevLockedPeriod(false); // a fresh upload always resets a previous PageControls toggle
-    setUploadQueue(null); // a single-file upload is never a leftover batch's continuation
     setScreen("extracting");
-  };
-  // Multi-file upload (the native picker/scanner can return several files at once, e.g. photographing
-  // a stack of invoices in one go) — one batch OCR pass (the same "extracting" loading screen, plural
-  // copy), then each file is reviewed individually on the Review Invoices queue screen below.
-  // `uploadQueueResults` is keyed by the item's index in `uploadQueue`, filled in as each is
-  // reviewed/created; `uploadQueueActiveIndex` is which item the "details" screen is currently
-  // reviewing (null = not mid-review, e.g. any single-file/manual flow through the same screen).
-  const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[] | null>(null);
-  const [uploadQueueResults, setUploadQueueResults] = useState<Record<number, UploadQueueResult>>({});
-  const [uploadQueueActiveIndex, setUploadQueueActiveIndex] = useState<number | null>(null);
-  const startBatchUpload = () => {
-    setCustomer(null);
-    setUploadQueue(DEMO_UPLOAD_QUEUE);
-    setUploadQueueResults({});
-    setUploadQueueActiveIndex(null);
-    setDetailsDevLockedPeriod(false);
-    setScreen("extracting");
-  };
-  // Called from the "details" screen's onClose/onSend/onSaveDraft — when that review was opened
-  // from the upload queue (uploadQueueActiveIndex set), it always returns to the queue instead of
-  // the list, and `result` (once every item has one) triggers the queue's own summary toast +
-  // return to the list. Returns false when there's no active queue item, so the caller falls
-  // through to its normal (non-queue) behavior.
-  const finishQueueReview = (result?: UploadQueueResult) => {
-    if (uploadQueueActiveIndex === null || !uploadQueue) return false;
-    const idx = uploadQueueActiveIndex;
-    setUploadQueueActiveIndex(null);
-    if (!result) {
-      setScreen("uploadQueue");
-      return true;
-    }
-    const nextResults = { ...uploadQueueResults, [idx]: result };
-    if (Object.keys(nextResults).length >= uploadQueue.length) {
-      setToast({ title: `${uploadQueue.length} invoice${uploadQueue.length === 1 ? "" : "s"} created` });
-      setUploadQueue(null);
-      setUploadQueueResults({});
-      setScreen("list");
-    } else {
-      setUploadQueueResults(nextResults);
-      setScreen("uploadQueue");
-    }
-    return true;
   };
   // Standalone scanner overlay for in-flow "Re-upload"/"Replace" actions (DuplicateDecision,
   // AddInvoiceDetails) — unlike the FAB's Create-Invoice chooser, there's no sheet to host
@@ -433,8 +389,7 @@ export default function App() {
           items: [
             // Upload is native scan/picker now (no in-app sheet) — dev jump reproduces what a real
             // pick hands back: straight to the "reading your invoice" loading step.
-            { label: "Upload Invoice", active: screen === "extracting" && !uploadQueue, onSelect: () => { setUploadReturn("list"); startUpload(); } },
-            { label: "Upload — Multiple Files", tag: "WIP", active: (screen === "extracting" && !!uploadQueue) || screen === "uploadQueue", onSelect: () => { setUploadReturn("list"); startBatchUpload(); } },
+            { label: "Upload Invoice", active: screen === "extracting", onSelect: () => { setUploadReturn("list"); startUpload(); } },
             { label: "Upload — Duplicate", active: screen === "duplicateCheck", onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_MATCHED); setExtracted(DEMO_EXTRACTION_MATCHED); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-scan.png", size: 1258291 }); setDupExisting(EXISTING_INVOICES.find((i) => i.number === DEMO_EXTRACTION_MATCHED.invoiceNumber) ?? null); setScreen("duplicateCheck"); } },
             { label: "Upload — Manual Entry Needed", active: screen === "details" && extracted === DEMO_EXTRACTION_NO_CUSTOMER, onSelect: () => { setPendingExtraction(DEMO_EXTRACTION_NO_CUSTOMER); setExtracted(DEMO_EXTRACTION_NO_CUSTOMER); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice.pdf", size: 419430 }); setScreen("details"); } },
             { label: "Upload — Unreadable (Blank)", active: screen === "details" && extracted === BLANK_EXTRACTION, onSelect: () => { setPendingExtraction(null); setExtracted(BLANK_EXTRACTION); setEditInitial(null); setNumberRecommended(false); setEditFromDuplicate(false); setUploadedFile({ name: "invoice-unreadable.jpg", size: 3565158 }); setScreen("details"); } },
@@ -1112,20 +1067,8 @@ export default function App() {
       {screen === "extracting" && (
         <GeneratingInvoice
           durationMs={1400}
-          title={
-            uploadQueue
-              ? `Reading ${uploadQueue.length} invoices…`
-              : uploadedFile?.pages && uploadedFile.pages > 1
-              ? `Reading ${uploadedFile.pages} pages…`
-              : undefined
-          }
+          title={uploadedFile?.pages && uploadedFile.pages > 1 ? `Reading ${uploadedFile.pages} pages…` : undefined}
           onDone={() => {
-            // Multi-file upload: one batch OCR pass covers every file at once — land on the
-            // Review Invoices queue instead of a single "details" screen.
-            if (uploadQueue) {
-              setScreen("uploadQueue");
-              return;
-            }
             // Nothing extracted → drop into the upload form blank (banner + manual fill, DES-716).
             const ex = pendingExtraction === null ? BLANK_EXTRACTION : pendingExtraction;
             setExtracted(ex);
@@ -1145,32 +1088,6 @@ export default function App() {
             } else {
               setScreen("details");
             }
-          }}
-        />
-      )}
-
-      {/* Review Invoices — the multi-file upload's queue; each row opens the same "details"
-          review screen a single-file upload uses (see the uploadQueueActiveIndex branches in that
-          screen's onClose/onSend/onSaveDraft below), then returns here until every file is done. */}
-      {screen === "uploadQueue" && uploadQueue && (
-        <UploadQueue
-          items={uploadQueue}
-          results={uploadQueueResults}
-          onReview={(index) => {
-            const item = uploadQueue[index];
-            setUploadQueueActiveIndex(index);
-            setCustomer(null);
-            setExtracted(item.extraction);
-            setEditInitial(null);
-            setUploadedFile(item.file);
-            setNumberRecommended(false);
-            setEditFromDuplicate(false);
-            setScreen("details");
-          }}
-          onBack={() => {
-            setUploadQueue(null);
-            setUploadQueueResults({});
-            setScreen(uploadReturn);
           }}
         />
       )}
@@ -1357,12 +1274,11 @@ export default function App() {
           initial={editInitial}
           onEditBack={() => { setDetailFlash(null); setScreen("invoiceDetail"); }}
           onEditSave={() => { setDetailFlash("Changes saved"); setScreen("invoiceDetail"); }}
-          onClose={() => { if (!finishQueueReview()) setScreen("list"); }}
+          onClose={() => setScreen("list")}
           onChangeCustomer={() => setScreen("customer")}
           onSend={(t, r) => {
             setRecent(r ?? null);
             if (r) flagNew("invoice", "recent-new");
-            if (finishQueueReview(r ? { client: r.client, amount: r.amount, status: "Awaiting" } : undefined)) return;
             if (extracted) {
               // Any upload create (OCR-missing, create-new, etc.) → land on the new invoice's
               // detail page in Awaiting Payment, not the list.
@@ -1381,7 +1297,6 @@ export default function App() {
           onSendLater={() => setScreen("list")}
           onSaveDraft={(draft) => {
             if (draft) flagNew("invoice", "recent-new");
-            if (finishQueueReview(draft ? { client: draft.client, amount: draft.amount, status: "Draft" } : undefined)) return;
             setToast({ title: "Saved as draft" });
             setRecent(draft ? { ...draft, status: "Draft" } : null);
             setScreen("list");
