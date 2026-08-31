@@ -121,8 +121,9 @@ function PageThumb({
  * dot in the corner selects/deselects right there without leaving the grid. Once full-screen,
  * the image itself is swipe-only (left/right moves between photos) — select/deselect lives in
  * the same "Select"/"Selected" + dot header control, and a filmstrip of every currently-selected
- * photo appears at the bottom (tap one to jump to it, its own ✕ removes it) — no retake needed
- * for already-existing photos, and picking several at once adds them all as pages in one go.
+ * photo appears at the bottom (tap one to jump to it, its own ✕ removes it, drag to reorder —
+ * pick-number badges update to match) — no retake needed for already-existing photos, and
+ * picking several at once adds them all as pages in one go.
  * Renders full-screen (`absolute inset-0`) over whatever's underneath (CreateInvoiceSheet) —
  * needs a positioned ancestor sized to the phone frame, same as any other sheet overlay.
  */
@@ -551,12 +552,24 @@ export function ScanDocument({
 
               {/* Selected-photos filmstrip — only on the full-screen photo preview, so the user
                   can see everything picked so far while browsing. Tap a thumbnail to jump to
-                  that photo; the ✕ removes it from the selection without opening it. */}
+                  that photo, the ✕ removes it from the selection without opening it, and the
+                  whole strip can be dragged to reorder — pick numbers update to match. */}
               {phase === "library" && previewIndex !== null && selectedOrder.length > 0 && (
                 <div className="shrink-0 overflow-x-auto px-6 pb-3">
-                  <div className="flex gap-2 w-max">
+                  <Reorder.Group
+                    as="div"
+                    axis="x"
+                    values={selectedOrder}
+                    onReorder={setSelectedOrder}
+                    className="flex gap-2 w-max"
+                  >
                     {selectedOrder.map((idx) => (
-                      <div key={idx} className="relative shrink-0 w-12 h-12 rounded-md overflow-hidden bg-white/10">
+                      <Reorder.Item
+                        key={idx}
+                        value={idx}
+                        as="div"
+                        className="relative shrink-0 w-12 h-12 rounded-md overflow-hidden bg-white/10"
+                      >
                         <button
                           type="button"
                           aria-label={`View photo ${idx + 1}`}
@@ -574,9 +587,9 @@ export function ScanDocument({
                         >
                           <X size={10} strokeWidth={2.5} />
                         </button>
-                      </div>
+                      </Reorder.Item>
                     ))}
-                  </div>
+                  </Reorder.Group>
                 </div>
               )}
 
