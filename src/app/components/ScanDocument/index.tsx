@@ -107,19 +107,21 @@ function PageThumb({
  * happened; it never exits the whole scan. Once at least one page is confirmed, the user can
  * shoot another page (multi-page invoice) or tap Done to finish — all pages become ONE invoice
  * document, handed back via a single `onCapture(pageCount)` call. Tapping a filmstrip
- * thumbnail opens that page full-screen (back chevron top-left) so it isn't stuck tiny — swipe
+ * thumbnail opens that page full-screen (✕ top-left closes it) so it isn't stuck tiny — swipe
  * left/right (or tap another thumbnail in the filmstrip shown there too, each with its own ✕ to
  * mark/unmark it right from the strip) to browse the other captured pages without leaving
- * full-screen. The page itself isn't tappable there — a "Select"/"Deselect" + dot control up top
- * toggles kept/removed for whichever page is showing, dimming it in place; nothing is actually
- * removed until the user backs out, which applies every page marked that way in one go. The
- * bottom-bar photo-library button opens a multi-select photo grid the same way, but split into
- * two tap targets per tile: the image opens that photo full-screen, while an always-visible dot
- * in the corner selects/deselects right there without leaving the grid. Once full-screen, the
- * image itself is swipe-only (left/right moves between photos) — select/deselect lives in the
- * same "Select"/"Selected" + dot header control, and a filmstrip of every currently-selected
- * photo appears at the bottom (tap one to jump to it, its own ✕ removes it) — no retake needed
- * for already-existing photos, and picking several at once adds them all as pages in one go.
+ * full-screen. The page itself isn't tappable there — a "Select"/"Selected" + dot control up top
+ * (same shape and wording as the library preview's, just applied to a page that starts out
+ * already included) toggles kept/removed for whichever page is showing, dimming it in place;
+ * nothing is actually removed until the user closes the preview, which applies every page marked
+ * that way in one go. The bottom-bar photo-library button opens a multi-select photo grid the
+ * same way, but split into two tap targets per tile: the image opens that photo full-screen,
+ * while an always-visible dot in the corner selects/deselects right there without leaving the
+ * grid. Once full-screen, the image itself is swipe-only (left/right moves between photos) —
+ * select/deselect lives in the same "Select"/"Selected" + dot header control, and a filmstrip of
+ * every currently-selected photo appears at the bottom (tap one to jump to it, its own ✕ removes
+ * it) — no retake needed for already-existing photos, and picking several at once adds them all
+ * as pages in one go.
  * Renders full-screen (`absolute inset-0`) over whatever's underneath (CreateInvoiceSheet) —
  * needs a positioned ancestor sized to the phone frame, same as any other sheet overlay.
  */
@@ -230,16 +232,16 @@ export function ScanDocument({
           {pagePreviewIndex !== null ? (
             <>
               {/* Full-screen captured-page detail — swipe left/right to browse; the page itself
-                  isn't tappable, only the header "Select"/"Deselect" control toggles kept/removed
-                  for whichever page is showing. Back (top-left) applies every marked removal. */}
+                  isn't tappable, only the header "Select"/"Selected" control toggles kept/removed
+                  for whichever page is showing. The ✕ (top-left) applies every marked removal. */}
               <div className="shrink-0 flex items-center justify-between px-4 py-3">
                 <button
                   type="button"
-                  aria-label="Back to scanner"
+                  aria-label="Close preview"
                   onClick={handleBackFromPagePreview}
                   className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
                 >
-                  <ChevronLeft size={20} strokeWidth={1.67} />
+                  <X size={20} strokeWidth={1.67} />
                 </button>
                 <span className="text-[15px] font-bold text-white" style={FONT}>
                   Page {pagePreviewIndex + 1}
@@ -254,7 +256,7 @@ export function ScanDocument({
                       className="flex items-center gap-1.5 h-9 pl-3 pr-2 rounded-full bg-white/10 text-white text-[13px] font-semibold"
                       style={FONT}
                     >
-                      {isRemoved ? "Select" : "Deselect"}
+                      {isRemoved ? "Select" : "Selected"}
                       <span
                         className="w-5 h-5 rounded-full flex items-center justify-center"
                         style={{
@@ -484,17 +486,6 @@ export function ScanDocument({
                           animate={{ y: "420%" }}
                           transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
                         />
-                      </div>
-                    )}
-
-                    {/* Kept-page confirmation badge */}
-                    {phase === "review" && (
-                      <div
-                        className="absolute -top-3 -right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
-                        style={{ background: BRAND }}
-                        aria-hidden
-                      >
-                        <Check size={18} strokeWidth={2.25} color="#fff" />
                       </div>
                     )}
                   </div>
