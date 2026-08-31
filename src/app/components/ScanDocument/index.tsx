@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Zap, Images, Check } from "lucide-react";
+import { X, Zap, Images, Check, ChevronLeft, Image as ImageIcon } from "lucide-react";
 import StatusBar from "../StatusBar";
 
 import { FONT } from "../../lib/theme";
 const BRAND = "#FF4A15";
+/** Demo photo-library grid — a fixed count of placeholder tiles, no real photo backend. */
+const LIBRARY_TILE_COUNT = 12;
 
 /** Edge-detection corner bracket — one of the four framing the document. */
 function Corner({ pos }: { pos: "tl" | "tr" | "bl" | "br" }) {
@@ -24,8 +26,9 @@ function Corner({ pos }: { pos: "tl" | "tr" | "bl" | "br" }) {
  * sequence. After each capture the user keeps the page or retakes it; once kept, they can
  * shoot another page (multi-page invoice) or tap Done to finish — all kept pages become ONE
  * invoice document, handed back via a single `onCapture(pageCount)` call. The bottom-bar
- * photo-library button adds a page the same way (no retake needed for an already-existing
- * photo) — same spot as iOS Camera's last-shot thumbnail, so upload isn't camera-only.
+ * photo-library button opens a multi-select grid (no retake needed for already-existing
+ * photos) — same spot as iOS Camera's last-shot thumbnail, so upload isn't camera-only;
+ * picking several at once adds them all as pages in one go, same as scanning them one by one.
  * Renders full-screen (`absolute inset-0`) over whatever's underneath (CreateInvoiceSheet) —
  * needs a positioned ancestor sized to the phone frame, same as any other sheet overlay.
  */
@@ -39,14 +42,16 @@ export function ScanDocument({
   /** Fires once the user taps Done — total pages kept, all treated as one document. */
   onCapture?: (pageCount: number) => void;
 }) {
-  const [phase, setPhase] = useState<"frame" | "scanning" | "review">("frame");
+  const [phase, setPhase] = useState<"frame" | "scanning" | "review" | "library">("frame");
   const [pages, setPages] = useState(0);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   // Reset to the live viewfinder, page count cleared, each time the camera opens.
   useEffect(() => {
     if (open) {
       setPhase("frame");
       setPages(0);
+      setSelected(new Set());
     }
   }, [open]);
 
@@ -62,8 +67,23 @@ export function ScanDocument({
     setPages((p) => p + 1);
     setPhase("frame");
   };
-  const handleImport = () => setPages((p) => p + 1);
   const handleDone = () => onCapture?.(pages);
+  const toggleSelect = (i: number) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  const handleCancelLibrary = () => {
+    setSelected(new Set());
+    setPhase("frame");
+  };
+  const handleAddSelected = () => {
+    setPages((p) => p + selected.size);
+    setSelected(new Set());
+    setPhase("frame");
+  };
 
   return (
     <AnimatePresence>
@@ -77,99 +97,160 @@ export function ScanDocument({
         >
           <StatusBar darkMode />
 
-          {/* Top bar — close + title (page count once multi-page) + (decorative) flash toggle */}
+          {/* Top bar — close (or back, from the library grid) + title + (decorative) flash toggle */}
           <div className="shrink-0 flex items-center justify-between px-4 py-3">
             <button
               type="button"
-              aria-label="Close"
-              onClick={onClose}
+              aria-label={phase === "library" ? "Back to camera" : "Close"}
+              onClick={phase === "library" ? handleCancelLibrary : onClose}
               className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
             >
-              <X size={20} strokeWidth={1.67} />
+              {phase === "library" ? <ChevronLeft size={20} strokeWidth={1.67} /> : <X size={20} strokeWidth={1.67} />}
             </button>
             <span className="text-[15px] font-bold text-white" style={FONT}>
-              {phase === "review" ? "Review page" : pages > 0 ? `Page ${pages + 1}` : "Scan invoice"}
+              {phase === "library"
+                ? selected.size > 0
+                  ? `${selected.size} Selected`
+                  : "Select Photos"
+                : phase === "review"
+                ? "Review page"
+                : pages > 0
+                ? `Page ${pages + 1}`
+                : "Scan invoice"}
             </span>
-            <span className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/70" aria-hidden>
-              <Zap size={19} strokeWidth={1.67} />
-            </span>
+            {phase === "library" ? (
+              <span className="w-9 h-9" aria-hidden />
+            ) : (
+              <span className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/70" aria-hidden>
+                <Zap size={19} strokeWidth={1.67} />
+              </span>
+            )}
           </div>
 
-          {/* Viewfinder */}
-          <div className="flex-1 flex flex-col items-center justify-center px-8">
-            <div className="relative w-full max-w-[280px] aspect-[3/4]">
-              {/* The framed document the camera "sees" */}
-              <div className="absolute inset-2 bg-white rounded-md overflow-hidden flex flex-col gap-3 p-5 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
-                <div className="flex items-start justify-between">
-                  <div className="flex flex-col gap-1.5">
-                    <div className="h-3 w-20 rounded bg-[var(--bg-neutral-inverse-primary)]" />
-                    <div className="h-1.5 w-16 rounded bg-[#e5e5e5]" />
+          {phase === "library" ? (
+            /* Multi-select photo grid — tap several, then Add them all as pages in one go. */
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <div className="grid grid-cols-4 gap-2">
+                {Array.from({ length: LIBRARY_TILE_COUNT }).map((_, i) => {
+                  const isSelected = selected.has(i);
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      aria-label={`Photo ${i + 1}${isSelected ? ", selected" : ""}`}
+                      onClick={() => toggleSelect(i)}
+                      className="relative aspect-square rounded-md overflow-hidden bg-white/10 flex items-center justify-center active:scale-95 transition-transform"
+                    >
+                      <ImageIcon size={22} strokeWidth={1.5} className="text-white/40" />
+                      {isSelected && (
+                        <>
+                          <span className="absolute inset-0 bg-black/30" aria-hidden />
+                          <span className="absolute inset-0 border-2 rounded-md" style={{ borderColor: BRAND }} aria-hidden />
+                          <span
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center"
+                            style={{ background: BRAND }}
+                            aria-hidden
+                          >
+                            <Check size={12} strokeWidth={2.5} color="#fff" />
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            /* Viewfinder */
+            <div className="flex-1 flex flex-col items-center justify-center px-8">
+              <div className="relative w-full max-w-[280px] aspect-[3/4]">
+                {/* The framed document the camera "sees" */}
+                <div className="absolute inset-2 bg-white rounded-md overflow-hidden flex flex-col gap-3 p-5 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+                  <div className="flex items-start justify-between">
+                    <div className="flex flex-col gap-1.5">
+                      <div className="h-3 w-20 rounded bg-[var(--bg-neutral-inverse-primary)]" />
+                      <div className="h-1.5 w-16 rounded bg-[#e5e5e5]" />
+                    </div>
+                    <div className="h-8 w-8 rounded bg-[#eee]" />
                   </div>
-                  <div className="h-8 w-8 rounded bg-[#eee]" />
-                </div>
-                <div className="h-px w-full bg-[#f0f0f0]" />
-                {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <div className="h-2 rounded bg-[#ececec]" style={{ width: `${52 - i * 7}%` }} />
-                    <div className="h-2 w-9 rounded bg-[#ececec]" />
+                  <div className="h-px w-full bg-[#f0f0f0]" />
+                  {[0, 1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <div className="h-2 rounded bg-[#ececec]" style={{ width: `${52 - i * 7}%` }} />
+                      <div className="h-2 w-9 rounded bg-[#ececec]" />
+                    </div>
+                  ))}
+                  <div className="mt-auto flex items-center justify-between">
+                    <div className="h-2.5 w-12 rounded bg-[#e5e5e5]" />
+                    <div className="h-2.5 w-16 rounded bg-[var(--bg-neutral-inverse-primary)]" />
                   </div>
-                ))}
-                <div className="mt-auto flex items-center justify-between">
-                  <div className="h-2.5 w-12 rounded bg-[#e5e5e5]" />
-                  <div className="h-2.5 w-16 rounded bg-[var(--bg-neutral-inverse-primary)]" />
                 </div>
+
+                {/* Edge-detection brackets — gently pulse while framing */}
+                <motion.div
+                  className="absolute inset-0"
+                  animate={phase === "frame" ? { opacity: [0.55, 1, 0.55] } : { opacity: 1 }}
+                  transition={phase === "frame" ? { duration: 1.6, repeat: Infinity, ease: "easeInOut" } : { duration: 0.2 }}
+                >
+                  <Corner pos="tl" />
+                  <Corner pos="tr" />
+                  <Corner pos="bl" />
+                  <Corner pos="br" />
+                </motion.div>
+
+                {/* Scanning sweep — a band travels down the document */}
+                {phase === "scanning" && (
+                  <div className="absolute inset-2 overflow-hidden rounded-md pointer-events-none">
+                    <motion.div
+                      className="absolute inset-x-0 h-20"
+                      style={{ background: "linear-gradient(180deg, rgba(255,74,21,0) 0%, rgba(255,74,21,0.35) 50%, rgba(255,74,21,0) 100%)" }}
+                      initial={{ y: "-80%" }}
+                      animate={{ y: "420%" }}
+                      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                  </div>
+                )}
+
+                {/* Kept-page confirmation badge */}
+                {phase === "review" && (
+                  <div
+                    className="absolute -top-3 -right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
+                    style={{ background: BRAND }}
+                    aria-hidden
+                  >
+                    <Check size={18} strokeWidth={2.25} color="#fff" />
+                  </div>
+                )}
               </div>
 
-              {/* Edge-detection brackets — gently pulse while framing */}
-              <motion.div
-                className="absolute inset-0"
-                animate={phase === "frame" ? { opacity: [0.55, 1, 0.55] } : { opacity: 1 }}
-                transition={phase === "frame" ? { duration: 1.6, repeat: Infinity, ease: "easeInOut" } : { duration: 0.2 }}
-              >
-                <Corner pos="tl" />
-                <Corner pos="tr" />
-                <Corner pos="bl" />
-                <Corner pos="br" />
-              </motion.div>
-
-              {/* Scanning sweep — a band travels down the document */}
-              {phase === "scanning" && (
-                <div className="absolute inset-2 overflow-hidden rounded-md pointer-events-none">
-                  <motion.div
-                    className="absolute inset-x-0 h-20"
-                    style={{ background: "linear-gradient(180deg, rgba(255,74,21,0) 0%, rgba(255,74,21,0.35) 50%, rgba(255,74,21,0) 100%)" }}
-                    initial={{ y: "-80%" }}
-                    animate={{ y: "420%" }}
-                    transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-                  />
-                </div>
-              )}
-
-              {/* Kept-page confirmation badge */}
-              {phase === "review" && (
-                <div
-                  className="absolute -top-3 -right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
-                  style={{ background: BRAND }}
-                  aria-hidden
-                >
-                  <Check size={18} strokeWidth={2.25} color="#fff" />
-                </div>
-              )}
+              <p className="mt-8 text-[14px] leading-[1.4] text-white/70 text-center" style={FONT}>
+                {phase === "scanning"
+                  ? "Scanning…"
+                  : phase === "review"
+                  ? "Keep this page, or retake it"
+                  : pages > 0
+                  ? "Add another page, or tap Done to finish"
+                  : "Position the invoice within the frame"}
+              </p>
             </div>
+          )}
 
-            <p className="mt-8 text-[14px] leading-[1.4] text-white/70 text-center" style={FONT}>
-              {phase === "scanning"
-                ? "Scanning…"
-                : phase === "review"
-                ? "Keep this page, or retake it"
-                : pages > 0
-                ? "Add another page, or tap Done to finish"
-                : "Position the invoice within the frame"}
-            </p>
-          </div>
-
-          {/* Review step — keep this page (adds it to the document) or retake it */}
-          {phase === "review" ? (
+          {phase === "library" ? (
+            /* Add every selected photo as a page in one go — no per-photo retake, they're
+               already-existing files. */
+            <div className="shrink-0 px-6 pb-10 pt-4">
+              <button
+                type="button"
+                onClick={handleAddSelected}
+                disabled={selected.size === 0}
+                className="w-full h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform disabled:opacity-40"
+                style={{ ...FONT, background: BRAND }}
+              >
+                {selected.size > 0 ? `Add ${selected.size} Photo${selected.size === 1 ? "" : "s"}` : "Select Photos"}
+              </button>
+            </div>
+          ) : phase === "review" ? (
+            /* Review step — keep this page (adds it to the document) or retake it */
             <div className="shrink-0 flex items-center gap-3 px-6 pb-10 pt-4">
               <button
                 type="button"
@@ -196,8 +277,8 @@ export function ScanDocument({
                 {phase === "frame" && (
                   <button
                     type="button"
-                    aria-label="Upload from library"
-                    onClick={handleImport}
+                    aria-label="Choose from library"
+                    onClick={() => setPhase("library")}
                     className="w-11 h-11 rounded-lg bg-white/15 flex items-center justify-center text-white active:scale-95 transition-transform"
                   >
                     <Images size={20} strokeWidth={1.67} />
