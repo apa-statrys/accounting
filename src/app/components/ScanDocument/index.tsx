@@ -47,16 +47,30 @@ function DocMockCard({ className = "" }: { className?: string }) {
   );
 }
 
-/** Small captured-page tile for the filmstrip below the viewfinder — a miniature of the same
- *  document mock; tap to view that page full-screen. Order is implicit (left to right), no
- *  badge needed. */
-function PageThumb({ index, onClick }: { index: number; onClick: () => void }) {
+/** Small captured-page tile for a filmstrip — a miniature of the same document mock; tap to
+ *  jump to that page full-screen. Order is implicit (left to right), no number badge needed.
+ *  `active` rings the currently-open page (inside the full-screen preview's own filmstrip);
+ *  `dimmed` shows one marked for removal without actually hiding it yet. */
+function PageThumb({
+  index,
+  onClick,
+  active = false,
+  dimmed = false,
+}: {
+  index: number;
+  onClick: () => void;
+  active?: boolean;
+  dimmed?: boolean;
+}) {
   return (
     <button
       type="button"
       aria-label={`View page ${index + 1}`}
       onClick={onClick}
-      className="relative shrink-0 w-12 h-16 rounded-md bg-white overflow-hidden shadow-[0_2px_6px_rgba(0,0,0,0.35)] flex flex-col gap-1 p-1.5 active:scale-95 transition-transform"
+      className={`relative shrink-0 w-12 h-16 rounded-md bg-white overflow-hidden shadow-[0_2px_6px_rgba(0,0,0,0.35)] flex flex-col gap-1 p-1.5 active:scale-95 transition-transform ${
+        dimmed ? "opacity-40" : ""
+      }`}
+      style={active ? { boxShadow: `0 0 0 2px ${BRAND}` } : undefined}
     >
       <div className="h-1 w-6 rounded-sm bg-[var(--bg-neutral-inverse-primary)]" />
       <div className="h-0.5 w-5 rounded-sm bg-[#e5e5e5]" />
@@ -77,17 +91,18 @@ function PageThumb({ index, onClick }: { index: number; onClick: () => void }) {
  * happened; it never exits the whole scan. Once at least one page is confirmed, the user can
  * shoot another page (multi-page invoice) or tap Done to finish — all pages become ONE invoice
  * document, handed back via a single `onCapture(pageCount)` call. Tapping a filmstrip
- * thumbnail opens that page full-screen (back chevron top-left) so it isn't stuck tiny — the
- * check there (header or tapping the page) just toggles kept/removed on that one screen, so the
- * user can flip it back and forth freely; the removal only actually applies once they tap the
- * back chevron. The bottom-bar photo-library button opens a multi-select photo grid the same
- * way, but split into two tap targets per tile: the image opens that photo full-screen, while
- * an always-visible dot in the corner selects/deselects right there without leaving the grid.
- * Once full-screen, the image itself is swipe-only (left/right moves between photos) —
- * select/deselect lives in a "Select"/"Selected" + dot control up top instead, and a filmstrip
- * of every currently-selected photo appears at the bottom (tap one to jump to it, its own ✕
- * removes it) — no retake needed for already-existing photos, and picking several at once adds
- * them all as pages in one go.
+ * thumbnail opens that page full-screen (back chevron top-left) so it isn't stuck tiny — swipe
+ * left/right (or tap another thumbnail in the filmstrip shown there too) to browse the other
+ * captured pages without leaving full-screen. The check (header or tapping the page) just
+ * toggles kept/removed for whichever page is showing, dimming it in place; nothing is actually
+ * removed until the user backs out, which applies every page marked that way in one go. The
+ * bottom-bar photo-library button opens a multi-select photo grid the same way, but split into
+ * two tap targets per tile: the image opens that photo full-screen, while an always-visible dot
+ * in the corner selects/deselects right there without leaving the grid. Once full-screen, the
+ * image itself is swipe-only (left/right moves between photos) — select/deselect lives in a
+ * "Select"/"Selected" + dot control up top instead, and a filmstrip of every currently-selected
+ * photo appears at the bottom (tap one to jump to it, its own ✕ removes it) — no retake needed
+ * for already-existing photos, and picking several at once adds them all as pages in one go.
  * Renders full-screen (`absolute inset-0`) over whatever's underneath (CreateInvoiceSheet) —
  * needs a positioned ancestor sized to the phone frame, same as any other sheet overlay.
  */
@@ -110,9 +125,10 @@ export function ScanDocument({
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   // Which already-captured page (filmstrip) is open full-screen — null = not previewing one.
   const [pagePreviewIndex, setPagePreviewIndex] = useState<number | null>(null);
-  // Whether the page currently open in that preview is still kept — toggling this only updates
-  // the check shown on THIS screen; the page isn't actually removed until the user backs out.
-  const [pagePreviewKept, setPagePreviewKept] = useState(true);
+  // Pages marked for removal during this browsing session — toggling only updates what's shown
+  // here (dimmed in the filmstrip, unchecked on that page); nothing is actually removed until
+  // the user backs out, at which point every marked page is dropped in one go.
+  const [removedPages, setRemovedPages] = useState<Set<number>>(new Set());
 
   // Reset to the live viewfinder, page count cleared, each time the camera opens.
   useEffect(() => {
@@ -122,7 +138,7 @@ export function ScanDocument({
       setSelectedOrder([]);
       setPreviewIndex(null);
       setPagePreviewIndex(null);
-      setPagePreviewKept(true);
+      setRemovedPages(new Set());
     }
   }, [open]);
 
@@ -161,15 +177,25 @@ export function ScanDocument({
     setPhase("frame");
   };
   const openPagePreview = (i: number) => {
-    setPagePreviewKept(true);
+    setRemovedPages(new Set());
     setPagePreviewIndex(i);
   };
-  const toggleKeepPage = () => setPagePreviewKept((k) => !k);
-  // Only applies the deselect (removing the page) when the user actually backs out — staying
-  // on the preview after tapping the check lets them keep flipping it before deciding.
+  const togglePageRemoved = (i: number) =>
+    setRemovedPages((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  // Swipe (or the filmstrip below) moves between pages without leaving the full-screen preview.
+  const goToPreviousPage = () => setPagePreviewIndex((i) => (i === null ? i : Math.max(0, i - 1)));
+  const goToNextPage = () => setPagePreviewIndex((i) => (i === null ? i : Math.min(pages - 1, i + 1)));
+  // Only applies every marked removal when the user actually backs out — staying on the preview
+  // after tapping a check lets them keep flipping choices before deciding.
   const handleBackFromPagePreview = () => {
-    if (!pagePreviewKept) setPages((p) => Math.max(0, p - 1));
+    if (removedPages.size > 0) setPages((p) => Math.max(0, p - removedPages.size));
     setPagePreviewIndex(null);
+    setRemovedPages(new Set());
   };
 
   return (
@@ -186,9 +212,9 @@ export function ScanDocument({
 
           {pagePreviewIndex !== null ? (
             <>
-              {/* Full-screen captured-page detail — the check (header or tapping the page) just
-                  toggles kept/removed on THIS screen; back (top-left) is what actually applies
-                  it, so flipping the check doesn't bounce the user out immediately. */}
+              {/* Full-screen captured-page detail — swipe left/right to browse; the check
+                  (header or tapping the page) just toggles kept/removed on that page for now.
+                  Back (top-left) is what actually applies every marked removal at once. */}
               <div className="shrink-0 flex items-center justify-between px-4 py-3">
                 <button
                   type="button"
@@ -203,31 +229,56 @@ export function ScanDocument({
                 </span>
                 <button
                   type="button"
-                  aria-label={pagePreviewKept ? "Deselect page" : "Select page"}
-                  onClick={toggleKeepPage}
+                  aria-label={removedPages.has(pagePreviewIndex) ? "Select page" : "Deselect page"}
+                  onClick={() => togglePageRemoved(pagePreviewIndex)}
                   className="w-9 h-9 rounded-full flex items-center justify-center text-white"
-                  style={{ background: pagePreviewKept ? BRAND : "rgba(255,255,255,0.1)" }}
+                  style={{ background: removedPages.has(pagePreviewIndex) ? "rgba(255,255,255,0.1)" : BRAND }}
                 >
                   <Check size={18} strokeWidth={2.25} />
                 </button>
               </div>
               <div className="flex-1 flex items-center justify-center px-8">
-                <button
-                  type="button"
-                  aria-label={pagePreviewKept ? "Deselect page" : "Select page"}
-                  onClick={toggleKeepPage}
+                <motion.div
+                  key={pagePreviewIndex}
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.5}
+                  onDragEnd={(_, info) => {
+                    if (info.offset.x < -60) goToNextPage();
+                    else if (info.offset.x > 60) goToPreviousPage();
+                  }}
                   className="relative w-full max-w-[280px] aspect-[3/4]"
                 >
-                  <DocMockCard className={`absolute inset-0 ${pagePreviewKept ? "" : "opacity-40"}`} />
-                  <span
+                  <DocMockCard className={`absolute inset-0 ${removedPages.has(pagePreviewIndex) ? "opacity-40" : ""}`} />
+                  <button
+                    type="button"
+                    aria-label={removedPages.has(pagePreviewIndex) ? "Select page" : "Deselect page"}
+                    onClick={() => togglePageRemoved(pagePreviewIndex)}
                     className="absolute -top-3 -right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
-                    style={{ background: pagePreviewKept ? BRAND : "rgba(255,255,255,0.2)" }}
-                    aria-hidden
+                    style={{ background: removedPages.has(pagePreviewIndex) ? "rgba(255,255,255,0.2)" : BRAND }}
                   >
                     <Check size={18} strokeWidth={2.25} color="#fff" />
-                  </span>
-                </button>
+                  </button>
+                </motion.div>
               </div>
+
+              {/* Every captured page, so the user can jump around while deciding what to keep —
+                  the one marked for removal (this session) shows dimmed, not gone. */}
+              {pages > 1 && (
+                <div className="shrink-0 overflow-x-auto px-6 pb-3">
+                  <div className="flex gap-2 w-max">
+                    {Array.from({ length: pages }).map((_, i) => (
+                      <PageThumb
+                        key={i}
+                        index={i}
+                        onClick={() => setPagePreviewIndex(i)}
+                        active={i === pagePreviewIndex}
+                        dimmed={removedPages.has(i)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <>
