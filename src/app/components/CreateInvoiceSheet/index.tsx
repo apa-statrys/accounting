@@ -10,7 +10,7 @@ interface CreateInvoiceSheetProps {
   open: boolean;
   onClose?: () => void;
   onManual?: () => void;
-  onUpload?: () => void;
+  onUpload?: (pageCount: number) => void;
 }
 
 /**
@@ -18,9 +18,10 @@ interface CreateInvoiceSheetProps {
  * manually or scan/upload a file. No header ✕ (`hideClose`, decided 2026-08-20 — a plain
  * Tile-row chooser like this dismisses via picking a row or tapping the scrim, same as the
  * ⋯ actions menus); choices are DS Tile icon rows (24px icon + title, no description).
- * "Scan and upload" opens the native
- * document-scanner mock (ScanDocument) on top of this sheet — its own Close (X) exits the whole
- * Create flow (never falls back to this chooser); capture/import both proceed straight to OCR.
+ * "Scan and upload" opens the native document-scanner mock (ScanDocument) on top of this
+ * sheet — its own Close (X) exits the whole Create flow (never falls back to this chooser).
+ * ScanDocument handles its own keep/retake-per-page + add-another/finish loop internally;
+ * `onUpload` only fires once, on Done, with the total page count — all pages are one invoice.
  */
 export function CreateInvoiceSheet({ open, onClose, onManual, onUpload }: CreateInvoiceSheetProps) {
   const [scanOpen, setScanOpen] = useState(false);
@@ -56,8 +57,7 @@ export function CreateInvoiceSheet({ open, onClose, onManual, onUpload }: Create
       <ScanDocument
         open={open && scanOpen}
         onClose={handleClose}
-        onCapture={() => { setScanOpen(false); onUpload?.(); }}
-        onImport={() => { setScanOpen(false); onUpload?.(); }}
+        onCapture={(pageCount) => { setScanOpen(false); onUpload?.(pageCount); }}
       />
     </>
   );

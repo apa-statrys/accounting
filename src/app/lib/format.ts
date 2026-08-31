@@ -19,3 +19,10 @@ export const fmtDate = (iso: string) => {
 export function formatMoney(amount: number, currency: string): string {
   return `${currency} ${amount.toFixed(2)}`;
 }
+
+/** FileItemBase's `size` label — "1.2 MB", or "3 pages · 1.2 MB" for a multi-page scan
+ *  (DES multi-page camera capture — all pages are one document, one file size). */
+export function fileSizeLabel(file: { size: number; pages?: number }): string {
+  const mb = `${(file.size / 1024 / 1024).toFixed(1)} MB`;
+  return file.pages && file.pages > 1 ? `${file.pages} pages · ${mb}` : mb;
+}

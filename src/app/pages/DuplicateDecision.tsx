@@ -8,6 +8,7 @@ import { ListRow } from "../ui/ListRow";
 import { Badge, type BadgeColor } from "../ui/Badge";
 import type { UploadedFileInfo } from "../components/UploadedFile";
 import { FileItemBase } from "../ui/FileItemBase";
+import { fileSizeLabel } from "../lib/format";
 import { InvoiceDocumentPreview } from "./shared/InvoicePreviewPage";
 import type { ExistingInvoice } from "../types";
 
@@ -99,7 +100,7 @@ export function DuplicateDecision({ existing, file, onBack, onReupload, onEditEx
           {file && (
             <FileItemBase
               name={file.name}
-              size={`${(file.size / 1024 / 1024).toFixed(1)} MB`}
+              size={fileSizeLabel(file)}
               fileType={file.name.split(".").pop()?.toLowerCase() ?? "file"}
               state="completed"
               action="replace"

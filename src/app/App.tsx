@@ -184,8 +184,9 @@ export default function App() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   // Prefill payload when editing an existing invoice (null = fresh create flow).
   const [editInitial, setEditInitial] = useState<InvoiceEditSeed | null>(null);
-  // The file picked in the upload flow — shown as an attachment on the review screen.
-  const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number } | null>(null);
+  // The file picked in the upload flow — shown as an attachment on the review screen. `pages`
+  // is set when it came from a multi-page camera scan (ScanDocument) — all pages are one file.
+  const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number; pages?: number } | null>(null);
   // Account-level invoice settings (DES-764) — default currency seeds the create flow.
   const [settings, setSettings] = useState<CompanySettings>(DEFAULT_SETTINGS);
   // The existing draft an upload matched — drives the duplicate decision page.
@@ -206,10 +207,10 @@ export default function App() {
   // "Upload Invoice" entry points reach this via CreateInvoiceSheet's own ScanDocument; every
   // in-flow "Re-upload"/"Replace" action (DuplicateDecision, AddInvoiceDetails) reaches it via
   // the standalone scanner below instead of skipping straight past it.
-  const startUpload = () => {
+  const startUpload = (pages: number = 1) => {
     setCustomer(null); // customer comes from OCR — don't carry a previously-selected one in
     setPendingExtraction(DEMO_EXTRACTION);
-    setUploadedFile({ name: "invoice.pdf", size: 419430 });
+    setUploadedFile({ name: "invoice.pdf", size: 419430, pages });
     setDetailsDevLockedPeriod(false); // a fresh upload always resets a previous PageControls toggle
     setUploadQueue(null); // a single-file upload is never a leftover batch's continuation
     setScreen("extracting");
@@ -790,7 +791,7 @@ export default function App() {
             setExtracted(null);
             setScreen("customer");
           }}
-          onUpload={() => { setUploadReturn("dashboard"); startUpload(); }}
+          onUpload={(pages) => { setUploadReturn("dashboard"); startUpload(pages); }}
         />
       )}
 
@@ -1026,7 +1027,7 @@ export default function App() {
             setExtracted(null);
             setScreen("customer");
           }}
-          onUpload={() => { setUploadReturn("list"); startUpload(); }}
+          onUpload={(pages) => { setUploadReturn("list"); startUpload(pages); }}
         />
       )}
 
@@ -1111,7 +1112,13 @@ export default function App() {
       {screen === "extracting" && (
         <GeneratingInvoice
           durationMs={1400}
-          title={uploadQueue ? `Reading ${uploadQueue.length} invoices…` : undefined}
+          title={
+            uploadQueue
+              ? `Reading ${uploadQueue.length} invoices…`
+              : uploadedFile?.pages && uploadedFile.pages > 1
+              ? `Reading ${uploadedFile.pages} pages…`
+              : undefined
+          }
           onDone={() => {
             // Multi-file upload: one batch OCR pass covers every file at once — land on the
             // Review Invoices queue instead of a single "details" screen.
@@ -1424,8 +1431,7 @@ export default function App() {
         <ScanDocument
           open={reuploadScanOpen}
           onClose={() => setReuploadScanOpen(false)}
-          onCapture={() => { setReuploadScanOpen(false); startUpload(); }}
-          onImport={() => { setReuploadScanOpen(false); startUpload(); }}
+          onCapture={(pages) => { setReuploadScanOpen(false); startUpload(pages); }}
         />
 
         {/* Blocking notice for an upload that never reached OCR (file too large / unsupported

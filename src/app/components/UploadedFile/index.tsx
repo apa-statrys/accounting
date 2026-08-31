@@ -5,6 +5,8 @@ import styles from "./index.module.css";
 export interface UploadedFileInfo {
   name: string;
   size: number;
+  /** Set when the file came from a multi-page camera scan — all pages are one document. */
+  pages?: number;
 }
 
 /**

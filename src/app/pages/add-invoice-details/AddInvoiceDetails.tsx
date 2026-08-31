@@ -33,7 +33,7 @@ import { AddServicesSheet } from "../../components/AddServicesSheet";
 import { CUSTOMERS } from "../../data/customers";
 import { EXISTING_INVOICES } from "../../data/extraction";
 import { formatAccount, getAccount } from "../../data/receivingAccounts";
-import { EMAIL_RE } from "../../lib/format";
+import { EMAIL_RE, fileSizeLabel } from "../../lib/format";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
 import type { Customer, ExistingInvoice, ExtractedInvoice, ServiceLine } from "../../types";
@@ -94,8 +94,9 @@ interface AddInvoiceDetailsProps {
   onReupload?: () => void;
   /** Upload mode, exact-duplicate (Case 1): open the matched existing invoice's detail page. */
   onOpenExisting?: (inv: ExistingInvoice) => void;
-  /** Upload mode: the file the user uploaded (shown as an attachment in the review). */
-  uploadedFile?: { name: string; size: number } | null;
+  /** Upload mode: the file the user uploaded (shown as an attachment in the review). `pages` is
+   *  set for a multi-page camera scan — all pages are one document, one attachment row. */
+  uploadedFile?: { name: string; size: number; pages?: number } | null;
   /** Duplicate flow → "Create new": the invoice number was system-generated (show a "Recommended" hint). */
   numberRecommended?: boolean;
   /** Edit-existing-from-duplicate: show ✕ (not back) on the editor → save as draft and return to list. */
@@ -596,7 +597,7 @@ export function AddInvoiceDetails({
         {isExtracted && uploadedFile && (
           <FileItemBase
             name={uploadedFile.name}
-            size={`${(uploadedFile.size / 1024 / 1024).toFixed(1)} MB`}
+            size={fileSizeLabel(uploadedFile)}
             fileType={uploadedFile.name.split(".").pop()?.toLowerCase() ?? "file"}
             state="completed"
             action="replace"

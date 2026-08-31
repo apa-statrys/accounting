@@ -41,7 +41,7 @@ interface DashboardProps {
   /** Build a new invoice manually. */
   onCreate?: () => void;
   /** Upload a file to extract an invoice. */
-  onUpload?: () => void;
+  onUpload?: (pageCount: number) => void;
   /** Open the list filtered to paid invoices (Collected hero stat). */
   onOpenPaid?: () => void;
   /** Open the list filtered to outstanding/awaiting invoices (Outstanding hero stat). */
@@ -264,9 +264,9 @@ export function Dashboard({ tab = "dashboard", onOpenInvoices, onBack, onMenu, o
           setSheetOpen(false);
           onCreate?.();
         }}
-        onUpload={() => {
+        onUpload={(pageCount) => {
           setSheetOpen(false);
-          onUpload?.();
+          onUpload?.(pageCount);
         }}
       />
     </div>

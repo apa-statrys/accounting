@@ -1,8 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import CloseIcon from "@mui/icons-material/Close";
-import FlashOnOutlinedIcon from "@mui/icons-material/FlashOnOutlined";
-import PhotoLibraryOutlinedIcon from "@mui/icons-material/PhotoLibraryOutlined";
+import { X, Zap, Images, Check } from "lucide-react";
 import StatusBar from "../StatusBar";
 
 import { FONT } from "../../lib/theme";
@@ -22,41 +20,50 @@ function Corner({ pos }: { pos: "tl" | "tr" | "bl" | "br" }) {
 
 /**
  * Camera + document-scanner demo. In a published build the shutter opens the native
- * scanner (iOS VisionKit / Android ML Kit); here it plays a framing → scanning sequence,
- * then hands a captured file back via `onCapture`. The bottom bar also has a photo-library
- * import button (`onImport`) — same spot as iOS Camera's last-shot thumbnail — so upload
- * isn't camera-only. Renders full-screen (`absolute inset-0`) over whatever's underneath
- * (CreateInvoiceSheet) — needs a positioned ancestor sized to the phone frame, same as any
- * other sheet overlay.
+ * scanner (iOS VisionKit / Android ML Kit); here it plays a framing → scanning → review
+ * sequence. After each capture the user keeps the page or retakes it; once kept, they can
+ * shoot another page (multi-page invoice) or tap Done to finish — all kept pages become ONE
+ * invoice document, handed back via a single `onCapture(pageCount)` call. The bottom-bar
+ * photo-library button adds a page the same way (no retake needed for an already-existing
+ * photo) — same spot as iOS Camera's last-shot thumbnail, so upload isn't camera-only.
+ * Renders full-screen (`absolute inset-0`) over whatever's underneath (CreateInvoiceSheet) —
+ * needs a positioned ancestor sized to the phone frame, same as any other sheet overlay.
  */
 export function ScanDocument({
   open,
   onClose,
   onCapture,
-  onImport,
 }: {
   open: boolean;
   onClose?: () => void;
-  onCapture?: () => void;
-  /** Bottom-bar photo-library button — bypasses the scan sequence, picks an existing file. */
-  onImport?: () => void;
+  /** Fires once the user taps Done — total pages kept, all treated as one document. */
+  onCapture?: (pageCount: number) => void;
 }) {
-  const [phase, setPhase] = useState<"frame" | "scanning">("frame");
-  // Latest onCapture without retriggering the timer (it's a fresh closure each parent render).
-  const onCaptureRef = useRef(onCapture);
-  onCaptureRef.current = onCapture;
+  const [phase, setPhase] = useState<"frame" | "scanning" | "review">("frame");
+  const [pages, setPages] = useState(0);
 
-  // Reset to the live viewfinder each time the camera opens.
+  // Reset to the live viewfinder, page count cleared, each time the camera opens.
   useEffect(() => {
-    if (open) setPhase("frame");
+    if (open) {
+      setPhase("frame");
+      setPages(0);
+    }
   }, [open]);
 
-  // After the shutter, play the scan sweep, then return the captured document — exactly once.
+  // After the shutter, play the scan sweep, then land on the keep/retake review step.
   useEffect(() => {
     if (phase !== "scanning") return;
-    const t = setTimeout(() => onCaptureRef.current?.(), 1600);
+    const t = setTimeout(() => setPhase("review"), 1400);
     return () => clearTimeout(t);
   }, [phase]);
+
+  const handleRetake = () => setPhase("frame");
+  const handleKeep = () => {
+    setPages((p) => p + 1);
+    setPhase("frame");
+  };
+  const handleImport = () => setPages((p) => p + 1);
+  const handleDone = () => onCapture?.(pages);
 
   return (
     <AnimatePresence>
@@ -70,7 +77,7 @@ export function ScanDocument({
         >
           <StatusBar darkMode />
 
-          {/* Top bar — close + title + (decorative) flash toggle */}
+          {/* Top bar — close + title (page count once multi-page) + (decorative) flash toggle */}
           <div className="shrink-0 flex items-center justify-between px-4 py-3">
             <button
               type="button"
@@ -78,11 +85,13 @@ export function ScanDocument({
               onClick={onClose}
               className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
             >
-              <CloseIcon style={{ fontSize: 20 }} />
+              <X size={20} strokeWidth={1.67} />
             </button>
-            <span className="text-[15px] font-bold text-white" style={FONT}>Scan invoice</span>
+            <span className="text-[15px] font-bold text-white" style={FONT}>
+              {phase === "review" ? "Review page" : pages > 0 ? `Page ${pages + 1}` : "Scan invoice"}
+            </span>
             <span className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/70" aria-hidden>
-              <FlashOnOutlinedIcon style={{ fontSize: 19 }} />
+              <Zap size={19} strokeWidth={1.67} />
             </span>
           </div>
 
@@ -135,50 +144,106 @@ export function ScanDocument({
                   />
                 </div>
               )}
-            </div>
 
-            <p className="mt-8 text-[14px] leading-[1.4] text-white/70 text-center" style={FONT}>
-              {phase === "frame" ? "Position the invoice within the frame" : "Scanning…"}
-            </p>
-          </div>
-
-          {/* Shutter + photo-library import (same spot as iOS Camera's last-shot thumbnail) —
-              upload isn't camera-only. Balanced with an equal-width spacer on the right so the
-              shutter stays visually centered. */}
-          <div className="shrink-0 flex items-center justify-between px-8 pb-10 pt-4">
-            <div className="w-11 h-11 flex items-center justify-center">
-              {phase === "frame" && (
-                <button
-                  type="button"
-                  aria-label="Upload from library"
-                  onClick={onImport}
-                  className="w-11 h-11 rounded-lg bg-white/15 flex items-center justify-center text-white active:scale-95 transition-transform"
+              {/* Kept-page confirmation badge */}
+              {phase === "review" && (
+                <div
+                  className="absolute -top-3 -right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
+                  style={{ background: BRAND }}
+                  aria-hidden
                 >
-                  <PhotoLibraryOutlinedIcon style={{ fontSize: 20 }} />
-                </button>
+                  <Check size={18} strokeWidth={2.25} color="#fff" />
+                </div>
               )}
             </div>
 
-            {phase === "frame" ? (
+            <p className="mt-8 text-[14px] leading-[1.4] text-white/70 text-center" style={FONT}>
+              {phase === "scanning"
+                ? "Scanning…"
+                : phase === "review"
+                ? "Keep this page, or retake it"
+                : pages > 0
+                ? "Add another page, or tap Done to finish"
+                : "Position the invoice within the frame"}
+            </p>
+          </div>
+
+          {/* Review step — keep this page (adds it to the document) or retake it */}
+          {phase === "review" ? (
+            <div className="shrink-0 flex items-center gap-3 px-6 pb-10 pt-4">
               <button
                 type="button"
-                aria-label="Capture"
-                onClick={() => setPhase("scanning")}
-                className="w-[72px] h-[72px] rounded-full bg-white/15 flex items-center justify-center active:scale-95 transition-transform"
+                onClick={handleRetake}
+                className="flex-1 h-12 rounded-full bg-white/15 text-white text-[15px] font-semibold active:scale-95 transition-transform"
+                style={FONT}
               >
-                <span className="w-14 h-14 rounded-full bg-white" />
+                Retake
               </button>
-            ) : (
-              <div className="w-[72px] h-[72px] flex items-center justify-center" aria-hidden>
-                <span
-                  className="w-9 h-9 rounded-full border-[3px] border-white/25 animate-spin"
-                  style={{ borderTopColor: BRAND }}
-                />
+              <button
+                type="button"
+                onClick={handleKeep}
+                className="flex-1 h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform"
+                style={{ ...FONT, background: BRAND }}
+              >
+                Keep Photo
+              </button>
+            </div>
+          ) : (
+            /* Shutter + photo-library import (same spot as iOS Camera's last-shot thumbnail) +
+               Done once at least one page is kept — balanced 44px slots either side of the shutter. */
+            <div className="shrink-0 flex items-center justify-between px-8 pb-10 pt-4">
+              <div className="w-11 h-11 flex items-center justify-center">
+                {phase === "frame" && (
+                  <button
+                    type="button"
+                    aria-label="Upload from library"
+                    onClick={handleImport}
+                    className="w-11 h-11 rounded-lg bg-white/15 flex items-center justify-center text-white active:scale-95 transition-transform"
+                  >
+                    <Images size={20} strokeWidth={1.67} />
+                  </button>
+                )}
               </div>
-            )}
 
-            <span className="w-11 h-11" aria-hidden />
-          </div>
+              {phase === "frame" ? (
+                <button
+                  type="button"
+                  aria-label="Capture"
+                  onClick={() => setPhase("scanning")}
+                  className="w-[72px] h-[72px] rounded-full bg-white/15 flex items-center justify-center active:scale-95 transition-transform"
+                >
+                  <span className="w-14 h-14 rounded-full bg-white" />
+                </button>
+              ) : (
+                <div className="w-[72px] h-[72px] flex items-center justify-center" aria-hidden>
+                  <span
+                    className="w-9 h-9 rounded-full border-[3px] border-white/25 animate-spin"
+                    style={{ borderTopColor: BRAND }}
+                  />
+                </div>
+              )}
+
+              <div className="w-11 h-11 flex items-center justify-center">
+                {phase === "frame" && pages > 0 && (
+                  <button
+                    type="button"
+                    aria-label={`Done — use ${pages} page${pages === 1 ? "" : "s"}`}
+                    onClick={handleDone}
+                    className="relative w-11 h-11 rounded-full flex items-center justify-center text-white active:scale-95 transition-transform"
+                    style={{ background: BRAND }}
+                  >
+                    <Check size={20} strokeWidth={2} />
+                    <span
+                      className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-[10px] font-bold flex items-center justify-center"
+                      style={{ ...FONT, color: BRAND }}
+                    >
+                      {pages}
+                    </span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

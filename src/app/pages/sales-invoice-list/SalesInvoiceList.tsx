@@ -123,7 +123,7 @@ interface SalesInvoiceListProps {
   /** Open an invoice's detail page. */
   onOpenInvoice?: (inv: { number: string; client: string; status: DetailStatus; origin: "created" | "uploaded"; cnNo?: string; cnAmount?: number; cnSent?: boolean; itemsCount?: number }) => void;
   onManual?: () => void;
-  onUpload?: () => void;
+  onUpload?: (pageCount: number) => void;
   /** Preset the status chip when opened from a dashboard tile (e.g. "Paid"). */
   initialStatus?: StatusMatch;
   /** Report the active status tab up so the parent can restore it on return (e.g. back from detail). */
@@ -436,9 +436,9 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
           setSheetOpen(false);
           onManual?.();
         }}
-        onUpload={() => {
+        onUpload={(pageCount) => {
           setSheetOpen(false);
-          onUpload?.();
+          onUpload?.(pageCount);
         }}
       />
 
