@@ -68,6 +68,8 @@ export function ScanDocument({
   // Order selected, not just membership — so each tile can show its pick number (1, 2, 3…)
   // and deselecting one renumbers the rest instead of leaving a gap.
   const [selectedOrder, setSelectedOrder] = useState<number[]>([]);
+  // Which library tile is open full-screen for detail — null = showing the grid.
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   // Reset to the live viewfinder, page count cleared, each time the camera opens.
   useEffect(() => {
@@ -75,6 +77,7 @@ export function ScanDocument({
       setPhase("frame");
       setPages(0);
       setSelectedOrder([]);
+      setPreviewIndex(null);
     }
   }, [open]);
 
@@ -93,10 +96,12 @@ export function ScanDocument({
   };
   const openLibrary = () => {
     setSelectedOrder([]);
+    setPreviewIndex(null);
     setPhase("library");
   };
   const handleCancelLibrary = () => {
     setSelectedOrder([]);
+    setPreviewIndex(null);
     setPhase("frame");
   };
   const toggleSelect = (i: number) =>
@@ -104,6 +109,7 @@ export function ScanDocument({
   const handleAddSelected = () => {
     setPages((p) => p + selectedOrder.length);
     setSelectedOrder([]);
+    setPreviewIndex(null);
     setPhase("frame");
   };
 
@@ -119,13 +125,30 @@ export function ScanDocument({
         >
           <StatusBar darkMode />
 
-          {/* Top bar — back chevron (review step returns to the scanner; library grid returns
-              to the camera) or ✕ (closes the whole scan) + title + trailing control */}
+          {/* Top bar — back chevron (photo detail returns to the grid; library grid returns to
+              the camera; review step returns to the scanner) or ✕ (closes the whole scan) +
+              title + trailing control */}
           <div className="shrink-0 flex items-center justify-between px-4 py-3">
             <button
               type="button"
-              aria-label={phase === "library" ? "Back to camera" : phase === "review" ? "Back to scanner" : "Close"}
-              onClick={phase === "library" ? handleCancelLibrary : phase === "review" ? handleRetake : onClose}
+              aria-label={
+                phase === "library" && previewIndex !== null
+                  ? "Back to photos"
+                  : phase === "library"
+                  ? "Back to camera"
+                  : phase === "review"
+                  ? "Back to scanner"
+                  : "Close"
+              }
+              onClick={
+                phase === "library" && previewIndex !== null
+                  ? () => setPreviewIndex(null)
+                  : phase === "library"
+                  ? handleCancelLibrary
+                  : phase === "review"
+                  ? handleRetake
+                  : onClose
+              }
               className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
             >
               {phase === "library" || phase === "review" ? (
@@ -136,7 +159,9 @@ export function ScanDocument({
             </button>
             <span className="text-[15px] font-bold text-white" style={FONT}>
               {phase === "library"
-                ? selectedOrder.length > 0
+                ? previewIndex !== null
+                  ? `Photo ${previewIndex + 1}`
+                  : selectedOrder.length > 0
                   ? `${selectedOrder.length} Selected`
                   : "Select Photos"
                 : phase === "review"
@@ -145,7 +170,17 @@ export function ScanDocument({
                 ? `Page ${pages + 1}`
                 : "Scan invoice"}
             </span>
-            {phase === "library" ? (
+            {phase === "library" && previewIndex !== null ? (
+              <button
+                type="button"
+                aria-label={selectedOrder.includes(previewIndex) ? "Deselect photo" : "Select photo"}
+                onClick={() => toggleSelect(previewIndex)}
+                className="w-9 h-9 rounded-full flex items-center justify-center text-white"
+                style={{ background: selectedOrder.includes(previewIndex) ? BRAND : "rgba(255,255,255,0.1)" }}
+              >
+                <Check size={18} strokeWidth={2.25} />
+              </button>
+            ) : phase === "library" ? (
               <span className="w-9 h-9" aria-hidden />
             ) : (
               <span className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/70" aria-hidden>
@@ -154,8 +189,33 @@ export function ScanDocument({
             )}
           </div>
 
-          {phase === "library" ? (
-            /* Multi-select photo grid — tap several, then Add them all as pages in one go. */
+          {phase === "library" && previewIndex !== null ? (
+            /* Full-screen photo detail — see it up close, select/deselect right here (via the
+               header check or tapping the image), then go back to the grid. */
+            <div className="flex-1 flex items-center justify-center px-8">
+              <button
+                type="button"
+                aria-label={selectedOrder.includes(previewIndex) ? "Deselect photo" : "Select photo"}
+                onClick={() => toggleSelect(previewIndex)}
+                className="relative w-full max-w-[280px] aspect-square rounded-lg overflow-hidden bg-white/10 flex items-center justify-center"
+              >
+                <ImageIcon size={64} strokeWidth={1} className="text-white/30" />
+                {selectedOrder.includes(previewIndex) && (
+                  <>
+                    <span className="absolute inset-0 border-2 rounded-lg" style={{ borderColor: BRAND }} aria-hidden />
+                    <span
+                      className="absolute top-3 right-3 min-w-[26px] h-[26px] px-1.5 rounded-full flex items-center justify-center text-[13px] font-bold text-white"
+                      style={{ background: BRAND, ...FONT }}
+                      aria-hidden
+                    >
+                      {selectedOrder.indexOf(previewIndex) + 1}
+                    </span>
+                  </>
+                )}
+              </button>
+            </div>
+          ) : phase === "library" ? (
+            /* Multi-select photo grid — tap a photo to see it full-screen and pick/unpick it. */
             <div className="flex-1 overflow-y-auto px-4 py-4">
               <div className="grid grid-cols-4 gap-2">
                 {Array.from({ length: LIBRARY_TILE_COUNT }).map((_, i) => {
@@ -166,7 +226,7 @@ export function ScanDocument({
                       key={i}
                       type="button"
                       aria-label={`Photo ${i + 1}${isSelected ? `, selected (${pickNumber})` : ""}`}
-                      onClick={() => toggleSelect(i)}
+                      onClick={() => setPreviewIndex(i)}
                       className="relative aspect-square rounded-md overflow-hidden bg-white/10 flex items-center justify-center active:scale-95 transition-transform"
                     >
                       <ImageIcon size={22} strokeWidth={1.5} className="text-white/40" />
