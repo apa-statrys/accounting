@@ -50,35 +50,51 @@ function DocMockCard({ className = "" }: { className?: string }) {
 /** Small captured-page tile for a filmstrip — a miniature of the same document mock; tap to
  *  jump to that page full-screen. Order is implicit (left to right), no number badge needed.
  *  `active` rings the currently-open page (inside the full-screen preview's own filmstrip);
- *  `dimmed` shows one marked for removal without actually hiding it yet. */
+ *  `dimmed` shows one marked for removal without actually hiding it yet. `onToggleRemove`, when
+ *  given, adds a ✕ badge (same UI as the library filmstrip's remove control) so a page can be
+ *  marked/unmarked for removal right from the filmstrip, without opening it full-screen first. */
 function PageThumb({
   index,
   onClick,
   active = false,
   dimmed = false,
+  onToggleRemove,
 }: {
   index: number;
   onClick: () => void;
   active?: boolean;
   dimmed?: boolean;
+  onToggleRemove?: () => void;
 }) {
   return (
-    <button
-      type="button"
-      aria-label={`View page ${index + 1}`}
-      onClick={onClick}
-      className={`relative shrink-0 w-12 h-16 rounded-md bg-white overflow-hidden shadow-[0_2px_6px_rgba(0,0,0,0.35)] flex flex-col gap-1 p-1.5 active:scale-95 transition-transform ${
-        dimmed ? "opacity-40" : ""
-      }`}
-      style={active ? { boxShadow: `0 0 0 2px ${BRAND}` } : undefined}
-    >
-      <div className="h-1 w-6 rounded-sm bg-[var(--bg-neutral-inverse-primary)]" />
-      <div className="h-0.5 w-5 rounded-sm bg-[#e5e5e5]" />
-      <div className="mt-auto flex flex-col gap-0.5">
-        <div className="h-0.5 w-full rounded-sm bg-[#ececec]" />
-        <div className="h-0.5 w-4/5 rounded-sm bg-[#ececec]" />
-      </div>
-    </button>
+    <div className="relative shrink-0 w-12 h-16">
+      <button
+        type="button"
+        aria-label={`View page ${index + 1}`}
+        onClick={onClick}
+        className={`w-full h-full rounded-md bg-white overflow-hidden shadow-[0_2px_6px_rgba(0,0,0,0.35)] flex flex-col gap-1 p-1.5 active:scale-95 transition-transform ${
+          dimmed ? "opacity-40" : ""
+        }`}
+        style={active ? { boxShadow: `0 0 0 2px ${BRAND}` } : undefined}
+      >
+        <div className="h-1 w-6 rounded-sm bg-[var(--bg-neutral-inverse-primary)]" />
+        <div className="h-0.5 w-5 rounded-sm bg-[#e5e5e5]" />
+        <div className="mt-auto flex flex-col gap-0.5">
+          <div className="h-0.5 w-full rounded-sm bg-[#ececec]" />
+          <div className="h-0.5 w-4/5 rounded-sm bg-[#ececec]" />
+        </div>
+      </button>
+      {onToggleRemove && (
+        <button
+          type="button"
+          aria-label={dimmed ? `Restore page ${index + 1}` : `Remove page ${index + 1}`}
+          onClick={onToggleRemove}
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 flex items-center justify-center text-white"
+        >
+          <X size={10} strokeWidth={2.5} />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -274,6 +290,7 @@ export function ScanDocument({
                         onClick={() => setPagePreviewIndex(i)}
                         active={i === pagePreviewIndex}
                         dimmed={removedPages.has(i)}
+                        onToggleRemove={() => togglePageRemoved(i)}
                       />
                     ))}
                   </div>
