@@ -108,15 +108,16 @@ function PageThumb({
  * shoot another page (multi-page invoice) or tap Done to finish — all pages become ONE invoice
  * document, handed back via a single `onCapture(pageCount)` call. Tapping a filmstrip
  * thumbnail opens that page full-screen (back chevron top-left) so it isn't stuck tiny — swipe
- * left/right (or tap another thumbnail in the filmstrip shown there too) to browse the other
- * captured pages without leaving full-screen. The check (header or tapping the page) just
+ * left/right (or tap another thumbnail in the filmstrip shown there too, each with its own ✕ to
+ * mark/unmark it right from the strip) to browse the other captured pages without leaving
+ * full-screen. The page itself isn't tappable there — a "Select"/"Deselect" + dot control up top
  * toggles kept/removed for whichever page is showing, dimming it in place; nothing is actually
  * removed until the user backs out, which applies every page marked that way in one go. The
  * bottom-bar photo-library button opens a multi-select photo grid the same way, but split into
  * two tap targets per tile: the image opens that photo full-screen, while an always-visible dot
  * in the corner selects/deselects right there without leaving the grid. Once full-screen, the
- * image itself is swipe-only (left/right moves between photos) — select/deselect lives in a
- * "Select"/"Selected" + dot control up top instead, and a filmstrip of every currently-selected
+ * image itself is swipe-only (left/right moves between photos) — select/deselect lives in the
+ * same "Select"/"Selected" + dot header control, and a filmstrip of every currently-selected
  * photo appears at the bottom (tap one to jump to it, its own ✕ removes it) — no retake needed
  * for already-existing photos, and picking several at once adds them all as pages in one go.
  * Renders full-screen (`absolute inset-0`) over whatever's underneath (CreateInvoiceSheet) —
@@ -228,9 +229,9 @@ export function ScanDocument({
 
           {pagePreviewIndex !== null ? (
             <>
-              {/* Full-screen captured-page detail — swipe left/right to browse; the check
-                  (header or tapping the page) just toggles kept/removed on that page for now.
-                  Back (top-left) is what actually applies every marked removal at once. */}
+              {/* Full-screen captured-page detail — swipe left/right to browse; the page itself
+                  isn't tappable, only the header "Select"/"Deselect" control toggles kept/removed
+                  for whichever page is showing. Back (top-left) applies every marked removal. */}
               <div className="shrink-0 flex items-center justify-between px-4 py-3">
                 <button
                   type="button"
@@ -243,15 +244,29 @@ export function ScanDocument({
                 <span className="text-[15px] font-bold text-white" style={FONT}>
                   Page {pagePreviewIndex + 1}
                 </span>
-                <button
-                  type="button"
-                  aria-label={removedPages.has(pagePreviewIndex) ? "Select page" : "Deselect page"}
-                  onClick={() => togglePageRemoved(pagePreviewIndex)}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-white"
-                  style={{ background: removedPages.has(pagePreviewIndex) ? "rgba(255,255,255,0.1)" : BRAND }}
-                >
-                  <Check size={18} strokeWidth={2.25} />
-                </button>
+                {(() => {
+                  const isRemoved = removedPages.has(pagePreviewIndex);
+                  return (
+                    <button
+                      type="button"
+                      aria-label={isRemoved ? "Select page" : "Deselect page"}
+                      onClick={() => togglePageRemoved(pagePreviewIndex)}
+                      className="flex items-center gap-1.5 h-9 pl-3 pr-2 rounded-full bg-white/10 text-white text-[13px] font-semibold"
+                      style={FONT}
+                    >
+                      {isRemoved ? "Select" : "Deselect"}
+                      <span
+                        className="w-5 h-5 rounded-full flex items-center justify-center"
+                        style={{
+                          background: isRemoved ? "transparent" : BRAND,
+                          border: isRemoved ? "1.5px solid rgba(255,255,255,0.7)" : "none",
+                        }}
+                      >
+                        {!isRemoved && <Check size={12} strokeWidth={2.5} color="#fff" />}
+                      </span>
+                    </button>
+                  );
+                })()}
               </div>
               <div className="flex-1 flex items-center justify-center px-8">
                 <motion.div
@@ -266,15 +281,6 @@ export function ScanDocument({
                   className="relative w-full max-w-[280px] aspect-[3/4]"
                 >
                   <DocMockCard className={`absolute inset-0 ${removedPages.has(pagePreviewIndex) ? "opacity-40" : ""}`} />
-                  <button
-                    type="button"
-                    aria-label={removedPages.has(pagePreviewIndex) ? "Select page" : "Deselect page"}
-                    onClick={() => togglePageRemoved(pagePreviewIndex)}
-                    className="absolute -top-3 -right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
-                    style={{ background: removedPages.has(pagePreviewIndex) ? "rgba(255,255,255,0.2)" : BRAND }}
-                  >
-                    <Check size={18} strokeWidth={2.25} color="#fff" />
-                  </button>
                 </motion.div>
               </div>
 
