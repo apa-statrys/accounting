@@ -299,13 +299,21 @@ export function ScanDocument({
               </button>
             </div>
           ) : phase === "review" ? (
-            /* Review step — a plain confirm of this one shot. The back chevron up top returns
-               to the live scanner; this is the only other action, adding it as a page. */
-            <div className="shrink-0 px-6 pb-10 pt-4">
+            /* Review step — Retake tries the shot again, Use Image adds it as a page. The back
+               chevron up top does the same thing as Retake, just from the header. */
+            <div className="shrink-0 flex items-center gap-3 px-6 pb-10 pt-4">
+              <button
+                type="button"
+                onClick={handleRetake}
+                className="flex-1 h-12 rounded-full bg-white/15 text-white text-[15px] font-semibold active:scale-95 transition-transform"
+                style={FONT}
+              >
+                Retake
+              </button>
               <button
                 type="button"
                 onClick={handleUseImage}
-                className="w-full h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform"
+                className="flex-1 h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform"
                 style={{ ...FONT, background: BRAND }}
               >
                 Use Image
