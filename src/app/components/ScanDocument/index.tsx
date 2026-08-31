@@ -46,13 +46,15 @@ function PageThumb({ index }: { index: number }) {
 
 /**
  * Camera + document-scanner demo. In a published build the shutter opens the native
- * scanner (iOS VisionKit / Android ML Kit); here it plays a framing → scanning sequence and
- * the shot is added straight away — no per-photo keep/retake. Once at least one page is
- * shot, the user can shoot another page (multi-page invoice) or tap Done to finish — all
- * pages become ONE invoice document, handed back via a single `onCapture(pageCount)` call.
- * The bottom-bar photo-library button opens a multi-select photo grid (no retake needed for
- * already-existing photos) — same spot as iOS Camera's last-shot thumbnail, so upload isn't
- * camera-only; picking several at once adds them all as pages in one go.
+ * scanner (iOS VisionKit / Android ML Kit); here it plays a framing → scanning → review
+ * sequence. After each shot the user confirms it — Retake tries the shot again, Use Image
+ * adds it as a page, and Cancel (top-left, replacing the usual close icon on this step) backs
+ * out of the whole scan. Once at least one page is confirmed, the user can shoot another page
+ * (multi-page invoice) or tap Done to finish — all pages become ONE invoice document, handed
+ * back via a single `onCapture(pageCount)` call. The bottom-bar photo-library button opens a
+ * multi-select photo grid (no retake needed for already-existing photos) — same spot as iOS
+ * Camera's last-shot thumbnail, so upload isn't camera-only; picking several at once adds them
+ * all as pages in one go.
  * Renders full-screen (`absolute inset-0`) over whatever's underneath (CreateInvoiceSheet) —
  * needs a positioned ancestor sized to the phone frame, same as any other sheet overlay.
  */
@@ -66,7 +68,7 @@ export function ScanDocument({
   /** Fires once the user taps Done — total pages kept, all treated as one document. */
   onCapture?: (pageCount: number) => void;
 }) {
-  const [phase, setPhase] = useState<"frame" | "scanning" | "library">("frame");
+  const [phase, setPhase] = useState<"frame" | "scanning" | "review" | "library">("frame");
   const [pages, setPages] = useState(0);
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
@@ -79,17 +81,19 @@ export function ScanDocument({
     }
   }, [open]);
 
-  // After the shutter, play the scan sweep, then add the page straight away — no review step.
+  // After the shutter, play the scan sweep, then land on the Retake / Use Image review step.
   useEffect(() => {
     if (phase !== "scanning") return;
-    const t = setTimeout(() => {
-      setPages((p) => p + 1);
-      setPhase("frame");
-    }, 1400);
+    const t = setTimeout(() => setPhase("review"), 1400);
     return () => clearTimeout(t);
   }, [phase]);
 
   const handleDone = () => onCapture?.(pages);
+  const handleRetake = () => setPhase("frame");
+  const handleUseImage = () => {
+    setPages((p) => p + 1);
+    setPhase("frame");
+  };
   const openLibrary = () => {
     setSelected(new Set());
     setPhase("library");
@@ -123,21 +127,44 @@ export function ScanDocument({
         >
           <StatusBar darkMode />
 
-          {/* Top bar — close (or back, from the library grid) + title + trailing control */}
+          {/* Top bar — close (back, from the library grid; Cancel, on the review step) + title + trailing control */}
           <div className="shrink-0 flex items-center justify-between px-4 py-3">
-            <button
-              type="button"
-              aria-label={phase === "library" ? "Back to camera" : "Close"}
-              onClick={phase === "library" ? handleCancelLibrary : onClose}
-              className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
-            >
-              {phase === "library" ? <ChevronLeft size={20} strokeWidth={1.67} /> : <X size={20} strokeWidth={1.67} />}
-            </button>
+            {phase === "library" ? (
+              <button
+                type="button"
+                aria-label="Back to camera"
+                onClick={handleCancelLibrary}
+                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
+              >
+                <ChevronLeft size={20} strokeWidth={1.67} />
+              </button>
+            ) : phase === "review" ? (
+              <button
+                type="button"
+                aria-label="Cancel"
+                onClick={onClose}
+                className="h-9 px-3 rounded-full bg-white/10 flex items-center justify-center text-white text-[14px] font-semibold"
+                style={FONT}
+              >
+                Cancel
+              </button>
+            ) : (
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={onClose}
+                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
+              >
+                <X size={20} strokeWidth={1.67} />
+              </button>
+            )}
             <span className="text-[15px] font-bold text-white" style={FONT}>
               {phase === "library"
                 ? selected.size > 0
                   ? `${selected.size} Selected`
                   : "Select Photos"
+                : phase === "review"
+                ? "Review page"
                 : pages > 0
                 ? `Page ${pages + 1}`
                 : "Scan invoice"}
@@ -234,11 +261,24 @@ export function ScanDocument({
                     />
                   </div>
                 )}
+
+                {/* Kept-page confirmation badge */}
+                {phase === "review" && (
+                  <div
+                    className="absolute -top-3 -right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
+                    style={{ background: BRAND }}
+                    aria-hidden
+                  >
+                    <Check size={18} strokeWidth={2.25} color="#fff" />
+                  </div>
+                )}
               </div>
 
               <p className="mt-8 text-[14px] leading-[1.4] text-white/70 text-center" style={FONT}>
                 {phase === "scanning"
                   ? "Scanning…"
+                  : phase === "review"
+                  ? "Use this image, or retake it"
                   : pages > 0
                   ? "Add another page, or tap Done to finish"
                   : "Position the invoice within the frame"}
@@ -269,6 +309,26 @@ export function ScanDocument({
                 style={{ ...FONT, background: BRAND }}
               >
                 {selected.size > 0 ? `Add ${selected.size} Photo${selected.size === 1 ? "" : "s"}` : "Select Photos"}
+              </button>
+            </div>
+          ) : phase === "review" ? (
+            /* Review step — use this page (adds it to the document) or retake it. Cancel (top-left) exits the whole scan. */
+            <div className="shrink-0 flex items-center gap-3 px-6 pb-10 pt-4">
+              <button
+                type="button"
+                onClick={handleRetake}
+                className="flex-1 h-12 rounded-full bg-white/15 text-white text-[15px] font-semibold active:scale-95 transition-transform"
+                style={FONT}
+              >
+                Retake
+              </button>
+              <button
+                type="button"
+                onClick={handleUseImage}
+                className="flex-1 h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform"
+                style={{ ...FONT, background: BRAND }}
+              >
+                Use Image
               </button>
             </div>
           ) : (

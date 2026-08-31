@@ -19,9 +19,10 @@ interface CreateInvoiceSheetProps {
  * Tile-row chooser like this dismisses via picking a row or tapping the scrim, same as the
  * ⋯ actions menus); choices are DS Tile icon rows (24px icon + title, no description).
  * "Scan and upload" opens the native document-scanner mock (ScanDocument) on top of this
- * sheet — its own Close (X) exits the whole Create flow (never falls back to this chooser).
- * ScanDocument handles its own capture-and-add + add-another/finish loop internally;
- * `onUpload` only fires once, on Done, with the total page count — all pages are one invoice.
+ * sheet — its own Close/Cancel exits the whole Create flow (never falls back to this chooser).
+ * ScanDocument handles its own capture → review (Retake/Use Image) → add-another/finish loop
+ * internally; `onUpload` only fires once, on Done, with the total page count — all pages are
+ * one invoice.
  */
 export function CreateInvoiceSheet({ open, onClose, onManual, onUpload }: CreateInvoiceSheetProps) {
   const [scanOpen, setScanOpen] = useState(false);
