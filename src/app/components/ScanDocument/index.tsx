@@ -77,10 +77,13 @@ function PageThumb({ index, onClick }: { index: number; onClick: () => void }) {
  * happened; it never exits the whole scan. Once at least one page is confirmed, the user can
  * shoot another page (multi-page invoice) or tap Done to finish — all pages become ONE invoice
  * document, handed back via a single `onCapture(pageCount)` call. Tapping a filmstrip
- * thumbnail opens that page full-screen (back chevron top-left) so it isn't stuck tiny. The
- * bottom-bar photo-library button opens a multi-select photo grid the same way — tap a tile to
- * preview it full-screen and pick/unpick it there — no retake needed for already-existing
- * photos, and picking several at once adds them all as pages in one go.
+ * thumbnail opens that page full-screen (back chevron top-left) so it isn't stuck tiny — the
+ * check there (header or tapping the page) deselects it, removing it from the document. The
+ * bottom-bar photo-library button opens a multi-select photo grid the same way, but split into
+ * two tap targets per tile: the image itself opens that photo full-screen (with the same
+ * select/deselect check), while an always-visible dot in the corner selects/deselects right
+ * there without leaving the grid — no retake needed for already-existing photos, and picking
+ * several at once adds them all as pages in one go.
  * Renders full-screen (`absolute inset-0`) over whatever's underneath (CreateInvoiceSheet) —
  * needs a positioned ancestor sized to the phone frame, same as any other sheet overlay.
  */
@@ -146,6 +149,12 @@ export function ScanDocument({
     setPreviewIndex(null);
     setPhase("frame");
   };
+  // Deselecting an already-captured page removes it from the document — pages are
+  // interchangeable placeholders here, so any one page is as good as any other to drop.
+  const handleRemovePage = () => {
+    setPages((p) => Math.max(0, p - 1));
+    setPagePreviewIndex(null);
+  };
 
   return (
     <AnimatePresence>
@@ -161,7 +170,8 @@ export function ScanDocument({
 
           {pagePreviewIndex !== null ? (
             <>
-              {/* Full-screen captured-page detail — view only, back returns to the scanner. */}
+              {/* Full-screen captured-page detail — back returns to the scanner; the check
+                  (header or tapping the page) deselects it, removing it from the document. */}
               <div className="shrink-0 flex items-center justify-between px-4 py-3">
                 <button
                   type="button"
@@ -174,12 +184,32 @@ export function ScanDocument({
                 <span className="text-[15px] font-bold text-white" style={FONT}>
                   Page {pagePreviewIndex + 1}
                 </span>
-                <span className="w-9 h-9" aria-hidden />
+                <button
+                  type="button"
+                  aria-label="Deselect page"
+                  onClick={handleRemovePage}
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white"
+                  style={{ background: BRAND }}
+                >
+                  <Check size={18} strokeWidth={2.25} />
+                </button>
               </div>
               <div className="flex-1 flex items-center justify-center px-8">
-                <div className="relative w-full max-w-[280px] aspect-[3/4]">
+                <button
+                  type="button"
+                  aria-label="Deselect page"
+                  onClick={handleRemovePage}
+                  className="relative w-full max-w-[280px] aspect-[3/4]"
+                >
                   <DocMockCard className="absolute inset-0" />
-                </div>
+                  <span
+                    className="absolute -top-3 -right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
+                    style={{ background: BRAND }}
+                    aria-hidden
+                  >
+                    <Check size={18} strokeWidth={2.25} color="#fff" />
+                  </span>
+                </button>
               </div>
             </>
           ) : (
@@ -274,35 +304,43 @@ export function ScanDocument({
                   </button>
                 </div>
               ) : phase === "library" ? (
-                /* Multi-select photo grid — tap a photo to see it full-screen and pick/unpick it. */
+                /* Multi-select photo grid — tap the image to preview it full-screen; tap the dot
+                   to select/deselect right here without leaving the grid. */
                 <div className="flex-1 overflow-y-auto px-4 py-4">
                   <div className="grid grid-cols-4 gap-2">
                     {Array.from({ length: LIBRARY_TILE_COUNT }).map((_, i) => {
                       const pickNumber = selectedOrder.indexOf(i) + 1;
                       const isSelected = pickNumber > 0;
                       return (
-                        <button
-                          key={i}
-                          type="button"
-                          aria-label={`Photo ${i + 1}${isSelected ? `, selected (${pickNumber})` : ""}`}
-                          onClick={() => setPreviewIndex(i)}
-                          className="relative aspect-square rounded-md overflow-hidden bg-white/10 flex items-center justify-center active:scale-95 transition-transform"
-                        >
-                          <ImageIcon size={22} strokeWidth={1.5} className="text-white/40" />
-                          {isSelected && (
-                            <>
-                              <span className="absolute inset-0 bg-black/30" aria-hidden />
-                              <span className="absolute inset-0 border-2 rounded-md" style={{ borderColor: BRAND }} aria-hidden />
-                              <span
-                                className="absolute top-1 right-1 min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
-                                style={{ background: BRAND, ...FONT }}
-                                aria-hidden
-                              >
-                                {pickNumber}
-                              </span>
-                            </>
-                          )}
-                        </button>
+                        <div key={i} className="relative aspect-square rounded-md overflow-hidden bg-white/10">
+                          <button
+                            type="button"
+                            aria-label={`Photo ${i + 1}${isSelected ? `, selected (${pickNumber})` : ""}`}
+                            onClick={() => setPreviewIndex(i)}
+                            className="absolute inset-0 flex items-center justify-center active:scale-95 transition-transform"
+                          >
+                            <ImageIcon size={22} strokeWidth={1.5} className="text-white/40" />
+                            {isSelected && (
+                              <>
+                                <span className="absolute inset-0 bg-black/30" aria-hidden />
+                                <span className="absolute inset-0 border-2 rounded-md" style={{ borderColor: BRAND }} aria-hidden />
+                              </>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={isSelected ? `Deselect photo ${i + 1}` : `Select photo ${i + 1}`}
+                            onClick={() => toggleSelect(i)}
+                            className="absolute top-1 right-1 min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
+                            style={{
+                              background: isSelected ? BRAND : "rgba(0,0,0,0.35)",
+                              border: isSelected ? "none" : "1.5px solid rgba(255,255,255,0.7)",
+                              ...FONT,
+                            }}
+                          >
+                            {isSelected ? pickNumber : ""}
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
