@@ -271,8 +271,10 @@ export function ScanDocument({
             </div>
           )}
 
-          {/* Captured-page filmstrip — scrolls horizontally once it overflows the frame. */}
-          {phase !== "library" && pages > 0 && (
+          {/* Captured-page filmstrip — scrolls horizontally once it overflows the frame. Hidden
+              on the review step so the one shot being confirmed isn't competing for attention
+              with earlier pages. */}
+          {(phase === "frame" || phase === "scanning") && pages > 0 && (
             <div className="shrink-0 overflow-x-auto px-6 pb-3">
               <div className="flex gap-2 w-max">
                 {Array.from({ length: pages }).map((_, i) => (
