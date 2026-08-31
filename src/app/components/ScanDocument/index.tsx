@@ -270,9 +270,6 @@ export function ScanDocument({
                       >
                         <X size={20} strokeWidth={1.67} />
                       </button>
-                      <span className="text-[15px] font-bold text-white" style={FONT}>
-                        Page {pagePreviewIndex + 1}
-                      </span>
                       <button
                         type="button"
                         aria-label={isRemoved ? "Select page" : "Deselect page"}
@@ -384,19 +381,19 @@ export function ScanDocument({
                     <X size={20} strokeWidth={1.67} />
                   )}
                 </button>
-                <span className="text-[15px] font-bold text-white" style={FONT}>
-                  {phase === "library"
-                    ? previewIndex !== null
-                      ? `Photo ${previewIndex + 1}`
-                      : selectedOrder.length > 0
-                      ? `${selectedOrder.length} Selected`
-                      : "Select Photos"
-                    : phase === "review"
-                    ? "Review page"
-                    : pageIds.length > 0
-                    ? `Page ${pageIds.length + 1}`
-                    : "Scan invoice"}
-                </span>
+                {!(phase === "library" && previewIndex !== null) && (
+                  <span className="text-[15px] font-bold text-white" style={FONT}>
+                    {phase === "library"
+                      ? selectedOrder.length > 0
+                        ? `${selectedOrder.length} Selected`
+                        : "Select Photos"
+                      : phase === "review"
+                      ? "Review page"
+                      : pageIds.length > 0
+                      ? `Page ${pageIds.length + 1}`
+                      : "Scan invoice"}
+                  </span>
+                )}
                 {phase === "library" && previewIndex !== null ? (
                   (() => {
                     const pickNumber = selectedOrder.indexOf(previewIndex) + 1;
@@ -627,7 +624,7 @@ export function ScanDocument({
                     className="w-full h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform disabled:opacity-40"
                     style={{ ...FONT, background: BRAND }}
                   >
-                    {selectedOrder.length > 0 ? `Add ${selectedOrder.length} Photo${selectedOrder.length === 1 ? "" : "s"}` : "Select Photos"}
+                    {selectedOrder.length > 0 ? `Add ${selectedOrder.length} Photo${selectedOrder.length === 1 ? "" : "s"}` : "Add Photo"}
                   </button>
                 </div>
               ) : phase === "review" ? (
