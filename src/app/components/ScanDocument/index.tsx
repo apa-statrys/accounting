@@ -111,11 +111,12 @@ function PageThumb({
  * below the viewfinder can be dragged to reorder them (`Reorder.Group`/`Reorder.Item`); each
  * thumbnail's own ✕ removes that page immediately (no confirm — same directness as the shutter),
  * and tapping the image opens that page full-screen instead. That full-screen view (✕ top-left
- * closes it) can swipe left/right (or use its own filmstrip, no reordering there) to browse the
- * other pages — the page itself isn't tappable, only a "Select"/"Selected" + dot control up top
- * (same shape and wording as the library preview's, just applied to a page that starts out
- * already included) toggles kept/removed for whichever page is showing; nothing is actually
- * removed until the user closes the preview, which applies every page marked that way in one go.
+ * closes it) can swipe left/right (or drag its own filmstrip to reorder, same as the scanner's)
+ * to browse the other pages — the page itself isn't tappable, only a "Select"/"Selected" + dot
+ * control up top (same shape as the library preview's, showing the page's own number instead of
+ * a pick order, since a page starts out already included) toggles kept/removed for whichever
+ * page is showing; nothing is actually removed until the user closes the preview, which applies
+ * every page marked that way in one go.
  * The bottom-bar photo-library button opens a multi-select photo grid the same way, but split
  * into two tap targets per tile: the image opens that photo full-screen, while an always-visible
  * dot in the corner selects/deselects right there without leaving the grid. Once full-screen,
@@ -148,12 +149,14 @@ export function ScanDocument({
   const [selectedOrder, setSelectedOrder] = useState<number[]>([]);
   // Which library tile is open full-screen for detail — null = showing the grid.
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
-  // Which already-captured page (filmstrip) is open full-screen — null = not previewing one.
-  const [pagePreviewIndex, setPagePreviewIndex] = useState<number | null>(null);
-  // Pages marked for removal during this browsing session — toggling only updates what's shown
-  // here (dimmed in the filmstrip, unchecked on that page); nothing is actually removed until
-  // the user backs out, at which point every marked page is dropped in one go.
-  const [removedPages, setRemovedPages] = useState<Set<number>>(new Set());
+  // Id of the already-captured page (filmstrip) open full-screen — null = not previewing one.
+  // Tracked by id, not position, so dragging the filmstrip to reorder while browsing doesn't
+  // silently jump to a different page.
+  const [pagePreviewId, setPagePreviewId] = useState<number | null>(null);
+  // Ids of pages marked for removal during this browsing session — toggling only updates what's
+  // shown here (dimmed in the filmstrip, unchecked on that page); nothing is actually removed
+  // until the user backs out, at which point every marked page is dropped in one go.
+  const [removedPageIds, setRemovedPageIds] = useState<Set<number>>(new Set());
 
   // Reset to the live viewfinder, page count cleared, each time the camera opens.
   useEffect(() => {
@@ -163,8 +166,8 @@ export function ScanDocument({
       nextPageIdRef.current = 0;
       setSelectedOrder([]);
       setPreviewIndex(null);
-      setPagePreviewIndex(null);
-      setRemovedPages(new Set());
+      setPagePreviewId(null);
+      setRemovedPageIds(new Set());
     }
   }, [open]);
 
@@ -205,26 +208,35 @@ export function ScanDocument({
     setPreviewIndex(null);
     setPhase("frame");
   };
-  const openPagePreview = (i: number) => {
-    setRemovedPages(new Set());
-    setPagePreviewIndex(i);
+  const openPagePreview = (id: number) => {
+    setRemovedPageIds(new Set());
+    setPagePreviewId(id);
   };
-  const togglePageRemoved = (i: number) =>
-    setRemovedPages((prev) => {
+  const togglePageRemoved = (id: number) =>
+    setRemovedPageIds((prev) => {
       const next = new Set(prev);
-      if (next.has(i)) next.delete(i);
-      else next.add(i);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
-  // Swipe (or the filmstrip below) moves between pages without leaving the full-screen preview.
-  const goToPreviousPage = () => setPagePreviewIndex((i) => (i === null ? i : Math.max(0, i - 1)));
-  const goToNextPage = () => setPagePreviewIndex((i) => (i === null ? i : Math.min(pageIds.length - 1, i + 1)));
+  // Swipe (or the filmstrip below) moves between pages without leaving the full-screen preview —
+  // by position at the moment of the move, so it still makes sense after a reorder.
+  const goToPreviousPage = () =>
+    setPagePreviewId((id) => {
+      const pos = id === null ? -1 : pageIds.indexOf(id);
+      return pos <= 0 ? id : pageIds[pos - 1];
+    });
+  const goToNextPage = () =>
+    setPagePreviewId((id) => {
+      const pos = id === null ? -1 : pageIds.indexOf(id);
+      return pos === -1 || pos >= pageIds.length - 1 ? id : pageIds[pos + 1];
+    });
   // Only applies every marked removal when the user actually backs out — staying on the preview
   // after tapping a check lets them keep flipping choices before deciding.
   const handleBackFromPagePreview = () => {
-    if (removedPages.size > 0) setPageIds((ids) => ids.filter((_, idx) => !removedPages.has(idx)));
-    setPagePreviewIndex(null);
-    setRemovedPages(new Set());
+    if (removedPageIds.size > 0) setPageIds((ids) => ids.filter((id) => !removedPageIds.has(id)));
+    setPagePreviewId(null);
+    setRemovedPageIds(new Set());
   };
 
   return (
@@ -239,91 +251,102 @@ export function ScanDocument({
         >
           <StatusBar darkMode />
 
-          {pagePreviewIndex !== null ? (
+          {pagePreviewId !== null ? (
             <>
-              {/* Full-screen captured-page detail — swipe left/right to browse; the page itself
-                  isn't tappable, only the header "Select"/"Selected" control toggles kept/removed
-                  for whichever page is showing. The ✕ (top-left) applies every marked removal. */}
-              <div className="shrink-0 flex items-center justify-between px-4 py-3">
-                <button
-                  type="button"
-                  aria-label="Close preview"
-                  onClick={handleBackFromPagePreview}
-                  className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
-                >
-                  <X size={20} strokeWidth={1.67} />
-                </button>
-                <span className="text-[15px] font-bold text-white" style={FONT}>
-                  Page {pagePreviewIndex + 1}
-                </span>
-                {(() => {
-                  const isRemoved = removedPages.has(pagePreviewIndex);
-                  return (
-                    <button
-                      type="button"
-                      aria-label={isRemoved ? "Select page" : "Deselect page"}
-                      onClick={() => togglePageRemoved(pagePreviewIndex)}
-                      className="flex items-center gap-1.5 h-9 pl-3 pr-2 rounded-full bg-white/10 text-white text-[13px] font-semibold"
-                      style={FONT}
-                    >
-                      {isRemoved ? "Select" : "Selected"}
-                      <span
-                        className="w-5 h-5 rounded-full flex items-center justify-center"
-                        style={{
-                          background: isRemoved ? "transparent" : BRAND,
-                          border: isRemoved ? "1.5px solid rgba(255,255,255,0.7)" : "none",
+              {(() => {
+                const pagePreviewIndex = pageIds.indexOf(pagePreviewId);
+                const isRemoved = removedPageIds.has(pagePreviewId);
+                return (
+                  <>
+                    {/* Full-screen captured-page detail — swipe left/right to browse; the page
+                        itself isn't tappable, only the header "Select"/"Selected" control toggles
+                        kept/removed. The ✕ (top-left) applies every marked removal. */}
+                    <div className="shrink-0 flex items-center justify-between px-4 py-3">
+                      <button
+                        type="button"
+                        aria-label="Close preview"
+                        onClick={handleBackFromPagePreview}
+                        className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
+                      >
+                        <X size={20} strokeWidth={1.67} />
+                      </button>
+                      <span className="text-[15px] font-bold text-white" style={FONT}>
+                        Page {pagePreviewIndex + 1}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={isRemoved ? "Select page" : "Deselect page"}
+                        onClick={() => togglePageRemoved(pagePreviewId)}
+                        className="flex items-center gap-1.5 h-9 pl-3 pr-2 rounded-full bg-white/10 text-white text-[13px] font-semibold"
+                        style={FONT}
+                      >
+                        {isRemoved ? "Select" : "Selected"}
+                        <span
+                          className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
+                          style={{
+                            background: isRemoved ? "transparent" : BRAND,
+                            border: isRemoved ? "1.5px solid rgba(255,255,255,0.7)" : "none",
+                          }}
+                        >
+                          {isRemoved ? "" : pagePreviewIndex + 1}
+                        </span>
+                      </button>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center px-8">
+                      <motion.div
+                        key={pagePreviewId}
+                        drag="x"
+                        dragConstraints={{ left: 0, right: 0 }}
+                        dragElastic={0.5}
+                        onDragEnd={(_, info) => {
+                          if (info.offset.x < -60) goToNextPage();
+                          else if (info.offset.x > 60) goToPreviousPage();
                         }}
+                        className="relative w-full max-w-[280px] aspect-[3/4]"
                       >
-                        {!isRemoved && <Check size={12} strokeWidth={2.5} color="#fff" />}
-                      </span>
-                    </button>
-                  );
-                })()}
-              </div>
-              <div className="flex-1 flex items-center justify-center px-8">
-                <motion.div
-                  key={pagePreviewIndex}
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.5}
-                  onDragEnd={(_, info) => {
-                    if (info.offset.x < -60) goToNextPage();
-                    else if (info.offset.x > 60) goToPreviousPage();
-                  }}
-                  className="relative w-full max-w-[280px] aspect-[3/4]"
-                >
-                  <DocMockCard className="absolute inset-0" />
-                  {!removedPages.has(pagePreviewIndex) && (
-                    <>
-                      <span className="absolute inset-0 border-2 rounded-md" style={{ borderColor: BRAND }} aria-hidden />
-                      <span
-                        className="absolute top-3 right-3 min-w-[26px] h-[26px] px-1.5 rounded-full flex items-center justify-center text-[13px] font-bold text-white"
-                        style={{ background: BRAND, ...FONT }}
-                        aria-hidden
-                      >
-                        {pagePreviewIndex + 1}
-                      </span>
-                    </>
-                  )}
-                </motion.div>
-              </div>
+                        <DocMockCard className="absolute inset-0" />
+                        {!isRemoved && (
+                          <>
+                            <span className="absolute inset-0 border-2 rounded-md" style={{ borderColor: BRAND }} aria-hidden />
+                            <span
+                              className="absolute top-3 right-3 min-w-[26px] h-[26px] px-1.5 rounded-full flex items-center justify-center text-[13px] font-bold text-white"
+                              style={{ background: BRAND, ...FONT }}
+                              aria-hidden
+                            >
+                              {pagePreviewIndex + 1}
+                            </span>
+                          </>
+                        )}
+                      </motion.div>
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Every captured page, so the user can jump around while deciding what to keep —
-                  the one marked for removal (this session) shows dimmed, not gone. */}
+                  the one marked for removal (this session) shows dimmed, not gone. Drag to
+                  reorder, same as the scanner's own filmstrip. */}
               {pageIds.length > 1 && (
                 <div className="shrink-0 overflow-x-auto px-6 pb-3">
-                  <div className="flex gap-2 w-max">
+                  <Reorder.Group
+                    as="div"
+                    axis="x"
+                    values={pageIds}
+                    onReorder={setPageIds}
+                    className="flex gap-2 w-max"
+                  >
                     {pageIds.map((id, i) => (
-                      <PageThumb
-                        key={id}
-                        index={i}
-                        onClick={() => setPagePreviewIndex(i)}
-                        active={i === pagePreviewIndex}
-                        dimmed={removedPages.has(i)}
-                        onToggleRemove={() => togglePageRemoved(i)}
-                      />
+                      <Reorder.Item key={id} value={id} as="div" className="shrink-0">
+                        <PageThumb
+                          index={i}
+                          onClick={() => setPagePreviewId(id)}
+                          active={id === pagePreviewId}
+                          dimmed={removedPageIds.has(id)}
+                          onToggleRemove={() => togglePageRemoved(id)}
+                        />
+                      </Reorder.Item>
                     ))}
-                  </div>
+                  </Reorder.Group>
                 </div>
               )}
             </>
@@ -541,7 +564,7 @@ export function ScanDocument({
                       <Reorder.Item key={id} value={id} as="div" className="shrink-0">
                         <PageThumb
                           index={i}
-                          onClick={() => openPagePreview(i)}
+                          onClick={() => openPagePreview(id)}
                           onToggleRemove={() => removePageDirect(id)}
                         />
                       </Reorder.Item>
