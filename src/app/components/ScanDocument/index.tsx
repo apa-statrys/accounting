@@ -20,15 +20,41 @@ function Corner({ pos }: { pos: "tl" | "tr" | "bl" | "br" }) {
   return <span className={`${base} ${map[pos]}`} aria-hidden />;
 }
 
+/** Small captured-page preview tile for the filmstrip below the viewfinder — a miniature of
+ *  the same document mock, numbered so order is legible even once it scrolls off-screen. */
+function PageThumb({ index }: { index: number }) {
+  return (
+    <div
+      className="relative shrink-0 w-12 h-16 rounded-md bg-white overflow-hidden shadow-[0_2px_6px_rgba(0,0,0,0.35)] flex flex-col gap-1 p-1.5"
+      aria-hidden
+    >
+      <div className="h-1 w-6 rounded-sm bg-[var(--bg-neutral-inverse-primary)]" />
+      <div className="h-0.5 w-5 rounded-sm bg-[#e5e5e5]" />
+      <div className="mt-auto flex flex-col gap-0.5">
+        <div className="h-0.5 w-full rounded-sm bg-[#ececec]" />
+        <div className="h-0.5 w-4/5 rounded-sm bg-[#ececec]" />
+      </div>
+      <span
+        className="absolute -top-1 -left-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
+        style={{ background: BRAND, ...FONT }}
+      >
+        {index + 1}
+      </span>
+    </div>
+  );
+}
+
 /**
  * Camera + document-scanner demo. In a published build the shutter opens the native
- * scanner (iOS VisionKit / Android ML Kit); here it plays a framing → scanning → review
- * sequence. After each capture the user keeps the page or retakes it; once kept, they can
- * shoot another page (multi-page invoice) or tap Done to finish — all kept pages become ONE
- * invoice document, handed back via a single `onCapture(pageCount)` call. The bottom-bar
- * photo-library button opens a multi-select grid (no retake needed for already-existing
- * photos) — same spot as iOS Camera's last-shot thumbnail, so upload isn't camera-only;
- * picking several at once adds them all as pages in one go, same as scanning them one by one.
+ * scanner (iOS VisionKit / Android ML Kit); here it plays a framing → scanning sequence and
+ * the shot is added straight away — no per-photo keep/retake. Once at least one page is
+ * shot, the user can shoot another page (multi-page invoice) or tap Done to finish — all
+ * pages become ONE invoice document, handed back via a single `onCapture(pageCount)` call.
+ * The bottom-bar photo-library button opens a photo grid — same spot as iOS Camera's
+ * last-shot thumbnail, so upload isn't camera-only. That grid defaults to single-select
+ * (tap a photo, it's added immediately, same "click and go" as the camera); a "Select"
+ * button switches it to multi-select (tap several, then Add them all at once) — its own "✕"
+ * exits multi-select mode back to single-select, without leaving the grid.
  * Renders full-screen (`absolute inset-0`) over whatever's underneath (CreateInvoiceSheet) —
  * needs a positioned ancestor sized to the phone frame, same as any other sheet overlay.
  */
@@ -42,8 +68,9 @@ export function ScanDocument({
   /** Fires once the user taps Done — total pages kept, all treated as one document. */
   onCapture?: (pageCount: number) => void;
 }) {
-  const [phase, setPhase] = useState<"frame" | "scanning" | "review" | "library">("frame");
+  const [phase, setPhase] = useState<"frame" | "scanning" | "library">("frame");
   const [pages, setPages] = useState(0);
+  const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
   // Reset to the live viewfinder, page count cleared, each time the camera opens.
@@ -51,23 +78,36 @@ export function ScanDocument({
     if (open) {
       setPhase("frame");
       setPages(0);
+      setMultiSelect(false);
       setSelected(new Set());
     }
   }, [open]);
 
-  // After the shutter, play the scan sweep, then land on the keep/retake review step.
+  // After the shutter, play the scan sweep, then add the page straight away — no review step.
   useEffect(() => {
     if (phase !== "scanning") return;
-    const t = setTimeout(() => setPhase("review"), 1400);
+    const t = setTimeout(() => {
+      setPages((p) => p + 1);
+      setPhase("frame");
+    }, 1400);
     return () => clearTimeout(t);
   }, [phase]);
 
-  const handleRetake = () => setPhase("frame");
-  const handleKeep = () => {
-    setPages((p) => p + 1);
+  const handleDone = () => onCapture?.(pages);
+  const openLibrary = () => {
+    setMultiSelect(false);
+    setSelected(new Set());
+    setPhase("library");
+  };
+  const handleCancelLibrary = () => {
+    setMultiSelect(false);
+    setSelected(new Set());
     setPhase("frame");
   };
-  const handleDone = () => onCapture?.(pages);
+  const handleExitMultiSelect = () => {
+    setMultiSelect(false);
+    setSelected(new Set());
+  };
   const toggleSelect = (i: number) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -75,12 +115,18 @@ export function ScanDocument({
       else next.add(i);
       return next;
     });
-  const handleCancelLibrary = () => {
-    setSelected(new Set());
+  const handleTapPhoto = (i: number) => {
+    if (multiSelect) {
+      toggleSelect(i);
+      return;
+    }
+    // Single-select default — tap a photo and it's added immediately, no confirm step.
+    setPages((p) => p + 1);
     setPhase("frame");
   };
   const handleAddSelected = () => {
     setPages((p) => p + selected.size);
+    setMultiSelect(false);
     setSelected(new Set());
     setPhase("frame");
   };
@@ -97,7 +143,7 @@ export function ScanDocument({
         >
           <StatusBar darkMode />
 
-          {/* Top bar — close (or back, from the library grid) + title + (decorative) flash toggle */}
+          {/* Top bar — close (or back, from the library grid) + title + trailing control */}
           <div className="shrink-0 flex items-center justify-between px-4 py-3">
             <button
               type="button"
@@ -109,17 +155,36 @@ export function ScanDocument({
             </button>
             <span className="text-[15px] font-bold text-white" style={FONT}>
               {phase === "library"
-                ? selected.size > 0
-                  ? `${selected.size} Selected`
-                  : "Select Photos"
-                : phase === "review"
-                ? "Review page"
+                ? multiSelect
+                  ? selected.size > 0
+                    ? `${selected.size} Selected`
+                    : "Select Photos"
+                  : "Photos"
                 : pages > 0
                 ? `Page ${pages + 1}`
                 : "Scan invoice"}
             </span>
             {phase === "library" ? (
-              <span className="w-9 h-9" aria-hidden />
+              multiSelect ? (
+                <button
+                  type="button"
+                  aria-label="Exit multi-select"
+                  onClick={handleExitMultiSelect}
+                  className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white"
+                >
+                  <X size={20} strokeWidth={1.67} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  aria-label="Select multiple photos"
+                  onClick={() => setMultiSelect(true)}
+                  className="h-9 px-3 rounded-full bg-white/10 flex items-center justify-center text-white text-[14px] font-semibold"
+                  style={FONT}
+                >
+                  Select
+                </button>
+              )
             ) : (
               <span className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/70" aria-hidden>
                 <Zap size={19} strokeWidth={1.67} />
@@ -128,17 +193,18 @@ export function ScanDocument({
           </div>
 
           {phase === "library" ? (
-            /* Multi-select photo grid — tap several, then Add them all as pages in one go. */
+            /* Photo grid — single-select by default (tap = add immediately); "Select" above
+               switches to multi-select (tap = toggle, then Add them all at once below). */
             <div className="flex-1 overflow-y-auto px-4 py-4">
               <div className="grid grid-cols-4 gap-2">
                 {Array.from({ length: LIBRARY_TILE_COUNT }).map((_, i) => {
-                  const isSelected = selected.has(i);
+                  const isSelected = multiSelect && selected.has(i);
                   return (
                     <button
                       key={i}
                       type="button"
                       aria-label={`Photo ${i + 1}${isSelected ? ", selected" : ""}`}
-                      onClick={() => toggleSelect(i)}
+                      onClick={() => handleTapPhoto(i)}
                       className="relative aspect-square rounded-md overflow-hidden bg-white/10 flex items-center justify-center active:scale-95 transition-transform"
                     >
                       <ImageIcon size={22} strokeWidth={1.5} className="text-white/40" />
@@ -210,24 +276,11 @@ export function ScanDocument({
                     />
                   </div>
                 )}
-
-                {/* Kept-page confirmation badge */}
-                {phase === "review" && (
-                  <div
-                    className="absolute -top-3 -right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
-                    style={{ background: BRAND }}
-                    aria-hidden
-                  >
-                    <Check size={18} strokeWidth={2.25} color="#fff" />
-                  </div>
-                )}
               </div>
 
               <p className="mt-8 text-[14px] leading-[1.4] text-white/70 text-center" style={FONT}>
                 {phase === "scanning"
                   ? "Scanning…"
-                  : phase === "review"
-                  ? "Keep this page, or retake it"
                   : pages > 0
                   ? "Add another page, or tap Done to finish"
                   : "Position the invoice within the frame"}
@@ -235,50 +288,42 @@ export function ScanDocument({
             </div>
           )}
 
+          {/* Captured-page filmstrip — scrolls horizontally once it overflows the frame. */}
+          {phase !== "library" && pages > 0 && (
+            <div className="shrink-0 overflow-x-auto px-6 pb-3">
+              <div className="flex gap-2 w-max">
+                {Array.from({ length: pages }).map((_, i) => (
+                  <PageThumb key={i} index={i} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {phase === "library" ? (
-            /* Add every selected photo as a page in one go — no per-photo retake, they're
-               already-existing files. */
-            <div className="shrink-0 px-6 pb-10 pt-4">
-              <button
-                type="button"
-                onClick={handleAddSelected}
-                disabled={selected.size === 0}
-                className="w-full h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform disabled:opacity-40"
-                style={{ ...FONT, background: BRAND }}
-              >
-                {selected.size > 0 ? `Add ${selected.size} Photo${selected.size === 1 ? "" : "s"}` : "Select Photos"}
-              </button>
-            </div>
-          ) : phase === "review" ? (
-            /* Review step — keep this page (adds it to the document) or retake it */
-            <div className="shrink-0 flex items-center gap-3 px-6 pb-10 pt-4">
-              <button
-                type="button"
-                onClick={handleRetake}
-                className="flex-1 h-12 rounded-full bg-white/15 text-white text-[15px] font-semibold active:scale-95 transition-transform"
-                style={FONT}
-              >
-                Retake
-              </button>
-              <button
-                type="button"
-                onClick={handleKeep}
-                className="flex-1 h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform"
-                style={{ ...FONT, background: BRAND }}
-              >
-                Keep Photo
-              </button>
-            </div>
+            multiSelect && (
+              /* Add every selected photo as a page in one go. */
+              <div className="shrink-0 px-6 pb-10 pt-4">
+                <button
+                  type="button"
+                  onClick={handleAddSelected}
+                  disabled={selected.size === 0}
+                  className="w-full h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform disabled:opacity-40"
+                  style={{ ...FONT, background: BRAND }}
+                >
+                  {selected.size > 0 ? `Add ${selected.size} Photo${selected.size === 1 ? "" : "s"}` : "Select Photos"}
+                </button>
+              </div>
+            )
           ) : (
             /* Shutter + photo-library import (same spot as iOS Camera's last-shot thumbnail) +
-               Done once at least one page is kept — balanced 44px slots either side of the shutter. */
+               Done once at least one page is shot — balanced 44px slots either side of the shutter. */
             <div className="shrink-0 flex items-center justify-between px-8 pb-10 pt-4">
               <div className="w-11 h-11 flex items-center justify-center">
                 {phase === "frame" && (
                   <button
                     type="button"
                     aria-label="Choose from library"
-                    onClick={() => setPhase("library")}
+                    onClick={openLibrary}
                     className="w-11 h-11 rounded-lg bg-white/15 flex items-center justify-center text-white active:scale-95 transition-transform"
                   >
                     <Images size={20} strokeWidth={1.67} />
