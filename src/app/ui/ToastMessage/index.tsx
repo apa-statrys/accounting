@@ -56,8 +56,9 @@ interface ToastMessageProps {
   subtitle?: string;
   /** Optional trailing link (Figma "View Details") — omit for a plain toast. `icon` defaults to
    *  the "View Details" arrow; override it for an action that isn't navigation (e.g. a retry
-   *  arrow for "Try Again"). */
-  action?: { label: string; onClick: () => void; icon?: React.ReactNode };
+   *  arrow for "Try Again"). `iconPosition` defaults to "trailing" (the arrow reads as "go to");
+   *  a retry-style icon reads more naturally "leading" (icon, then label). */
+  action?: { label: string; onClick: () => void; icon?: React.ReactNode; iconPosition?: "leading" | "trailing" };
   onClose: () => void;
 }
 
@@ -75,12 +76,16 @@ export function ToastMessage({ variant = "default", title, subtitle, action, onC
           <p className={styles.title}>{title}</p>
           {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
         </div>
-        {action && (
-          <button type="button" onClick={action.onClick} className={styles.link}>
-            {action.label}
-            {action.icon ?? <ArrowUpRight size={16} strokeWidth={1.67} />}
-          </button>
-        )}
+        {action && (() => {
+          const icon = action.icon ?? <ArrowUpRight size={16} strokeWidth={1.67} />;
+          return (
+            <button type="button" onClick={action.onClick} className={styles.link}>
+              {action.iconPosition === "leading" && icon}
+              {action.label}
+              {action.iconPosition !== "leading" && icon}
+            </button>
+          );
+        })()}
       </div>
       <XClose size="sm" inverse onClick={onClose} aria-label="Dismiss" />
     </div>

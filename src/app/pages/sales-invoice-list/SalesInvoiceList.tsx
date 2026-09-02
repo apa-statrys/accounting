@@ -114,7 +114,7 @@ interface SalesInvoiceListProps {
   /** Toast muted subline (e.g. "Marked as sent"). */
   successSubtext?: string;
   /** Optional trailing action link (e.g. "Try Again" on the dev-only network-error toast demo). */
-  successAction?: { label: string; onClick: () => void; icon?: React.ReactNode };
+  successAction?: { label: string; onClick: () => void; icon?: React.ReactNode; iconPosition?: "leading" | "trailing" };
   /** Override the toast's default 3s auto-hide (e.g. longer for the network-error demo, so
    *  there's time to actually click the action before it disappears). */
   successDuration?: number;
