@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus } from "lucide-react";
-import { FileItemBase } from "../../ui/FileItemBase";
+import { Plus, RefreshCw, FileText } from "lucide-react";
 import { Button } from "../../ui/Button";
 import CheckIcon from "@mui/icons-material/Check";
 import { PageAppHeader } from "../../components/PageAppHeader";
@@ -33,7 +32,7 @@ import { AddServicesSheet } from "../../components/AddServicesSheet";
 import { CUSTOMERS } from "../../data/customers";
 import { EXISTING_INVOICES } from "../../data/extraction";
 import { formatAccount, getAccount } from "../../data/receivingAccounts";
-import { EMAIL_RE, fileSizeLabel } from "../../lib/format";
+import { EMAIL_RE } from "../../lib/format";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
 import type { Customer, ExistingInvoice, ExtractedInvoice, ServiceLine } from "../../types";
@@ -145,12 +144,21 @@ import { FONT, MUTED, avatarTint, initials } from "../../lib/theme";
 
 /** Section label (Figma "Create Invoice", node 1826-15916): body-sm medium, text-primary,
  *  sentence case — not the 12px bold-uppercase placeholder-grey style used elsewhere. */
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  titleRight,
+  children,
+}: {
+  title: string;
+  titleRight?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div className="w-full flex flex-col gap-2">
-      <p className="body-sm-medium text-[var(--text-primary)]">
-        {title}
-      </p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="body-sm-medium text-[var(--text-primary)]">{title}</p>
+        {titleRight}
+      </div>
       {children}
     </div>
   );
@@ -591,19 +599,44 @@ export function AddInvoiceDetails({
           <CoverageBanner fieldsExtracted={fieldsExtracted} fieldsTotal={fieldsTotal} />
         )}
 
-        {/* Uploaded file (top) — what the user just uploaded; tap the row to preview the original,
-            or Replace to pick a different file (same re-upload path as the OCR-failure banner's
-            "Upload a clearer file" link). */}
+        {/* Files — what the user just uploaded; a multi-page scan shows one tile per page,
+            horizontally scrollable, since it can be more than one file/photo now. Tap a tile to
+            preview the original; Re-upload (title-right, same re-upload path as the OCR-failure
+            banner's "Upload a clearer file" link) picks a different file entirely. */}
         {isExtracted && uploadedFile && (
-          <FileItemBase
-            name={uploadedFile.name}
-            size={fileSizeLabel(uploadedFile)}
-            fileType={uploadedFile.name.split(".").pop()?.toLowerCase() ?? "file"}
-            state="completed"
-            action="replace"
-            onClick={() => setFilePreviewOpen(true)}
-            onReplace={onReupload}
-          />
+          <Section
+            title="Files"
+            titleRight={
+              onReupload && (
+                <button
+                  type="button"
+                  onClick={onReupload}
+                  className="flex items-center gap-1 body-sm-medium"
+                  style={{ color: "var(--link-primary)" }}
+                >
+                  <RefreshCw size={14} strokeWidth={1.67} />
+                  Re-upload
+                </button>
+              )
+            }
+          >
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              {Array.from({ length: uploadedFile.pages && uploadedFile.pages > 1 ? uploadedFile.pages : 1 }).map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setFilePreviewOpen(true)}
+                  className="shrink-0 w-[76px] flex flex-col items-center gap-1.5 rounded-2xl border p-2.5"
+                  style={{ background: "var(--bg-neutral-primary)", borderColor: "var(--border-neutral-primary)" }}
+                >
+                  <FileText size={22} strokeWidth={1.5} style={{ color: "var(--icon-secondary)" }} />
+                  <span className="caption w-full truncate text-center" style={{ color: "var(--text-secondary)" }}>
+                    {uploadedFile.pages && uploadedFile.pages > 1 ? `Page ${i + 1}` : uploadedFile.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Section>
         )}
 
         {/* Banner — OCR-failure notice (couldn't read the file) takes priority over the summary */}
