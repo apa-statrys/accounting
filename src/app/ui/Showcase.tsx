@@ -43,6 +43,8 @@ import { ListText } from "./ListText";
 import { SwipeActions } from "./SwipeActions";
 import { NotificationItem } from "./NotificationItem";
 import { FileItemBase, type FileItemState, type FileItemAction } from "./FileItemBase";
+import { GeneralErrorPage } from "../pages/GeneralErrorPage";
+import { NotFoundPage } from "../pages/NotFoundPage";
 
 /**
  * Showcase — standalone gallery of the design-system components in `ui/`,
@@ -115,6 +117,7 @@ const NAV_GROUPS = [
     category: "Feedback & Status",
     items: [
       { id: "toast-message", label: "Toast Message" },
+      { id: "error-state-template", label: "Error State Template" },
       { id: "banner", label: "Banner" },
       { id: "badge", label: "Badge" },
       { id: "noti-badge", label: "Noti Badge" },
@@ -757,6 +760,47 @@ function ToastMessageOverview() {
         </div>
       )}
     />
+  );
+}
+
+const ERROR_STATE_TEMPLATE_CONTROL_GROUPS: ControlGroup[] = [
+  {
+    key: "state",
+    label: "State",
+    options: [
+      { value: "general", label: "General Error — use for a blocking failure worth retrying (e.g. a failed save/load)" },
+      { value: "notFound", label: "Not Found — use only once the server confirms the resource is gone (expired link, deleted record)" },
+    ],
+  },
+];
+
+/** Live preview of the app's two full-screen catch-all failure templates — pages/GeneralErrorPage
+ *  and pages/NotFoundPage, not `ui/` components, so this canvas renders the real page components
+ *  directly (wrapped in `.mobile-mode` for correct typography, same as every other full-device
+ *  demo in this file) rather than a redrawn mock. Both share one hand-drawn icon + shell; only
+ *  the copy and action count differ (General Error: header back + single "Try again" CTA; Not
+ *  Found: same header back, single "Go Back" CTA, no retry — there's nothing to retry). */
+function ErrorStateTemplateOverview() {
+  return (
+    <div className="flex flex-col gap-6">
+      <InteractiveDemo
+        groups={ERROR_STATE_TEMPLATE_CONTROL_GROUPS}
+        defaultValues={{ state: "general" }}
+        render={(v) => (
+          <div className="mobile-mode">
+            {v.state === "general" ? (
+              <GeneralErrorPage onBack={() => {}} onRetry={() => {}} />
+            ) : (
+              <NotFoundPage
+                title="This invoice is no longer available"
+                message="It may have been deleted, or the link you used has expired."
+                onBack={() => {}}
+              />
+            )}
+          </div>
+        )}
+      />
+    </div>
   );
 }
 
@@ -2928,6 +2972,21 @@ export function Showcase() {
                   "An ongoing status the user should be able to check back on — use Banner inline on the page instead",
                 ]}
                 overview={<ToastMessageOverview />}
+              />
+            )}
+            {!isFoundation && activeNav === "error-state-template" && (
+              <ComponentPage
+                title="Error State Template"
+                description="The app's one full-screen shell for 'this blocking flow failed' — a hand-drawn warning-triangle icon, a headline + body, and a sticky single-CTA ButtonDock, reused by every catch-all/not-found screen instead of each one growing its own markup. The non-blocking counterpart for a smaller failure (e.g. one row failing to load) is Toast Message's own error variant, not this template."
+                whenToUse={[
+                  "General Error — a real action failed and retrying might work (a failed save, a failed load) — copy stays generic, never raw exception text or an error code",
+                  "Not Found — the server has actually confirmed a specific resource is gone (expired invoice link, deleted customer) — copy names the specific thing, never generic \"404\" language",
+                ]}
+                whenNotToUse={[
+                  "A failure that shouldn't block the whole screen (e.g. one row failing to load in a list) — use Toast Message's \"error\" variant instead",
+                  "An unknown/loading state where it isn't confirmed yet whether the resource exists — only route to Not Found once the server has actually said so",
+                ]}
+                overview={<ErrorStateTemplateOverview />}
               />
             )}
             {!isFoundation && activeNav === "banner" && (
