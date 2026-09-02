@@ -23,8 +23,9 @@ interface NotFoundPageProps {
 /**
  * NotFoundPage — the app's "this specific thing doesn't exist" state, distinct from
  * GeneralErrorPage's catch-all failure: no Retry (there's nothing to retry — the resource is
- * confirmed gone), a single "Go Back" action instead of a double dock. Same shell/icon as
- * GeneralErrorPage for a consistent visual language across every "Error States" screen.
+ * confirmed gone), just the one "Go Back" action. Same template as GeneralErrorPage otherwise —
+ * shell/icon, header back chevron, single-CTA sticky dock — for a consistent visual language
+ * across every "Error States" screen.
  */
 export function NotFoundPage({
   title = "This item is no longer available",
@@ -35,7 +36,7 @@ export function NotFoundPage({
     <div className="relative bg-[var(--bg-neutral-tertiary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
       <div className="flex-1 overflow-y-auto bg-[var(--bg-neutral-tertiary)] flex flex-col">
         <PageAppHeader scrolled={false}>
-          <PageHeader type="center" showBack={false} showSearch={false} />
+          <PageHeader type="center" onBack={onBack} showSearch={false} />
         </PageAppHeader>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 pb-44 text-center">
