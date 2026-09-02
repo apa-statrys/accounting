@@ -33,11 +33,16 @@ const NO_POSTAL_COUNTRIES = ["Hong Kong"];
 
 /** Dev-only demo "someone else's" edit (PageControls "Concurrent edit conflict" toggle, edit mode
  *  only) — a fixed stand-in for what a real concurrent-session save would have changed, since this
- *  prototype has no backend to actually race against. Phone/Address only: identity fields (name,
- *  email) already have their own possible-duplicate warning above, and mixing the two would muddy
- *  which sheet is demonstrating what. */
+ *  prototype has no backend to actually race against. Reads as a coherent "this customer relocated"
+ *  story (new US address/city/zip + phone + website) across 5 fields, enough to exercise
+ *  CustomerConflictPage's per-field picker at a realistic scale rather than just 2 rows. Identity
+ *  fields (name, email) are still excluded — those already have their own possible-duplicate
+ *  warning above, and mixing the two would muddy which sheet is demonstrating what. */
 const CONFLICT_DEMO_PHONE = "+1 415 555 0134";
+const CONFLICT_DEMO_WEBSITE = "marketstreetoffice.com";
 const CONFLICT_DEMO_ADDRESS = "482 Market Street, Suite 300";
+const CONFLICT_DEMO_CITY = "San Francisco";
+const CONFLICT_DEMO_ZIP = "94105";
 
 export interface AddCustomerPageProps {
   /** "add" (DES-713) or "edit" (DES-714) — drives the title, CTA label, and dirty-gating. */
@@ -55,15 +60,15 @@ export interface AddCustomerPageProps {
    *  field's inline error shows on mount instead of requiring a real empty submit. */
   devShowErrors?: boolean;
   /** Dev (PageControls, edit mode only): simulate another user having changed this same customer's
-   *  Phone Number + Address while this session was open — Save calls `onConflict` (routing to the
-   *  dedicated CustomerConflictPage) instead of saving straight through. No real backend to race
-   *  against in this prototype, so this is the only way to demo the "someone else edited it first"
-   *  screen. */
+   *  Phone Number, Website, Address, City, and Zip while this session was open — Save calls
+   *  `onConflict` (routing to the dedicated CustomerConflictPage) instead of saving straight
+   *  through. No real backend to race against in this prototype, so this is the only way to demo
+   *  the "someone else edited it first" screen. */
   simulateConflict?: boolean;
   /** Fires instead of `onAdd` when `simulateConflict` catches a save — `mine` is the record built
    *  from this session's current field values, `theirs` is the fixed demo "other user's" version
-   *  (see CONFLICT_DEMO_PHONE/ADDRESS). The caller owns navigating to CustomerConflictPage and
-   *  actually committing whichever one the user picks there. */
+   *  (see CONFLICT_DEMO_PHONE/WEBSITE/ADDRESS/CITY/ZIP). The caller owns navigating to
+   *  CustomerConflictPage and actually committing whichever mix the user picks there. */
   onConflict?: (mine: Customer, theirs: Customer) => void;
 }
 
@@ -220,7 +225,14 @@ export function AddCustomerPage({ mode = "add", initial, existing = [], defaultC
     // instead of saving straight through ("mine" = this session's edits, "theirs" = the fixed demo
     // other-user version — the caller resolves which one actually gets committed).
     if (isEdit && simulateConflict && initial) {
-      onConflict?.(buildRecord(), { ...initial, phone: CONFLICT_DEMO_PHONE, address: CONFLICT_DEMO_ADDRESS });
+      onConflict?.(buildRecord(), {
+        ...initial,
+        phone: CONFLICT_DEMO_PHONE,
+        website: CONFLICT_DEMO_WEBSITE,
+        address: CONFLICT_DEMO_ADDRESS,
+        city: CONFLICT_DEMO_CITY,
+        zip: CONFLICT_DEMO_ZIP,
+      });
       return;
     }
     commitSave();

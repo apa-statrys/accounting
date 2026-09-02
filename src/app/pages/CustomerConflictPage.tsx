@@ -11,11 +11,16 @@ import type { Customer } from "../types";
 // to decide something" moment; reused here too.
 const warningTriangleIcon = new URL("./duplicate-decision-warning.svg", import.meta.url).href;
 
-/** The only fields a demo concurrent edit can conflict on (see AddCustomerPage's
- *  CONFLICT_DEMO_PHONE/ADDRESS) — key must be a Customer field whose value is a plain string. */
-const CONFLICT_FIELDS: { key: "phone" | "address"; label: string }[] = [
+/** The fields a demo concurrent edit can conflict on (see AddCustomerPage's
+ *  CONFLICT_DEMO_PHONE/WEBSITE/ADDRESS/CITY/ZIP) — key must be a Customer field whose value is a
+ *  plain string. */
+type ConflictFieldKey = "phone" | "website" | "address" | "city" | "zip";
+const CONFLICT_FIELDS: { key: ConflictFieldKey; label: string }[] = [
   { key: "phone", label: "Phone Number" },
+  { key: "website", label: "Website" },
   { key: "address", label: "Address" },
+  { key: "city", label: "City" },
+  { key: "zip", label: "Zip / Postal Code" },
 ];
 
 /** One selectable version of a conflicting field — value leads (the actual data being compared
@@ -79,23 +84,22 @@ export function CustomerConflictPage({ mine, theirs, onBack, onSave }: CustomerC
   const [scrolled, setScrolled] = useState(false);
   // Defaults to "mine" for every field — a save always has somewhere sensible to land without
   // forcing a choice on fields the user doesn't care to override.
-  const [resolution, setResolution] = useState<Record<"phone" | "address", "mine" | "theirs">>({
-    phone: "mine",
-    address: "mine",
-  });
+  const [resolution, setResolution] = useState<Record<ConflictFieldKey, "mine" | "theirs">>(() =>
+    Object.fromEntries(CONFLICT_FIELDS.map(({ key }) => [key, "mine"])) as Record<ConflictFieldKey, "mine" | "theirs">
+  );
 
   const handleSave = () => {
-    onSave?.({
-      ...mine,
-      phone: resolution.phone === "theirs" ? theirs.phone : mine.phone,
-      address: resolution.address === "theirs" ? theirs.address : mine.address,
-    });
+    const resolved = { ...mine };
+    for (const { key } of CONFLICT_FIELDS) {
+      if (resolution[key] === "theirs") resolved[key] = theirs[key];
+    }
+    onSave?.(resolved);
   };
 
   return (
     <div className="relative bg-[var(--bg-neutral-tertiary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
       <div
-        className="flex-1 overflow-y-auto bg-[var(--bg-neutral-tertiary)]"
+        className="flex-1 overflow-y-auto thin-scrollbar bg-[var(--bg-neutral-tertiary)]"
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
