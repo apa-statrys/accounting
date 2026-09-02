@@ -99,7 +99,7 @@ export function CustomerConflictPage({ mine, theirs, onBack, onSave }: CustomerC
   return (
     <div className="relative bg-[var(--bg-neutral-tertiary)] rounded-[48px] overflow-hidden shadow-2xl flex flex-col" style={{ width: 375, height: 812 }}>
       <div
-        className="flex-1 overflow-y-auto thin-scrollbar bg-[var(--bg-neutral-tertiary)]"
+        className="flex-1 overflow-y-auto no-scrollbar bg-[var(--bg-neutral-tertiary)]"
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
