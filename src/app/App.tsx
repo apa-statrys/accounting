@@ -25,6 +25,7 @@ import type { StatusMatch } from "./pages/sales-invoice-list/filters";
 import { TODAY_ISO } from "./pages/sales-invoice-list/filters";
 import { NeedAttention } from "./pages/NeedAttention";
 import { DuplicateDecision } from "./pages/DuplicateDecision";
+import { GeneralErrorPage } from "./pages/GeneralErrorPage";
 import { InvoiceSettings } from "./pages/InvoiceSettings";
 import { GeneratingInvoice } from "./pages/GeneratingInvoice";
 import { ScanDocument } from "./components/ScanDocument";
@@ -139,8 +140,10 @@ export default function App() {
   // Extraction queued while the OCR screen plays (chosen from the upload source).
   // null = OCR found nothing usable (routes to the extract-failed screen).
   const [pendingExtraction, setPendingExtraction] = useState<ExtractedInvoice | null>(DEMO_EXTRACTION);
-  // Toast shown on the list after returning from the create flow.
-  const [toast, setToast] = useState<{ title: string; subtext?: string; variant?: ToastVariant } | null>(null);
+  // Toast shown on the list after returning from the create flow. `action` is only ever set by
+  // the dev "General error toast" toggle below (PageControls) — every real save/send/delete
+  // toast fires without one, same as before.
+  const [toast, setToast] = useState<{ title: string; subtext?: string; variant?: ToastVariant; action?: { label: string; onClick: () => void } } | null>(null);
   // Blocking notice for an upload that never reached OCR (file too large / unsupported type) —
   // a sheet (UploadErrorDialog) rather than a toast, so there's a clear "Choose Another File"
   // next step. `kind` disambiguates the two scenarios (their title copy is identical).
@@ -335,6 +338,16 @@ export default function App() {
         // Hero-scenario states now live on the Dashboard's own PageControls panel (right gutter)
         // instead of a separate sidebar entry each — this jump always resets to scenario 0.
         { label: "Dashboard", active: screen === "dashboard", onSelect: () => { setHeroScenario(0); setScreen("dashboard"); } },
+      ],
+    },
+    {
+      title: "Error States",
+      items: [
+        // The catch-all full-screen failure state — any blocking flow can route here instead of
+        // growing its own one-off error markup. The non-blocking counterpart (Toast "error"
+        // variant) has its own dev toggle on the Sales Invoice List's PageControls panel instead
+        // (right gutter) — a toast only makes sense to demo in place, not as a separate jump.
+        { label: "General Error (catch-all)", active: screen === "generalError", onSelect: () => { setToast(null); setScreen("generalError"); } },
       ],
     },
     {
@@ -648,6 +661,27 @@ export default function App() {
             },
           },
         ],
+      },
+      {
+        // Non-blocking counterpart to the "General Error (catch-all)" full page (QuickNav sidebar,
+        // "Error States" group) — demos the Toast "error" variant for a failure that shouldn't
+        // block the whole screen (e.g. one row failing to load). Retry is the toast's own
+        // trailing action; dismissing it (✕) covers "go back" since there's nothing else to undo.
+        label: "General error toast",
+        toggle: {
+          checked: toast?.variant === "error",
+          onChange: (next) =>
+            setToast(
+              next
+                ? {
+                    title: "Something went wrong",
+                    subtext: "Please try again.",
+                    variant: "error",
+                    action: { label: "Retry", onClick: () => setToast(null) },
+                  }
+                : null
+            ),
+        },
       },
     ];
   } else if (screen === "customer") {
@@ -963,6 +997,7 @@ export default function App() {
           successVariant={toast?.variant}
           successMessage={toast?.title}
           successSubtext={toast?.subtext}
+          successAction={toast?.action}
           onSuccessDone={() => setToast(null)}
           recent={recent}
           newFlag={newFlag}
@@ -1144,6 +1179,13 @@ export default function App() {
             setScreen("details");
           }}
         />
+      )}
+
+      {/* Catch-all full-screen failure state — see pages/GeneralErrorPage. Reached from the
+          QuickNav sidebar's "Error States" group for demo purposes; a real blocking failure would
+          route here the same way (setScreen("generalError")) instead of growing its own markup. */}
+      {screen === "generalError" && (
+        <GeneralErrorPage onBack={() => setScreen("dashboard")} onRetry={() => setScreen("dashboard")} />
       )}
 
       {/* Create Sales Invoice flow */}

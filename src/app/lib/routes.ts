@@ -28,6 +28,7 @@ const SCREEN_PATHS: Record<Screen, string> = {
   customerDetail: "/customers/detail",
   addCustomer: "/customers/add",
   editCustomer: "/customers/edit",
+  generalError: "/error",
 };
 
 const PATH_SCREENS: Partial<Record<string, Screen>> = Object.fromEntries(
