@@ -147,6 +147,10 @@ export default function App() {
   // ever set by the dev "Network error toast" toggle below (PageControls) — every real
   // save/send/delete toast fires without them, same as before.
   const [toast, setToast] = useState<{ title: string; subtext?: string; variant?: ToastVariant; action?: { label: string; onClick: () => void; icon?: React.ReactNode; iconPosition?: "leading" | "trailing" }; duration?: number } | null>(null);
+  // Confirms a network-error state resolved — fired on the manual "Try Again" (every one of them
+  // "succeeds" in this dummy prototype, same as GeneralErrorPage's) and automatically the instant
+  // the browser reports connectivity restored (see the `online` listener below).
+  const showBackOnline = () => setToast({ title: "You're back online", variant: "success" });
   // Blocking notice for an upload that never reached OCR (file too large / unsupported type) —
   // a sheet (UploadErrorDialog) rather than a toast, so there's a clear "Choose Another File"
   // next step. `kind` disambiguates the two scenarios (their title copy is identical).
@@ -251,6 +255,29 @@ export default function App() {
   // instead of layering onto whatever sort/filter state a previous manual poke left behind.
   const [listDevHideStatuses, setListDevHideStatuses] = useState<Status[] | undefined>(undefined);
   const [listDevNonce, setListDevNonce] = useState(0);
+  // Dev (PageControls "Data" group, "Network Error" option) — the active status tab's own rows
+  // couldn't load at all (no connection), same shell as "Category empty" (tabs/sort stay usable,
+  // only the row area changes) but showing NetworkErrorPage's copy/icon instead of a plain
+  // "No invoices found" caption. Auto-clears (with a "You're back online" success toast) the
+  // instant the browser reports connectivity restored — see the `online` listener below.
+  const [listNetworkError, setListNetworkError] = useState(false);
+
+  // Reconnect handling for the two dev network-error demos that don't already listen for this
+  // themselves (NetworkErrorPage listens on its own — see its onRetry below): the network-error
+  // toast and the list's "Network Error" category state both auto-resolve into the same
+  // "You're back online" success toast the instant the browser reports connectivity restored.
+  useEffect(() => {
+    const handleOnline = () => {
+      if (toast?.title === "You're offline") showBackOnline();
+      if (listNetworkError) {
+        setListNetworkError(false);
+        showBackOnline();
+      }
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [toast, listNetworkError]);
+
   // Dev (PageControls, "Create Invoice" screen): "Error (no items)" seeds the editor with none and
   // shows the Items validation error on mount (same state a real Create Invoice tap with 0 items
   // sets) instead of requiring the tap.
@@ -390,7 +417,7 @@ export default function App() {
         // Empty/category-empty demo states now live on the list page's own PageControls panel
         // (right gutter) instead of a separate sidebar entry each — this jump always lands on
         // the plain default, resetting whatever PageControls state was left on.
-        { label: "Sales Invoice List", active: screen === "list", onSelect: () => { setToast(null); setListPreset(null); setForceEmptyInvoices(false); setListDevHideStatuses(undefined); setListDevNonce((n) => n + 1); setScreen("list"); } },
+        { label: "Sales Invoice List", active: screen === "list", onSelect: () => { setToast(null); setListPreset(null); setForceEmptyInvoices(false); setListDevHideStatuses(undefined); setListNetworkError(false); setListDevNonce((n) => n + 1); setScreen("list"); } },
         // Default / Failed now live on the Send sheet's own PageControls panel (right gutter)
         // instead of a separate sidebar entry each — this jump always lands on the plain default.
         { label: "Send Invoice", active: screen === "send", onSelect: () => { setSendFailScenario(false); setScreen("send"); } },
@@ -642,11 +669,12 @@ export default function App() {
         options: [
           {
             label: "Default",
-            active: !forceEmptyInvoices && !listDevHideStatuses,
+            active: !forceEmptyInvoices && !listDevHideStatuses && !listNetworkError,
             onSelect: () => {
               setForceEmptyInvoices(false);
               setListPreset(null);
               setListDevHideStatuses(undefined);
+              setListNetworkError(false);
               setListDevNonce((n) => n + 1);
             },
           },
@@ -656,6 +684,7 @@ export default function App() {
             onSelect: () => {
               setForceEmptyInvoices(true);
               setListDevHideStatuses(undefined);
+              setListNetworkError(false);
               setListDevNonce((n) => n + 1);
             },
           },
@@ -669,6 +698,21 @@ export default function App() {
               setForceEmptyInvoices(false);
               setListPreset({ status: "Draft" });
               setListDevHideStatuses(["Draft"]);
+              setListNetworkError(false);
+              setListDevNonce((n) => n + 1);
+            },
+          },
+          {
+            // Same shell as "Category empty" above (tabs/sort stay usable, only the row area
+            // changes) but every tab's rows fail to load at all, not just Draft's — see
+            // SalesInvoiceList's own `networkError` prop.
+            label: "Network Error",
+            active: listNetworkError,
+            onSelect: () => {
+              setForceEmptyInvoices(false);
+              setListPreset(null);
+              setListDevHideStatuses(undefined);
+              setListNetworkError(true);
               setListDevNonce((n) => n + 1);
             },
           },
@@ -703,7 +747,7 @@ export default function App() {
                     title: "You're offline",
                     subtext: "Check your connection and try again.",
                     variant: "error",
-                    action: { label: "Try Again", onClick: () => setToast(null), icon: <RefreshCw size={16} strokeWidth={1.67} />, iconPosition: "leading" },
+                    action: { label: "Try Again", onClick: showBackOnline, icon: <RefreshCw size={16} strokeWidth={1.67} />, iconPosition: "leading" },
                     duration: 7000,
                   }
                 : null
@@ -1032,6 +1076,8 @@ export default function App() {
           initialStatus={listPreset?.status}
           onActiveStatusChange={(s) => setListPreset({ status: s === "all" ? undefined : s })}
           hideStatuses={listDevHideStatuses}
+          networkError={listNetworkError}
+          onRetryNetwork={() => { setListNetworkError(false); showBackOnline(); }}
           refundState={refundState}
           onBack={() => setScreen("dashboard")}
           onOpenInvoice={(inv) => {
@@ -1231,7 +1277,13 @@ export default function App() {
           the QuickNav sidebar's "Error States" group for demo purposes; a real page that fails to
           load with no connection would route here the same way. */}
       {screen === "networkError" && (
-        <NetworkErrorPage onBack={() => setScreen("dashboard")} onRetry={() => setScreen("dashboard")} />
+        <NetworkErrorPage
+          onBack={() => setScreen("dashboard")}
+          // Lands on the invoice list rather than the dashboard specifically so the "You're back
+          // online" confirmation has somewhere to actually render — Toast is only ever shown on
+          // Sales Invoice List (see project memory on the toast's app-wide plumbing).
+          onRetry={() => { setScreen("list"); showBackOnline(); }}
+        />
       )}
 
       {/* Create Sales Invoice flow */}

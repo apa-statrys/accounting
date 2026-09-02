@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { parse, parseISO, format, addDays } from "date-fns";
-import { ArrowUpDown, ChevronDown, Plus, Search, X } from "lucide-react";
+import { ArrowUpDown, ChevronDown, Plus, RefreshCw, Search, X } from "lucide-react";
 import { FAB } from "../../ui/FAB";
 import { PageAppHeader } from "../../components/PageAppHeader";
 import { PageHeader } from "../../ui/PageHeader";
@@ -51,6 +51,9 @@ import {
 } from "./filters";
 
 const noInvoicesIcon = new URL("./no-invoices-icon.svg", import.meta.url).href;
+// Same hand-drawn globe-with-a-slash as NetworkErrorPage and the network-error toast (Figma
+// "[lib] Icons" node 1663:8250) — one shared icon for every "you're offline" moment.
+const networkErrorIcon = new URL("../network-error-icon.svg", import.meta.url).href;
 
 /** Two-letter initials from a customer name (skips symbols like "&"), for the Customer search's Avatar. */
 function initials(name: string): string {
@@ -145,9 +148,16 @@ interface SalesInvoiceListProps {
    *  version of this is a category draining to zero as its last invoice moves on (e.g. the one
    *  remaining Draft gets sent and becomes Awaiting) rather than a register that's empty outright. */
   hideStatuses?: Status[];
+  /** Dev-only (PageControls' "Network Error" demo state): every status tab's rows fail to load
+   *  at all (no connection) — same shell as `hideStatuses`' "Category empty" (tabs/sort stay
+   *  usable, only the row area changes), but overrides `list.length` entirely rather than only
+   *  showing when a specific tab is genuinely empty. */
+  networkError?: boolean;
+  /** "Try Again" on the network-error row state. */
+  onRetryNetwork?: () => void;
 }
 
-export function SalesInvoiceList({ showSuccess, successVariant, successMessage, successSubtext, successAction, successDuration, onSuccessDone, recent, newFlag, onBack, onOpenInvoice, onManual, onUpload, initialStatus, onActiveStatusChange, initialDue, refundState, forceEmpty, hideStatuses }: SalesInvoiceListProps) {
+export function SalesInvoiceList({ showSuccess, successVariant, successMessage, successSubtext, successAction, successDuration, onSuccessDone, recent, newFlag, onBack, onOpenInvoice, onManual, onUpload, initialStatus, onActiveStatusChange, initialDue, refundState, forceEmpty, hideStatuses, networkError, onRetryNetwork }: SalesInvoiceListProps) {
   const initialActive = initialStatus ? Math.max(0, FILTERS.findIndex((f) => f.match === initialStatus)) : 0;
   const [active, setActive] = useState(initialActive);
   // Keep the selected status tab scrolled into view (e.g. when opened pre-filtered from the hero).
@@ -397,6 +407,20 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
                 iconLeft={<Plus size={16} strokeWidth={1.67} />}
                 label="Create Invoice"
                 onClick={() => setSheetOpen(true)}
+              />
+            }
+          />
+        ) : networkError ? (
+          <EmptyState
+            icon={<img src={networkErrorIcon} alt="" className="size-14" />}
+            title="You're offline"
+            subtitle="Check your connection and try again."
+            action={
+              <Button
+                size="sm"
+                iconLeft={<RefreshCw size={16} strokeWidth={1.67} />}
+                label="Try Again"
+                onClick={onRetryNetwork}
               />
             }
           />
