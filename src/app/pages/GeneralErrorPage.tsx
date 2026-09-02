@@ -13,26 +13,24 @@ interface GeneralErrorPageProps {
   title?: string;
   /** Body copy, one or two short sentences — same rule as title. */
   message?: string;
+  /** Drives the page header's own back chevron — the page's only way back. */
   onBack?: () => void;
   onRetry?: () => void;
-  /** When given, the secondary action reads "Contact Support" instead of the default "Go Back". */
-  onContactSupport?: () => void;
 }
 
 /**
  * GeneralErrorPage — the app's one catch-all failure screen for a BLOCKING flow (a
  * non-blocking failure, e.g. one row failing to load in a list, uses the Toast "error"
- * variant instead — see components/Toast). Same icon+headline+body+ButtonDock shell as
- * DuplicateDecision's own "here's what happened" page: any screen that hits an
- * unrecoverable error routes here (Screen "generalError") rather than growing its own
- * one-off error markup.
+ * variant instead — see components/Toast). Same icon+headline+body shell as DuplicateDecision's
+ * own "here's what happened" page: any screen that hits an unrecoverable error routes here
+ * (Screen "generalError") rather than growing its own one-off error markup. One primary CTA
+ * ("Try again") — going back is the header's own back chevron, not a second dock button.
  */
 export function GeneralErrorPage({
   title = "Something went wrong",
   message = "We couldn't complete this. Please try again, or go back and try later.",
   onBack,
   onRetry,
-  onContactSupport,
 }: GeneralErrorPageProps) {
   const [scrolled, setScrolled] = useState(false);
   const [retrying, setRetrying] = useState(false);
@@ -55,7 +53,7 @@ export function GeneralErrorPage({
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          <PageHeader type="center" showBack={false} showSearch={false} />
+          <PageHeader type="center" onBack={onBack} showSearch={false} />
         </PageAppHeader>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 pb-44 text-center">
@@ -67,15 +65,7 @@ export function GeneralErrorPage({
         </div>
       </div>
 
-      <ButtonDock
-        type="double"
-        sticky
-        primaryLabel="Try again"
-        primaryLoading={retrying}
-        onPrimary={handleRetry}
-        secondaryLabel={onContactSupport ? "Contact Support" : "Go Back"}
-        onSecondary={onContactSupport ?? onBack}
-      />
+      <ButtonDock type="single" sticky primaryLabel="Try again" primaryLoading={retrying} onPrimary={handleRetry} />
     </div>
   );
 }
