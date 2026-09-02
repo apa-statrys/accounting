@@ -971,27 +971,16 @@ export default function App() {
 
       {/* Concurrent-edit conflict — dedicated decision screen (dev demo, see AddCustomerPage's
           simulateConflict/onConflict), same template as DuplicateDecision: icon+headline+body,
-          a your-version-vs-their-version comparison, then two explicit resolution paths. */}
+          then a per-field Keep Mine/Use Theirs resolution and a single Save CTA. */}
       {screen === "customerConflict" && customerConflict && (
         <CustomerConflictPage
-          fields={[
-            { label: "Phone Number", mine: customerConflict.mine.phone ?? "", theirs: customerConflict.theirs.phone ?? "" },
-            { label: "Address", mine: customerConflict.mine.address ?? "", theirs: customerConflict.theirs.address ?? "" },
-          ]}
+          mine={customerConflict.mine}
+          theirs={customerConflict.theirs}
           onBack={() => { setCustomerConflict(null); setScreen("customerDetail"); }}
-          onOverwrite={() => {
-            const updated = customerConflict.mine;
-            setCustomers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-            setSelectedCustomer(updated);
+          onSave={(resolved) => {
+            setCustomers((prev) => prev.map((c) => (c.id === resolved.id ? resolved : c)));
+            setSelectedCustomer(resolved);
             setCustomerFlash("Changes saved");
-            setCustomerConflict(null);
-            setScreen("customerDetail");
-          }}
-          onDiscard={() => {
-            const updated = customerConflict.theirs;
-            setCustomers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-            setSelectedCustomer(updated);
-            setCustomerFlash("Reloaded latest version");
             setCustomerConflict(null);
             setScreen("customerDetail");
           }}
