@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { RefreshCw } from "lucide-react";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { ButtonDock } from "../components/ButtonDock";
@@ -94,20 +95,47 @@ export function DuplicateDecision({ existing, file, onBack, onReupload, onEditEx
             </div>
           </ListCard>
 
-          {/* The uploaded file — tap the row to preview it; the trailing "Re-upload" re-invokes the
-              scanner directly (same action="replace" pattern as AddInvoiceDetails' own upload
-              row, same onReupload as the preview sheet's footer button). */}
-          {file && (
-            <FileItemBase
-              name={file.name}
-              size={fileSizeLabel(file)}
-              fileType={file.name.split(".").pop()?.toLowerCase() ?? "file"}
-              state="completed"
-              action="replace"
-              onClick={() => setFilePreviewOpen(true)}
-              onReplace={onReupload}
-            />
-          )}
+          {/* Files — the same FileItemBase-based section as AddInvoiceDetails' own: a single file
+              stays full width, a multi-page scan splits into one FileItemBase per page at a
+              fixed width in a horizontally scrollable strip so the next one peeks into view.
+              Tap a row to preview it; Re-upload (title-right) re-invokes the scanner directly
+              (same onReupload as the preview sheet's footer button). */}
+          {file && (() => {
+            const pageCount = file.pages && file.pages > 1 ? file.pages : 1;
+            const fileType = file.name.split(".").pop()?.toLowerCase() ?? "file";
+            return (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="body-sm-medium text-[var(--text-primary)]">Files</p>
+                  {onReupload && (
+                    <button
+                      type="button"
+                      onClick={onReupload}
+                      className="flex items-center gap-1 body-sm-medium"
+                      style={{ color: "var(--link-primary)" }}
+                    >
+                      <RefreshCw size={14} strokeWidth={1.67} />
+                      Re-upload
+                    </button>
+                  )}
+                </div>
+                <div className={pageCount > 1 ? "flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" : undefined}>
+                  {Array.from({ length: pageCount }).map((_, i) => (
+                    <div key={i} className={pageCount > 1 ? "shrink-0 w-[220px]" : "w-full"}>
+                      <FileItemBase
+                        name={pageCount > 1 ? `Page ${i + 1}` : file.name}
+                        size={pageCount > 1 ? `${(file.size / pageCount / 1024 / 1024).toFixed(1)} MB` : fileSizeLabel(file)}
+                        fileType={fileType}
+                        state="completed"
+                        action="none"
+                        onClick={() => setFilePreviewOpen(true)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
