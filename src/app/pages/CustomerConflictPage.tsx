@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { ButtonDock } from "../components/ButtonDock";
+import { ListCard } from "../ui/ListCard";
 import { FONT } from "../lib/theme";
 
 // Figma "Sales Invoice — Client" (node 1959-11709) — same hand-drawn warning-triangle illustration
@@ -56,20 +57,25 @@ export function CustomerConflictPage({ fields, onBack, onOverwrite, onDiscard }:
             </div>
           </div>
 
-          {/* Conflicting fields — your version vs. their version. */}
+          {/* Conflicting fields — your version vs. their version. Same white-card-no-border
+              treatment as DuplicateDecision's own detail card (ListCard onLayer="gray" — the
+              app's pages sit on the gray/beige background, so the card needs no border to read
+              as raised, just the white-vs-gray contrast). */}
           <div className="flex flex-col gap-3">
             {fields.map((row) => (
-              <div key={row.label} className="rounded-xl border border-[var(--border-neutral-primary)] p-3 flex flex-col gap-2">
-                <p className="text-[13px] font-bold" style={{ ...FONT, color: "var(--text-primary)" }}>{row.label}</p>
-                <div>
-                  <p className="text-[12px]" style={{ ...FONT, color: "var(--text-secondary)" }}>Your version</p>
-                  <p className="text-[14px]" style={{ ...FONT, color: "var(--text-primary)" }}>{row.mine || "—"}</p>
+              <ListCard key={row.label} onLayer="gray">
+                <div className="py-3 flex flex-col gap-2">
+                  <p className="text-[13px] font-bold" style={{ ...FONT, color: "var(--text-primary)" }}>{row.label}</p>
+                  <div>
+                    <p className="text-[12px]" style={{ ...FONT, color: "var(--text-secondary)" }}>Your version</p>
+                    <p className="text-[14px]" style={{ ...FONT, color: "var(--text-primary)" }}>{row.mine || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[12px]" style={{ ...FONT, color: "var(--text-secondary)" }}>Their version</p>
+                    <p className="text-[14px]" style={{ ...FONT, color: "var(--text-primary)" }}>{row.theirs || "—"}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[12px]" style={{ ...FONT, color: "var(--text-secondary)" }}>Their version</p>
-                  <p className="text-[14px]" style={{ ...FONT, color: "var(--text-primary)" }}>{row.theirs || "—"}</p>
-                </div>
-              </div>
+              </ListCard>
             ))}
           </div>
         </div>
