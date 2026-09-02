@@ -26,6 +26,7 @@ import { TODAY_ISO } from "./pages/sales-invoice-list/filters";
 import { NeedAttention } from "./pages/NeedAttention";
 import { DuplicateDecision } from "./pages/DuplicateDecision";
 import { GeneralErrorPage } from "./pages/GeneralErrorPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 import { InvoiceSettings } from "./pages/InvoiceSettings";
 import { GeneratingInvoice } from "./pages/GeneratingInvoice";
 import { ScanDocument } from "./components/ScanDocument";
@@ -348,6 +349,10 @@ export default function App() {
         // variant) has its own dev toggle on the Sales Invoice List's PageControls panel instead
         // (right gutter) — a toast only makes sense to demo in place, not as a separate jump.
         { label: "General Error (catch-all)", active: screen === "generalError", onSelect: () => { setToast(null); setScreen("generalError"); } },
+        // Demoed with an expired-invoice-link scenario (AC example) — a real deep link to a
+        // deleted/expired resource would route here with its own context-specific copy the
+        // same way (see NotFoundPage's title/message props).
+        { label: "Not Found (expired invoice link)", active: screen === "notFound", onSelect: () => { setToast(null); setScreen("notFound"); } },
       ],
     },
     {
@@ -1181,6 +1186,17 @@ export default function App() {
           route here the same way (setScreen("generalError")) instead of growing its own markup. */}
       {screen === "generalError" && (
         <GeneralErrorPage onBack={() => setScreen("dashboard")} onRetry={() => setScreen("dashboard")} />
+      )}
+
+      {/* "This specific thing doesn't exist" state — see pages/NotFoundPage. Reached from the
+          QuickNav sidebar's "Error States" group for demo purposes; a real deep link to a
+          deleted/expired resource would route here the same way. */}
+      {screen === "notFound" && (
+        <NotFoundPage
+          title="This invoice is no longer available"
+          message="It may have been deleted, or the link you used has expired."
+          onBack={() => setScreen("list")}
+        />
       )}
 
       {/* Create Sales Invoice flow */}
