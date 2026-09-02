@@ -86,8 +86,9 @@ src/app/
                           # (invoice-detail + add-invoice-details). Flat single-file screens
                           # (Dashboard, AccountingHub, InvoiceSettings, NeedAttention,
                           # CustomerList, CustomerDetailPage, AddCustomerPage, CreateSalesInvoice,
-                          # GeneratingInvoice, DuplicateDecision) stay directly under
-                          # pages/ — upload is native scan/picker now (no in-app upload screen), so
+                          # GeneratingInvoice, DuplicateDecision, GeneralErrorPage, NotFoundPage,
+                          # NetworkErrorPage, CustomerConflictPage) stay directly under pages/ —
+                          # upload is native scan/picker now (no in-app upload screen), so
                           # ScanDocument (native-scanner stand-in) + UploadErrorDialog live in
                           # components/ instead, not a pages/upload-invoice/ folder.
 ```
@@ -123,6 +124,8 @@ All screen components live in `pages/`:
 | extracting | GeneratingInvoice | | addCustomer / editCustomer | AddCustomerPage |
 | needAttention | NeedAttention | | duplicateCheck | DuplicateDecision |
 | settings | InvoiceSettings | | send | (send sub-flow inside the editor/detail) |
+| customerConflict | CustomerConflictPage | | generalError | GeneralErrorPage |
+| notFound | NotFoundPage | | networkError | NetworkErrorPage |
 
 Navigation notes: detail page tracks `detailReturn` (back + in-page actions return to wherever it was
 opened) and `detailFlash` (one-off toast, cleared on back). Dev-only **QuickNav** FAB (bottom-left)
@@ -146,14 +149,16 @@ in-session only — a reload resets it (expected prototype limit).
   its own ✕ removes a page immediately from the base filmstrip or marks-for-removal-until-close
   inside the full-screen preview) before a single "Next (N)" hands the whole set to OCR as
   `uploadedFile.pages` (see `lib/format.ts`'s `fileSizeLabel`).
-- **Customer-edit concurrent conflict** (added 2026-08-19, DES-894 feedback): no real backend to
-  race against in this prototype, so it's demo-only — Edit Customer's own "Page States" panel has a
-  "Concurrent edit conflict" toggle (`simulateConflict` prop, AddCustomerPage.tsx) that makes Save
-  show a "This customer was updated by someone else" sheet instead of saving straight through.
-  "Review Changes" steps (same sheet instance, not a stacked second sheet) to a Phone
-  Number/Address your-version-vs-their-version compare; "Keep My Changes" commits this session's
-  edits as normal, "Use Their Changes" discards them and keeps the fixed demo "other user" values
-  instead.
+- **Customer-edit concurrent conflict** (added 2026-08-19, DES-894 feedback; redesigned 2026-09-02
+  as a dedicated full-screen decision instead of a toast/sheet, per a "conflict resolution screen"
+  ticket): no real backend to race against in this prototype, so it's demo-only — Edit Customer's
+  "Page States" panel has a "Concurrent edit conflict" toggle (`simulateConflict` prop,
+  AddCustomerPage.tsx) that makes Save call `onConflict` instead of saving straight through.
+  App.tsx routes to `Screen: "customerConflict"` → `pages/CustomerConflictPage.tsx`, same
+  icon+headline+body+ButtonDock shell as DuplicateDecision (not a BottomSheet): a Phone
+  Number/Address your-version-vs-their-version comparison, then exactly two resolution paths —
+  **"Confirm to Overwrite"** (commits this session's edits, discarding the other user's) and
+  **"Discard My Changes"** (reloads the fixed demo "other user" version, abandoning local edits).
 - **Edit for issued invoices (Awaiting/Overdue)** (updated story): **every field is editable** —
   issue date, due date, currency, receiving account, items, discount — **except** the auto-generated
   invoice number and the client identity (Company Info / client name, address, email). The client

@@ -31,6 +31,7 @@ const SCREEN_PATHS: Record<Screen, string> = {
   generalError: "/error",
   notFound: "/not-found",
   networkError: "/network-error",
+  customerConflict: "/customers/conflict",
 };
 
 const PATH_SCREENS: Partial<Record<string, Screen>> = Object.fromEntries(

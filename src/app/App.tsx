@@ -29,6 +29,7 @@ import { DuplicateDecision } from "./pages/DuplicateDecision";
 import { GeneralErrorPage } from "./pages/GeneralErrorPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { NetworkErrorPage } from "./pages/NetworkErrorPage";
+import { CustomerConflictPage } from "./pages/CustomerConflictPage";
 import { InvoiceSettings } from "./pages/InvoiceSettings";
 import { GeneratingInvoice } from "./pages/GeneratingInvoice";
 import { ScanDocument } from "./components/ScanDocument";
@@ -308,6 +309,9 @@ export default function App() {
   // having changed this same customer while this session was open (no real backend to race
   // against). Edit mode only — a fresh Add has no existing record for anyone else to conflict with.
   const [customerDevConflict, setCustomerDevConflict] = useState(false);
+  // Candidate records handed up by AddCustomerPage's onConflict — "mine" (this session's edits)
+  // vs. "theirs" (the fixed demo other-user version) — while Screen "customerConflict" is open.
+  const [customerConflict, setCustomerConflict] = useState<{ mine: Customer; theirs: Customer } | null>(null);
   // Dev (PageControls, Credit Note / Refund CN "Form" group) — same idea for CreditNoteForm.
   const [cnDevShowErrors, setCnDevShowErrors] = useState(false);
   const [cnDevLineExceeds, setCnDevLineExceeds] = useState(false);
@@ -574,7 +578,6 @@ export default function App() {
         ? [
             {
               label: "Concurrent edit conflict",
-              tag: "WIP",
               toggle: { checked: customerDevConflict, onChange: setCustomerDevConflict },
             },
           ]
@@ -957,6 +960,39 @@ export default function App() {
             setCustomers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
             setSelectedCustomer(updated);
             setCustomerFlash("Changes saved");
+            setScreen("customerDetail");
+          }}
+          onConflict={(mine, theirs) => {
+            setCustomerConflict({ mine, theirs });
+            setScreen("customerConflict");
+          }}
+        />
+      )}
+
+      {/* Concurrent-edit conflict — dedicated decision screen (dev demo, see AddCustomerPage's
+          simulateConflict/onConflict), same template as DuplicateDecision: icon+headline+body,
+          a your-version-vs-their-version comparison, then two explicit resolution paths. */}
+      {screen === "customerConflict" && customerConflict && (
+        <CustomerConflictPage
+          fields={[
+            { label: "Phone Number", mine: customerConflict.mine.phone ?? "", theirs: customerConflict.theirs.phone ?? "" },
+            { label: "Address", mine: customerConflict.mine.address ?? "", theirs: customerConflict.theirs.address ?? "" },
+          ]}
+          onBack={() => { setCustomerConflict(null); setScreen("customerDetail"); }}
+          onOverwrite={() => {
+            const updated = customerConflict.mine;
+            setCustomers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+            setSelectedCustomer(updated);
+            setCustomerFlash("Changes saved");
+            setCustomerConflict(null);
+            setScreen("customerDetail");
+          }}
+          onDiscard={() => {
+            const updated = customerConflict.theirs;
+            setCustomers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+            setSelectedCustomer(updated);
+            setCustomerFlash("Reloaded latest version");
+            setCustomerConflict(null);
             setScreen("customerDetail");
           }}
         />
