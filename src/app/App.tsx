@@ -140,10 +140,10 @@ export default function App() {
   // Extraction queued while the OCR screen plays (chosen from the upload source).
   // null = OCR found nothing usable (routes to the extract-failed screen).
   const [pendingExtraction, setPendingExtraction] = useState<ExtractedInvoice | null>(DEMO_EXTRACTION);
-  // Toast shown on the list after returning from the create flow. `action` is only ever set by
+  // Toast shown on the list after returning from the create flow. `hideClose` is only ever set by
   // the dev "General error toast" toggle below (PageControls) — every real save/send/delete
-  // toast fires without one, same as before.
-  const [toast, setToast] = useState<{ title: string; subtext?: string; variant?: ToastVariant; action?: { label: string; onClick: () => void } } | null>(null);
+  // toast fires without it, same as before.
+  const [toast, setToast] = useState<{ title: string; subtext?: string; variant?: ToastVariant; hideClose?: boolean } | null>(null);
   // Blocking notice for an upload that never reached OCR (file too large / unsupported type) —
   // a sheet (UploadErrorDialog) rather than a toast, so there's a clear "Choose Another File"
   // next step. `kind` disambiguates the two scenarios (their title copy is identical).
@@ -665,20 +665,15 @@ export default function App() {
       {
         // Non-blocking counterpart to the "General Error (catch-all)" full page (QuickNav sidebar,
         // "Error States" group) — demos the Toast "error" variant for a failure that shouldn't
-        // block the whole screen (e.g. one row failing to load). Retry is the toast's own
-        // trailing action; dismissing it (✕) covers "go back" since there's nothing else to undo.
+        // block the whole screen (e.g. one row failing to load). Gone quickly on its own auto-hide
+        // timer, so no Retry action and no close button — nothing worth a manual dismiss for.
         label: "General error toast",
         toggle: {
           checked: toast?.variant === "error",
           onChange: (next) =>
             setToast(
               next
-                ? {
-                    title: "Something went wrong",
-                    subtext: "Please try again.",
-                    variant: "error",
-                    action: { label: "Retry", onClick: () => setToast(null) },
-                  }
+                ? { title: "Something went wrong", subtext: "Please try again.", variant: "error", hideClose: true }
                 : null
             ),
         },
@@ -997,7 +992,7 @@ export default function App() {
           successVariant={toast?.variant}
           successMessage={toast?.title}
           successSubtext={toast?.subtext}
-          successAction={toast?.action}
+          successHideClose={toast?.hideClose}
           onSuccessDone={() => setToast(null)}
           recent={recent}
           newFlag={newFlag}

@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { TriangleAlert } from "lucide-react";
 import { PageAppHeader } from "../components/PageAppHeader";
 import { PageHeader } from "../ui/PageHeader";
 import { ButtonDock } from "../components/ButtonDock";
 import { FONT } from "../lib/theme";
+
+// Figma "Sales Invoice — Client" (node 1959-11709) — same hand-drawn warning-triangle illustration
+// shared by DuplicateDecision + UploadErrorDialog for every "can't proceed" moment; reused here too.
+const warningTriangleIcon = new URL("./duplicate-decision-warning.svg", import.meta.url).href;
 
 interface GeneralErrorPageProps {
   /** Headline — keep generic, never raw exception text or an error code. */
@@ -56,7 +59,7 @@ export function GeneralErrorPage({
         </PageAppHeader>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 pb-44 text-center">
-          <TriangleAlert size={48} strokeWidth={1.67} style={{ color: "var(--icon-error-primary)" }} />
+          <img src={warningTriangleIcon} alt="" width={52} height={49} />
           <div className="flex flex-col gap-2">
             <p className="card-title-lg" style={{ color: "var(--text-primary)" }}>{title}</p>
             <p className="text-[14px] leading-[1.4]" style={{ ...FONT, color: "var(--text-secondary)" }}>{message}</p>

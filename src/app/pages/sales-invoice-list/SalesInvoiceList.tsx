@@ -113,8 +113,9 @@ interface SalesInvoiceListProps {
   successMessage?: string;
   /** Toast muted subline (e.g. "Marked as sent"). */
   successSubtext?: string;
-  /** Optional trailing action link (e.g. "Retry" on the dev-only general-error toast demo). */
-  successAction?: { label: string; onClick: () => void };
+  /** Omit the toast's close button (e.g. the dev-only general-error toast demo — gone quickly
+   *  on its own auto-hide timer, nothing worth a manual dismiss for). */
+  successHideClose?: boolean;
   onSuccessDone?: () => void;
   /** A just-created/saved invoice to surface at the top of the list. */
   recent?: { client: string; amount: string; status: Status; meta: string; itemsCount?: number } | null;
@@ -144,7 +145,7 @@ interface SalesInvoiceListProps {
   hideStatuses?: Status[];
 }
 
-export function SalesInvoiceList({ showSuccess, successVariant, successMessage, successSubtext, successAction, onSuccessDone, recent, newFlag, onBack, onOpenInvoice, onManual, onUpload, initialStatus, onActiveStatusChange, initialDue, refundState, forceEmpty, hideStatuses }: SalesInvoiceListProps) {
+export function SalesInvoiceList({ showSuccess, successVariant, successMessage, successSubtext, successHideClose, onSuccessDone, recent, newFlag, onBack, onOpenInvoice, onManual, onUpload, initialStatus, onActiveStatusChange, initialDue, refundState, forceEmpty, hideStatuses }: SalesInvoiceListProps) {
   const initialActive = initialStatus ? Math.max(0, FILTERS.findIndex((f) => f.match === initialStatus)) : 0;
   const [active, setActive] = useState(initialActive);
   // Keep the selected status tab scrolled into view (e.g. when opened pre-filtered from the hero).
@@ -821,7 +822,7 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
       </BottomSheet>
 
       {/* Success toast on top */}
-      <Toast open={!!showSuccess} message={successMessage} subtext={successSubtext} variant={successVariant} action={successAction} onDone={onSuccessDone} />
+      <Toast open={!!showSuccess} message={successMessage} subtext={successSubtext} variant={successVariant} hideClose={successHideClose} onDone={onSuccessDone} />
     </div>
   );
 }

@@ -19,6 +19,8 @@ interface ToastProps {
    *  "double"/"triple" at the moment the toast fires, or ~16 (Figma spec, "16px above the
    *  bottom toolbar") on a page with no bottom chrome at all (e.g. CustomerList). */
   bottomOffset?: number;
+  /** Omit the close button — see ToastMessage's own doc. */
+  hideClose?: boolean;
 }
 
 /** Bottom toast (Figma "[APP] Design System" → ToastMessage, node 4603-6683) — auto-hides
@@ -33,6 +35,7 @@ export function Toast({
   variant = "success",
   action,
   bottomOffset = 96,
+  hideClose = false,
 }: ToastProps) {
   useEffect(() => {
     if (!open) return;
@@ -51,7 +54,7 @@ export function Toast({
           exit={{ y: 40, opacity: 0 }}
           transition={{ type: "spring", stiffness: 380, damping: 30 }}
         >
-          <ToastMessage variant={variant} title={message} subtitle={subtext} action={action} onClose={() => onDone?.()} />
+          <ToastMessage variant={variant} title={message} subtitle={subtext} action={action} onClose={() => onDone?.()} hideClose={hideClose} />
         </motion.div>
       )}
     </AnimatePresence>
