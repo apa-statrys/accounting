@@ -27,6 +27,8 @@ import { NeedAttention } from "./pages/NeedAttention";
 import { DuplicateDecision } from "./pages/DuplicateDecision";
 import { GeneralErrorPage } from "./pages/GeneralErrorPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { NetworkErrorPage } from "./pages/NetworkErrorPage";
+import { NetworkErrorDrawer } from "./components/NetworkErrorDrawer";
 import { InvoiceSettings } from "./pages/InvoiceSettings";
 import { GeneratingInvoice } from "./pages/GeneratingInvoice";
 import { ScanDocument } from "./components/ScanDocument";
@@ -147,6 +149,9 @@ export default function App() {
   // a sheet (UploadErrorDialog) rather than a toast, so there's a clear "Choose Another File"
   // next step. `kind` disambiguates the two scenarios (their title copy is identical).
   const [uploadError, setUploadError] = useState<{ kind: "tooLarge" | "unsupportedType"; title: string; body: ReactNode } | null>(null);
+  // Dev (PageControls, Sales Invoice List "Network error drawer" toggle) — demos
+  // NetworkErrorDrawer, the non-blocking "you're offline" notice for a same-page action.
+  const [networkErrorDrawerOpen, setNetworkErrorDrawerOpen] = useState(false);
   // Freshly created/saved invoice to surface at the top of the list (payload only — the pin/badge
   // lifecycle itself is driven entirely by `newFlag` below, not by this state).
   const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string; itemsCount?: number } | null>(null);
@@ -351,6 +356,11 @@ export default function App() {
         // deleted/expired resource would route here with its own context-specific copy the
         // same way (see NotFoundPage's title/message props).
         { label: "Not Found (expired invoice link)", active: screen === "notFound", onSelect: () => { setToast(null); setScreen("notFound"); } },
+        // Full-screen "opened a page while already offline" state. The non-blocking counterpart
+        // (a same-page action failing while the page stays usable) is the "Network error drawer"
+        // toggle on the Sales Invoice List's PageControls panel instead — same split as General
+        // Error/its toast above.
+        { label: "Network Error (Full Page)", active: screen === "networkError", onSelect: () => { setToast(null); setScreen("networkError"); } },
       ],
     },
     {
@@ -677,6 +687,14 @@ export default function App() {
           onChange: (next) =>
             setToast(next ? { title: "Something went wrong", subtext: "Please try again.", variant: "error" } : null),
         },
+      },
+      {
+        // Non-blocking counterpart to "Network Error (Full Page)" (QuickNav sidebar, "Error
+        // States" group) — a same-page action failing while the list itself stays usable
+        // underneath, per the network-error scenario table (page stays loaded → drawer; a whole
+        // new page can't load at all → full page).
+        label: "Network error drawer",
+        toggle: { checked: networkErrorDrawerOpen, onChange: setNetworkErrorDrawerOpen },
       },
     ];
   } else if (screen === "customer") {
@@ -1193,6 +1211,13 @@ export default function App() {
         />
       )}
 
+      {/* "Opened a page while already offline" state — see pages/NetworkErrorPage. Reached from
+          the QuickNav sidebar's "Error States" group for demo purposes; a real page that fails to
+          load with no connection would route here the same way. */}
+      {screen === "networkError" && (
+        <NetworkErrorPage onBack={() => setScreen("dashboard")} onRetry={() => setScreen("dashboard")} />
+      )}
+
       {/* Create Sales Invoice flow */}
       {screen === "customer" && (
         <CreateSalesInvoice
@@ -1405,6 +1430,17 @@ export default function App() {
           body={uploadError?.body}
           onClose={() => setUploadError(null)}
           onReupload={() => { setUploadError(null); openReuploadScanner(); }}
+        />
+
+        {/* Non-blocking "you're offline" notice for a same-page action failing while the page
+            itself stays usable — mounted at the root, same as the two overlays above, so it
+            overlays whichever screen triggered it (currently only the dev toggle on Sales
+            Invoice List's PageControls panel). The full-screen counterpart (a whole new page
+            that couldn't load at all) is Screen "networkError" below instead. */}
+        <NetworkErrorDrawer
+          open={networkErrorDrawerOpen}
+          onClose={() => setNetworkErrorDrawerOpen(false)}
+          onRetry={() => setNetworkErrorDrawerOpen(false)}
         />
       </div>
 

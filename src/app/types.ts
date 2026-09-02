@@ -25,7 +25,8 @@ export type Screen =
   | "addCustomer"
   | "editCustomer"
   | "generalError"
-  | "notFound";
+  | "notFound"
+  | "networkError";
 
 /** Entity kinds that can be "just created" and pinned to the top of their list with a badge
  *  (see lib/pinNew.ts). */

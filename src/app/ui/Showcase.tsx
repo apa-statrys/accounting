@@ -45,6 +45,8 @@ import { NotificationItem } from "./NotificationItem";
 import { FileItemBase, type FileItemState, type FileItemAction } from "./FileItemBase";
 import { GeneralErrorPage } from "../pages/GeneralErrorPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
+import { NetworkErrorPage } from "../pages/NetworkErrorPage";
+import { NetworkErrorDrawer } from "../components/NetworkErrorDrawer";
 
 /**
  * Showcase — standalone gallery of the design-system components in `ui/`,
@@ -160,6 +162,7 @@ const NAV_GROUPS = [
     category: "Templates",
     items: [
       { id: "error-state-template", label: "Error State Template" },
+      { id: "network-error-drawer", label: "Network Error Drawer" },
     ],
   },
 ];
@@ -777,16 +780,20 @@ const ERROR_STATE_TEMPLATE_CONTROL_GROUPS: ControlGroup[] = [
     options: [
       { value: "general", label: "General Error — use for a blocking failure worth retrying (e.g. a failed save/load)" },
       { value: "notFound", label: "Not Found — use only once the server confirms the resource is gone (expired link, deleted record)" },
+      { value: "network", label: "Network Error — use only when a whole new page can't load at all because there's no connection" },
     ],
   },
 ];
 
-/** Live preview of the app's two full-screen catch-all failure templates — pages/GeneralErrorPage
- *  and pages/NotFoundPage, not `ui/` components, so this canvas renders the real page components
- *  directly (wrapped in `.mobile-mode` for correct typography, same as every other full-device
- *  demo in this file) rather than a redrawn mock. Both share one hand-drawn icon + shell; only
- *  the copy and action count differ (General Error: header back + single "Try again" CTA; Not
- *  Found: same header back, single "Go Back" CTA, no retry — there's nothing to retry). */
+/** Live preview of the app's three full-screen catch-all failure templates — pages/GeneralErrorPage,
+ *  pages/NotFoundPage, and pages/NetworkErrorPage, not `ui/` components, so this canvas renders the
+ *  real page components directly (wrapped in `.mobile-mode` for correct typography, same as every
+ *  other full-device demo in this file) rather than a redrawn mock. All three share one hand-drawn
+ *  icon shell; only the icon/copy/action count differ (General Error: header back + single "Try
+ *  again" CTA; Not Found: same header back, single "Go Back" CTA, no retry — there's nothing to
+ *  retry; Network Error: same header back, single "Try Again" CTA that also fires automatically
+ *  the instant the browser reports connectivity restored — see NetworkErrorDrawer below for the
+ *  non-blocking, same-page counterpart to this one). */
 function ErrorStateTemplateOverview() {
   return (
     <div className="flex flex-col gap-6">
@@ -797,17 +804,57 @@ function ErrorStateTemplateOverview() {
           <div className="mobile-mode">
             {v.state === "general" ? (
               <GeneralErrorPage onBack={() => {}} onRetry={() => {}} />
-            ) : (
+            ) : v.state === "notFound" ? (
               <NotFoundPage
                 title="This invoice is no longer available"
                 message="It may have been deleted, or the link you used has expired."
                 onBack={() => {}}
               />
+            ) : (
+              <NetworkErrorPage onBack={() => {}} onRetry={() => {}} />
             )}
           </div>
         )}
       />
     </div>
+  );
+}
+
+/** Real 375×812 phone frame (same recipe as `PhoneDockStage`/`PhoneSheetStage`) behind the
+ *  drawer, so the "underlying page stays usable" behavior the drawer is FOR (see
+ *  NetworkErrorPage's own doc) is visible, not just the sheet in isolation. Needs the explicit
+ *  device height, not `SheetStage`'s compact content-sized box — `BottomSheet`'s own overlay is
+ *  `inset:0` against its positioned ancestor, which only resolves correctly when that ancestor
+ *  has a definite height; a content-sized box (auto height) pushes the overlay/panel out to the
+ *  page's actual scroll height instead of staying inside this small preview. */
+function NetworkDrawerStage({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="mobile-mode relative flex flex-col overflow-hidden rounded-[48px] bg-[var(--bg-neutral-tertiary)] shadow-2xl"
+      style={{ width: 375, height: 812 }}
+    >
+      <StatusBar />
+      <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-4">
+        <div className="h-3 w-3/4 rounded bg-[#d8cfb6]" />
+        <div className="h-12 w-full rounded bg-[#efe7d2]" />
+        <div className="h-3 w-1/2 rounded bg-[#e3dcc5]" />
+        <div className="h-12 w-full rounded bg-[#efe7d2]" />
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Live preview of components/NetworkErrorDrawer — the non-blocking counterpart to Error State
+ *  Template's "Network Error" state: a same-page action fails because there's no connection, but
+ *  the page underneath stays loaded and usable (mocked here as dimmed placeholder rows, same
+ *  convention as Bottom Sheet's own Overview). Always-open in this demo (no toggle) since a
+ *  drawer has no "closed" visual worth reviewing here. */
+function NetworkErrorDrawerOverview() {
+  return (
+    <NetworkDrawerStage>
+      <NetworkErrorDrawer open onClose={() => {}} onRetry={() => {}} />
+    </NetworkDrawerStage>
   );
 }
 
@@ -2984,16 +3031,33 @@ export function Showcase() {
             {!isFoundation && activeNav === "error-state-template" && (
               <ComponentPage
                 title="Error State Template"
-                description="The app's one full-screen shell for 'this blocking flow failed' — a hand-drawn warning-triangle icon, a headline + body, and a sticky single-CTA ButtonDock, reused by every catch-all/not-found screen instead of each one growing its own markup. The non-blocking counterpart for a smaller failure (e.g. one row failing to load) is Toast Message's own error variant, not this template."
+                description="The app's one full-screen shell for 'this blocking flow failed' — a hand-drawn icon, a headline + body, and a sticky single-CTA ButtonDock, reused by every catch-all/not-found/offline screen instead of each one growing its own markup. The non-blocking counterparts for a smaller failure (e.g. one row failing to load, or a same-page action failing offline) are Toast Message's own error variant and Network Error Drawer, not this full-screen template."
                 whenToUse={[
                   "General Error — a real action failed and retrying might work (a failed save, a failed load) — copy stays generic, never raw exception text or an error code",
                   "Not Found — the server has actually confirmed a specific resource is gone (expired invoice link, deleted customer) — copy names the specific thing, never generic \"404\" language",
+                  "Network Error — a whole new page couldn't load at all because there's no connection (opening a page while already offline, or navigating to one and it fails to load) — copy names the connectivity issue specifically (\"You're offline\"), never a generic failure message; auto-retries the instant the browser reports connectivity restored, with the CTA as manual fallback",
                 ]}
                 whenNotToUse={[
                   "A failure that shouldn't block the whole screen (e.g. one row failing to load in a list) — use Toast Message's \"error\" variant instead",
                   "An unknown/loading state where it isn't confirmed yet whether the resource exists — only route to Not Found once the server has actually said so",
+                  "A same-page action failing offline while the page itself stays usable — use Network Error Drawer instead, so nothing already in progress on that page is lost",
+                  "A server-side 4xx/5xx — that's General Error's job; Network Error is connectivity only, never a server response",
                 ]}
                 overview={<ErrorStateTemplateOverview />}
+              />
+            )}
+            {!isFoundation && activeNav === "network-error-drawer" && (
+              <ComponentPage
+                title="Network Error Drawer"
+                description="The non-blocking, same-page counterpart to Error State Template's 'Network Error' full page — a BottomSheet with the same hand-drawn offline icon, headline + body, and a single 'Try Again' CTA, opened as a sibling overlay on top of whichever page an action just failed on. The page underneath stays mounted and usable (mocked below as dimmed placeholder rows), so nothing the user had in progress is lost when the connection returns — auto-retries the instant the browser reports connectivity restored, same as the full-page version."
+                whenToUse={[
+                  "An action on the CURRENT page fails specifically because there's no connection, and the page itself should stay loaded/usable underneath (e.g. a failed save while a form is still open)",
+                ]}
+                whenNotToUse={[
+                  "The page itself couldn't load at all (a fresh navigation, or opening a page while already offline) — use Error State Template's \"Network Error\" full page instead",
+                  "A server-side 4xx/5xx rather than a connectivity issue — General Error's toast variant is the non-blocking option for that",
+                ]}
+                overview={<NetworkErrorDrawerOverview />}
               />
             )}
             {!isFoundation && activeNav === "banner" && (
