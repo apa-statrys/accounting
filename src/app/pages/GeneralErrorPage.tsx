@@ -55,7 +55,7 @@ export function GeneralErrorPage({
         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
       >
         <PageAppHeader scrolled={scrolled}>
-          <PageHeader type="center" onBack={onBack} showSearch={false} />
+          <PageHeader type="center" showBack={false} showSearch={false} />
         </PageAppHeader>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 pb-44 text-center">
@@ -70,7 +70,7 @@ export function GeneralErrorPage({
       <ButtonDock
         type="double"
         sticky
-        primaryLabel="Retry"
+        primaryLabel="Try again"
         primaryLoading={retrying}
         onPrimary={handleRetry}
         secondaryLabel={onContactSupport ? "Contact Support" : "Go Back"}
