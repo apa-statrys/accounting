@@ -113,6 +113,11 @@ interface SalesInvoiceListProps {
   successMessage?: string;
   /** Toast muted subline (e.g. "Marked as sent"). */
   successSubtext?: string;
+  /** Optional trailing action link (e.g. "Try Again" on the dev-only network-error toast demo). */
+  successAction?: { label: string; onClick: () => void };
+  /** Override the toast's default 3s auto-hide (e.g. longer for the network-error demo, so
+   *  there's time to actually click the action before it disappears). */
+  successDuration?: number;
   onSuccessDone?: () => void;
   /** A just-created/saved invoice to surface at the top of the list. */
   recent?: { client: string; amount: string; status: Status; meta: string; itemsCount?: number } | null;
@@ -142,7 +147,7 @@ interface SalesInvoiceListProps {
   hideStatuses?: Status[];
 }
 
-export function SalesInvoiceList({ showSuccess, successVariant, successMessage, successSubtext, onSuccessDone, recent, newFlag, onBack, onOpenInvoice, onManual, onUpload, initialStatus, onActiveStatusChange, initialDue, refundState, forceEmpty, hideStatuses }: SalesInvoiceListProps) {
+export function SalesInvoiceList({ showSuccess, successVariant, successMessage, successSubtext, successAction, successDuration, onSuccessDone, recent, newFlag, onBack, onOpenInvoice, onManual, onUpload, initialStatus, onActiveStatusChange, initialDue, refundState, forceEmpty, hideStatuses }: SalesInvoiceListProps) {
   const initialActive = initialStatus ? Math.max(0, FILTERS.findIndex((f) => f.match === initialStatus)) : 0;
   const [active, setActive] = useState(initialActive);
   // Keep the selected status tab scrolled into view (e.g. when opened pre-filtered from the hero).
@@ -819,7 +824,15 @@ export function SalesInvoiceList({ showSuccess, successVariant, successMessage, 
       </BottomSheet>
 
       {/* Success toast on top */}
-      <Toast open={!!showSuccess} message={successMessage} subtext={successSubtext} variant={successVariant} onDone={onSuccessDone} />
+      <Toast
+        open={!!showSuccess}
+        message={successMessage}
+        subtext={successSubtext}
+        variant={successVariant}
+        action={successAction}
+        duration={successDuration}
+        onDone={onSuccessDone}
+      />
     </div>
   );
 }

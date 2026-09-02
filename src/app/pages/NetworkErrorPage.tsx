@@ -22,9 +22,10 @@ interface NetworkErrorPageProps {
  * headline+body, single sticky "Try Again" CTA), but a distinct state: only for a whole new page
  * that couldn't load because there's no connection at all (opening a page while already offline,
  * or navigating to one and it fails to load) — never for a server-side 4xx/5xx, which stays
- * GeneralErrorPage's job. A same-page action failing while the current page stays usable is
- * NetworkErrorDrawer's job instead (`components/NetworkErrorDrawer`), not this full page — nothing
- * on this page has state worth preserving since it never finished loading in the first place.
+ * GeneralErrorPage's job. A same-page action failing while the current page stays usable instead
+ * shows the Toast "error" variant with a "Try Again" action (a longer ~7s duration than the
+ * default 3s, so there's time to actually tap it) — not this full page, since nothing on this
+ * page has state worth preserving anyway (it never finished loading in the first place).
  * Auto-retries the instant the browser reports connectivity restored (`online` event); the "Try
  * Again" button is the manual fallback for browsers/situations where that event doesn't fire.
  */

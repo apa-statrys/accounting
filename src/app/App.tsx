@@ -28,7 +28,6 @@ import { DuplicateDecision } from "./pages/DuplicateDecision";
 import { GeneralErrorPage } from "./pages/GeneralErrorPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { NetworkErrorPage } from "./pages/NetworkErrorPage";
-import { NetworkErrorDrawer } from "./components/NetworkErrorDrawer";
 import { InvoiceSettings } from "./pages/InvoiceSettings";
 import { GeneratingInvoice } from "./pages/GeneratingInvoice";
 import { ScanDocument } from "./components/ScanDocument";
@@ -143,15 +142,14 @@ export default function App() {
   // Extraction queued while the OCR screen plays (chosen from the upload source).
   // null = OCR found nothing usable (routes to the extract-failed screen).
   const [pendingExtraction, setPendingExtraction] = useState<ExtractedInvoice | null>(DEMO_EXTRACTION);
-  // Toast shown on the list after returning from the create flow.
-  const [toast, setToast] = useState<{ title: string; subtext?: string; variant?: ToastVariant } | null>(null);
+  // Toast shown on the list after returning from the create flow. `action`/`duration` are only
+  // ever set by the dev "Network error toast" toggle below (PageControls) — every real
+  // save/send/delete toast fires without them, same as before.
+  const [toast, setToast] = useState<{ title: string; subtext?: string; variant?: ToastVariant; action?: { label: string; onClick: () => void }; duration?: number } | null>(null);
   // Blocking notice for an upload that never reached OCR (file too large / unsupported type) —
   // a sheet (UploadErrorDialog) rather than a toast, so there's a clear "Choose Another File"
   // next step. `kind` disambiguates the two scenarios (their title copy is identical).
   const [uploadError, setUploadError] = useState<{ kind: "tooLarge" | "unsupportedType"; title: string; body: ReactNode } | null>(null);
-  // Dev (PageControls, Sales Invoice List "Network error drawer" toggle) — demos
-  // NetworkErrorDrawer, the non-blocking "you're offline" notice for a same-page action.
-  const [networkErrorDrawerOpen, setNetworkErrorDrawerOpen] = useState(false);
   // Freshly created/saved invoice to surface at the top of the list (payload only — the pin/badge
   // lifecycle itself is driven entirely by `newFlag` below, not by this state).
   const [recent, setRecent] = useState<{ client: string; amount: string; status: "Awaiting" | "Draft" | "Paid"; meta: string; itemsCount?: number } | null>(null);
@@ -357,7 +355,7 @@ export default function App() {
         // same way (see NotFoundPage's title/message props).
         { label: "Not Found (expired invoice link)", active: screen === "notFound", onSelect: () => { setToast(null); setScreen("notFound"); } },
         // Full-screen "opened a page while already offline" state. The non-blocking counterpart
-        // (a same-page action failing while the page stays usable) is the "Network error drawer"
+        // (a same-page action failing while the page stays usable) is the "Network error toast"
         // toggle on the Sales Invoice List's PageControls panel instead — same split as General
         // Error/its toast above.
         { label: "Network Error (Full Page)", active: screen === "networkError", onSelect: () => { setToast(null); setScreen("networkError"); } },
@@ -683,7 +681,7 @@ export default function App() {
         // notice, not a decision).
         label: "General error toast",
         toggle: {
-          checked: toast?.variant === "error",
+          checked: toast?.variant === "error" && toast?.title === "Something went wrong",
           onChange: (next) =>
             setToast(next ? { title: "Something went wrong", subtext: "Please try again.", variant: "error" } : null),
         },
@@ -691,10 +689,25 @@ export default function App() {
       {
         // Non-blocking counterpart to "Network Error (Full Page)" (QuickNav sidebar, "Error
         // States" group) — a same-page action failing while the list itself stays usable
-        // underneath, per the network-error scenario table (page stays loaded → drawer; a whole
-        // new page can't load at all → full page).
-        label: "Network error drawer",
-        toggle: { checked: networkErrorDrawerOpen, onChange: setNetworkErrorDrawerOpen },
+        // underneath, per the network-error scenario table (page stays loaded → toast; a whole
+        // new page can't load at all → full page). Longer duration than the default 3s (here
+        // 7s) so there's actually time to tap "Try Again" before it auto-hides.
+        label: "Network error toast",
+        toggle: {
+          checked: toast?.variant === "error" && toast?.title === "You're offline",
+          onChange: (next) =>
+            setToast(
+              next
+                ? {
+                    title: "You're offline",
+                    subtext: "Check your connection and try again.",
+                    variant: "error",
+                    action: { label: "Try Again", onClick: () => setToast(null) },
+                    duration: 7000,
+                  }
+                : null
+            ),
+        },
       },
     ];
   } else if (screen === "customer") {
@@ -1010,6 +1023,8 @@ export default function App() {
           successVariant={toast?.variant}
           successMessage={toast?.title}
           successSubtext={toast?.subtext}
+          successAction={toast?.action}
+          successDuration={toast?.duration}
           onSuccessDone={() => setToast(null)}
           recent={recent}
           newFlag={newFlag}
@@ -1432,16 +1447,6 @@ export default function App() {
           onReupload={() => { setUploadError(null); openReuploadScanner(); }}
         />
 
-        {/* Non-blocking "you're offline" notice for a same-page action failing while the page
-            itself stays usable — mounted at the root, same as the two overlays above, so it
-            overlays whichever screen triggered it (currently only the dev toggle on Sales
-            Invoice List's PageControls panel). The full-screen counterpart (a whole new page
-            that couldn't load at all) is Screen "networkError" below instead. */}
-        <NetworkErrorDrawer
-          open={networkErrorDrawerOpen}
-          onClose={() => setNetworkErrorDrawerOpen(false)}
-          onRetry={() => setNetworkErrorDrawerOpen(false)}
-        />
       </div>
 
       {/* Scenario annotation — shown in the white space to the right of the phone frame, only on the
