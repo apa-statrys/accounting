@@ -155,10 +155,12 @@ in-session only — a reload resets it (expected prototype limit).
   "Page States" panel has a "Concurrent edit conflict" toggle (`simulateConflict` prop,
   AddCustomerPage.tsx) that makes Save call `onConflict` instead of saving straight through.
   App.tsx routes to `Screen: "customerConflict"` → `pages/CustomerConflictPage.tsx`, same
-  icon+headline+body+ButtonDock shell as DuplicateDecision (not a BottomSheet): a Phone
-  Number/Address your-version-vs-their-version comparison, then exactly two resolution paths —
-  **"Confirm to Overwrite"** (commits this session's edits, discarding the other user's) and
-  **"Discard My Changes"** (reloads the fixed demo "other user" version, abandoning local edits).
+  icon+headline+body shell as DuplicateDecision (not a BottomSheet), but resolution is **per
+  field, not per record**: Phone Number and Address each get their own pair of directly-tappable
+  option cards ("Your version"/"Their version" as the card's subtitle, the value itself as the
+  title, a checkmark once selected — no "Keep mine"/"Use theirs" hint text, since tapping the
+  card is itself the action) rather than one blanket whole-record choice. A single sticky **"Save"**
+  CTA commits whichever mix of mine/theirs the user picked per field.
 - **Edit for issued invoices (Awaiting/Overdue)** (updated story): **every field is editable** —
   issue date, due date, currency, receiving account, items, discount — **except** the auto-generated
   invoice number and the client identity (Company Info / client name, address, email). The client
