@@ -141,10 +141,8 @@ export default function App() {
   // Extraction queued while the OCR screen plays (chosen from the upload source).
   // null = OCR found nothing usable (routes to the extract-failed screen).
   const [pendingExtraction, setPendingExtraction] = useState<ExtractedInvoice | null>(DEMO_EXTRACTION);
-  // Toast shown on the list after returning from the create flow. `hideClose` is only ever set by
-  // the dev "General error toast" toggle below (PageControls) — every real save/send/delete
-  // toast fires without it, same as before.
-  const [toast, setToast] = useState<{ title: string; subtext?: string; variant?: ToastVariant; hideClose?: boolean } | null>(null);
+  // Toast shown on the list after returning from the create flow.
+  const [toast, setToast] = useState<{ title: string; subtext?: string; variant?: ToastVariant } | null>(null);
   // Blocking notice for an upload that never reached OCR (file too large / unsupported type) —
   // a sheet (UploadErrorDialog) rather than a toast, so there's a clear "Choose Another File"
   // next step. `kind` disambiguates the two scenarios (their title copy is identical).
@@ -670,17 +668,14 @@ export default function App() {
       {
         // Non-blocking counterpart to the "General Error (catch-all)" full page (QuickNav sidebar,
         // "Error States" group) — demos the Toast "error" variant for a failure that shouldn't
-        // block the whole screen (e.g. one row failing to load). Gone quickly on its own auto-hide
-        // timer, so no Retry action and no close button — nothing worth a manual dismiss for.
+        // block the whole screen (e.g. one row failing to load). Its own ✕ close is the manual
+        // dismiss; no Retry action (same reasoning as the full-screen Not Found: this is a quiet
+        // notice, not a decision).
         label: "General error toast",
         toggle: {
           checked: toast?.variant === "error",
           onChange: (next) =>
-            setToast(
-              next
-                ? { title: "Something went wrong", subtext: "Please try again.", variant: "error", hideClose: true }
-                : null
-            ),
+            setToast(next ? { title: "Something went wrong", subtext: "Please try again.", variant: "error" } : null),
         },
       },
     ];
@@ -997,7 +992,6 @@ export default function App() {
           successVariant={toast?.variant}
           successMessage={toast?.title}
           successSubtext={toast?.subtext}
-          successHideClose={toast?.hideClose}
           onSuccessDone={() => setToast(null)}
           recent={recent}
           newFlag={newFlag}

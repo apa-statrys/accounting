@@ -57,12 +57,9 @@ interface ToastMessageProps {
   /** Optional trailing link (Figma "View Details") — omit for a plain toast. */
   action?: { label: string; onClick: () => void };
   onClose: () => void;
-  /** Omit the close button entirely — for a toast that's gone quickly on its own auto-hide
-   *  timer and has nothing worth a manual dismiss/action for (e.g. a brief inline error). */
-  hideClose?: boolean;
 }
 
-export function ToastMessage({ variant = "default", title, subtitle, action, onClose, hideClose = false }: ToastMessageProps) {
+export function ToastMessage({ variant = "default", title, subtitle, action, onClose }: ToastMessageProps) {
   const Icon = variant === "default" ? null : ICONS[variant];
   return (
     <div className={styles.toast}>
@@ -83,7 +80,7 @@ export function ToastMessage({ variant = "default", title, subtitle, action, onC
           </button>
         )}
       </div>
-      {!hideClose && <XClose size="sm" inverse onClick={onClose} aria-label="Dismiss" />}
+      <XClose size="sm" inverse onClick={onClose} aria-label="Dismiss" />
     </div>
   );
 }
