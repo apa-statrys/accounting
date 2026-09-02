@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, RefreshCw, FileText } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
+import { FileItemBase } from "../../ui/FileItemBase";
 import { Button } from "../../ui/Button";
 import CheckIcon from "@mui/icons-material/Check";
 import { PageAppHeader } from "../../components/PageAppHeader";
@@ -32,7 +33,7 @@ import { AddServicesSheet } from "../../components/AddServicesSheet";
 import { CUSTOMERS } from "../../data/customers";
 import { EXISTING_INVOICES } from "../../data/extraction";
 import { formatAccount, getAccount } from "../../data/receivingAccounts";
-import { EMAIL_RE } from "../../lib/format";
+import { EMAIL_RE, fileSizeLabel } from "../../lib/format";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import { focusFirstInvalidField } from "../../lib/focusFirstInvalidField";
 import type { Customer, ExistingInvoice, ExtractedInvoice, ServiceLine } from "../../types";
@@ -599,45 +600,49 @@ export function AddInvoiceDetails({
           <CoverageBanner fieldsExtracted={fieldsExtracted} fieldsTotal={fieldsTotal} />
         )}
 
-        {/* Files — what the user just uploaded; a multi-page scan shows one tile per page,
-            horizontally scrollable, since it can be more than one file/photo now. Tap a tile to
-            preview the original; Re-upload (title-right, same re-upload path as the OCR-failure
-            banner's "Upload a clearer file" link) picks a different file entirely. */}
-        {isExtracted && uploadedFile && (
-          <Section
-            title="Files"
-            titleRight={
-              onReupload && (
-                <button
-                  type="button"
-                  onClick={onReupload}
-                  className="flex items-center gap-1 body-sm-medium"
-                  style={{ color: "var(--link-primary)" }}
-                >
-                  <RefreshCw size={14} strokeWidth={1.67} />
-                  Re-upload
-                </button>
-              )
-            }
-          >
-            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-              {Array.from({ length: uploadedFile.pages && uploadedFile.pages > 1 ? uploadedFile.pages : 1 }).map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setFilePreviewOpen(true)}
-                  className="shrink-0 w-[76px] flex flex-col items-center gap-1.5 rounded-2xl border p-2.5"
-                  style={{ background: "var(--bg-neutral-primary)", borderColor: "var(--border-neutral-primary)" }}
-                >
-                  <FileText size={22} strokeWidth={1.5} style={{ color: "var(--icon-secondary)" }} />
-                  <span className="caption w-full truncate text-center" style={{ color: "var(--text-secondary)" }}>
-                    {uploadedFile.pages && uploadedFile.pages > 1 ? `Page ${i + 1}` : uploadedFile.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </Section>
-        )}
+        {/* Files — what the user just uploaded, using the SAME FileItemBase row as every other
+            file display in the app. A single file stays full width, same as before; a multi-page
+            scan splits into one FileItemBase per page, each a fixed width in a horizontally
+            scrollable strip so the next one peeks into view. Tap a row to preview the original;
+            Re-upload (title-right, same re-upload path as the OCR-failure banner's "Upload a
+            clearer file" link) picks a different file entirely. */}
+        {isExtracted && uploadedFile && (() => {
+          const pageCount = uploadedFile.pages && uploadedFile.pages > 1 ? uploadedFile.pages : 1;
+          const fileType = uploadedFile.name.split(".").pop()?.toLowerCase() ?? "file";
+          return (
+            <Section
+              title="Files"
+              titleRight={
+                onReupload && (
+                  <button
+                    type="button"
+                    onClick={onReupload}
+                    className="flex items-center gap-1 body-sm-medium"
+                    style={{ color: "var(--link-primary)" }}
+                  >
+                    <RefreshCw size={14} strokeWidth={1.67} />
+                    Re-upload
+                  </button>
+                )
+              }
+            >
+              <div className={pageCount > 1 ? "flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" : undefined}>
+                {Array.from({ length: pageCount }).map((_, i) => (
+                  <div key={i} className={pageCount > 1 ? "shrink-0 w-[220px]" : "w-full"}>
+                    <FileItemBase
+                      name={pageCount > 1 ? `Page ${i + 1}` : uploadedFile.name}
+                      size={pageCount > 1 ? `${(uploadedFile.size / pageCount / 1024 / 1024).toFixed(1)} MB` : fileSizeLabel(uploadedFile)}
+                      fileType={fileType}
+                      state="completed"
+                      action="none"
+                      onClick={() => setFilePreviewOpen(true)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </Section>
+          );
+        })()}
 
         {/* Banner — OCR-failure notice (couldn't read the file) takes priority over the summary */}
         {extractionFailed && <ExtractionFailedBanner onReupload={onReupload} />}
