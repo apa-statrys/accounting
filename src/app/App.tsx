@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { RefreshCw } from "lucide-react";
 import { QuickNavSidebar, type SidebarGroup } from "./components/QuickNavSidebar";
 import { DevInspector } from "./components/DevInspector";
 import { PageControls, type PageControlGroup } from "./components/PageControls";
@@ -145,7 +146,7 @@ export default function App() {
   // Toast shown on the list after returning from the create flow. `action`/`duration` are only
   // ever set by the dev "Network error toast" toggle below (PageControls) — every real
   // save/send/delete toast fires without them, same as before.
-  const [toast, setToast] = useState<{ title: string; subtext?: string; variant?: ToastVariant; action?: { label: string; onClick: () => void }; duration?: number } | null>(null);
+  const [toast, setToast] = useState<{ title: string; subtext?: string; variant?: ToastVariant; action?: { label: string; onClick: () => void; icon?: React.ReactNode }; duration?: number } | null>(null);
   // Blocking notice for an upload that never reached OCR (file too large / unsupported type) —
   // a sheet (UploadErrorDialog) rather than a toast, so there's a clear "Choose Another File"
   // next step. `kind` disambiguates the two scenarios (their title copy is identical).
@@ -702,7 +703,7 @@ export default function App() {
                     title: "You're offline",
                     subtext: "Check your connection and try again.",
                     variant: "error",
-                    action: { label: "Try Again", onClick: () => setToast(null) },
+                    action: { label: "Try Again", onClick: () => setToast(null), icon: <RefreshCw size={16} strokeWidth={1.67} /> },
                     duration: 7000,
                   }
                 : null

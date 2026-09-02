@@ -12,8 +12,9 @@ interface ToastProps {
   onDone?: () => void;
   duration?: number;
   variant?: ToastVariant;
-  /** Optional "View Details"-style trailing link (Figma). */
-  action?: { label: string; onClick: () => void };
+  /** Optional "View Details"-style trailing link (Figma) — `icon` defaults to the arrow, override
+   *  it for a non-navigation action (e.g. a retry arrow for "Try Again"). */
+  action?: { label: string; onClick: () => void; icon?: React.ReactNode };
   /** Distance (px) from the page's true bottom edge. Default 96 clears a single-button
    *  ButtonDock or a FAB with a little breathing room. Pass ~150 on a page whose dock is
    *  "double"/"triple" at the moment the toast fires, or ~16 (Figma spec, "16px above the

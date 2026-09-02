@@ -54,8 +54,10 @@ interface ToastMessageProps {
   variant?: ToastVariant;
   title: string;
   subtitle?: string;
-  /** Optional trailing link (Figma "View Details") — omit for a plain toast. */
-  action?: { label: string; onClick: () => void };
+  /** Optional trailing link (Figma "View Details") — omit for a plain toast. `icon` defaults to
+   *  the "View Details" arrow; override it for an action that isn't navigation (e.g. a retry
+   *  arrow for "Try Again"). */
+  action?: { label: string; onClick: () => void; icon?: React.ReactNode };
   onClose: () => void;
 }
 
@@ -76,7 +78,7 @@ export function ToastMessage({ variant = "default", title, subtitle, action, onC
         {action && (
           <button type="button" onClick={action.onClick} className={styles.link}>
             {action.label}
-            <ArrowUpRight size={16} strokeWidth={1.67} />
+            {action.icon ?? <ArrowUpRight size={16} strokeWidth={1.67} />}
           </button>
         )}
       </div>
