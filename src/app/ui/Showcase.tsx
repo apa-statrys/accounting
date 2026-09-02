@@ -117,7 +117,6 @@ const NAV_GROUPS = [
     category: "Feedback & Status",
     items: [
       { id: "toast-message", label: "Toast Message" },
-      { id: "error-state-template", label: "Error State Template" },
       { id: "banner", label: "Banner" },
       { id: "badge", label: "Badge" },
       { id: "noti-badge", label: "Noti Badge" },
@@ -153,6 +152,14 @@ const NAV_GROUPS = [
     items: [
       { id: "bottom-sheet", label: "Bottom Sheet" },
       { id: "overlay", label: "Overlay" },
+    ],
+  },
+  {
+    // Whole-screen compositions built from the components above — not an atomic DS piece
+    // itself, so it gets its own category rather than living inside Feedback & Status.
+    category: "Templates",
+    items: [
+      { id: "error-state-template", label: "Error State Template" },
     ],
   },
 ];
