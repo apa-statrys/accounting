@@ -2668,6 +2668,7 @@ const TEXTFIELD_CONTROL_GROUPS: ControlGroup[] = [
       { value: "filled", label: "Filled" },
       { value: "error", label: "Error" },
       { value: "disabled", label: "Disabled" },
+      { value: "readOnly", label: "Read-only" },
       { value: "highlight", label: "Highlight" },
     ],
   },
@@ -2708,10 +2709,11 @@ function TextFieldTestMe() {
           <TextField
             type={v.type as TextFieldType}
             placeholder="Input text"
-            value={v.state === "filled" || v.state === "error" ? "Input text" : ""}
+            value={v.state === "filled" || v.state === "error" || v.state === "readOnly" ? "Input text" : ""}
             forceFocus={v.state === "focused"}
             error={v.state === "error"}
             disabled={v.state === "disabled"}
+            readOnly={v.state === "readOnly"}
             highlight={v.state === "highlight"}
             icon={v.type === "left-icon" || v.type === "dropdown" ? <CircleIcon size={20} /> : undefined}
             iconRight={v.trailing === "on" ? <CircleIcon size={20} /> : undefined}
@@ -2738,7 +2740,7 @@ const TEXTAREA_CONTROL_GROUPS: ControlGroup[] = [
       { value: "filled", label: "Filled" },
       { value: "error", label: "Error" },
       { value: "disabled", label: "Disabled" },
-      { value: "readOnly", label: "Read-only (tap to edit)" },
+      { value: "readOnly", label: "Read-only" },
     ],
   },
   {

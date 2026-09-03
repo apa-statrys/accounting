@@ -1,9 +1,11 @@
 /* TextField — Figma "[APP] Design System" → Text Fields (node 4047-3480).
    48px row, 16px side padding, radius xl. States: focus via :focus-within
    (border black), error border red (wins over focus, matching Figma's separate
-   Error state), disabled greys the surface, text and icons. Selector types
-   (mobile/currency/unit) use a 16px gap between selector and input; plain
-   types use 8px. Colors from styles/theme.css. */
+   Error state), disabled greys the surface, text and icons. readOnly reuses
+   the same muted greys but keeps a pointer cursor (unlike disabled) since the
+   field is still focusable/clickable. Selector types (mobile/currency/unit)
+   use a 16px gap between selector and input; plain types use 8px. Colors from
+   styles/theme.css. */
 
 .field {
   composes: body-sm from global;
@@ -36,6 +38,10 @@
 .disabled {
   background: var(--field-bg-disabled);
 }
+.readOnly {
+  background: var(--field-bg-disabled);
+  cursor: pointer;
+}
 
 .input {
   flex: 1;
@@ -53,6 +59,10 @@
 }
 .disabled .input,
 .disabled .input::placeholder {
+  color: var(--text-disabled);
+}
+.readOnly .input,
+.readOnly .input::placeholder {
   color: var(--text-disabled);
 }
 
@@ -94,6 +104,9 @@
 .disabled .leftIcon {
   color: var(--text-disabled);
 }
+.readOnly .leftIcon {
+  color: var(--text-disabled);
+}
 
 /* Trailing icon/button slot (caller's own control — e.g. a unit picker or a status badge) */
 .rightIcon {
@@ -102,6 +115,9 @@
   color: var(--text-secondary);
 }
 .disabled .rightIcon {
+  color: var(--text-disabled);
+}
+.readOnly .rightIcon {
   color: var(--text-disabled);
 }
 

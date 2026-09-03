@@ -20,6 +20,10 @@ interface TextFieldProps {
   onChange?: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  /** Looks the same as `disabled` (muted surface) but stays focusable/clickable — native HTML
+   *  `readOnly`, not `disabled`. Text/left-icon/mobile/currency/unit types only (the
+   *  dropdown/date-picker types render a button, not an `<input>`, so this has no effect there). */
+  readOnly?: boolean;
   error?: boolean;
   /** Paints the focused border without real focus — Showcase-only. */
   forceFocus?: boolean;
@@ -110,6 +114,7 @@ export function TextField({
   onChange,
   placeholder,
   disabled = false,
+  readOnly = false,
   error = false,
   forceFocus = false,
   icon,
@@ -139,6 +144,7 @@ export function TextField({
     styles.field,
     hasSelector ? styles.withSelector : "",
     disabled ? styles.disabled : "",
+    readOnly ? styles.readOnly : "",
     error ? styles.error : "",
     forceFocus ? styles.forceFocus : "",
     highlight ? styles.highlight : "",
@@ -200,6 +206,7 @@ export function TextField({
           onKeyDown={onKeyDown}
           placeholder={placeholder}
           disabled={disabled}
+          readOnly={readOnly}
           inputMode={inputMode}
           aria-label={ariaLabel}
           data-req={dataReq}
