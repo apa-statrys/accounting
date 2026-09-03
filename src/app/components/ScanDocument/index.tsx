@@ -5,6 +5,8 @@ import StatusBar from "../StatusBar";
 
 import { FONT } from "../../lib/theme";
 const BRAND = "#FF4A15";
+// Brand CTA fill — Figma "Gradients/Strong" token (styles/theme.css), not a flat color.
+const BRAND_GRADIENT = "var(--gradient-strong)";
 /** Demo photo-library grid — a fixed count of placeholder tiles, no real photo backend. */
 const LIBRARY_TILE_COUNT = 12;
 
@@ -347,8 +349,8 @@ export function ScanDocument({
                 type="button"
                 onClick={handleAddSelected}
                 disabled={selectedOrder.length === 0}
-                className="w-full h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform disabled:opacity-40"
-                style={{ ...FONT, background: BRAND }}
+                className="link-upper-md w-full h-12 rounded-full text-white active:scale-95 transition-transform disabled:opacity-40"
+                style={{ background: BRAND_GRADIENT }}
               >
                 {selectedOrder.length > 0 ? `Add ${selectedOrder.length} Photo${selectedOrder.length === 1 ? "" : "s"}` : "Add Photo"}
               </button>
@@ -368,8 +370,8 @@ export function ScanDocument({
               <button
                 type="button"
                 onClick={handleUseImage}
-                className="flex-1 h-12 rounded-full text-white text-[15px] font-semibold active:scale-95 transition-transform"
-                style={{ ...FONT, background: BRAND }}
+                className="link-upper-md flex-1 h-12 rounded-full text-white active:scale-95 transition-transform"
+                style={{ background: BRAND_GRADIENT }}
               >
                 Use Image
               </button>
@@ -414,8 +416,8 @@ export function ScanDocument({
                   <button
                     type="button"
                     onClick={handleDone}
-                    className="h-9 px-4 rounded-full text-white text-[14px] font-semibold whitespace-nowrap active:scale-95 transition-transform"
-                    style={{ ...FONT, background: BRAND }}
+                    className="link-upper-sm h-9 px-4 rounded-full text-white whitespace-nowrap active:scale-95 transition-transform"
+                    style={{ background: BRAND_GRADIENT }}
                   >
                     Next ({pageIds.length})
                   </button>
