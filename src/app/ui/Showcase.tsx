@@ -968,7 +968,11 @@ const CHIPS_CONTROL_GROUPS: ControlGroup[] = [
 
 function ChipsOverview() {
   const [selected, setSelected] = useState("newest");
-  const [demoTags, setDemoTags] = useState(["ada@example.com", "sam@example.com"]);
+  const [demoTags, setDemoTags] = useState([
+    "ada@example.com",
+    "sam@example.com",
+    "alexandra.montgomery-worthington@some-very-long-corporate-domain.com",
+  ]);
   return (
     <div className="flex flex-col gap-6">
       <InteractiveDemo
@@ -996,7 +1000,8 @@ function ChipsOverview() {
       <div className="flex flex-col gap-3 rounded-[10px] border border-[#ececec] bg-[#f4f4f2] px-4 py-5">
         <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
           As removable value pills (e.g. Send Invoice's Add Recipients) — press and hold one to see
-          its Pressed surface; tap the "x" to remove it, animated in/out via AnimatePresence:
+          its Pressed surface; tap the "x" to remove it, animated in/out via AnimatePresence. A long
+          value (e.g. the last email below) truncates with an ellipsis — the "x" always stays visible:
         </p>
         <div className="flex flex-wrap gap-2">
           <AnimatePresence initial={false}>
