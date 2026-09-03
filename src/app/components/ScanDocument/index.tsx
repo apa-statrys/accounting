@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, Reorder } from "motion/react";
-import { X, Zap, Images, Check, ChevronLeft, Image as ImageIcon, Crop } from "lucide-react";
+import { X, Zap, Images, Check, ChevronLeft, Image as ImageIcon } from "lucide-react";
 import StatusBar from "../StatusBar";
 
 import { FONT } from "../../lib/theme";
@@ -78,10 +78,10 @@ function PageThumb({ index, onToggleRemove }: { index: number; onToggleRemove: (
  * sequence. The review step is a plain confirm of that one shot, not a screen you navigate
  * away from: Use Image adds it as a page, and the back chevron up top (not a ✕ — this doesn't
  * close anything) drops back to the live scanner to try again, same as the shutter tap never
- * happened; it never exits the whole scan. Review's header also has a Crop action, opening a
- * full-screen crop step — same drag-to-pan-an-oversized-image-in-a-fixed-viewport gesture as
- * Settings' logo crop (`InvoiceSettings.tsx`), and just as cosmetic there: Cancel/Done both
- * simply close it, since there's no real image to actually crop in this dummy-data prototype.
+ * happened; it never exits the whole scan. The review preview is crop-by-default: the document
+ * mock is shown oversized and pannable (drag to adjust), same gesture as Settings' logo crop
+ * (`InvoiceSettings.tsx`) — no separate crop screen or confirm step, since Retake/Use Image
+ * already are that confirm. Nothing is actually applied to a real image (dummy-data prototype).
  * Once at least one page is confirmed, a text "Next
  * (N)" button (bottom-right, replacing the shutter row's usual spacer) finishes and hands back
  * every page as ONE invoice document via a single `onCapture(pageCount)` call — or the user can
@@ -115,8 +115,6 @@ export function ScanDocument({
   // Order selected, not just membership — so each tile can show its pick number (1, 2, 3…)
   // and deselecting one renumbers the rest instead of leaving a gap.
   const [selectedOrder, setSelectedOrder] = useState<number[]>([]);
-  // Full-screen crop step, opened from the review header — see the component doc comment.
-  const [cropOpen, setCropOpen] = useState(false);
 
   // Reset to the live viewfinder, page count cleared, each time the camera opens.
   useEffect(() => {
@@ -125,7 +123,6 @@ export function ScanDocument({
       setPageIds([]);
       nextPageIdRef.current = 0;
       setSelectedOrder([]);
-      setCropOpen(false);
     }
   }, [open]);
 
@@ -137,19 +134,11 @@ export function ScanDocument({
   }, [phase]);
 
   const handleDone = () => onCapture?.(pageIds.length);
-  const handleRetake = () => {
-    setPhase("frame");
-    setCropOpen(false);
-  };
+  const handleRetake = () => setPhase("frame");
   const handleUseImage = () => {
     setPageIds((ids) => [...ids, newPageId()]);
     setPhase("frame");
-    setCropOpen(false);
   };
-  const openCrop = () => setCropOpen(true);
-  // Cancel and Done both just close the crop step — same as Settings' logo crop, nothing here
-  // is actually applied to the (dummy) captured image.
-  const closeCrop = () => setCropOpen(false);
   // Removes a page straight away (no defer) — this is the base filmstrip, not a browsing
   // session with its own confirm/cancel, so the action is immediate like the shutter itself.
   const removePageDirect = (id: number) => setPageIds((ids) => ids.filter((pid) => pid !== id));
@@ -207,17 +196,8 @@ export function ScanDocument({
                 {selectedOrder.length > 0 ? `${selectedOrder.length} Selected` : "Select"}
               </span>
             ) : null}
-            {phase === "library" ? (
+            {phase === "library" || phase === "review" ? (
               <span className="w-9 h-9" aria-hidden />
-            ) : phase === "review" ? (
-              <button
-                type="button"
-                aria-label="Crop image"
-                onClick={openCrop}
-                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white active:scale-95 transition-transform"
-              >
-                <Crop size={18} strokeWidth={1.67} />
-              </button>
             ) : (
               <span className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/70" aria-hidden>
                 <Zap size={19} strokeWidth={1.67} />
@@ -268,31 +248,59 @@ export function ScanDocument({
             /* Viewfinder */
             <div className="flex-1 flex flex-col items-center justify-center px-8">
               <div className="relative w-full max-w-[280px] aspect-[3/4]">
-                <DocMockCard className="absolute inset-2" />
-
-                {/* Edge-detection brackets — gently pulse while framing */}
-                <motion.div
-                  className="absolute inset-0"
-                  animate={phase === "frame" ? { opacity: [0.55, 1, 0.55] } : { opacity: 1 }}
-                  transition={phase === "frame" ? { duration: 1.6, repeat: Infinity, ease: "easeInOut" } : { duration: 0.2 }}
-                >
-                  <Corner pos="tl" />
-                  <Corner pos="tr" />
-                  <Corner pos="bl" />
-                  <Corner pos="br" />
-                </motion.div>
-
-                {/* Scanning sweep — a band travels down the document */}
-                {phase === "scanning" && (
-                  <div className="absolute inset-2 overflow-hidden rounded-md pointer-events-none">
+                {phase === "review" ? (
+                  /* Crop-by-default review preview — an oversized copy of the document mock,
+                     pannable by drag inside this clipped viewport (same gesture as Settings'
+                     logo crop). Retake/Use Image below are the only confirm step needed; nothing
+                     here is actually applied to a real image (dummy-data prototype). */
+                  <div className="absolute inset-0 overflow-hidden rounded-md">
                     <motion.div
-                      className="absolute inset-x-0 h-20"
-                      style={{ background: "linear-gradient(180deg, rgba(255,74,21,0) 0%, rgba(255,74,21,0.35) 50%, rgba(255,74,21,0) 100%)" }}
-                      initial={{ y: "-80%" }}
-                      animate={{ y: "420%" }}
-                      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-                    />
+                      drag
+                      dragConstraints={{ left: -40, right: 40, top: -53, bottom: 53 }}
+                      dragElastic={0.1}
+                      dragMomentum={false}
+                      className="absolute inset-[-15%] cursor-grab active:cursor-grabbing"
+                    >
+                      <DocMockCard className="w-full h-full" />
+                    </motion.div>
+                    {/* Rule-of-thirds guide — visual aid only, not an actual crop boundary. Dark
+                        (not the usual white) since the document mock underneath is solid white. */}
+                    <div className="pointer-events-none absolute inset-0">
+                      <div className="absolute left-0 right-0 top-1/3 h-px bg-black/15" />
+                      <div className="absolute left-0 right-0 top-2/3 h-px bg-black/15" />
+                      <div className="absolute top-0 bottom-0 left-1/3 w-px bg-black/15" />
+                      <div className="absolute top-0 bottom-0 left-2/3 w-px bg-black/15" />
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <DocMockCard className="absolute inset-2" />
+
+                    {/* Edge-detection brackets — gently pulse while framing */}
+                    <motion.div
+                      className="absolute inset-0"
+                      animate={phase === "frame" ? { opacity: [0.55, 1, 0.55] } : { opacity: 1 }}
+                      transition={phase === "frame" ? { duration: 1.6, repeat: Infinity, ease: "easeInOut" } : { duration: 0.2 }}
+                    >
+                      <Corner pos="tl" />
+                      <Corner pos="tr" />
+                      <Corner pos="bl" />
+                      <Corner pos="br" />
+                    </motion.div>
+
+                    {/* Scanning sweep — a band travels down the document */}
+                    {phase === "scanning" && (
+                      <div className="absolute inset-2 overflow-hidden rounded-md pointer-events-none">
+                        <motion.div
+                          className="absolute inset-x-0 h-20"
+                          style={{ background: "linear-gradient(180deg, rgba(255,74,21,0) 0%, rgba(255,74,21,0.35) 50%, rgba(255,74,21,0) 100%)" }}
+                          initial={{ y: "-80%" }}
+                          animate={{ y: "420%" }}
+                          transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -300,7 +308,7 @@ export function ScanDocument({
                 {phase === "scanning"
                   ? "Scanning…"
                   : phase === "review"
-                  ? "Use this image, or go back to retake it"
+                  ? "Drag to adjust, then use this image or retake it"
                   : pageIds.length > 0
                   ? "Add another page, or tap Next to finish"
                   : "Position the invoice within the frame"}
@@ -415,58 +423,6 @@ export function ScanDocument({
               </div>
             </div>
           )}
-
-          {/* Crop step — full-screen, opened from the review header. Same pattern as Settings'
-              logo crop: an oversized copy of the document mock panned by drag inside a fixed
-              viewport; Cancel/Done both just close it back to review, nothing is actually
-              applied (there's no real captured image to crop in this dummy-data prototype). */}
-          <AnimatePresence>
-            {cropOpen && (
-              <motion.div
-                className="absolute inset-0 z-50 flex flex-col bg-[#0d0d0d]"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <StatusBar darkMode />
-                <div className="shrink-0 flex items-center justify-center px-4 py-3">
-                  <span className="text-[15px] font-bold text-white" style={FONT}>
-                    Crop Image
-                  </span>
-                </div>
-                <div className="flex-1 flex items-center justify-center px-8">
-                  <div className="relative w-full max-w-[280px] aspect-[3/4] overflow-hidden rounded-md">
-                    <motion.div
-                      drag
-                      dragConstraints={{ left: -40, right: 40, top: -53, bottom: 53 }}
-                      dragElastic={0.1}
-                      dragMomentum={false}
-                      className="absolute inset-[-15%] cursor-grab active:cursor-grabbing"
-                    >
-                      <DocMockCard className="w-full h-full" />
-                    </motion.div>
-                    {/* Rule-of-thirds guide — visual aid only, not an actual crop boundary. Dark
-                        (not the usual white) since the document mock underneath is solid white. */}
-                    <div className="pointer-events-none absolute inset-0">
-                      <div className="absolute left-0 right-0 top-1/3 h-px bg-black/15" />
-                      <div className="absolute left-0 right-0 top-2/3 h-px bg-black/15" />
-                      <div className="absolute top-0 bottom-0 left-1/3 w-px bg-black/15" />
-                      <div className="absolute top-0 bottom-0 left-2/3 w-px bg-black/15" />
-                    </div>
-                  </div>
-                </div>
-                <div className="shrink-0 flex items-center justify-between px-6 pb-10 pt-4">
-                  <button type="button" onClick={closeCrop} className="text-[17px] text-white" style={FONT}>
-                    Cancel
-                  </button>
-                  <button type="button" onClick={closeCrop} className="text-[17px] font-semibold text-white" style={FONT}>
-                    Done
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>
