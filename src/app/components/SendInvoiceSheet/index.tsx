@@ -19,7 +19,7 @@ import { Checkbox } from "../../ui/Checkbox";
 import { Toggle } from "../../ui/Toggle";
 import { Chips } from "../../ui/Chips";
 import { FONT, INK, avatarTint, initials } from "../../lib/theme";
-import { EMAIL_RE } from "../../lib/format";
+import { EMAIL_RE, truncateEmailChip } from "../../lib/format";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import styles from "./index.module.css";
 
@@ -406,7 +406,7 @@ export function SendInvoiceSheet({
                                   >
                                     <Chips
                                       type="input"
-                                      label={r}
+                                      label={truncateEmailChip(r)}
                                       onDismiss={() => setRecipients((prev) => prev.filter((x) => x !== r))}
                                     />
                                   </motion.div>

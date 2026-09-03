@@ -7,6 +7,21 @@
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Truncates a long email for a chip/pill: the domain is usually short and is what identifies
+ *  the recipient at a glance, so the local part (before "@") is what gets the ellipsis, not a
+ *  plain end-of-string cut that would hide the domain entirely (e.g. Send Invoice's Add
+ *  Recipients chips). Falls back to a plain end cut only if the domain alone doesn't leave room. */
+export function truncateEmailChip(email: string, maxLength: number = 24): string {
+  if (email.length <= maxLength) return email;
+  const at = email.lastIndexOf("@");
+  if (at === -1) return `${email.slice(0, maxLength - 1)}…`;
+  const domain = email.slice(at);
+  const local = email.slice(0, at);
+  const availableForLocal = maxLength - domain.length - 1;
+  if (availableForLocal <= 0) return `${email.slice(0, maxLength - 1)}…`;
+  return `${local.slice(0, availableForLocal)}…${domain}`;
+}
+
 export const money = (n: number, currency: string = "USD") =>
   `${currency} ${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 

@@ -39,9 +39,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  /* Caps a single input chip (e.g. a long email recipient) so it can't grow unbounded — the
-     dismiss "x" (flex-shrink: 0 below) always stays visible/tappable regardless. */
-  max-width: 180px;
+  /* Safety-net cap so ANY label can't grow unbounded — the dismiss "x" (flex-shrink: 0 below)
+     always stays visible/tappable regardless. Callers with a known-long value that has a
+     "keep this part visible" structure (e.g. an email's @domain) should pre-truncate the string
+     themselves (see lib/format.ts's truncateEmailChip) rather than rely on this plain end-cut. */
+  max-width: 200px;
 }
 
 .dismiss {

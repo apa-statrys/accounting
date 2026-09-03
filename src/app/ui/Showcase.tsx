@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Download } from "lucide-react";
 import { FONT, INK, MUTED } from "../lib/theme";
+import { truncateEmailChip } from "../lib/format";
 import { Toggle } from "./Toggle";
 import { NumberStepper } from "./NumberStepper";
 import { Button, type Hierarchy } from "./Button";
@@ -1001,7 +1002,8 @@ function ChipsOverview() {
         <p className="text-[12px]" style={{ ...FONT, color: MUTED }}>
           As removable value pills (e.g. Send Invoice's Add Recipients) — press and hold one to see
           its Pressed surface; tap the "x" to remove it, animated in/out via AnimatePresence. A long
-          value (e.g. the last email below) truncates with an ellipsis — the "x" always stays visible:
+          email (e.g. the last one below) truncates the local part before "@" — the domain and the
+          "x" always stay visible (see lib/format.ts's truncateEmailChip):
         </p>
         <div className="flex flex-wrap gap-2">
           <AnimatePresence initial={false}>
@@ -1014,7 +1016,11 @@ function ChipsOverview() {
                 exit={{ opacity: 0, scale: 0.8 }}
                 transition={{ duration: 0.15 }}
               >
-                <Chips type="input" label={tag} onDismiss={() => setDemoTags((prev) => prev.filter((t) => t !== tag))} />
+                <Chips
+                  type="input"
+                  label={truncateEmailChip(tag)}
+                  onDismiss={() => setDemoTags((prev) => prev.filter((t) => t !== tag))}
+                />
               </motion.div>
             ))}
           </AnimatePresence>
