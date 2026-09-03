@@ -349,8 +349,8 @@ export function ScanDocument({
                 type="button"
                 onClick={handleAddSelected}
                 disabled={selectedOrder.length === 0}
-                className="link-upper-md w-full h-12 rounded-full text-white active:scale-95 transition-transform disabled:opacity-40"
-                style={{ background: BRAND_GRADIENT }}
+                className="link-upper-md w-full h-12 text-white active:scale-95 transition-transform disabled:opacity-40"
+                style={{ background: BRAND_GRADIENT, borderRadius: "var(--radius-md)" }}
               >
                 {selectedOrder.length > 0 ? `Add ${selectedOrder.length} Photo${selectedOrder.length === 1 ? "" : "s"}` : "Add Photo"}
               </button>
@@ -362,16 +362,16 @@ export function ScanDocument({
               <button
                 type="button"
                 onClick={handleRetake}
-                className="flex-1 h-12 rounded-full bg-white/15 text-white text-[15px] font-semibold active:scale-95 transition-transform"
-                style={FONT}
+                className="link-upper-md flex-1 h-12 bg-white/15 text-white active:scale-95 transition-transform"
+                style={{ borderRadius: "var(--radius-md)" }}
               >
                 Retake
               </button>
               <button
                 type="button"
                 onClick={handleUseImage}
-                className="link-upper-md flex-1 h-12 rounded-full text-white active:scale-95 transition-transform"
-                style={{ background: BRAND_GRADIENT }}
+                className="link-upper-md flex-1 h-12 text-white active:scale-95 transition-transform"
+                style={{ background: BRAND_GRADIENT, borderRadius: "var(--radius-md)" }}
               >
                 Use Image
               </button>
@@ -416,8 +416,8 @@ export function ScanDocument({
                   <button
                     type="button"
                     onClick={handleDone}
-                    className="link-upper-sm h-9 px-4 rounded-full text-white whitespace-nowrap active:scale-95 transition-transform"
-                    style={{ background: BRAND_GRADIENT }}
+                    className="link-upper-sm h-9 px-4 text-white whitespace-nowrap active:scale-95 transition-transform"
+                    style={{ background: BRAND_GRADIENT, borderRadius: "var(--radius-md)" }}
                   >
                     Next ({pageIds.length})
                   </button>
