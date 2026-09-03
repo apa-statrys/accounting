@@ -23,10 +23,6 @@ import { EMAIL_RE, truncateEmailChip } from "../../lib/format";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import styles from "./index.module.css";
 
-// Same hand-drawn warning-triangle illustration as DuplicateDecision's "This invoice already
-// exists" / UploadErrorDialog — every "can't proceed" moment shares this one icon.
-const warningTriangleIcon = new URL("../../pages/duplicate-decision-warning.svg", import.meta.url).href;
-
 function Label({ children }: { children: React.ReactNode }) {
   return <p className="body-sm-medium text-[var(--text-primary)]">{children}</p>;
 }
@@ -629,9 +625,7 @@ export function SendInvoiceSheet({
           </BottomSheet>
 
           {/* Dev-only (PageControls "Resend Limit Reached") — blocks Confirm & Send instead of
-              sending. Same hand-drawn-icon + headline + body shape as UploadErrorDialog/
-              DuplicateDecision's own "can't proceed" moments; hideClose since the single "Close"
-              footer button already covers dismissal. */}
+              sending; hideClose since the single "Close" footer button already covers dismissal. */}
           <BottomSheet
             open={resendLimitOpen}
             title=""
@@ -643,7 +637,6 @@ export function SendInvoiceSheet({
             }
           >
             <div className="flex flex-col gap-4">
-              <img src={warningTriangleIcon} alt="" width={48} height={45} />
               <div className="flex flex-col gap-2.5">
                 <p className="card-title-lg" style={{ color: "var(--text-primary)" }}>
                   You’ve reached today’s resend limit
