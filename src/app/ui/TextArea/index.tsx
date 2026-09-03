@@ -1,14 +1,16 @@
+import { forwardRef } from "react";
 import styles from "./index.module.css";
 
 /**
  * TextArea — design-system multi-line input (Figma "[APP] Design System" →
  * TextAreaFields, node 4338-1074 / TextArea, node 4338-1075). States:
  * Default / Focus (real :focus-within) / Filled (has a value) / Error /
- * Disabled. Optional label/caption/mandatory props add the labeled wrapper
- * (node 4338-1075): 14px regular label above, 14px caption below — caption
- * turns red on error; the label text never does, but its mandatory `*`
- * turns red while this field currently fails validation (matches
- * ui/TextField's label convention exactly). Styling in index.module.css.
+ * Disabled / Read-only. Optional label/caption/mandatory props add the
+ * labeled wrapper (node 4338-1075): 14px regular label above, 14px caption
+ * below — caption turns red on error; the label text never does, but its
+ * mandatory `*` turns red while this field currently fails validation
+ * (matches ui/TextField's label convention exactly). Styling in
+ * index.module.css.
  */
 
 interface TextAreaProps {
@@ -17,10 +19,13 @@ interface TextAreaProps {
   placeholder?: string;
   rows?: number;
   disabled?: boolean;
-  /** Looks the same as `disabled` (muted surface) but stays focusable/clickable — native
-   *  HTML `readOnly`, not `disabled`, so a tap still fires `onFocus`/`onClick` and the caller
-   *  can flip it into an editable state on first interaction (e.g. Send Invoice's Message
-   *  field: shown read-only until tapped, then editable). */
+  /** Looks like `disabled` (muted surface) but is a distinct state — `disabled` is a form-state
+   *  concern (this value won't be submitted); `readOnly` is fully inert on its own (not
+   *  focusable/clickable, `pointer-events: none`), for showing a value the user can't edit here.
+   *  A caller that wants a "tap to unlock and edit" interaction on top of that (e.g. Send
+   *  Invoice's Message field) builds it themselves: wrap this component, catch the click on the
+   *  wrapper (the inert field lets it through), flip `readOnly` off, and focus the forwarded ref —
+   *  that's a one-off page behavior, not something this prop does by itself. */
   readOnly?: boolean;
   error?: boolean;
   /** Paints the focused border without real focus — Showcase-only. */
@@ -40,25 +45,28 @@ interface TextAreaProps {
   className?: string;
 }
 
-export function TextArea({
-  value = "",
-  onChange,
-  placeholder,
-  rows = 5,
-  disabled = false,
-  readOnly = false,
-  error = false,
-  forceFocus = false,
-  id,
-  onFocus,
-  onBlur,
-  onKeyDown,
-  "aria-label": ariaLabel,
-  label,
-  mandatory = false,
-  caption,
-  className,
-}: TextAreaProps) {
+export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function TextArea(
+  {
+    value = "",
+    onChange,
+    placeholder,
+    rows = 5,
+    disabled = false,
+    readOnly = false,
+    error = false,
+    forceFocus = false,
+    id,
+    onFocus,
+    onBlur,
+    onKeyDown,
+    "aria-label": ariaLabel,
+    label,
+    mandatory = false,
+    caption,
+    className,
+  },
+  ref
+) {
   const classes = [
     styles.field,
     disabled ? styles.disabled : "",
@@ -72,6 +80,7 @@ export function TextArea({
 
   const field = (
     <textarea
+      ref={ref}
       id={id}
       className={classes}
       rows={rows}
@@ -83,6 +92,7 @@ export function TextArea({
       placeholder={placeholder}
       disabled={disabled}
       readOnly={readOnly}
+      tabIndex={readOnly ? -1 : undefined}
       aria-label={ariaLabel}
     />
   );
@@ -100,6 +110,6 @@ export function TextArea({
       {caption && <p className={`${styles.caption} ${error ? styles.captionError : ""}`}>{caption}</p>}
     </div>
   );
-}
+});
 
 export default TextArea;

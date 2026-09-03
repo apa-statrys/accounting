@@ -2,9 +2,11 @@
    TextArea (node 4338-1075). 8px radius, 16px/12px padding, resizable height
    left to the caller via `rows`. States: focus via :focus-within (border
    black), error border red (wins over focus), disabled greys the surface,
-   text and placeholder. readOnly reuses the same muted greys but keeps a
-   pointer cursor (unlike disabled) since it's still tappable to unlock.
-   Colors from styles/theme.css. */
+   text and placeholder. readOnly reuses the same muted greys but is fully
+   inert (pointer-events: none, plus tabIndex={-1} in the component) — a
+   caller building a "tap to unlock" interaction on top catches the click on
+   its own wrapper, since this field itself doesn't take it. Colors from
+   styles/theme.css. */
 
 .field {
   composes: body-sm from global;
@@ -42,7 +44,7 @@
 .readOnly {
   background: var(--field-bg-disabled);
   color: var(--text-disabled);
-  cursor: pointer;
+  pointer-events: none;
 }
 .readOnly::placeholder {
   color: var(--text-disabled);

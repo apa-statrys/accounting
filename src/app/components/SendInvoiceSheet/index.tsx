@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import LinkIcon from "@mui/icons-material/Link";
 import CheckIcon from "@mui/icons-material/Check";
@@ -119,9 +119,16 @@ export function SendInvoiceSheet({
       : `Dear ${customerName},\n\nPlease find attached Invoice #${invoiceNo} in the amount of ${amountLabel}, due on ${dueDateLabel}.\n\nYou can open the invoice by clicking the button below.\n\nThank you for your continued business.\n\nKind regards,\n\n${companyName}`
   );
   // Message starts read-only (Figma default is a pre-filled template) and unlocks for editing
-  // while focused — tapping in shows the normal editable field, clicking away reverts it to
-  // the read-only look again (the typed content itself is untouched either way).
+  // on tap, reverting to the read-only look on blur (the typed content itself is untouched
+  // either way) — a one-off interaction built on top of TextArea's inert readOnly state, not
+  // something that state does by itself (see ui/TextArea's own doc comment). The read TextArea
+  // itself has pointer-events: none while readOnly, so the click lands on the wrapping div
+  // below instead; unlocking then needs an explicit focus() since nothing native focused it.
   const [messageEditable, setMessageEditable] = useState(false);
+  const messageRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (messageEditable) messageRef.current?.focus();
+  }, [messageEditable]);
   const [saveDefault, setSaveDefault] = useState(false);
   const [showRecipients, setShowRecipients] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -435,14 +442,20 @@ export function SendInvoiceSheet({
                 {/* Message */}
                 <div className="flex flex-col gap-2">
                   <Label>Message</Label>
-                  <TextArea
-                    value={message}
-                    onChange={(v) => { setMessage(v); setSaveDefault(true); }}
-                    onFocus={(e) => { setMessageEditable(true); focusKeyboard(e); }}
-                    onBlur={() => { setMessageEditable(false); blurKeyboard(); }}
-                    readOnly={!messageEditable}
-                    rows={7}
-                  />
+                  <div
+                    onClick={() => { if (!messageEditable) setMessageEditable(true); }}
+                    className={messageEditable ? undefined : "cursor-pointer"}
+                  >
+                    <TextArea
+                      ref={messageRef}
+                      value={message}
+                      onChange={(v) => { setMessage(v); setSaveDefault(true); }}
+                      onFocus={focusKeyboard}
+                      onBlur={() => { setMessageEditable(false); blurKeyboard(); }}
+                      readOnly={!messageEditable}
+                      rows={7}
+                    />
+                  </div>
                 </div>
 
                 {/* Save default */}
