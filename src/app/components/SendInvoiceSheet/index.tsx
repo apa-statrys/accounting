@@ -156,11 +156,8 @@ export function SendInvoiceSheet({
   // Send just never completes (no onSend call), so tapping it again is the retry — no dedicated
   // retry affordance needed.
   const [pdfErrorToastOpen, setPdfErrorToastOpen] = useState(false);
-  // Dev-only (PageControls "Resend Limit Reached") — blocking dialog instead of the normal send;
-  // "Contact Support" has no real destination in this dummy-data prototype, so it just closes the
-  // dialog and confirms with a toast (same shape as the other dev-only-toast beats above).
+  // Dev-only (PageControls "Resend Limit Reached") — blocking dialog instead of the normal send.
   const [resendLimitOpen, setResendLimitOpen] = useState(false);
-  const [supportToastOpen, setSupportToastOpen] = useState(false);
   // Brief loading state on the primary button (dots) before it resolves to either the green
   // "Invoice Sent" confirmation or (forced-failure only) the red "Send Failed" state.
   const [sending, setSending] = useState(false);
@@ -285,11 +282,6 @@ export function SendInvoiceSheet({
       setSent(true);
       setTimeout(() => onSend?.(), 900);
     }, 900);
-  };
-
-  const handleContactSupport = () => {
-    setResendLimitOpen(false);
-    setSupportToastOpen(true);
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -638,8 +630,8 @@ export function SendInvoiceSheet({
 
           {/* Dev-only (PageControls "Resend Limit Reached") — blocks Confirm & Send instead of
               sending. Same hand-drawn-icon + headline + body shape as UploadErrorDialog/
-              DuplicateDecision's own "can't proceed" moments; hideClose since the footer's
-              Contact Support/Close pair already covers dismissal (same rule as UploadErrorDialog). */}
+              DuplicateDecision's own "can't proceed" moments; hideClose since the single "Close"
+              footer button already covers dismissal. */}
           <BottomSheet
             open={resendLimitOpen}
             title=""
@@ -647,33 +639,24 @@ export function SendInvoiceSheet({
             hideClose
             compact
             footer={
-              <ButtonDock
-                type="double"
-                primaryLabel="Contact Support"
-                secondaryLabel="Close"
-                onPrimary={handleContactSupport}
-                onSecondary={() => setResendLimitOpen(false)}
-              />
+              <ButtonDock type="single" primaryLabel="Close" onPrimary={() => setResendLimitOpen(false)} />
             }
           >
             <div className="flex flex-col gap-4">
               <img src={warningTriangleIcon} alt="" width={48} height={45} />
               <div className="flex flex-col gap-2.5">
                 <p className="card-title-lg" style={{ color: "var(--text-primary)" }}>
-                  You’ve reached the resend limit
+                  You’ve reached today’s resend limit
                 </p>
                 <p className="text-[14px] leading-[1.4]" style={{ ...FONT, color: "var(--text-secondary)" }}>
-                  This {docLabel.toLowerCase()} has already been sent 10 times. For security reasons,
-                  you can’t resend it again.
-                  <br />
-                  <br />
-                  If you need to send this {docLabel.toLowerCase()} again, please contact support.
+                  This {docLabel.toLowerCase()} has already been resent 10 times today. You can resend
+                  it again tomorrow.
                 </p>
               </div>
             </div>
           </BottomSheet>
 
-          {/* This sheet's ButtonDock is always type="single", so all toasts below rely on
+          {/* This sheet's ButtonDock is always type="single", so both toasts below rely on
               Toast's own default bottomOffset (96) — same "single dock" convention as
               InvoiceDetailPage's toastBottomOffset (150 is only for a "double" dock). */}
           <Toast
@@ -688,12 +671,6 @@ export function SendInvoiceSheet({
             message="Couldn't attach PDF, please try again"
             variant="error"
             onDone={() => setPdfErrorToastOpen(false)}
-          />
-
-          <Toast
-            open={supportToastOpen}
-            message="Support request sent"
-            onDone={() => setSupportToastOpen(false)}
           />
         </motion.div>
       )}
