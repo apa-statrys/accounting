@@ -79,6 +79,10 @@ interface InvoiceDetailPageProps {
   /** Dev (PageControls): open Record Payment on mount with an invalid amount, so the field's
    *  validation error shows immediately instead of requiring a real empty/invalid submit. */
   devRecordPaymentError?: boolean;
+  /** Dev (PageControls "Resend Limit Reached"): Confirm & Send on the Send sheet shows the
+   *  10-resend-cap dialog instead of sending. No real send-count tracking exists in this
+   *  prototype's data model — preview-only. */
+  devResendLimit?: boolean;
 }
 
 /** Status-aware sales-invoice detail (DES-715 / DES-716). */
@@ -106,6 +110,7 @@ export function InvoiceDetailPage({
   initialViewCn = false,
   lockedPeriod = false,
   devRecordPaymentError = false,
+  devResendLimit = false,
 }: InvoiceDetailPageProps) {
   const [status, setStatus] = useState<DetailStatus>(initialStatus);
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -1298,6 +1303,7 @@ export function InvoiceDetailPage({
         amountLabel={`${currency} ${TOTAL.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
         dueDateLabel={dueDateLabel}
         link={`https://pay.statrys.com/i/${invoiceNo.toLowerCase()}`}
+        resendLimitReached={devResendLimit}
         onClose={() => setSendSheetOpen(false)}
         onSend={completeSend}
         onSent={completeSend}

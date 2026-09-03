@@ -303,6 +303,10 @@ export default function App() {
   // InvoiceDetailPage uses for its own "Add credit note" action). Only takes effect when the open
   // invoice doesn't already carry a real CN of its own (see the initialCreditNote fallback below).
   const [detailDevAppliedCn, setDetailDevAppliedCn] = useState(false);
+  // Dev (PageControls, invoice detail "Resend Limit Reached" group) — makes the Send sheet's
+  // Confirm & Send show the 10-resend-cap dialog instead of sending. No real send-count tracking
+  // exists in this prototype's data model; this is preview-only.
+  const [detailDevResendLimit, setDetailDevResendLimit] = useState(false);
   // Dev (PageControls, Add/Edit Customer "Form" group) — seeds AddCustomerPage's submit-attempted
   // state so every required field's inline error shows on mount. Nonce forces a remount since
   // that seed is a useState initializer (mount-only).
@@ -655,6 +659,17 @@ export default function App() {
         toggle: {
           checked: detailDevAppliedCn,
           onChange: (next) => { setDetailDevAppliedCn(next); setDetailNavNonce((n) => n + 1); },
+        },
+      });
+    }
+    // Same gate as "Locked Period" above — resending only makes sense once the invoice has
+    // actually been sent at least once, which a Draft never has.
+    if (openInvoice.status !== "Draft") {
+      invoiceDetailGroups.push({
+        label: "Resend Limit Reached",
+        toggle: {
+          checked: detailDevResendLimit,
+          onChange: (next) => { setDetailDevResendLimit(next); setDetailNavNonce((n) => n + 1); },
         },
       });
     }
@@ -1137,6 +1152,7 @@ export default function App() {
           customerName={openInvoice.client}
           itemsCount={detailDevEmptyDraft ? 0 : openInvoice.itemsCount}
           devRecordPaymentError={detailDevRecordPaymentError}
+          devResendLimit={detailDevResendLimit}
           lockedPeriod={detailDevLockedPeriod}
           customerEmail={CREDIT_NOTES.find((c) => c.no === openInvoice.cnNo)?.email}
           companyEmail={settings.email}

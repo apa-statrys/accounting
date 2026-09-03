@@ -23,6 +23,10 @@ import { EMAIL_RE, truncateEmailChip } from "../../lib/format";
 import { scrollFieldIntoView } from "../../lib/scrollFieldIntoView";
 import styles from "./index.module.css";
 
+// Same hand-drawn warning-triangle illustration as DuplicateDecision's "This invoice already
+// exists" / UploadErrorDialog — every "can't proceed" moment shares this one icon.
+const warningTriangleIcon = new URL("../../pages/duplicate-decision-warning.svg", import.meta.url).href;
+
 function Label({ children }: { children: React.ReactNode }) {
   return <p className="body-sm-medium text-[var(--text-primary)]">{children}</p>;
 }
@@ -72,6 +76,11 @@ interface SendInvoiceSheetProps {
    *  from forceError's "Failed to send invoice" wording. Tapping Confirm & Send again is the
    *  retry — no dedicated retry control. Never set from the real send flow. */
   simulatePdfError?: boolean;
+  /** Dev-only (PageControls "Resend Limit Reached", invoice detail): simulate hitting the
+   *  10-resend cap — Confirm & Send opens a blocking dialog instead of sending. No real send-count
+   *  tracking exists in this prototype's data model; this is preview-only. Never set from the
+   *  real send flow. */
+  resendLimitReached?: boolean;
 }
 
 /**
@@ -100,6 +109,7 @@ export function SendInvoiceSheet({
   docPreview,
   forceError = false,
   simulatePdfError = false,
+  resendLimitReached = false,
 }: SendInvoiceSheetProps) {
   const [tab, setTab] = useState(0);
   const [scrolled, setScrolled] = useState(false);
@@ -146,6 +156,11 @@ export function SendInvoiceSheet({
   // Send just never completes (no onSend call), so tapping it again is the retry — no dedicated
   // retry affordance needed.
   const [pdfErrorToastOpen, setPdfErrorToastOpen] = useState(false);
+  // Dev-only (PageControls "Resend Limit Reached") — blocking dialog instead of the normal send;
+  // "Contact Support" has no real destination in this dummy-data prototype, so it just closes the
+  // dialog and confirms with a toast (same shape as the other dev-only-toast beats above).
+  const [resendLimitOpen, setResendLimitOpen] = useState(false);
+  const [supportToastOpen, setSupportToastOpen] = useState(false);
   // Brief loading state on the primary button (dots) before it resolves to either the green
   // "Invoice Sent" confirmation or (forced-failure only) the red "Send Failed" state.
   const [sending, setSending] = useState(false);
@@ -226,6 +241,12 @@ export function SendInvoiceSheet({
     setSendError(null);
     setSendFailed(false);
     setSent(false);
+    // Dev-only (PageControls "Resend Limit Reached") — a hard stop, not a retryable error, so it
+    // takes priority over the other dev-only failure scenarios below and skips the loading beat.
+    if (resendLimitReached) {
+      setResendLimitOpen(true);
+      return;
+    }
     // Dev-only forced-failure scenario (QuickNav "Send Invoice — Failed") — same loading beat as a
     // real send, then the button turns red/"Send Failed" + an error toast fires, before settling
     // back to its normal "Send Invoice" state so the scenario can be replayed.
@@ -264,6 +285,11 @@ export function SendInvoiceSheet({
       setSent(true);
       setTimeout(() => onSend?.(), 900);
     }, 900);
+  };
+
+  const handleContactSupport = () => {
+    setResendLimitOpen(false);
+    setSupportToastOpen(true);
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -610,7 +636,44 @@ export function SendInvoiceSheet({
             )}
           </BottomSheet>
 
-          {/* This sheet's ButtonDock is always type="single", so both toasts below rely on
+          {/* Dev-only (PageControls "Resend Limit Reached") — blocks Confirm & Send instead of
+              sending. Same hand-drawn-icon + headline + body shape as UploadErrorDialog/
+              DuplicateDecision's own "can't proceed" moments; hideClose since the footer's
+              Contact Support/Close pair already covers dismissal (same rule as UploadErrorDialog). */}
+          <BottomSheet
+            open={resendLimitOpen}
+            title=""
+            onClose={() => setResendLimitOpen(false)}
+            hideClose
+            compact
+            footer={
+              <ButtonDock
+                type="double"
+                primaryLabel="Contact Support"
+                secondaryLabel="Close"
+                onPrimary={handleContactSupport}
+                onSecondary={() => setResendLimitOpen(false)}
+              />
+            }
+          >
+            <div className="flex flex-col gap-4">
+              <img src={warningTriangleIcon} alt="" width={48} height={45} />
+              <div className="flex flex-col gap-2.5">
+                <p className="card-title-lg" style={{ color: "var(--text-primary)" }}>
+                  You’ve reached the resend limit
+                </p>
+                <p className="text-[14px] leading-[1.4]" style={{ ...FONT, color: "var(--text-secondary)" }}>
+                  This {docLabel.toLowerCase()} has already been sent 10 times. For security reasons,
+                  you can’t resend it again.
+                  <br />
+                  <br />
+                  If you need to send this {docLabel.toLowerCase()} again, please contact support.
+                </p>
+              </div>
+            </div>
+          </BottomSheet>
+
+          {/* This sheet's ButtonDock is always type="single", so all toasts below rely on
               Toast's own default bottomOffset (96) — same "single dock" convention as
               InvoiceDetailPage's toastBottomOffset (150 is only for a "double" dock). */}
           <Toast
@@ -625,6 +688,12 @@ export function SendInvoiceSheet({
             message="Couldn't attach PDF, please try again"
             variant="error"
             onDone={() => setPdfErrorToastOpen(false)}
+          />
+
+          <Toast
+            open={supportToastOpen}
+            message="Support request sent"
+            onDone={() => setSupportToastOpen(false)}
           />
         </motion.div>
       )}
