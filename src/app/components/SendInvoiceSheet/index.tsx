@@ -67,6 +67,11 @@ interface SendInvoiceSheetProps {
    *  toast — screen and button stay identical to a normal send, no inline banner/relabel. Never
    *  set from the real send flow. */
   forceError?: boolean;
+  /** Dev-only (Page States "PDF Attach Failed"): simulate the PDF failing to generate/attach —
+   *  Confirm & Send never completes (no onSend call) and shows its own error toast, distinct
+   *  from forceError's "Failed to send invoice" wording. Tapping Confirm & Send again is the
+   *  retry — no dedicated retry control. Never set from the real send flow. */
+  simulatePdfError?: boolean;
 }
 
 /**
@@ -94,6 +99,7 @@ export function SendInvoiceSheet({
   onQuickDownload,
   docPreview,
   forceError = false,
+  simulatePdfError = false,
 }: SendInvoiceSheetProps) {
   const [tab, setTab] = useState(0);
   const [scrolled, setScrolled] = useState(false);
@@ -112,6 +118,10 @@ export function SendInvoiceSheet({
       ? `Hi,\n\nPlease find attached Credit Note #${invoiceNo} for ${amountLabel}.\n\nYou can view your credit note using the button below.\n\nThank you for your business.`
       : `Dear ${customerName},\n\nPlease find attached Invoice #${invoiceNo} in the amount of ${amountLabel}, due on ${dueDateLabel}.\n\nYou can open the invoice by clicking the button below.\n\nThank you for your continued business.\n\nKind regards,\n\n${companyName}`
   );
+  // Message starts read-only (Figma default is a pre-filled template) and unlocks for editing
+  // while focused — tapping in shows the normal editable field, clicking away reverts it to
+  // the read-only look again (the typed content itself is untouched either way).
+  const [messageEditable, setMessageEditable] = useState(false);
   const [saveDefault, setSaveDefault] = useState(false);
   const [showRecipients, setShowRecipients] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -124,6 +134,11 @@ export function SendInvoiceSheet({
   // Dev-only forced-failure scenario (QuickNav "Send Invoice — Failed") — an error toast
   // alongside the button's own red "Send Failed" state (see sendFailed below).
   const [forceErrorToastOpen, setForceErrorToastOpen] = useState(false);
+  // Dev-only (Page States "PDF Attach Failed") — a separate error toast for the PDF-attach
+  // scenario specifically, worded differently from the generic Send Failed one above; Confirm &
+  // Send just never completes (no onSend call), so tapping it again is the retry — no dedicated
+  // retry affordance needed.
+  const [pdfErrorToastOpen, setPdfErrorToastOpen] = useState(false);
   // Brief loading state on the primary button (dots) before it resolves to either the green
   // "Invoice Sent" confirmation or (forced-failure only) the red "Send Failed" state.
   const [sending, setSending] = useState(false);
@@ -214,6 +229,17 @@ export function SendInvoiceSheet({
         setSendFailed(true);
         setForceErrorToastOpen(true);
         setTimeout(() => setSendFailed(false), 2000);
+      }, 900);
+      return;
+    }
+    // Dev-only (Page States "PDF Attach Failed") — same loading beat as a real send, then an
+    // error toast fires and Confirm & Send never completes (no onSend call) — tapping it again
+    // is the retry.
+    if (simulatePdfError) {
+      setSending(true);
+      setTimeout(() => {
+        setSending(false);
+        setPdfErrorToastOpen(true);
       }, 900);
       return;
     }
@@ -412,8 +438,9 @@ export function SendInvoiceSheet({
                   <TextArea
                     value={message}
                     onChange={(v) => { setMessage(v); setSaveDefault(true); }}
-                    onFocus={focusKeyboard}
-                    onBlur={blurKeyboard}
+                    onFocus={(e) => { setMessageEditable(true); focusKeyboard(e); }}
+                    onBlur={() => { setMessageEditable(false); blurKeyboard(); }}
+                    readOnly={!messageEditable}
                     rows={7}
                   />
                 </div>
@@ -570,12 +597,21 @@ export function SendInvoiceSheet({
             )}
           </BottomSheet>
 
+          {/* This sheet's ButtonDock is always type="single", so both toasts below rely on
+              Toast's own default bottomOffset (96) — same "single dock" convention as
+              InvoiceDetailPage's toastBottomOffset (150 is only for a "double" dock). */}
           <Toast
             open={forceErrorToastOpen}
             message="Failed to send invoice"
             variant="error"
-            bottomOffset={150}
             onDone={() => setForceErrorToastOpen(false)}
+          />
+
+          <Toast
+            open={pdfErrorToastOpen}
+            message="Couldn't attach PDF, please try again"
+            variant="error"
+            onDone={() => setPdfErrorToastOpen(false)}
           />
         </motion.div>
       )}

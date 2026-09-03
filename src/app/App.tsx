@@ -241,6 +241,9 @@ export default function App() {
   const [heroScenario, setHeroScenario] = useState(0);
   // Dev: QuickNav "Send Invoice — Failed" — forces the Send Invoice sheet's send action to fail.
   const [sendFailScenario, setSendFailScenario] = useState(false);
+  // Dev: Page States "PDF Attach Failed" — simulates the PDF failing to generate/attach, which
+  // blocks Confirm & Send behind an inline retryable error instead of a toast.
+  const [sendPdfFailScenario, setSendPdfFailScenario] = useState(false);
   // Dev: QuickNav zero-data empty states (Figma "All Invoices"/"Customer List", nodes
   // 2070-19191/2071-19448) — no real flow ever empties either demo register.
   const [forceEmptyInvoices, setForceEmptyInvoices] = useState(false);
@@ -424,7 +427,7 @@ export default function App() {
         { label: "Sales Invoice List", active: screen === "list", onSelect: () => { setToast(null); setListPreset(null); setForceEmptyInvoices(false); setListDevHideStatuses(undefined); setListNetworkError(false); setListDevNonce((n) => n + 1); setScreen("list"); } },
         // Default / Failed now live on the Send sheet's own PageControls panel (right gutter)
         // instead of a separate sidebar entry each — this jump always lands on the plain default.
-        { label: "Send Invoice", active: screen === "send", onSelect: () => { setSendFailScenario(false); setScreen("send"); } },
+        { label: "Send Invoice", active: screen === "send", onSelect: () => { setSendFailScenario(false); setSendPdfFailScenario(false); setScreen("send"); } },
       ],
       sections: [
         {
@@ -803,6 +806,10 @@ export default function App() {
       {
         label: "Send Failed",
         toggle: { checked: sendFailScenario, onChange: setSendFailScenario },
+      },
+      {
+        label: "PDF Attach Failed",
+        toggle: { checked: sendPdfFailScenario, onChange: setSendPdfFailScenario },
       },
     ];
   }
@@ -1480,6 +1487,7 @@ export default function App() {
           extracted={null}
           autoOpenSend
           forceSendError={sendFailScenario}
+          forceSendPdfError={sendPdfFailScenario}
           defaultChaser={settings.chaserEnabled}
           defaultAccountId={settings.paymentMethod}
           seedServices={DEMO_EXTRACTION.services}

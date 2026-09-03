@@ -67,6 +67,9 @@ interface AddInvoiceDetailsProps {
   /** Dev preview (QuickNav "Send Invoice — Failed") — force the Send Invoice sheet's send
    *  action to always fail, for reviewing the delivery-failure banner/retry state. */
   forceSendError?: boolean;
+  /** Dev preview (Page States "PDF Attach Failed") — simulate the PDF failing to generate/attach;
+   *  Confirm & Send shows its own error toast and never completes. */
+  forceSendPdfError?: boolean;
   /** Dev preview — seed the invoice with demo line items. */
   seedServices?: ServiceLine[];
   /** Dev preview (PageControls "Error (no items)"): show the Items validation error on mount —
@@ -180,6 +183,7 @@ export function AddInvoiceDetails({
   onSend,
   autoOpenSend,
   forceSendError,
+  forceSendPdfError,
   seedServices,
   initialItemsError,
   initial,
@@ -1145,6 +1149,7 @@ export function AddInvoiceDetails({
         dueDateLabel={dueDateLabel}
         link={shareLink}
         forceError={forceSendError}
+        simulatePdfError={forceSendPdfError}
         // ✕ on the Send Invoice page returns to the (still pre-filled) editor (user, 15/Jul) —
         // autosave already holds the work, so no draft toast / list redirect.
         onClose={() => setSendSheetOpen(false)}

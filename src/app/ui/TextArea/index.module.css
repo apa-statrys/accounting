@@ -2,7 +2,9 @@
    TextArea (node 4338-1075). 8px radius, 16px/12px padding, resizable height
    left to the caller via `rows`. States: focus via :focus-within (border
    black), error border red (wins over focus), disabled greys the surface,
-   text and placeholder. Colors from styles/theme.css. */
+   text and placeholder. readOnly reuses the same muted greys but keeps a
+   pointer cursor (unlike disabled) since it's still tappable to unlock.
+   Colors from styles/theme.css. */
 
 .field {
   composes: body-sm from global;
@@ -35,6 +37,14 @@
   color: var(--text-disabled);
 }
 .disabled::placeholder {
+  color: var(--text-disabled);
+}
+.readOnly {
+  background: var(--field-bg-disabled);
+  color: var(--text-disabled);
+  cursor: pointer;
+}
+.readOnly::placeholder {
   color: var(--text-disabled);
 }
 

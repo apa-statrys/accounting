@@ -17,6 +17,11 @@ interface TextAreaProps {
   placeholder?: string;
   rows?: number;
   disabled?: boolean;
+  /** Looks the same as `disabled` (muted surface) but stays focusable/clickable — native
+   *  HTML `readOnly`, not `disabled`, so a tap still fires `onFocus`/`onClick` and the caller
+   *  can flip it into an editable state on first interaction (e.g. Send Invoice's Message
+   *  field: shown read-only until tapped, then editable). */
+  readOnly?: boolean;
   error?: boolean;
   /** Paints the focused border without real focus — Showcase-only. */
   forceFocus?: boolean;
@@ -41,6 +46,7 @@ export function TextArea({
   placeholder,
   rows = 5,
   disabled = false,
+  readOnly = false,
   error = false,
   forceFocus = false,
   id,
@@ -56,6 +62,7 @@ export function TextArea({
   const classes = [
     styles.field,
     disabled ? styles.disabled : "",
+    readOnly ? styles.readOnly : "",
     error ? styles.error : "",
     forceFocus ? styles.forceFocus : "",
     label || caption ? "" : className || "",
@@ -75,6 +82,7 @@ export function TextArea({
       onKeyDown={onKeyDown}
       placeholder={placeholder}
       disabled={disabled}
+      readOnly={readOnly}
       aria-label={ariaLabel}
     />
   );

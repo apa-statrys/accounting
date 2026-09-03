@@ -2727,6 +2727,7 @@ const TEXTAREA_CONTROL_GROUPS: ControlGroup[] = [
       { value: "filled", label: "Filled" },
       { value: "error", label: "Error" },
       { value: "disabled", label: "Disabled" },
+      { value: "readOnly", label: "Read-only (tap to edit)" },
     ],
   },
   {
@@ -2748,11 +2749,12 @@ function TextAreaTestMe() {
         <div className="w-[280px]">
           <TextArea
             placeholder="Input text"
-            value={v.state === "filled" || v.state === "error" ? "Input text" : ""}
+            value={v.state === "filled" || v.state === "error" || v.state === "readOnly" ? "Input text" : ""}
             onChange={() => {}}
             forceFocus={v.state === "focused"}
             error={v.state === "error"}
             disabled={v.state === "disabled"}
+            readOnly={v.state === "readOnly"}
             label={v.label === "on" ? "Input Label" : undefined}
             mandatory={v.label === "on"}
             caption={v.label === "on" ? "Caption" : undefined}
