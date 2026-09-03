@@ -24,7 +24,7 @@ interface DuplicateDecisionProps {
   /** The file the user uploaded — shown here with a Preview button. */
   file?: UploadedFileInfo | null;
   onBack?: () => void;
-  /** Preview sheet's "Re-upload" — re-invokes the native scanner, not just a back navigation. */
+  /** Preview sheet's "Scan again" — re-invokes the native scanner, not just a back navigation. */
   onReupload?: () => void;
   /** Primary (DRAFT match) — open the existing draft's editor to keep editing it. */
   onEditExisting?: () => void;
@@ -95,10 +95,10 @@ export function DuplicateDecision({ existing, file, onBack, onReupload, onEditEx
             </div>
           </ListCard>
 
-          {/* Files — the same FileItemBase-based section as AddInvoiceDetails' own: a single file
-              stays full width, a multi-page scan splits into one FileItemBase per page at a
+          {/* Invoices — the same FileItemBase-based section as AddInvoiceDetails' own: a single
+              file stays full width, a multi-page scan splits into one FileItemBase per page at a
               fixed width in a horizontally scrollable strip so the next one peeks into view.
-              Tap a row to preview it; Re-upload (title-right) re-invokes the scanner directly
+              Tap a row to preview it; Scan again (title-right) re-invokes the scanner directly
               (same onReupload as the preview sheet's footer button). */}
           {file && (() => {
             const pageCount = file.pages && file.pages > 1 ? file.pages : 1;
@@ -106,7 +106,7 @@ export function DuplicateDecision({ existing, file, onBack, onReupload, onEditEx
             return (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="body-sm-medium text-[var(--text-primary)]">Files</p>
+                  <p className="body-sm-medium text-[var(--text-primary)]">Invoices</p>
                   {onReupload && (
                     <button
                       type="button"
@@ -115,7 +115,7 @@ export function DuplicateDecision({ existing, file, onBack, onReupload, onEditEx
                       style={{ color: "var(--link-primary)" }}
                     >
                       <RefreshCw size={14} strokeWidth={1.67} />
-                      Re-upload
+                      Scan again
                     </button>
                   )}
                 </div>
@@ -152,13 +152,13 @@ export function DuplicateDecision({ existing, file, onBack, onReupload, onEditEx
 
       {/* Preview — the actual invoice document (same InvoiceDocumentPreview the full PDF preview
           and Send sheet use), not a generic faux-scan mockup. Title is the uploaded file's own
-          name; "Re-upload" re-invokes the native scanner (onReupload), not just a back navigation. */}
+          name; "Scan again" re-invokes the native scanner (onReupload), not just a back navigation. */}
       <BottomSheet
         open={filePreviewOpen}
         title={file?.name ?? "Invoice"}
         onClose={() => setFilePreviewOpen(false)}
         heightClass="h-[72%]"
-        footer={<ButtonDock type="single" primaryLabel="Re-upload" onPrimary={onReupload} />}
+        footer={<ButtonDock type="single" primaryLabel="Scan again" onPrimary={onReupload} />}
       >
         <InvoiceDocumentPreview
           invoiceNo={existing.number}

@@ -215,7 +215,7 @@ export default function App() {
   // Kick off the upload/OCR simulation once a file's been "captured" — jumps straight to the
   // "reading" step with a demo file already returned by the scanner/picker. The Dashboard/List
   // "Upload Invoice" entry points reach this via CreateInvoiceSheet's own ScanDocument; every
-  // in-flow "Re-upload"/"Replace" action (DuplicateDecision, AddInvoiceDetails) reaches it via
+  // in-flow "Scan again" action (DuplicateDecision, AddInvoiceDetails) reaches it via
   // the standalone scanner below instead of skipping straight past it.
   const startUpload = (pages: number = 1) => {
     setCustomer(null); // customer comes from OCR — don't carry a previously-selected one in
@@ -224,7 +224,7 @@ export default function App() {
     setDetailsDevLockedPeriod(false); // a fresh upload always resets a previous PageControls toggle
     setScreen("extracting");
   };
-  // Standalone scanner overlay for in-flow "Re-upload"/"Replace" actions (DuplicateDecision,
+  // Standalone scanner overlay for in-flow "Scan again" actions (DuplicateDecision,
   // AddInvoiceDetails) — unlike the FAB's Create-Invoice chooser, there's no sheet to host
   // ScanDocument here, so it's mounted once at the root and toggled directly.
   const [reuploadScanOpen, setReuploadScanOpen] = useState(false);
@@ -1513,7 +1513,7 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
 
-        {/* Standalone scanner for in-flow "Re-upload"/"Replace" (DuplicateDecision, AddInvoiceDetails)
+        {/* Standalone scanner for in-flow "Scan again" (DuplicateDecision, AddInvoiceDetails)
             — same ScanDocument the FAB's Create-Invoice chooser uses, just without a sheet to host it
             in; mounted here so it overlays whatever screen triggered it. */}
         <ScanDocument

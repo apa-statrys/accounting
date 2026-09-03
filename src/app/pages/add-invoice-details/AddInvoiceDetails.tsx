@@ -604,18 +604,18 @@ export function AddInvoiceDetails({
           <CoverageBanner fieldsExtracted={fieldsExtracted} fieldsTotal={fieldsTotal} />
         )}
 
-        {/* Files — what the user just uploaded, using the SAME FileItemBase row as every other
+        {/* Invoices — what the user just scanned, using the SAME FileItemBase row as every other
             file display in the app. A single file stays full width, same as before; a multi-page
             scan splits into one FileItemBase per page, each a fixed width in a horizontally
             scrollable strip so the next one peeks into view. Tap a row to preview the original;
-            Re-upload (title-right, same re-upload path as the OCR-failure banner's "Upload a
-            clearer file" link) picks a different file entirely. */}
+            Scan again (title-right, same re-scan path as the OCR-failure banner's "Upload a
+            clearer file" link) captures a different document entirely. */}
         {isExtracted && uploadedFile && (() => {
           const pageCount = uploadedFile.pages && uploadedFile.pages > 1 ? uploadedFile.pages : 1;
           const fileType = uploadedFile.name.split(".").pop()?.toLowerCase() ?? "file";
           return (
             <Section
-              title="Files"
+              title="Invoices"
               titleRight={
                 onReupload && (
                   <button
@@ -625,7 +625,7 @@ export function AddInvoiceDetails({
                     style={{ color: "var(--link-primary)" }}
                   >
                     <RefreshCw size={14} strokeWidth={1.67} />
-                    Re-upload
+                    Scan again
                   </button>
                 )
               }
@@ -1181,16 +1181,16 @@ export function AddInvoiceDetails({
       {/* Read-only summary of the existing (duplicate) invoice */}
       <ExistingInvoiceSheet open={existingViewOpen} invoice={existingInvoice} onClose={() => setExistingViewOpen(false)} />
 
-      {/* Original uploaded file — shows the actual invoice document (same InvoiceDocumentPreview
+      {/* Original scanned file — shows the actual invoice document (same InvoiceDocumentPreview
           the full PDF preview and Send sheet use, populated from this page's current field values),
-          not a generic faux-scan mockup. Title is the uploaded file's own name; "Re-upload" reuses
-          the row's own re-upload path. */}
+          not a generic faux-scan mockup. Title is the uploaded file's own name; "Scan again" reuses
+          the row's own re-scan path. */}
       <BottomSheet
         open={filePreviewOpen}
         title={uploadedFile?.name ?? "Invoice"}
         onClose={() => setFilePreviewOpen(false)}
         heightClass="h-[72%]"
-        footer={onReupload ? <ButtonDock type="single" primaryLabel="Re-upload" onPrimary={onReupload} /> : undefined}
+        footer={onReupload ? <ButtonDock type="single" primaryLabel="Scan again" onPrimary={onReupload} /> : undefined}
       >
         <InvoiceDocumentPreview
           invoiceNo={invoiceNo}
