@@ -17,8 +17,9 @@ import type { Customer, NewFlag } from "../types";
 /**
  * Quick-access shortcuts to the most-billed customers. These are NOT a separate
  * customer database — just the top of the same list pulled up for convenience.
+ * Capped at 3 (decided) — only the top 3 by billing show as shortcuts.
  */
-const FREQUENT_IDS = ["marlow", "bright", "otto", "northwind", "lumen"];
+const FREQUENT_IDS = ["marlow", "bright", "otto"];
 
 /** Two-letter initials from a customer name (skips symbols like "&"). */
 function initials(name: string): string {
